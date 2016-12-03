@@ -1,0 +1,9 @@
+#!/bin/bash
+#SBATCH --job-name=fenix
+#SBATCH --output=fenix.out
+#SBATCH --error=fenix.err
+#SBATCH --nodes=2
+#SBATCH --time=00:02:00
+
+ulimit -s 20480
+/home/knteran/mpi-ulfm-0416/bin/mpirun --mca pml ob1 -am ft-enable-mpi --mca btl openib,sm,self --npernode 4 -n 8 ./fenix_stencil_1D 3 2

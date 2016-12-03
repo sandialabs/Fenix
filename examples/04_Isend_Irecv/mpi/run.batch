@@ -1,0 +1,8 @@
+#!/bin/bash
+#SBATCH --job-name=mpi
+#SBATCH --output=mpi.out
+#SBATCH --error=mpi.err
+#SBATCH --nodes=2
+#SBATCH --time=00:02:00
+
+mpirun  --npernode 4 -n 8 ./fenix_stencil_1D 3 2

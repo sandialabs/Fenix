@@ -1,0 +1,4 @@
+instructions:
+make
+sbatch run.batch 
+make clean
