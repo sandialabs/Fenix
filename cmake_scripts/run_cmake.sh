@@ -1,3 +1,3 @@
-cmake  /home/knteran/Fenix \
- -DCMAKE_C_COMPILER:STRING=/home/knteran/mpi-ulfm/bin/mpicc \
- -DCMAKE_CXX_COMPILER:STRING=/home/knteran/mpi-ulfm//bin/mpic++
+cmake  <YOur Fenix Directory> \
+ -DCMAKE_C_COMPILER:STRING=<Your ULFM DIR>/bin/mpicc \
+ -DCMAKE_CXX_COMPILER:STRING=<Your ULFM DIR>/bin/mpic++
