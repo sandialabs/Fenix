@@ -687,7 +687,7 @@ fenix_local_entry_t *subset_full(fenix_member_entry_t *me) {
 }
 
 void subset(fenix_group_entry_t *ge, fenix_member_entry_t *me, Fenix_Data_subset *ss) {
-#if 0
+#if 1
   fenix_version_t *version = &(me->version);
   fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
   fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]);
@@ -1225,9 +1225,12 @@ int member_restore_from_rank(int groupid, int memberid, void *target_buffer,
  * @param end_offset
  * @param stride
  * @param subset_specifier
+ *
+ * This routine creates 
  */
 int data_subset_create(int num_blocks, int start_offset, int end_offset, int stride,
                        Fenix_Data_subset *subset_specifier) {
+  /* Todo: re-initialize if the subset is already created */
   int retval = -1;
   if (num_blocks <= 0) {
     debug_print("ERROR Fenix_Data_subset_create: num_blocks <%d> must be positive\n",
@@ -1245,8 +1248,8 @@ int data_subset_create(int num_blocks, int start_offset, int end_offset, int str
     debug_print("ERROR Fenix_Data_subset_create: stride <%d> must be positive\n", stride);
     retval = FENIX_ERROR_SUBSET_STRIDE;
   } else {
-    subset_specifier->start_offsets = (int *) s_malloc(sizeof(int)*1);
-    subset_specifier->end_offsets = (int *) s_malloc(sizeof(int)*1);
+    subset_specifier->start_offsets = (int *) s_malloc(sizeof(int));
+    subset_specifier->end_offsets = (int *) s_malloc(sizeof(int));
     subset_specifier->num_blocks = num_blocks;
     subset_specifier->start_offsets[0] = start_offset;
     subset_specifier->end_offsets[0] = end_offset;

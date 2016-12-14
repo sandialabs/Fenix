@@ -33,8 +33,8 @@
 // this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
-// "AS IS" AND ANY // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
 // FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
 
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
 
+    // Creating subset with fixed stride
     Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
 
     // init my subset data 
@@ -118,6 +119,9 @@ int main(int argc, char **argv) {
     //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_commit(my_group, &my_timestamp);
   } else {
+    // Creating subset with fixed stride
+    Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
+
     Fenix_Data_member_restore(my_group, 777, subset, kCount, 1);
     recovered = 1;
     
@@ -155,9 +159,9 @@ int main(int argc, char **argv) {
       }
       printf("\n");
   } else if (rank == 0) {
-     for (index = 0; index < kCount; index++) {
+   //  for (index = 0; index < kCount; index++) {
          //printf("subset[%d]: %d; rank: %d; role: %d\n", index, subset[index], rank, fenix_role); 
-      }
+   //   }
       //printf("\n");
   }
  

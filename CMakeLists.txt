@@ -25,6 +25,8 @@ include_directories( "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
   #include(testref/TestAgainstReference)
 
   add_subdirectory(src)
+  add_subdirectory(test/subset_internal)
+  add_subdirectory(test/subsetv_internal)
   add_subdirectory(examples/01_hello_world/fenix)
   add_subdirectory(examples/01_hello_world/mpi)
   add_subdirectory(examples/02_send_recv/fenix)
