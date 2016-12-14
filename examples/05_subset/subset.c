@@ -149,10 +149,11 @@ int main(int argc, char **argv) {
       Fenix_Data_member_store(my_group, 777, subset_specifier);
   } 
 
-  Fenix_Data_member_store(my_group, 777, subset_specifier);
-  //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+ // Fenix_Data_member_store(my_group, 777, subset_specifier);
+  Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
   Fenix_Data_commit(my_group, &my_timestamp);
 
+#if 0
   if (rank == kKillID) {
      for (index = 0; index < kCount; index++) {
          printf("subset[%d]: %d; rank: %d; role: %d\n", index, subset[index], rank, fenix_role); 
@@ -164,6 +165,7 @@ int main(int argc, char **argv) {
    //   }
       //printf("\n");
   }
+#endif
  
   Fenix_Finalize();
   MPI_Finalize();

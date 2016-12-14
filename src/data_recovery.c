@@ -1230,7 +1230,6 @@ int member_restore_from_rank(int groupid, int memberid, void *target_buffer,
  */
 int data_subset_create(int num_blocks, int start_offset, int end_offset, int stride,
                        Fenix_Data_subset *subset_specifier) {
-  /* Todo: re-initialize if the subset is already created */
   int retval = -1;
   if (num_blocks <= 0) {
     debug_print("ERROR Fenix_Data_subset_create: num_blocks <%d> must be positive\n",
@@ -1323,8 +1322,8 @@ int data_subset_free(Fenix_Data_subset *subset_specifier) {
   int  retval = FENIX_SUCCESS;;
   free( subset_specifier->start_offsets );
   free( subset_specifier->end_offsets );
+  subset_specifier->specifier = __FENIX_SUBSET_UNDEFINED;
   return retval;
-
 }
 
 /**
@@ -1332,8 +1331,8 @@ int data_subset_free(Fenix_Data_subset *subset_specifier) {
  * @param subset_specifier
  */
 int data_subset_delete(Fenix_Data_subset *subset_specifier) {
+  data_subset_free(subset_specifier);
   free(subset_specifier);
-  subset_specifier = NULL;
   return FENIX_SUCCESS;
 }
 
