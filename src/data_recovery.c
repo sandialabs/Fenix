@@ -687,7 +687,7 @@ fenix_local_entry_t *subset_full(fenix_member_entry_t *me) {
 }
 
 void subset(fenix_group_entry_t *ge, fenix_member_entry_t *me, Fenix_Data_subset *ss) {
-#if 1
+#if 0
   fenix_version_t *version = &(me->version);
   fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
   fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]);
