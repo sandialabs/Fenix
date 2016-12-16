@@ -143,10 +143,6 @@ int main(int argc, char **argv) {
     recovered = 0;
     reset = 0;
     
-    if (rank == 2) {
-      printf("NOT-RECOVERED rank %d, inmsg[0]: %d, inmsg[1]: %d, inmsg[2]: %d; ROLE: %d\n", rank, inmsg[0], inmsg[1], inmsg[2], fenix_role);
-      printf("NOT-RECOVERED rank %d, outmsg[0]: %d, outmsg[1]: %d, outmsg[2]: %d; ROLE: %d\n", rank, outmsg[0], outmsg[1], outmsg[2], fenix_role);
-    }
 
   } else {
     int out_flag = 0;
@@ -156,18 +152,12 @@ int main(int argc, char **argv) {
     Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1);
     recovered = 1;
     reset = 1;
-    if(rank == 2) {
-      printf("RECOVERED rank %d, inmsg[0]: %d, inmsg[1]: %d, inmsg[2]: %d; ROLE: %d\n", rank, inmsg[0], inmsg[1], inmsg[2], fenix_role);
-      printf("RECOVERED rank %d, outmsg[0]: %d, outmsg[1]: %d, outmsg[2]: %d; ROLE: %d\n", rank, outmsg[0], outmsg[1], outmsg[2], fenix_role);
-    } 
   }
 
-#if 0
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
   }
-#endif
 
   for (i = 0; i < kNumIterations; i++) {
  
@@ -193,6 +183,7 @@ int main(int argc, char **argv) {
   int checksum[300];
   MPI_Allreduce(inmsg, checksum, kCount, MPI_INT, MPI_SUM, new_comm);
   MPI_Barrier(new_comm);
+
   if (rank == 0) {
     printf("DONE\n");
   }

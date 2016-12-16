@@ -1071,7 +1071,6 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
                                  gentry->comm);
     }
 
-#if 1
 
     /* Get the latest consistent copy */
     if (join_restore(gentry, version, gentry->comm) == 1) {
@@ -1092,9 +1091,6 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     } else {
       retval = FENIX_ERROR_GROUP_CREATE;
     }
-
-#endif
-
   }
   return retval;
 }
