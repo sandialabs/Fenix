@@ -108,11 +108,9 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
     /* Initialize Group */
     if (its_new == 1) {
       
-#ifdef __FENIX_DEBUG 
-      if (get_current_rank(comm) == 0) {
-        printf("this is a new group!\n"); 
+      if (options->verbose == 12 && get_current_rank(comm) == 0) {
+         printf("this is a new group!\n"); 
       }
-#endif
 
       group->count++;
       int next_group_position = find_next_group_position(group);
@@ -164,9 +162,14 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
       retval = _send_metadata(gentry->current_rank, gentry->in_rank, gentry->comm);
       retval = _send_group_data(gentry->current_rank, gentry->in_rank, gentry, gentry->comm);
     } else if (gentry->recovered == 1 && remote_need_recovery == 0) {
+      if (options->verbose == 18) {
+        verbose_print(
+                "c-rank: %d receiving group data %d from rank %d\n",
+                get_current_rank(*__fenix_g_user_world), gentry->groupid,
+                gentry->out_rank);
+      }
       retval = _recover_metadata(gentry->current_rank, gentry->out_rank, comm);
       retval = _recover_group_data(gentry->current_rank, gentry->out_rank, gentry, gentry->comm);
-
       /* Recovery is done. Change the flag */
       gentry->recovered = 0;
     }
@@ -417,7 +420,7 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     member_index = search_memberid(group_index, memberid);
   }
 
-  if (options->verbose == 18) {
+  if (options->verbose == 18 && g_data_recovery->group_entry[group_index].current_rank== 0 ) {
     verbose_print(
             "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
             get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
@@ -1025,10 +1028,14 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     debug_print("ERROR Fenix_Data_member_restore: group_id <%d> does not exist\n",
                 groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
+#if 0
   } else if (member_index == -1) {
-    debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist\n",
-                memberid);
+    /* Recovered Process Does not have member data at all */
+    /* Need special information */
+    debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
+                memberid,g_data_recovery->group_entry[group_index].current_rank);
     retval = FENIX_ERROR_INVALID_MEMBERID;
+#endif
   } else {
 
     /* Lazy recovery is yet to be supported */
@@ -1051,8 +1058,9 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     int current_status = mentry->state;
     int current_rank = get_current_rank(*__fenix_g_user_world);
 
-    debug_print("mentry->state: %d; rank: %d\n", mentry->state, current_rank);
-
+    if (options->verbose == 18 && g_data_recovery->group_entry[group_index].current_rank== 0 ) {
+       debug_print("mentry->state: %d; rank: %d\n", mentry->state, current_rank);
+    }
     MPI_Status status;
     /* Check the role of the neighbor define by the group */
     MPI_Sendrecv(&current_status, 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,

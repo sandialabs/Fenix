@@ -65,18 +65,21 @@
 
 const int kCount = 300;
 const int kTag = 1;
-const int kKillID = 2;
+//const int kKillID = 2;
 int kNumIterations = 2;
 
 void my_recover_callback(MPI_Comm new_comm, int error, void *callback_data) {
   int rank;
   double *y = (double *) callback_data;
-  MPI_Comm_rank(new_comm, &rank);
-  // printf("Callback %d %.2f\n", rank, y[2]);
+ // MPI_Comm_rank(new_comm, &rank);
 }
 
 int main(int argc, char **argv) {
 
+  if( argc < 2 ) {
+     printf("Usage: fenix_ring <number of spare process> <mpi rank being killed>\n");
+     exit(0);
+  }
   void (*recPtr)(MPI_Comm, int, void *);
   recPtr = &my_recover_callback;
   double x[4] = {0, 0, 0, 0};
@@ -90,7 +93,8 @@ int main(int argc, char **argv) {
   int fenix_role;
   MPI_Comm world_comm;
   MPI_Comm new_comm;
-  int spare_ranks = atoi(*++argv);
+  int spare_ranks = atoi(argv[1]);
+  int kKillID = atoi(argv[2]);
   MPI_Info info = MPI_INFO_NULL;
   int num_ranks;
   int rank;
@@ -100,6 +104,10 @@ int main(int argc, char **argv) {
   int my_depth = 0;
 
   MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if( rank == 0 ) {
+     printf("Executing the program with %d spare ranks. Rank %d will be killed.\n",spare_ranks,kKillID);
+  }
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   Fenix_Init(&fenix_role, world_comm, &new_comm, &argc, &argv,
              spare_ranks, 0, info, &error);
@@ -129,16 +137,14 @@ int main(int argc, char **argv) {
     outmsg[2] = rank + 3;
     outmsg[3] = -1000;
 
-    int v_print;
-    for (v_print = 0; v_print < kCount; v_print++) {
-        //printf("outmsg[%d]: %d; rank: %d; count: %d\n", v_print, outmsg[v_print], rank, kCount);        
-    }
     Fenix_Data_member_create(my_group, 777, outmsg, kCount, MPI_INT);
-    Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_member_create(my_group, 778, x, 4, MPI_DOUBLE);
-    Fenix_Data_member_store(my_group, 778, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_member_create(my_group, 779, inmsg, kCount, MPI_INT);
+
     Fenix_Data_member_store(my_group, 779, FENIX_DATA_SUBSET_FULL);
+    Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+    Fenix_Data_member_store(my_group, 778, FENIX_DATA_SUBSET_FULL);
+
     Fenix_Data_commit(my_group, &my_timestamp);
     recovered = 0;
     reset = 0;
@@ -146,22 +152,23 @@ int main(int argc, char **argv) {
 
   } else {
     int out_flag = 0;
-    Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 1);
     /* Should throw error if kCount is greater than 4 */
+    Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 1);
     Fenix_Data_member_restore(my_group, 778, x, 4, 1);
     Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1);
     recovered = 1;
     reset = 1;
   }
 
+#if 1
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
   }
+#endif
 
   for (i = 0; i < kNumIterations; i++) {
  
-    //printf("rank: %d; i: %d; role: %d\n", rank, i, fenix_role);
   
     if (rank == 0) {
       MPI_Send(outmsg, kCount, MPI_INT, 1, kTag, new_comm); // send to rank # 1
@@ -184,21 +191,19 @@ int main(int argc, char **argv) {
   MPI_Allreduce(inmsg, checksum, kCount, MPI_INT, MPI_SUM, new_comm);
   MPI_Barrier(new_comm);
 
-  if (rank == 0) {
-    printf("DONE\n");
-  }
-
-#if 1
   Fenix_Data_member_store(my_group, 777,FENIX_DATA_SUBSET_FULL);
   Fenix_Data_member_store(my_group, 778,FENIX_DATA_SUBSET_FULL);
   Fenix_Data_member_store(my_group, 779,FENIX_DATA_SUBSET_FULL);
   Fenix_Data_commit(my_group, &my_timestamp);
-#endif 
  
-  if (rank < 14) {
+  if (rank == 0 ) {
     int sum = (num_ranks * (num_ranks + 1)) / 2;
-    printf("num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
-    printf("Checksum: %d %d %d %d %d\n", checksum[0], checksum[1], checksum[2], checksum[3], checksum[100]);
+    if( sum == checksum[0] ) {
+       printf("Test SUCCESS: num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
+    } else {
+       printf("Test FAILED:: num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
+    }
+ //   printf("Checksum: %d %d %d %d %d\n", checksum[0], checksum[1], checksum[2], checksum[3], checksum[100]);
     printf("End of the program %d\n", rank);
   }
 

@@ -69,30 +69,32 @@ static struct option longopts[] = {{"verbose", required_argument, 0, 'v'}};
  * @param opts
  */
 void init_opt(int argc, char **argv, char *opts) {
-    int opt;
+    int myopt;
     options = (struct opt *) s_malloc(sizeof(struct opt));
     /* Initalize the value */
     options->verbose = -1;
     
     int index_options;
-    while ((opt = getopt_long((argc-1), argv, "v:", longopts, &index_options)) != -1) {
-        switch(opt) {
+    while ((myopt = getopt_long((argc-0), argv, "v:", longopts, &index_options)) != -1) {
+        switch(myopt) {
             case 'v': 
                 options->verbose = atoi(optarg);
                 break;
             default:
                 fprintf(stderr, "Usage: ./myprogram [-v level]\n");
-                exit(1); 
+               // exit(1); 
         }        
     }
 
   /* Ignore any remaining command line arguments (invalid options) */
+#if 0
   if (optind < (argc-1)) { 
-      //printf ("non-option ARGV-elements: ");
+    //  printf ("non-option ARGV-elements: ");
       while (optind < (argc-1)) {
-        //printf ("%s ", argv[optind++]);
+        printf ("%s ", argv[optind++]);
       }
-      //putchar('\n');
-    }
+    //  putchar('\n');
+  }
+#endif
 
 }
