@@ -1014,7 +1014,7 @@ int data_barrier(int group_id) {
  * @param time_stamp
  */
 int member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp) {
-  int retval = -1;
+  int retval =  FENIX_SUCCESS;
   int group_index = search_groupid(groupid);
   int member_index = search_memberid(group_index, memberid);
 
@@ -1046,9 +1046,9 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     fenix_member_entry_t *mentry;
     /* This part is moved to group recovery and part of group entity */
 
-    if (member_index != -1) {
+    if (member_index != -1) { /* Member enrty is avalable */
       mentry = &(member->member_entry[member_index]);
-    } else {
+    } else { /* Member entry is missing */
       member_index = member->count;
       mentry = &(member->member_entry[member->count]);
       member->count++;
@@ -1077,11 +1077,15 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
       _pc_recover_member_metadata(gentry->current_rank, gentry->out_rank, mentry, gentry->comm);
       _pc_recover_member_entries(gentry->current_rank, gentry->out_rank, gentry->depth, version,
                                  gentry->comm);
+    } else if ( current_status == NEEDFIX && remote_status == NEEDFIX) {
+       debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
+                memberid,g_data_recovery->group_entry[group_index].current_rank);
+       retval = FENIX_ERROR_INVALID_MEMBERID;
     }
 
-
+    
     /* Get the latest consistent copy */
-    if (join_restore(gentry, version, gentry->comm) == 1) {
+    if (  join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
       //printf("POSITION %d\n",version->position - 1);
       fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
       lentry->pdata = data;
