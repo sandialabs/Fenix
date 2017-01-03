@@ -1,0 +1,14 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/evalen/public/Fenix/examples/01_hello_world/mpi/mpi_hello_world.c
+mpi.h
+-
+stdio.h
+-
+
