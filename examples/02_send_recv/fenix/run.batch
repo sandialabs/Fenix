@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=fenix                
-#SBATCH --output=fenix.out
-#SBATCH --error=fenix.err
+#SBATCH --job-name=fenix_ring                
+#SBATCH --output=fenix_ring.out
+#SBATCH --error=fenix_ring.err
 #SBATCH --nodes=2                
 #SBATCH --time=00:02:00
 

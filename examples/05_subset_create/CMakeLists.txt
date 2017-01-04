@@ -8,6 +8,6 @@
 #  directory.
 #
 
-add_executable(subset subset.c)
+add_executable(subset subset_create.c)
 target_link_libraries(subset fenix)
 #test_against_reference(1d_heat_eqn 1d_heat_eqn 120)

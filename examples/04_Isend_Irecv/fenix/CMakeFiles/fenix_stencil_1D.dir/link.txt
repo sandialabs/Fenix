@@ -1,1 +1,0 @@
-/home/evalen/devtools/bin/mpicc     CMakeFiles/fenix_stencil_1D.dir/fenix_stencil_1D.c.o  -o fenix_stencil_1D  ../../../src/libfenix.a 

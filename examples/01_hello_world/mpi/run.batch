@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=mpi                
-#SBATCH --output=mpi.out
-#SBATCH --error=mpi.err
+#SBATCH --job-name=mpi_hello_world                
+#SBATCH --output=mpi_hello_world.out
+#SBATCH --error=mpi_hello_world.err
 #SBATCH --nodes=8                
 #SBATCH --time=00:15:00
 

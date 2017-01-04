@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=fenix                
-#SBATCH --output=fenix.out
-#SBATCH --error=fenix.err
+#SBATCH --job-name=fenix_hello_world                
+#SBATCH --output=fenix_hello_world.out
+#SBATCH --error=fenix_hello_world.err
 #SBATCH --nodes=2               
 #SBATCH --ntasks-per-node=4
 #SBATCH --time=00:20:00

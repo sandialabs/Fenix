@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=mpi
-#SBATCH --output=mpi.out
-#SBATCH --error=mpi.err
+#SBATCH --job-name=mpi_stencil_1D
+#SBATCH --output=mpi_stencil_1D.out
+#SBATCH --error=mpi_stencil_1D.err
 #SBATCH --nodes=2
 #SBATCH --time=00:02:00
 

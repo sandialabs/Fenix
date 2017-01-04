@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=fenix
-#SBATCH --output=fenix.out
-#SBATCH --error=fenix.err
+#SBATCH --job-name=fenix_stencil_1D
+#SBATCH --output=fenix_stencil_1D.out
+#SBATCH --error=fenix_stencil_1D.err
 #SBATCH --nodes=2
 #SBATCH --time=00:02:00
 
