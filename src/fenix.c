@@ -133,7 +133,7 @@ int Fenix_Data_commit(int group_id, int *time_stamp) {
     return data_commit(group_id, time_stamp);
 }
 
-int Fenix_Data_commit_barrier(int group_id, int *time_stamp){
+int Fenix_Data_commit_barrier(int group_id, int *time_stamp) {
     return data_commit_barrier(group_id, time_stamp);
 }
 
@@ -150,13 +150,11 @@ int Fenix_Data_member_resore_from_rank(int group_id, int member_id, void *target
 }
 
 int Fenix_Data_subset_create(int num_blocks, int start_offset, int end_offset, int stride, Fenix_Data_subset *subset_specifier) {
-    data_subset_create(num_blocks, start_offset, end_offset, stride, subset_specifier);
-    return 0;
+    return data_subset_create(num_blocks, start_offset, end_offset, stride, subset_specifier);
 }
 
 int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets, int *array_end_offsets, Fenix_Data_subset *subset_specifier) {
-    data_subset_createv(num_blocks, array_start_offsets, array_end_offsets, subset_specifier);
-    return ;
+    return data_subset_createv(num_blocks, array_start_offsets, array_end_offsets, subset_specifier);
 }
 
 int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier) {
