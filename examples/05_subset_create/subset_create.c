@@ -105,6 +105,8 @@ int main(int argc, char **argv) {
 
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
 
+    printf("here\n");
+
     // Creating subset with fixed stride
     Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
 
