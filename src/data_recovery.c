@@ -75,7 +75,7 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
   int retval = -1;
   int group_index = search_groupid(groupid);
   if (options->verbose == 12) {
-    verbose_print("c-rank: %d, group_index: %d\n", get_current_rank(*__fenix_g_user_world), group_index);
+    verbose_print("c-rank: %d, group_index: %d\n", get_current_rank(*__fenix_g_new_world), group_index);
   }
   if (timestamp < 0) {
     debug_print("ERROR Fenix_Data_group_create: time_stamp <%d> must be greater than or equal to zero\n", timestamp);
@@ -137,7 +137,7 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
       if (options->verbose == 12) {
         verbose_print(
                 "c-rank: %d, g-groupid: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
-                get_current_rank(*__fenix_g_user_world), gentry->groupid,
+                get_current_rank(*__fenix_g_new_world), gentry->groupid,
                 gentry->timestamp,
                 gentry->depth,
                 gentry->state);
@@ -165,7 +165,7 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
       if (options->verbose == 18) {
         verbose_print(
                 "c-rank: %d receiving group data %d from rank %d\n",
-                get_current_rank(*__fenix_g_user_world), gentry->groupid,
+                get_current_rank(*__fenix_g_new_world), gentry->groupid,
                 gentry->out_rank);
       }
       retval = _recover_metadata(gentry->current_rank, gentry->out_rank, comm);
@@ -201,7 +201,7 @@ int member_create(int groupid, int memberid, void *data, int count,
 
   if (options->verbose == 13) {
     verbose_print("c-rank: %d, group_index: %d, member_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world),
+                  get_current_rank(*__fenix_g_new_world),
                   group_index, member_index);
   }
 
@@ -231,7 +231,7 @@ int member_create(int groupid, int memberid, void *data, int count,
 
     if (options->verbose == 13) {
       verbose_print("c-rank: %d, next_member_position: %d\n",
-                    get_current_rank(*__fenix_g_user_world),
+                    get_current_rank(*__fenix_g_new_world),
                     next_member_position);
     }
 
@@ -423,7 +423,7 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
   if (options->verbose == 18 && g_data_recovery->group_entry[group_index].current_rank== 0 ) {
     verbose_print(
             "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
-            get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
+            get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
             member_index, memberid);
   }
 
@@ -605,7 +605,7 @@ int member_istore(int groupid, int memberid, Fenix_Data_subset specifier,
   if (options->verbose == 18) {
     verbose_print(
             "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
-            get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
+            get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
             member_index, memberid);
   }
 
@@ -723,7 +723,7 @@ void subset(fenix_group_entry_t *ge, fenix_member_entry_t *me, Fenix_Data_subset
   lentry_packet.entry_count = lentry->count;
   lentry_packet.entry_size = subset_total_size;
 
-  int current_rank = get_current_rank(*__fenix_g_user_world);
+  int current_rank = get_current_rank(*__fenix_g_new_world);
   int current_role = __fenix_g_role;
 
   MPI_Sendrecv(&lentry_packet, sizeof(member_store_packet_t), MPI_BYTE, ge->out_rank,
@@ -916,7 +916,7 @@ int data_commit(int groupid, int *timestamp) {
   int retval = -1;
   int group_index = search_groupid(groupid);
   if (options->verbose == 22) {
-    verbose_print("c-rank: %d, role: %d, group_index: %d\n", get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index);
+    verbose_print("c-rank: %d, role: %d, group_index: %d\n", get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index);
   }
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
@@ -943,7 +943,7 @@ int data_commit_barrier(int groupid, int *timestamp) {
   int group_index = search_groupid(groupid);
   if (options->verbose == 23) {
     verbose_print("c-rank: %d, role: %d, group_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index);
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index);
   }
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
@@ -1020,7 +1020,7 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
 
   if (options->verbose == 25) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
                   member_index);
   }
 
@@ -1056,7 +1056,7 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
 
     int remote_status = 0;
     int current_status = mentry->state;
-    int current_rank = get_current_rank(*__fenix_g_user_world);
+    int current_rank = get_current_rank(*__fenix_g_new_world);
 
     if (options->verbose == 18 && g_data_recovery->group_entry[group_index].current_rank== 0 ) {
        debug_print("mentry->state: %d; rank: %d\n", mentry->state, current_rank);
@@ -1095,7 +1095,7 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
       memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
       if (options->verbose == 25) {
         verbose_print("c-rank: %d, role: %d, v-pos: %d, ld-totalsize: %d\n",
-                      get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                      get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                       (version->position - 1), (lentry->count * lentry->size));
       }
       // member->status = __FENIX_MEMBER_FINE; 
@@ -1127,12 +1127,12 @@ int member_restore_from_rank(int groupid, int memberid, void *target_buffer,
   int retval = -1;
   int group_index = search_groupid(groupid);
   int member_index = search_memberid(group_index, memberid);
-  int current_rank = get_current_rank(*__fenix_g_user_world);
+  int current_rank = get_current_rank(*__fenix_g_new_world);
   int total_ranks = get_world_size(*__fenix_g_new_world);
 
  if (options->verbose == 25) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
                   member_index);
   }
 
@@ -1212,7 +1212,7 @@ int member_restore_from_rank(int groupid, int memberid, void *target_buffer,
       memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
       if (options->verbose == 25) {
         verbose_print("c-rank: %d, role: %d, v-pos: %d, ld-totalsize: %d\n",
-                      get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                      get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                       (version->position - 1), (lentry->count * lentry->size));
       }
       // member->status = __FENIX_MEMBER_FINE; 
@@ -1430,7 +1430,7 @@ int get_snapshot_at_position(int groupid, int position, int *timestamp) {
   int group_index = search_groupid(groupid);
   if (options->verbose == 33) {
     verbose_print("c-rank: %d, role: %d, group_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index);
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index);
   }
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
@@ -1480,7 +1480,7 @@ int member_get_attribute(int groupid, int memberid, int attributename,
   int member_index = search_memberid(group_index, memberid);
   if (options->verbose == 34) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
                   member_index);
   }
   if (group_index == -1) {
@@ -1548,7 +1548,7 @@ int member_set_attribute(int groupid, int memberid, int attributename,
   int member_index = search_memberid(group_index, memberid);
   if (options->verbose == 35) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
                   member_index);
   }
   if (group_index == -1) {
@@ -1677,7 +1677,7 @@ int group_delete(int groupid) {
 
   if (options->verbose == 37) {
     verbose_print("c-rank: %d, group_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), group_index);
+                  get_current_rank(*__fenix_g_new_world), group_index);
   }
 
   if (group_index == -1) {
@@ -1696,7 +1696,7 @@ int group_delete(int groupid) {
     if (options->verbose == 37) {
       verbose_print(
               "c-rank: %d, g-count: %d, g-size: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
-              get_current_rank(*__fenix_g_user_world), group->count, group->size,
+              get_current_rank(*__fenix_g_new_world), group->count, group->size,
               gentry->depth, gentry->groupid,
               gentry->timestamp, gentry->state);
     }
@@ -1716,7 +1716,7 @@ int group_delete(int groupid) {
       if (options->verbose == 37) {
         verbose_print(
                 "c-rank: %d, member[%d] m-count: %d, m-size: %d, m-memberid: %d, m-state: %d, v-count: %d\n",
-                get_current_rank(*__fenix_g_user_world), member_index, member->count,
+                get_current_rank(*__fenix_g_new_world), member_index, member->count,
                 member->size, mentry->memberid,
                 mentry->state, version->count);
       }
@@ -1745,7 +1745,7 @@ int member_delete(int groupid, int memberid) {
 
   if (options->verbose == 38) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group_index,
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
                   member_index);
   }
 
@@ -1769,7 +1769,7 @@ int member_delete(int groupid, int memberid) {
 
     if (options->verbose == 38) {
       verbose_print("c-rank: %d, role: %d, m-count: %d, m-state: %d, v-count: %d\n",
-                    get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                    get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                     member->count, mentry->state,
                     version->count);
     }
@@ -1951,7 +1951,7 @@ void free_local(fenix_local_entry_t *l) {
   if (options->verbose == 46) {
     verbose_print(
             "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
-            get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+            get_current_rank(*__fenix_g_new_world), __fenix_g_role,
             local->currentrank, local->count, local->size);
   }
 
@@ -1975,7 +1975,7 @@ void free_remote(fenix_remote_entry_t *r) {
   if (options->verbose == 47) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
-            get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+            get_current_rank(*__fenix_g_new_world), __fenix_g_role,
             remote->remoterank, remote->count, remote->size);
   }
 
@@ -1997,7 +1997,7 @@ void reinit_group(fenix_group_t *g, two_container_packet_t packet) {
 
   if (options->verbose == 48) {
     verbose_print("c-rank: %d, role: %d, g-size: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, group->size);
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, group->size);
   }
 
   int group_index;
@@ -2011,7 +2011,7 @@ void reinit_group(fenix_group_t *g, two_container_packet_t packet) {
     if (options->verbose == 48) {
       verbose_print(
               "c-rank: %d, role: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
-              get_current_rank(*__fenix_g_user_world), __fenix_g_role, gentry->depth,
+              get_current_rank(*__fenix_g_new_world), __fenix_g_role, gentry->depth,
               gentry->groupid, gentry->timestamp, gentry->state);
     }
 
@@ -2036,7 +2036,7 @@ void reinit_member(fenix_member_t *m, two_container_packet_t packet,
                                                             sizeof(fenix_member_entry_t));
   if (options->verbose == 50) {
     verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                   member->count, member->size);
   }
 
@@ -2049,7 +2049,7 @@ void reinit_member(fenix_member_t *m, two_container_packet_t packet,
     mentry->state = mystatus;
     if (options->verbose == 50) {
       verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                    get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                    get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                     mentry->memberid, mentry->state);
     }
 
@@ -2078,7 +2078,7 @@ void reinit_version(fenix_version_t *v, container_packet_t packet) {
 
   if (options->verbose == 49) {
     verbose_print("c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
-                  get_current_rank(*__fenix_g_user_world), __fenix_g_role, v->count,
+                  get_current_rank(*__fenix_g_new_world), __fenix_g_role, v->count,
                   v->size, v->position);
   }
 
@@ -2120,7 +2120,7 @@ void ensure_group_capacity(fenix_group_t *g) {
       if (options->verbose == 51) {
         verbose_print(
                 "c-rank: %d, role: %d, group[%d] g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
-                get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                 group_index, gentry->depth, gentry->groupid, gentry->groupid,
                 gentry->timestamp, gentry->state);
       }
@@ -2157,7 +2157,7 @@ void ensure_member_capacity(fenix_member_t *m) {
       if (options->verbose == 52) {
         verbose_print(
                 "c-rank: %d, role: %d, member[%d] m-memberid: %d, m-state: %d\n",
-                get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                 member_index, mentry->memberid, mentry->state);
       }
 
@@ -2189,7 +2189,7 @@ void ensure_version_capacity(fenix_member_t *m) {
       if (options->verbose == 53) {
         verbose_print(
                 "c-rank: %d, role: %d, member[%d] v-count: %d, v-size: %d\n",
-                get_current_rank(*__fenix_g_user_world), __fenix_g_role,
+                get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                 member_index, version->count, version->size);
       }
 
@@ -2291,7 +2291,7 @@ int join_group(fenix_group_t *g, fenix_group_entry_t *ge, MPI_Comm comm) {
   if (options->verbose == 58) {
     verbose_print(
             "c-rank: %d, g-count: %d, g-groupid: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
-            get_current_rank(*__fenix_g_user_world), group->count, gentry->groupid,
+            get_current_rank(*__fenix_g_new_world), group->count, gentry->groupid,
             gentry->timestamp, gentry->depth, gentry->state);
   }
 
@@ -2451,14 +2451,14 @@ void __feninx_dr_print_store() {
         int *local_data = current->group_entry[group].member.member_entry[member].version.local_entry[version].data;
         for (int local = 0; local < local_data_count; local++) {
           //printf("*** store rank[%d] group[%d] member[%d] local[%d]: %d\n",
-          //get_current_rank(*__fenix_g_user_world), group, member, local,
+          //get_current_rank(*__fenix_g_new_world), group, member, local,
           //local_data[local]);
         }
         int remote_data_count = current->group_entry[group].member.member_entry[member].version.remote_entry[version].count;
         int *remote_data = current->group_entry[group].member.member_entry[member].version.remote_entry[version].data;
         for (int remote = 0; remote < remote_data_count; remote++) {
           printf("*** store rank[%d] group[%d] member[%d] remote[%d]: %d\n",
-                 get_current_rank(*__fenix_g_user_world), group, member, remote,
+                 get_current_rank(*__fenix_g_new_world), group, member, remote,
                  remote_data[remote]);
         }
       }
@@ -2477,7 +2477,7 @@ void __fenix_dr_print_restore() {
   int local_data_count = current->group_entry[0].member.member_entry[0].version.local_entry[0].count;
   int remote_data_count = current->group_entry[0].member.member_entry[0].version.remote_entry[0].count;
   printf("*** restore rank: %d; group: %d; member: %d; local: %d; remote: %d\n",
-         get_current_rank(*__fenix_g_user_world), group_count, member_count,
+         get_current_rank(*__fenix_g_new_world), group_count, member_count,
          local_data_count,
          remote_data_count);
 }
@@ -2492,7 +2492,7 @@ void __fenix_dr_print_datastructure() {
     return;
   }
 
-  printf("\n\ncurrent_rank: %d\n", get_current_rank(*__fenix_g_user_world));
+  printf("\n\ncurrent_rank: %d\n", get_current_rank(*__fenix_g_new_world));
   int group_size = current->size;
   for (int group_index = 0; group_index < group_size; group_index++) {
     int depth = current->group_entry[group_index].depth;
