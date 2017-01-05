@@ -1810,13 +1810,6 @@ fenix_group_t *init_group() {
     gentry->timestamp = 0;
     gentry->state = EMPTY;
 
-    if (options->verbose == 41) {
-      verbose_print(
-              "c-rank: %d, role: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d g-state: %d\n",
-              get_current_rank(*__fenix_g_world), __fenix_g_role, gentry->depth,
-              gentry->timestamp, gentry->state);
-    }
-
     gentry->member = *init_member();
   }
   return group;
@@ -1833,24 +1826,12 @@ fenix_member_t *init_member() {
   member->member_entry = (fenix_member_entry_t *) s_malloc(
           __FENIX_DEFAULT_MEMBER_SIZE * sizeof(fenix_member_entry_t));
 
-  if (options->verbose == 42) {
-    verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
-                  get_current_rank(*__fenix_g_world), __fenix_g_role, member->count,
-                  member->size);
-  }
-
   int member_index;
   for (member_index = 0; member_index <
                          __FENIX_DEFAULT_MEMBER_SIZE; member_index++) { // insert default values
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     mentry->memberid = -1;
     mentry->state = EMPTY;
-
-    if (options->verbose == 42) {
-      verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                    get_current_rank(*__fenix_g_world), __fenix_g_role,
-                    mentry->memberid, mentry->state);
-    }
 
     mentry->version = *init_version();
   }
@@ -1871,13 +1852,6 @@ fenix_version_t *init_version() {
           __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_local_entry_t));
   version->remote_entry = (fenix_remote_entry_t *) s_malloc(
           __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_remote_entry_t));
-
-  if (options->verbose == 43) {
-    verbose_print(
-            "c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
-            get_current_rank(*__fenix_g_world), __fenix_g_role, version->count,
-            version->size, version->position);
-  }
 
   int version_index;
   for (version_index = 0;
@@ -1901,13 +1875,6 @@ fenix_local_entry_t *init_local() {
   local->size = 0;
   local->datatype = NULL;
 
-  if (options->verbose == 44) {
-    verbose_print(
-            "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
-            get_current_rank(*__fenix_g_world), __fenix_g_role, local->currentrank,
-            local->count, local->size);
-  }
-
   return local;
 }
 
@@ -1923,13 +1890,6 @@ fenix_remote_entry_t *init_remote() {
   remote->count = 0;
   remote->size = 0;
   remote->datatype = NULL;
-
-  if (options->verbose == 45) {
-    verbose_print(
-            "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
-            get_current_rank(*__fenix_g_world), __fenix_g_role, remote->remoterank,
-            remote->count, remote->size);
-  }
 
   return remote;
 }

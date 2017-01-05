@@ -65,11 +65,6 @@ const int kKillID = 3;
 
 int main(int argc, char **argv) {
 
-  if (argc != 2) {
-    printf("Usage: %s <# spare ranks> \n", *argv);
-    exit(0);
-  }
-
   int old_world_size, new_world_size = - 1;
   int old_rank = 1, new_rank = - 1;
   int spare_ranks = atoi(*++ argv);
@@ -77,8 +72,6 @@ int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm world_comm;
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
-  MPI_Comm_size(world_comm, &old_world_size);
-  MPI_Comm_rank(world_comm, &old_rank);
 
   int fenix_status;
   int recovered = 0;
@@ -105,6 +98,7 @@ int main(int argc, char **argv) {
 
   printf("hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active ranks: %d, ranks before process failure: %d\n",
          processor_name, old_rank, new_rank, new_world_size, old_world_size);
+
 
   Fenix_Finalize();
   MPI_Finalize();

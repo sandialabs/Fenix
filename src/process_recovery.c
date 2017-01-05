@@ -54,7 +54,7 @@
 //@HEADER
 */
 
-//#include "fenix.h"
+#include "fenix.h"
 #include "constants.h"
 #include "process_recovery.h"
 #include "data_recovery.h"
@@ -136,6 +136,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
     }
   }
 
+
   if (__fenix_g_spare_ranks >= get_world_size(comm)) {
     debug_print("Fenix: <%d> spare ranks requested are unavailable\n",
                 __fenix_g_spare_ranks);
@@ -156,6 +157,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
   /*       Any MPI calls in spare ranks with new_world */
   /*       trigger an abort.                           */
   /*****************************************************/
+
 
   ret = 1;
   while (ret) {
@@ -184,6 +186,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
             __fenix_g_num_inital_ranks);   
     }
   }
+
   __fenix_g_num_survivor_ranks = 0;
   __fenix_g_num_recovered_ranks = 0;
   while (spare_rank() == 1) {
@@ -209,6 +212,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
   }
 
   return __fenix_g_role;
+  //return 0;
 }
 
 
@@ -824,7 +828,7 @@ int callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_dat
  * @param 
  * @param 
  */
-void postinit(int *error) {
+int postinit(int *error) {
 
   if (options->verbose == 9) {
     verbose_print("current_rank: %d, role: %d\n", get_current_rank(*__fenix_g_new_world),
@@ -832,7 +836,6 @@ void postinit(int *error) {
   }
 
   PMPI_Barrier(*__fenix_g_new_world);
-
 
   if (__fenix_g_replace_comm_flag == 0) {
     PMPI_Comm_dup(*__fenix_g_new_world, __fenix_g_user_world);
@@ -846,12 +849,6 @@ void postinit(int *error) {
   }
   __fenix_g_fenix_init_flag = 1;
 
-#if 0
-  if (__fenix_g_role != FENIX_ROLE_INITIAL_RANK) {
-    init_data_recovery();
-  }
-#endif
-
   if (__fenix_g_role == FENIX_ROLE_SURVIVOR_RANK) {
     struct callback_list *current = __fenix_g_callback_list;
     while (current != NULL) {
@@ -864,6 +861,10 @@ void postinit(int *error) {
     verbose_print("After barrier. current_rank: %d, role: %d\n", get_current_rank(*__fenix_g_new_world),
                   __fenix_g_role);
   }
+
+
+
+  return 0;
 }
 
 /**
@@ -873,8 +874,10 @@ void postinit(int *error) {
  * @param 
  * @param 
  */
-void finalize() {
+int finalize() {
   /* Last Barrier Statement */
+ 
+
   MPI_Barrier( *__fenix_g_new_world );
   if (options->verbose == 10) {
     verbose_print("current_rank: %d, role: %d\n", get_current_rank(*__fenix_g_new_world),
@@ -907,6 +910,7 @@ void finalize() {
   free(__fenix_g_new_world);
 
   /* Free the Hash Table */
+
 
 }
 
