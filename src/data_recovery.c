@@ -246,9 +246,7 @@ int member_create(int groupid, int memberid, void *data, int count,
 
     mentry->size_datatype = mentry->current_size = dsize;
 
-
     fenix_version_t *version = &(member->member_entry[next_member_position].version);
-
 
     /* Check the size of data in the partner */
     /* We may need to send the data type at remote rank */
@@ -408,14 +406,14 @@ int data_test(Fenix_Request request, int *flag) {
  */
 
 /*
- *  This is covering store_v routine.
+ *  note: this is covering store_v routine
  */
 int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
   int retval = -1;
   int group_index = search_groupid(groupid);
   int member_index = -1;
 
-  /* Check the member id alreay exit. If so, the idex of the storage space is assigned */
+  /* check if member id alreay exists */
   if (memberid != FENIX_DATA_MEMBER_ALL) {
     member_index = search_memberid(group_index, memberid);
   }
@@ -437,65 +435,65 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
   } else if (specifier.specifier == __FENIX_SUBSET_EMPTY) { // no need to store anything
     retval = FENIX_SUCCESS;
   } else {
-    /* This part should be sepaeated as a sngle function call */
     fenix_group_t *group = g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
+    
+    ensure_version_capacity(member);
+    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
+    fenix_version_t *version = &(mentry->version);
+    fenix_local_entry_t *lentry = &(version->local_entry[version->position]); /* select the latest local data */
+    fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]); /* select the latest remote data */
+
+    /* store the local data */
+    memcpy(lentry->data, lentry->pdata, (lentry->count * lentry->size));
 
     fenix_subset_offsets_t *loffsets = NULL, *roffsets = NULL;
     char *send_buff, *recv_buff;
 
-    ensure_version_capacity(member);
-    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    fenix_version_t *version = &(mentry->version);
-    fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
-    fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]);
-
-    /* Store the local data */
-    memcpy(lentry->data, lentry->pdata, (lentry->count * lentry->size));
+    /* note: the following data exchange is not necessary when using non-v call */
+    /* processes need to exchange metadata info for data recovery */
 
     MPI_Status status;
-    /* This data exchange is not necessary when using non-v call */
     member_store_packet_t lentry_packet, rentry_packet;
-    if( specifier.specifier == __FENIX_SUBSET_FULL ) {
-      lentry_packet.rank = lentry->currentrank;
-      lentry_packet.datatype = lentry->datatype;
-      lentry_packet.entry_count = lentry->count;
-      lentry_packet.entry_size  = lentry->size;
+    lentry_packet.rank = lentry->currentrank;
+    lentry_packet.datatype = lentry->datatype;
+    lentry_packet.entry_count = lentry->count;
+    lentry_packet.entry_size  = lentry->size;
+
+    if(specifier.specifier == __FENIX_SUBSET_FULL) {
       lentry_packet.entry_real_count  = lentry->count;
       lentry_packet.num_blocks  = 0;  
-
-      send_buff = (char *)lentry->data;
-
+      send_buff = (char *) lentry->data;
     } else {
-      char *ldata = (char *)lentry->data;
-      lentry_packet.rank = lentry->currentrank;
-      lentry_packet.datatype = lentry->datatype;
-      lentry_packet.entry_count = lentry->count;
-      lentry_packet.entry_size  = lentry->size;
+      char *ldata = (char *) lentry->data; // where is this local being used?
+
       lentry_packet.num_blocks  = specifier.num_blocks;
       loffsets = (fenix_subset_offsets_t *) s_malloc(sizeof(fenix_subset_offsets_t) * specifier.num_blocks);
 
-      /* Count the buffer storage size  */
-      int index;
-      int local_buf_count = 0;
-      for (index = 0; index < specifier.num_blocks; index++) {
-        loffsets[index].start = specifier.start_offsets[index];
-        loffsets[index].end = specifier.end_offsets[index];
-        local_buf_count += (specifier.end_offsets[index] - specifier.start_offsets[index]) + 1;
+      /* count buffer storage size */
+      int block_index;
+      int subset_element_count = 0;
+      for (block_index = 0; block_index < specifier.num_blocks; block_index++) {
+        loffsets[block_index].start = specifier.start_offsets[block_index];
+        loffsets[block_index].end = specifier.end_offsets[block_index];
+        subset_element_count += (specifier.end_offsets[block_index] - specifier.start_offsets[block_index]) + 1;
       }      
 
-      lentry_packet.entry_real_count = local_buf_count; /* Tell how many elements is sent */
+      send_buff = (char *) s_malloc(sizeof(char) * subset_element_count * lentry->size);
 
-      send_buff = (char *) s_malloc(sizeof(char) * local_buf_count * lentry->size);
 
-      /* Pack the data into buffer */
+      /* pack the data into buffer */
+      int index;
       int offset_index = 0;
       for (index = 0; index < specifier.num_blocks; index++) {
         int n = (loffsets[index].end - loffsets[index].start) + 1;
         memcpy((void *) &send_buff[offset_index * lentry->size], (void *) &ldata[loffsets[index].start * lentry->size], n * lentry->size);
         offset_index += n;
       }      
+
+      /*   */
+      lentry_packet.entry_real_count = subset_element_count; 
 
     }
 
@@ -509,61 +507,59 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     rentry->count = rentry_packet.entry_count;
     rentry->size = rentry_packet.entry_size;
 
-
-    /* If it is not NULL, do not allocate */
     if (rentry->data != NULL) {
       rentry->data = s_malloc(rentry->count * rentry->size);
     }
 
     /* 
-     * After sending member entry information, the use of subset is checked.
-     * Case 1: Left neighbor and I use subset.  
-     * Case 2: Left neighbor does not use subset, but I use subset.  
-     * Case 3: Left neighbor uses subset, but I do not.  
-     * Case 4: Left neighbor is not using subset.  Me either. 
+     * After sending member entry information, the use of subset is checked
+     * case 1: Left neighbor and I use subset  
+     * case 2: Left neighbor does not use subset, but I use subset
+     * case 3: Left neighbor uses subset, but I do not  
+     * case 4: Left neighbor is not using subset.  Me either
      */
-    if( rentry_packet.num_blocks > 0 && lentry_packet.num_blocks > 0) { 
-      /* Exchange subset info */
-      roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks);
+    if(rentry_packet.num_blocks > 0 && lentry_packet.num_blocks > 0) { 
+      /* exchange subset info */
+      roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t) * rentry_packet.num_blocks);
       MPI_Sendrecv(loffsets, sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks,
                    MPI_BYTE, gentry->out_rank, STORE_SIZE_TAG, roffsets,
                    sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE,
                    gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status);
       /* temporary buffer to received packed data */
-      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size );
-    } else if ( lentry_packet.num_blocks > 0 ) {
+      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size);
+    } else if (lentry_packet.num_blocks > 0) {
       MPI_Send(&loffsets,  sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, 
-               MPI_BYTE, gentry->out_rank, STORE_SIZE_TAG,  (gentry->comm)  );
+               MPI_BYTE, gentry->out_rank, STORE_SIZE_TAG,  (gentry->comm));
 
-      /* The sender to me is not using subset */
+      /* sender to me is not using subset */
       recv_buff = (char *) rentry->data;
-    } else if ( rentry_packet.num_blocks > 0 ) {
+    } else if (rentry_packet.num_blocks > 0) {
       roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks);
       MPI_Recv(&roffsets, sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE, 
                gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status );
       /* temporary buffer to received packed data */
-      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size );
+      recv_buff = (char *) s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size );
     } else {
 
-      /* The sender to me is not using subset */
+      /* sender to me is not using subset */
       recv_buff = rentry->data;
     }
 
-    /* Exchange the payload  */
+    /* exchange the payload  */
     MPI_Sendrecv( (void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->out_rank,
                   STORE_PAYLOAD_TAG, (void *) recv_buff, (rentry_packet.entry_real_count * rentry->size), MPI_BYTE,
                   gentry->in_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
 
-    if ( lentry_packet.num_blocks > 0 ) {
-      free( loffsets ); 
-      free( send_buff ); 
+    if (lentry_packet.num_blocks > 0) {
+      free(loffsets); 
+      free(send_buff); 
     }
 
-    if ( rentry_packet.num_blocks > 0 ) {
-      /* Reorg received data */
+    if (rentry_packet.num_blocks > 0) {
+      /* re-organize received data */
       int i, j = 0;
       char * rdata = (char *) rentry->data;
-      for ( i = 0; i < rentry_packet.num_blocks; i++ ) {
+      for (i = 0; i < rentry_packet.num_blocks; i++) {
         int n = (roffsets[i].end - roffsets[i].start) + 1;
         memcpy((void*) &rdata[roffsets[i].start * rentry->size], (void *) &recv_buff[j*rentry->size], n * rentry->size);
         j += n;
@@ -572,12 +568,11 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
       free(recv_buff); 
     }
 
-
     /* Need to update the version info */
     if (version->position < version->size - 1) {
       version->num_copies++;
       version->position++;
-    } else { /* Back to 0 */
+    } else {
       version->position = 0;
     }
 
