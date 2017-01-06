@@ -85,66 +85,35 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
     retval = FENIX_ERROR_INVALID_DEPTH;
   } else {
 
-    /* This code block checks the need for data recovery. If so, recover the data and set the recovery    */
-    /* for member recovery.                                                                               */
-
-    int i, its_new = 1, group_position;
-    int remote_need_recovery;
-    fenix_group_entry_t *gentry;
-    MPI_Status status;
-
-    /* If the group data is already here. */
+    /* check if the group has already been created */
+    int index, found_group = -1, group_position;
     fenix_group_t *group = g_data_recovery;
-    ensure_group_capacity(group);
-    for (i = 0; i < group->count; i++) {
-      if (groupid == group->group_entry[i].groupid) {
-        group_position = i;
-        its_new = 0; /* already created */
-        break;
+    for (index = 0; found_group != 1 && (index < group->count); index++) {
+      if (groupid == group->group_entry[index].groupid) {
+          group_position = index;
+          found_group = 1; 
       }
     }
 
-
-    /* Initialize Group */
-    if (its_new == 1) {
-      
-      if (options->verbose == 12 && get_current_rank(comm) == 0) {
-         printf("this is a new group!\n"); 
-      }
-
+    fenix_group_entry_t *gentry;
+    /* init group */
+    if (found_group == 1) {
+      ensure_group_capacity(group); 
       group->count++;
       int next_group_position = find_next_group_position(group);
       gentry = &(group->group_entry[next_group_position]);
       gentry->groupid = groupid;
-
       gentry->comm = comm;
-
       gentry->timestart = timestamp;
       gentry->timestamp = timestamp;
       gentry->depth = depth + 1;
       gentry->state = OCCUPIED;
-      if (__fenix_g_role == FENIX_ROLE_RECOVERED_RANK) {
-        gentry->recovered = 1;
-      } else {
-        gentry->recovered = 0;
-      }
-      if (get_world_size(*__fenix_g_new_world) / 4 > 1) {
-        gentry->rank_separation = get_world_size(*__fenix_g_new_world) / 4;
-      } else {
-        gentry->rank_separation = 1;
-      }
-
-      if (options->verbose == 12) {
-        verbose_print(
-                "c-rank: %d, g-groupid: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
-                get_current_rank(*__fenix_g_new_world), gentry->groupid,
-                gentry->timestamp,
-                gentry->depth,
-                gentry->state);
-      }
-    } else { /* Already created. Renew the MPI communicator  */
+      gentry->recovered = __fenix_g_role == FENIX_ROLE_RECOVERED_RANK ? 1 : 0;
+      int current_comm_size = get_world_size(*__fenix_g_new_world) / 4;
+      gentry->rank_separation = current_comm_size > 1 ? current_comm_size : 1;
+    } else { /* group already created -- simply renew MPI communicator */
       gentry = &(group->group_entry[group_position]);
-      gentry->comm = comm; /* Renew communicator */
+      gentry->comm = comm; 
     }
 
     gentry->current_rank = get_current_rank(gentry->comm);
@@ -152,12 +121,14 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
     gentry->in_rank = (gentry->current_rank + gentry->comm_size - gentry->rank_separation) % gentry->comm_size;
     gentry->out_rank = (gentry->current_rank + gentry->comm_size + gentry->rank_separation) % gentry->comm_size;
 
-    /* Check the role of the neighbor define by the group */
+    /* check the role of neighbor define by the group */
+    MPI_Status status;
+    int remote_need_recovery;
     MPI_Sendrecv(&(gentry->recovered), 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
                  &remote_need_recovery, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
 
-    /* Recover group information */
+    /* recover group information */
     if (gentry->recovered == 0 && remote_need_recovery == 1) {
       retval = _send_metadata(gentry->current_rank, gentry->in_rank, gentry->comm);
       retval = _send_group_data(gentry->current_rank, gentry->in_rank, gentry, gentry->comm);
@@ -170,15 +141,14 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
       }
       retval = _recover_metadata(gentry->current_rank, gentry->out_rank, comm);
       retval = _recover_group_data(gentry->current_rank, gentry->out_rank, gentry, gentry->comm);
-      /* Recovery is done. Change the flag */
-      gentry->recovered = 0;
+      gentry->recovered = 0; /* recovery is done -- update the flag */
     }
 
-    /* Need Error check for retval above */
+    /* TODO: error check for retval above */
     /* ********************************* */
 
 
-    /* Global agreement among the group */
+    /* global agreement among the group */
     retval = (join_group(group, gentry, comm) != 1) ? FENIX_SUCCESS
                                                     : FENIX_ERROR_GROUP_CREATE;
   }
@@ -462,11 +432,10 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     lentry_packet.entry_size  = lentry->size;
 
     if(specifier.specifier == __FENIX_SUBSET_FULL) {
-      lentry_packet.entry_real_count  = lentry->count;
       lentry_packet.num_blocks  = 0;  
+      lentry_packet.entry_real_count  = lentry->count;
       send_buff = (char *) lentry->data;
     } else {
-      char *ldata = (char *) lentry->data; // where is this local being used?
 
       lentry_packet.num_blocks  = specifier.num_blocks;
       loffsets = (fenix_subset_offsets_t *) s_malloc(sizeof(fenix_subset_offsets_t) * specifier.num_blocks);
@@ -482,17 +451,17 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
 
       send_buff = (char *) s_malloc(sizeof(char) * subset_element_count * lentry->size);
 
-
       /* pack the data into buffer */
       int index;
       int offset_index = 0;
+      char *ldata = (char *) lentry->data; 
       for (index = 0; index < specifier.num_blocks; index++) {
         int n = (loffsets[index].end - loffsets[index].start) + 1;
         memcpy((void *) &send_buff[offset_index * lentry->size], (void *) &ldata[loffsets[index].start * lentry->size], n * lentry->size);
         offset_index += n;
       }      
 
-      /*   */
+      /* metadata -- update number of elements to send to partner rank */
       lentry_packet.entry_real_count = subset_element_count; 
 
     }
@@ -512,7 +481,7 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     }
 
     /* 
-     * After sending member entry information, the use of subset is checked
+     * after sending member entry information, the use of subset is checked
      * case 1: Left neighbor and I use subset  
      * case 2: Left neighbor does not use subset, but I use subset
      * case 3: Left neighbor uses subset, but I do not  
@@ -1024,7 +993,7 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
                 groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
 #if 0
-  } else if (member_index == -1) {
+  } else if (member_index == -1) { // or add && 
     /* Recovered Process Does not have member data at all */
     /* Need special information */
     debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
@@ -1033,15 +1002,13 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
 #endif
   } else {
 
-    /* Lazy recovery is yet to be supported */
-    /* Recover the data here  */
     fenix_group_t *group = g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
     fenix_member_entry_t *mentry;
     /* This part is moved to group recovery and part of group entity */
 
-    if (member_index != -1) { /* Member enrty is avalable */
+    if (member_index != -1) { /* member id is valid for recovery */
       mentry = &(member->member_entry[member_index]);
     } else { /* Member entry is missing */
       member_index = member->count;
@@ -1056,8 +1023,9 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     if (options->verbose == 18 && g_data_recovery->group_entry[group_index].current_rank== 0 ) {
        debug_print("mentry->state: %d; rank: %d\n", mentry->state, current_rank);
     }
+
+    /* check role of the neighbor define by group */
     MPI_Status status;
-    /* Check the role of the neighbor define by the group */
     MPI_Sendrecv(&current_status, 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
                  &remote_status, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
@@ -1080,8 +1048,9 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
 
     
     /* Get the latest consistent copy */
-    if (  join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
-      //printf("POSITION %d\n",version->position - 1);
+    if (join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
+
+#if 0
       fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
       lentry->pdata = data;
       mentry->current_datatype = lentry->datatype;
@@ -1093,6 +1062,8 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
                       get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                       (version->position - 1), (lentry->count * lentry->size));
       }
+#endif
+
       // member->status = __FENIX_MEMBER_FINE; 
       retval = FENIX_SUCCESS;
     } else {
@@ -1278,14 +1249,10 @@ int data_subset_createv(int num_blocks, int *array_start_offsets, int *array_end
                 num_blocks);
     retval = FENIX_ERROR_SUBSET_NUM_BLOCKS;
   } else if (array_start_offsets == NULL) {
-    debug_print(
-            "ERROR Fenix_Data_subset_createv: array_start_offsets %s must be at least of size 1\n",
-            "");
+    debug_print("ERROR Fenix_Data_subset_createv: array_start_offsets %s must be at least of size 1\n", "");
     retval = FENIX_ERROR_SUBSET_START_OFFSET;
   } else if (array_end_offsets == NULL) {
-    debug_print(
-            "ERROR Fenix_Data_subset_createv: array_end_offsets %s must at least of size 1\n",
-            "");
+    debug_print("ERROR Fenix_Data_subset_createv: array_end_offsets %s must at least of size 1\n", "");
     retval = FENIX_ERROR_SUBSET_END_OFFSET;
   } else {
 
@@ -1303,11 +1270,11 @@ int data_subset_createv(int num_blocks, int *array_start_offsets, int *array_end
     if (found_invalid_index != 1) { // if not true (!= 1)
       subset_specifier->num_blocks = num_blocks;
 
-      subset_specifier->start_offsets = (int *)s_malloc(sizeof(int)* num_blocks);
-      memcpy(subset_specifier->start_offsets, array_start_offsets, ( num_blocks * sizeof(int))); // deep copy
+      subset_specifier->start_offsets = (int *) s_malloc(sizeof(int) * num_blocks);
+      memcpy(subset_specifier->start_offsets, array_start_offsets, (num_blocks * sizeof(int))); // deep copy
 
-      subset_specifier->end_offsets = (int *)s_malloc(sizeof(int)* num_blocks);
-      memcpy(subset_specifier->end_offsets, array_end_offsets, ( num_blocks * sizeof(int))); // deep copy
+      subset_specifier->end_offsets = (int *) s_malloc(sizeof(int) * num_blocks);
+      memcpy(subset_specifier->end_offsets, array_end_offsets, (num_blocks * sizeof(int))); // deep copy
 
       subset_specifier->specifier = __FENIX_SUBSET_CREATEV; // 
       retval = FENIX_SUCCESS;
