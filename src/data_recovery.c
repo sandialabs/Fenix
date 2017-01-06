@@ -96,21 +96,19 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
     }
 
     fenix_group_entry_t *gentry;
-    /* init group */
-    if (found_group == 1) {
+    if (found_group != 1) { /* new group */
       ensure_group_capacity(group); 
       group->count++;
       int next_group_position = find_next_group_position(group);
       gentry = &(group->group_entry[next_group_position]);
       gentry->groupid = groupid;
       gentry->comm = comm;
-      gentry->timestart = timestamp;
-      gentry->timestamp = timestamp;
+      gentry->timestart = gentry->timestamp = timestamp;
       gentry->depth = depth + 1;
       gentry->state = OCCUPIED;
-      gentry->recovered = __fenix_g_role == FENIX_ROLE_RECOVERED_RANK ? 1 : 0;
+      gentry->recovered = (__fenix_g_role == FENIX_ROLE_RECOVERED_RANK) ? 1 : 0;
       int current_comm_size = get_world_size(*__fenix_g_new_world) / 4;
-      gentry->rank_separation = current_comm_size > 1 ? current_comm_size : 1;
+      gentry->rank_separation = (current_comm_size > 1) ? current_comm_size : 1;
     } else { /* group already created -- simply renew MPI communicator */
       gentry = &(group->group_entry[group_position]);
       gentry->comm = comm; 
@@ -133,22 +131,14 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
       retval = _send_metadata(gentry->current_rank, gentry->in_rank, gentry->comm);
       retval = _send_group_data(gentry->current_rank, gentry->in_rank, gentry, gentry->comm);
     } else if (gentry->recovered == 1 && remote_need_recovery == 0) {
-      if (options->verbose == 18) {
-        verbose_print(
-                "c-rank: %d receiving group data %d from rank %d\n",
-                get_current_rank(*__fenix_g_new_world), gentry->groupid,
-                gentry->out_rank);
-      }
       retval = _recover_metadata(gentry->current_rank, gentry->out_rank, comm);
       retval = _recover_group_data(gentry->current_rank, gentry->out_rank, gentry, gentry->comm);
       gentry->recovered = 0; /* recovery is done -- update the flag */
     }
 
     /* TODO: error check for retval above */
-    /* ********************************* */
 
-
-    /* global agreement among the group */
+    /* global agreement among the current group */
     retval = (join_group(group, gentry, comm) != 1) ? FENIX_SUCCESS
                                                     : FENIX_ERROR_GROUP_CREATE;
   }
