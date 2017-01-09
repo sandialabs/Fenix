@@ -215,16 +215,16 @@ int member_create(int groupid, int memberid, void *data, int count,
                  gentry->comm, &status);
 
 
-    /* Initalize the space for every single version           */
-    /* Eric, this may conflict what you have done with SUBSET */
+    /* allocate space for each version */
+    /* note: this may conflict w/ SUBSET initalization */
     for (i = 0; i < gentry->depth; i++) {
       fenix_local_entry_t *lentry = &(version->local_entry[i]);
       lentry->data = (void *) s_malloc(mentry->size_datatype * count);
       lentry->count = count;
       lentry->size = mentry->size_datatype;
       lentry->datatype = datatype;
-      /* Bind the user data to Fenix */
-      lentry->pdata = data; /* This should be handled by member entry rathewr than version entry */
+      /* bind user data internally to fenix */
+      lentry->pdata = data; /* note: this should be handled by member entry rather than version entry! */
 
       fenix_remote_entry_t *rentry = &(version->remote_entry[i]);
       rentry->data = (void *) s_malloc(mentry->size_datatype * remote_count);
@@ -497,7 +497,7 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
       MPI_Recv(&roffsets, sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE, 
                gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status );
       /* temporary buffer to received packed data */
-      recv_buff = (char *) s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size );
+      recv_buff = (char *) s_malloc(sizeof(char) * rentry_packet.entry_real_count * rentry->size);
     } else {
 
       /* sender to me is not using subset */
@@ -507,14 +507,21 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     if (get_current_rank(*__fenix_g_new_world) == 0) {
         int print_index;
         for (print_index = 0; print_index < lentry->count; print_index++) {
-            printf("*store* sending! data[%d]: %d; rank: %d\n", print_index, send_buff[print_index], get_current_rank(*__fenix_g_new_world));  
+            //printf("*store* sending! data[%d]: %d; pos: %d; time: %d; real-count: %d; rank: %d\n", print_index, send_buff[print_index], version->position, gentry->timestamp, rentry_packet.entry_real_count, get_current_rank(*__fenix_g_new_world));  
         }
     }
-   
+
     /* exchange the payload  */
-    MPI_Sendrecv( (void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->out_rank,
+    MPI_Sendrecv((void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->out_rank,
                   STORE_PAYLOAD_TAG, (void *) recv_buff, (rentry_packet.entry_real_count * rentry->size), MPI_BYTE,
                   gentry->in_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
+
+    if (get_current_rank(*__fenix_g_new_world) == 0) {
+        int print_index;
+        for (print_index = 0; print_index < lentry->count; print_index++) {
+            //printf("*store* receiving! data[%d]: %d; pos: %d; time: %d; rank: %d\n", print_index, recv_buff[print_index], version->position, gentry->timestamp, get_current_rank(*__fenix_g_new_world));  
+        }
+    }
 
     if (lentry_packet.num_blocks > 0) {
       free(loffsets); 
@@ -524,7 +531,7 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     if (rentry_packet.num_blocks > 0) {
       /* re-organize received data */
       int i, j = 0;
-      char * rdata = (char *) rentry->data;
+      char *rdata = (char *) rentry->data;
       for (i = 0; i < rentry_packet.num_blocks; i++) {
         int n = (roffsets[i].end - roffsets[i].start) + 1;
         memcpy((void*) &rdata[roffsets[i].start * rentry->size], (void *) &recv_buff[j*rentry->size], n * rentry->size);
@@ -538,8 +545,10 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     if (version->position < version->size - 1) {
       version->num_copies++;
       version->position++;
+      //printf("*update* pos: %d; rank: %d\n", version->position, get_current_rank(*__fenix_g_new_world)); 
     } else {
       version->position = 0;
+
     }
 
     retval = FENIX_SUCCESS;
@@ -1028,11 +1037,23 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     fenix_version_t *version = &(mentry->version);
     /* Send the member information if needed */
     if (current_status == OCCUPIED && remote_status == NEEDFIX) {
+
+      //if (current_rank == 0) {
+        printf("*member-restore* send-member-meta; rank: %d\n", current_rank); 
+      //}
+
       _pc_send_member_metadata(gentry->current_rank, gentry->in_rank, mentry, gentry->comm);
       _pc_send_member_entries(gentry->current_rank, gentry->in_rank, gentry->depth, version, gentry->comm);
     } else if (current_status == NEEDFIX && remote_status == OCCUPIED) {
+
+      //if (current_rank == 0) {
+        printf("*member-restore* recv-member-meta; rank: %d\n", current_rank); 
+      //}
+
       _pc_recover_member_metadata(gentry->current_rank, gentry->out_rank, mentry, gentry->comm);
       _pc_recover_member_entries(gentry->current_rank, gentry->out_rank, gentry->depth, version, gentry->comm);
+
+
     } else if (current_status == NEEDFIX && remote_status == NEEDFIX) {
        debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
                 memberid,g_data_recovery->group_entry[group_index].current_rank);
@@ -1040,23 +1061,32 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     }
 
     // print the current member id and rank during this restoration process!
-    printf("*restore* memberid: %d; rank-gentry: %d; current: %d\n", mentry->memberid, gentry->current_rank, current_rank);
+    //printf("*restore* memberid: %d; rank-gentry: %d; current: %d; role: %d; time: %d\n", mentry->memberid, gentry->current_rank, current_rank, __fenix_g_role, gentry->timestamp);
     
     /* Get the latest consistent copy */
-    if (join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
+    
+    if (__fenix_g_role == 1) {
+    
+        //printf("*restoring* position: %d; rank: %d\n", version->position-1, gentry->current_rank);
 
-      printf("*restore* position: %d\n", version->position);
-      fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
-      lentry->pdata = data;
-      mentry->current_datatype = lentry->datatype;
-      mentry->current_count = lentry->count;
-      mentry->current_size = lentry->size;
-      memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
+        //if (join_restore(gentry, version, gentry->comm) == 1) {
 
-      retval = FENIX_SUCCESS;
-    } else {
-      retval = FENIX_ERROR_GROUP_CREATE;
+            //fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
+            fenix_local_entry_t *lentry = &(version->local_entry[1]);
+            lentry->pdata = data;
+            mentry->current_datatype = lentry->datatype;
+            mentry->current_count = lentry->count;
+            mentry->current_size = lentry->size;
+            memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
+
+            // printf("*restoring* position: %d; rank: %d\n", version->position-1, gentry->current_rank);
+
+            retval = FENIX_SUCCESS;
+        //} else {
+            //retval = FENIX_ERROR_GROUP_CREATE;
+        //}
     }
+
   }
   return retval;
 }
@@ -2284,30 +2314,39 @@ int join_member(fenix_member_t *m, fenix_member_entry_t *me, MPI_Comm comm) {
  * @param
  */
 int join_restore(fenix_group_entry_t *ge, fenix_version_t *v, MPI_Comm comm) {
-  int current_rank_attributes[2];
-  int other_rank_attributes[2];
+
+  /* find the minimum timestamp among ranks */
+  int minimum_timestamp;
+  int current_timestamp = ge->timestamp;
+
+  //printf("*join-restore* (before) current-timestamp: %d; min-timestamp: %d; depth: %d; size: %d; copies: %d; pos: %d\n", current_timestamp, minimum_timestamp, ge->depth, v->size, v->num_copies, v->position); 
+
+
+  MPI_Allreduce(&(current_timestamp), &minimum_timestamp, 1, MPI_INT, MPI_MIN, comm);
+
+  /* note: version contains version_copies, version_depths */
+  int timestamp_difference = current_timestamp - minimum_timestamp;
+  int current_depth = ge->depth;
+  int depth_difference = current_timestamp - current_depth; 
+
+  //printf("*join-restore* current-timestamp: %d; min-timestamp: %d; depth: %d; size: %d; copies: %d; pos: %d\n", current_timestamp, minimum_timestamp, current_depth, v->size, v->num_copies, v->position); 
+
   int found = -1;
-
-/* Find the minimum timestamp among the ranks */
-  int min_timestamp, idiff;
-  MPI_Allreduce(&(ge->timestamp), &min_timestamp, 1, MPI_INT, MPI_MIN, comm);
-
-  idiff = ge->timestamp - min_timestamp;
-  if ((min_timestamp > (ge->timestamp - ge->depth))
-      && (idiff < v->num_copies)) {
-    /* Shift the position of the latest version */
-    v->position = (v->position + v->size - idiff) % (v->size);
+  if ((minimum_timestamp > depth_difference) && (timestamp_difference < v->num_copies)) {
+    /* shift the position of the latest version */
+    v->position = (v->position + (v->size - timestamp_difference)) % (v->size);
+    //printf("*join-restore* pos: %d\n", v->position);
     found = 1;
   } else {
+    //printf("*join-restore* not-found\n");
     found = -1;
   }
 
-  /* Check if every rank finds the copy */
-  int result;
+  /* check if all ranks found latest copy */
+  int result = -1;
   MPI_Allreduce(&found, &result, 1, MPI_INT, MPI_MIN, comm);
 
-  found = result;
-  return found;
+  return result;
 }
 
 /**
