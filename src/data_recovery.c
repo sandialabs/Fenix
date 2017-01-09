@@ -472,10 +472,10 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
 
     /* 
      * after sending member entry information, the use of subset is checked
-     * case 1: Left neighbor and I use subset  
-     * case 2: Left neighbor does not use subset, but I use subset
-     * case 3: Left neighbor uses subset, but I do not  
-     * case 4: Left neighbor is not using subset.  Me either
+     * case 1: left neighbor and I use subset  
+     * case 2: left neighbor does not use subset, but I use subset
+     * case 3: left neighbor uses subset, but I do not  
+     * case 4: left neighbor is not using subset.  Me either
      */
     if(rentry_packet.num_blocks > 0 && lentry_packet.num_blocks > 0) { 
       /* exchange subset info */
@@ -504,6 +504,13 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
       recv_buff = rentry->data;
     }
 
+    if (get_current_rank(*__fenix_g_new_world) == 0) {
+        int print_index;
+        for (print_index = 0; print_index < lentry->count; print_index++) {
+            printf("*store* sending! data[%d]: %d; rank: %d\n", print_index, send_buff[print_index], get_current_rank(*__fenix_g_new_world));  
+        }
+    }
+   
     /* exchange the payload  */
     MPI_Sendrecv( (void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->out_rank,
                   STORE_PAYLOAD_TAG, (void *) recv_buff, (rentry_packet.entry_real_count * rentry->size), MPI_BYTE,
@@ -900,7 +907,7 @@ int data_commit_barrier(int groupid, int *timestamp) {
                   get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index);
   }
   if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
+    debug_print("ERROR Fenix_Data_commit_barrier: group_id <%d> does not exist\n", groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = g_data_recovery;
@@ -984,8 +991,6 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     retval = FENIX_ERROR_INVALID_GROUPID;
 #if 0
   } else if (member_index == -1) { // or add && 
-    /* Recovered Process Does not have member data at all */
-    /* Need special information */
     debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
                 memberid,g_data_recovery->group_entry[group_index].current_rank);
     retval = FENIX_ERROR_INVALID_MEMBERID;
@@ -1024,37 +1029,30 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     /* Send the member information if needed */
     if (current_status == OCCUPIED && remote_status == NEEDFIX) {
       _pc_send_member_metadata(gentry->current_rank, gentry->in_rank, mentry, gentry->comm);
-      _pc_send_member_entries(gentry->current_rank, gentry->in_rank, gentry->depth, version,
-                                gentry->comm);
+      _pc_send_member_entries(gentry->current_rank, gentry->in_rank, gentry->depth, version, gentry->comm);
     } else if (current_status == NEEDFIX && remote_status == OCCUPIED) {
       _pc_recover_member_metadata(gentry->current_rank, gentry->out_rank, mentry, gentry->comm);
-      _pc_recover_member_entries(gentry->current_rank, gentry->out_rank, gentry->depth, version,
-                                 gentry->comm);
-    } else if ( current_status == NEEDFIX && remote_status == NEEDFIX) {
+      _pc_recover_member_entries(gentry->current_rank, gentry->out_rank, gentry->depth, version, gentry->comm);
+    } else if (current_status == NEEDFIX && remote_status == NEEDFIX) {
        debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
                 memberid,g_data_recovery->group_entry[group_index].current_rank);
        retval = FENIX_ERROR_INVALID_MEMBERID;
     }
 
+    // print the current member id and rank during this restoration process!
+    printf("*restore* memberid: %d; rank-gentry: %d; current: %d\n", mentry->memberid, gentry->current_rank, current_rank);
     
     /* Get the latest consistent copy */
     if (join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
 
-#if 0
+      printf("*restore* position: %d\n", version->position);
       fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
       lentry->pdata = data;
       mentry->current_datatype = lentry->datatype;
       mentry->current_count = lentry->count;
       mentry->current_size = lentry->size;
       memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
-      if (options->verbose == 25) {
-        verbose_print("c-rank: %d, role: %d, v-pos: %d, ld-totalsize: %d\n",
-                      get_current_rank(*__fenix_g_new_world), __fenix_g_role,
-                      (version->position - 1), (lentry->count * lentry->size));
-      }
-#endif
 
-      // member->status = __FENIX_MEMBER_FINE; 
       retval = FENIX_SUCCESS;
     } else {
       retval = FENIX_ERROR_GROUP_CREATE;
@@ -1305,7 +1303,7 @@ int get_number_of_members(int group_id, int *num_members) {
   int retval = -1;
   int group_index = search_groupid(group_id);
   if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
+    debug_print("ERROR Fenix_Data_get_number_of_members: group_id <%d> does not exist\n", group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = g_data_recovery;
@@ -1327,7 +1325,7 @@ int get_member_at_position(int group_id, int *member_id, int position) {
   int retval = -1;
   int group_index = search_groupid(group_id);
   if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
+    debug_print("ERROR Fenix_Data_get_member_at_position: group_id <%d> does not exist\n", group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = g_data_recovery;
@@ -1357,7 +1355,7 @@ int get_number_of_snapshots(int group_id, int *num_snapshots) {
   int retval = -1;
   int group_index = search_groupid(group_id);
   if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
+    debug_print("ERROR Fenix_Data_get_number_of_snapshots: group_id <%d> does not exist\n", group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = g_data_recovery;
@@ -1385,7 +1383,7 @@ int get_snapshot_at_position(int groupid, int position, int *timestamp) {
                   get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index);
   }
   if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
+    debug_print("ERROR Fenix_Data_get_snapshot_at_position: group_id <%d> does not exist\n", groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = g_data_recovery;
@@ -1394,15 +1392,11 @@ int get_snapshot_at_position(int groupid, int position, int *timestamp) {
 
     if (position < 0 || position > (gentry->depth - 1)) {
       debug_print(
-              "ERROR Fenix_Data_commit: position <%d> must be a value between 0 and number_of_snapshots-1 \n",
+              "ERROR Fenix_Data_get_snapshot_at_position: position <%d> must be a value between 0 and number_of_snapshots-1 \n",
               position);
       retval = FENIX_ERROR_INVALID_POSITION;
     } else {
 
-      // what are we iterating through in this method? 
-      // which pos are we interested in?
-      // group? member? there is no version array
-      // lcoal? remote? but local and remote both do not have a timestamp attr
       int member_index;
       for (member_index = 0; member_index < member->size; member_index++) {
         fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
