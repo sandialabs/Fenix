@@ -106,7 +106,7 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
       gentry->timestart = gentry->timestamp = timestamp;
       gentry->depth = depth + 1;
       gentry->state = OCCUPIED;
-      gentry->recovered = (__fenix_g_role == FENIX_ROLE_RECOVERED_RANK) ? 1 : 0;
+      gentry->recovery_status = (__fenix_g_role == FENIX_ROLE_RECOVERED_RANK) ? 1 : 0;
       int current_comm_size = get_world_size(*__fenix_g_new_world) / 4;
       gentry->rank_separation = (current_comm_size > 1) ? current_comm_size : 1;
     } else { /* group already created -- simply renew MPI communicator */
@@ -121,19 +121,29 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
 
     /* check the role of neighbor define by the group */
     MPI_Status status;
-    int remote_need_recovery;
-    MPI_Sendrecv(&(gentry->recovered), 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
-                 &remote_need_recovery, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
+    int in_recovery_status;
+    int *out_recovery_status = &(gentry->recovery_status);
+
+    MPI_Sendrecv(out_recovery_status, 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
+                 &in_recovery_status, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
 
+    /*
+    MPI_Sendrecv(&(gentry->recovery_status), 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
+                 &remote_need_recovery, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
+                 (gentry->comm), &status);
+    */
+
+    printf("*group-create* rank: %d; role: %d; in: %d (%d); out: %d (%d)\n", gentry->current_rank, __fenix_g_role, gentry->in_rank, in_recovery_status, gentry->out_rank, *out_recovery_status);
+
     /* recover group information */
-    if (gentry->recovered == 0 && remote_need_recovery == 1) {
+    if (*out_recovery_status == 0 && in_recovery_status == 1) {
       retval = _send_metadata(gentry->current_rank, gentry->in_rank, gentry->comm);
       retval = _send_group_data(gentry->current_rank, gentry->in_rank, gentry, gentry->comm);
-    } else if (gentry->recovered == 1 && remote_need_recovery == 0) {
+    } else if (*out_recovery_status == 1 && in_recovery_status == 0) {
       retval = _recover_metadata(gentry->current_rank, gentry->out_rank, comm);
       retval = _recover_group_data(gentry->current_rank, gentry->out_rank, gentry, gentry->comm);
-      gentry->recovered = 0; /* recovery is done -- update the flag */
+      gentry->recovery_status = 0; /* recovery is done -- update the flag */
     }
 
     /* TODO: error check for retval above */
@@ -1034,12 +1044,14 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
                  &remote_status, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
 
+    //printf("*critical* rank: %d; in: %d (%d); out: %d (%d)\n", current_rank, gentry->in_rank, remote_status, gentry->out_rank, current_status);
+
     fenix_version_t *version = &(mentry->version);
     /* Send the member information if needed */
     if (current_status == OCCUPIED && remote_status == NEEDFIX) {
 
       //if (current_rank == 0) {
-        printf("*member-restore* send-member-meta; rank: %d\n", current_rank); 
+        //printf("*member-restore* send-member-meta; rank: %d\n", current_rank); 
       //}
 
       _pc_send_member_metadata(gentry->current_rank, gentry->in_rank, mentry, gentry->comm);
@@ -1047,7 +1059,7 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     } else if (current_status == NEEDFIX && remote_status == OCCUPIED) {
 
       //if (current_rank == 0) {
-        printf("*member-restore* recv-member-meta; rank: %d\n", current_rank); 
+        //printf("*member-restore* recv-member-meta; rank: %d\n", current_rank); 
       //}
 
       _pc_recover_member_metadata(gentry->current_rank, gentry->out_rank, mentry, gentry->comm);
@@ -1065,6 +1077,7 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     
     /* Get the latest consistent copy */
     
+#if 0
     if (__fenix_g_role == 1) {
     
         //printf("*restoring* position: %d; rank: %d\n", version->position-1, gentry->current_rank);
@@ -1086,6 +1099,7 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
             //retval = FENIX_ERROR_GROUP_CREATE;
         //}
     }
+#endif
 
   }
   return retval;

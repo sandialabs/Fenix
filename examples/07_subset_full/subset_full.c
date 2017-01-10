@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
   int error;
   int my_group = 0;
   int my_timestamp = 0;
-  int my_depth = 0;
+  int my_depth = 3;
   int recovered = 0;
 
   // to create subset data
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     Fenix_Data_commit(my_group, &my_timestamp);
   } else {
 
-    //Fenix_Data_member_restore(my_group, 777, data, kCount, 1);
+    Fenix_Data_member_restore(my_group, 777, data, kCount, 1);
     recovered = 1;
     
     if (rank == kKillID) {
