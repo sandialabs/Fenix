@@ -68,11 +68,6 @@ const int kCount = 300;
 const int kTag = 1;
 int kNumIterations = 2;
 
-void my_recover_callback(MPI_Comm new_comm, int error, void *callback_data) {
-  int rank;
-  double *y = (double *) callback_data;
- // MPI_Comm_rank(new_comm, &rank);
-}
 
 int main(int argc, char **argv) {
 
@@ -80,8 +75,6 @@ int main(int argc, char **argv) {
      printf("Usage: fenix_ring <number of spare process> <mpi rank being killed>\n");
      exit(0);
   }
-  void (*recPtr)(MPI_Comm, int, void *);
-  recPtr = &my_recover_callback;
   double x[4] = {0, 0, 0, 0};
   int i;
   int inmsg[300]  ;

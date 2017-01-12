@@ -65,7 +65,7 @@
 const int kDOmainSIze = 20;
 const double kCommonValue = 2.0;
 
-void my_recover_callback(int status, MPI_Comm new_comm, int error, void *callback_data) {
+void my_recover_callback(MPI_Comm new_comm, int error, void *callback_data) {
   int rank;
   int i;
   MPI_Comm_rank(new_comm, &rank);
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   double *domain_two_data = init_domain(kDOmainSIze, kCommonValue);
   double *tmp_data;
 
-  void (*recPtr)(int, MPI_Comm, int, void *);
+  void (*recPtr)( MPI_Comm, int, void *);
   recPtr = &my_recover_callback;
 
   if (argc != 3) {
