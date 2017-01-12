@@ -163,6 +163,7 @@ typedef struct __fenix_group_entry {
     /* Subject to change */
     enum states state;
     int recovered;
+    int recovery_status;
     fenix_member_t member;
 } fenix_group_entry_t;
 
