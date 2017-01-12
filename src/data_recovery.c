@@ -107,8 +107,6 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
       gentry->depth = depth + 1;
       gentry->state = OCCUPIED;
       gentry->recovery_status = (__fenix_g_role == FENIX_ROLE_RECOVERED_RANK) ? 1 : 0;
-      //int current_comm_size = get_world_size(*__fenix_g_new_world) / 4;
-      //gentry->rank_separation = (current_comm_size > 1) ? current_comm_size : 1;
       gentry->rank_separation = get_world_size(*__fenix_g_new_world) / 2; 
     } else { /* group already created -- simply renew MPI communicator */
       gentry = &(group->group_entry[group_position]);
@@ -117,42 +115,28 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
 
     gentry->current_rank = get_current_rank(gentry->comm);
     gentry->comm_size = get_world_size(gentry->comm);
-    //gentry->in_rank = (gentry->current_rank + gentry->comm_size - gentry->rank_separation) % gentry->comm_size;
-    //gentry->out_rank = (gentry->current_rank + gentry->comm_size + gentry->rank_separation) % gentry->comm_size;
-
-    //gentry->in_rank = (gentry->current_rank + gentry->rank_separation) % gentry->comm_size;
-    gentry->in_rank = gentry->current_rank;
-    gentry->out_rank = (gentry->current_rank + gentry->rank_separation) % gentry->comm_size;
-
-    //printf("*group-create* rank: %d; role: %d; in: %d; out: %d\n", gentry->current_rank, __fenix_g_role, gentry->in_rank, gentry->out_rank); 
+    gentry->partner_rank = (gentry->current_rank + gentry->rank_separation) % gentry->comm_size;
 
     /* check the role of neighbor define by the group */
     MPI_Status status;
-    int *in_recovery_status = &(gentry->recovery_status);
-    int out_recovery_status;
+    int partner_recovery_status;
+    int *current_recovery_status = &(gentry->recovery_status);
 
-    MPI_Sendrecv(in_recovery_status, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
-                 &out_recovery_status, 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
+    MPI_Sendrecv(current_recovery_status, 1, MPI_INT, gentry->current_rank, PARTNER_STATUS_TAG,
+                 &partner_recovery_status, 1, MPI_INT, gentry->partner_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
 
-    //printf("*group-create* rank: %d; role: %d; in: %d (%d); out: %d (%d)\n", gentry->current_rank, __fenix_g_role, gentry->in_rank, *in_recovery_status, gentry->out_rank, out_recovery_status);
-
-    /*
-    MPI_Sendrecv(out_recovery_status, 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
-                 &in_recovery_status, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
-                 (gentry->comm), &status);
-    */
-
+    printf("*group-create* current: %d; role: %d; partner: %d role: %d\n", gentry->current_rank, *current_recovery_status, gentry->partner_rank, partner_recovery_status);
 
 #if 0
 
     /* recover group information */
-    if (out_recovery_status == 0 && *in_recovery_status == 1) {
-      retval = _send_metadata(gentry->current_rank, gentry->in_rank, gentry->comm);
-      retval = _send_group_data(gentry->current_rank, gentry->in_rank, gentry, gentry->comm);
-    } else if (out_recovery_status == 1 && *in_recovery_status == 0) {
-      retval = _recover_metadata(gentry->current_rank, gentry->out_rank, comm);
-      retval = _recover_group_data(gentry->current_rank, gentry->out_rank, gentry, gentry->comm);
+    if (*current_recovery_status == 0 && partner_recovery_status == 1) {
+      retval = _send_metadata(gentry->current_rank, gentry->partner_rank, gentry->comm);
+      retval = _send_group_data(gentry->current_rank, gentry->partner_rank, gentry, gentry->comm);
+    } else if (*current_recovery_status == 1 && partner_recovery_status == 0) {
+      retval = _recover_metadata(gentry->current_rank, gentry->partner_rank, comm);
+      retval = _recover_group_data(gentry->current_rank, gentry->partner_rank, gentry, gentry->comm);
       gentry->recovery_status = 0; /* recovery is done -- update the flag */
     }
 
