@@ -152,9 +152,9 @@ int get_rank_role();
 //void set_rank_role(enum FenixRankRole);
 void set_rank_role(int FenixRankRole);
 
-void postinit(int *);
+int postinit(int *);
 
-void finalize();
+int finalize();
 
 void finalize_spare();
 
