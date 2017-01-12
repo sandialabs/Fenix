@@ -156,13 +156,14 @@ typedef struct __fenix_group_entry {
     int current_rank;
     int in_rank;
     int out_rank;
+    int partner_rank;
     int timestart;
     int timestamp;
     int depth;
     int rank_separation;
     /* Subject to change */
     enum states state;
-    int recovered;
+    int recovery_status;
     fenix_member_t member;
 } fenix_group_entry_t;
 
@@ -179,7 +180,6 @@ typedef struct __member_store_packet {
     size_t entry_size;
     int entry_real_count;
     int num_blocks;
-
 } member_store_packet_t;
 
 typedef struct __fenix_subset_offsets  {
