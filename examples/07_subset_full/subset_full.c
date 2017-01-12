@@ -106,7 +106,6 @@ int main(int argc, char **argv) {
     for (index = 0; index < kCount; index++) {
         data[index] = -1;   
     }
-
     Fenix_Data_member_create(my_group, 777, data, kCount, MPI_INT);
     Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_commit(my_group, &my_timestamp);
@@ -122,6 +121,10 @@ int main(int argc, char **argv) {
         }
     }
   }
+  MPI_Barrier(new_comm);
+  if( rank == kKillID ) {
+    printf("Recovery code is %d\n", recovered);
+  }
 
 #if 1
   if (rank == kKillID && recovered == 0) {
@@ -130,13 +133,16 @@ int main(int argc, char **argv) {
   }
 #endif
 
+  MPI_Barrier(new_comm);
   int index;
   int data_index;
   for (index = 0; index < kIter; index++) {
+      MPI_Barrier(new_comm);
       for (data_index = 0; data_index < kCount; data_index++) {
           data[data_index] = data_index + 1; 
       }
       Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+      Fenix_Data_commit(my_group, &my_timestamp);
   } 
 
   Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);

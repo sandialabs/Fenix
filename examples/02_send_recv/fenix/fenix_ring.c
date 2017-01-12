@@ -87,8 +87,8 @@ int main(int argc, char **argv) {
   MPI_Comm world_comm;
   MPI_Comm new_comm;
   MPI_Info info = MPI_INFO_NULL;
-  int spare_ranks;
-  int kKillID;
+  int spare_ranks = 4;
+  int kKillID = 2;
   int num_ranks;
   int rank;
   int error;
@@ -100,6 +100,7 @@ int main(int argc, char **argv) {
 
   MPI_Init(&argc, &argv);
 
+#if 0
   for( i = 0; i < argc; i++ ) {
     if( strcmp(argv[i],"-k") == 0 ) {
       if( i+1 < argc ) {
@@ -111,6 +112,7 @@ int main(int argc, char **argv) {
       }
     }
   }
+#endif
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if( rank == 0 ) {
@@ -164,6 +166,11 @@ int main(int argc, char **argv) {
     Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 1);
     Fenix_Data_member_restore(my_group, 778, x, 4, 1);
     Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1);
+    if( rank == kKillID)
+    for( i = 0; i < 4; i++ ) {
+      printf("x[%d] = %f :rank %d\n",i,x[i],rank);
+    }
+     
     recovered = 1;
     reset = 1;
   }
