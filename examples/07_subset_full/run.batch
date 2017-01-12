@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=fenix_subset_full
 #SBATCH --output=fenix_subset_full.out
-#SBATCH --error=fenix_subet_full.err
+#SBATCH --error=fenix_subset_full.err
 #SBATCH --nodes=2                
 #SBATCH --time=00:02:00
 
-/home/knteran/mpi-ulfm-0416/bin/mpirun --mca pml ob1 -am ft-enable-mpi --mca btl openib,sm,self --npernode 4 -n 8 ./subset_full 2
+/home/knteran/mpi-ulfm-0416/bin/mpirun --mca pml ob1 -am ft-enable-mpi --mca btl openib,sm,self --npernode 4 -n 8 ./subset_full 2 --verbose 1

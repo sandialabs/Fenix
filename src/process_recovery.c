@@ -212,7 +212,6 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
   }
 
   return __fenix_g_role;
-  //return 0;
 }
 
 
