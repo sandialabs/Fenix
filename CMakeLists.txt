@@ -36,3 +36,4 @@ include_directories( "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
   add_subdirectory(examples/04_Isend_Irecv/mpi)
   add_subdirectory(examples/05_subset_create)
   add_subdirectory(examples/06_subset_createv)
+  add_subdirectory(examples/07_subset_full)

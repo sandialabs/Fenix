@@ -61,11 +61,11 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <stdbool.h>
 #include <unistd.h>
 
 const int kCount = 300;
 const int kTag = 1;
-//const int kKillID = 2;
 int kNumIterations = 2;
 
 void my_recover_callback(MPI_Comm new_comm, int error, void *callback_data) {
@@ -93,9 +93,9 @@ int main(int argc, char **argv) {
   int fenix_role;
   MPI_Comm world_comm;
   MPI_Comm new_comm;
-  int spare_ranks = atoi(argv[1]);
-  int kKillID = atoi(argv[2]);
   MPI_Info info = MPI_INFO_NULL;
+  int spare_ranks;
+  int kKillID;
   int num_ranks;
   int rank;
   int error;
@@ -103,7 +103,22 @@ int main(int argc, char **argv) {
   int my_timestamp = 0;
   int my_depth = 0;
 
+  int myopt;
+
   MPI_Init(&argc, &argv);
+
+  for( i = 0; i < argc; i++ ) {
+    if( strcmp(argv[i],"-k") == 0 ) {
+      if( i+1 < argc ) {
+        kKillID = atoi(argv[i+1]);
+      }
+    } else if ( strcmp(argv[i],"-s") == 0 ) {
+      if( i+1 < argc ) {
+        spare_ranks = atoi(argv[i+1]);
+      }
+    }
+  }
+
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if( rank == 0 ) {
      printf("Executing the program with %d spare ranks. Rank %d will be killed.\n",spare_ranks,kKillID);
@@ -160,12 +175,10 @@ int main(int argc, char **argv) {
     reset = 1;
   }
 
-#if 1
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
   }
-#endif
 
   for (i = 0; i < kNumIterations; i++) {
  

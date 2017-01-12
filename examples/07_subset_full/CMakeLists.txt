@@ -10,4 +10,3 @@
 
 add_executable(subset_full subset_full.c)
 target_link_libraries(subset_full fenix)
-#test_against_reference(1d_heat_eqn 1d_heat_eqn 120)
