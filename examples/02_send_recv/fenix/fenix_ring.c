@@ -61,18 +61,13 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <stdbool.h>
 #include <unistd.h>
 
 const int kCount = 300;
 const int kTag = 1;
-//const int kKillID = 2;
 int kNumIterations = 2;
 
-void my_recover_callback(MPI_Comm new_comm, int error, void *callback_data) {
-  int rank;
-  double *y = (double *) callback_data;
- // MPI_Comm_rank(new_comm, &rank);
-}
 
 int main(int argc, char **argv) {
 
@@ -80,8 +75,6 @@ int main(int argc, char **argv) {
      printf("Usage: fenix_ring <number of spare process> <mpi rank being killed>\n");
      exit(0);
   }
-  void (*recPtr)(MPI_Comm, int, void *);
-  recPtr = &my_recover_callback;
   double x[4] = {0, 0, 0, 0};
   int i;
   int inmsg[300]  ;
@@ -93,9 +86,9 @@ int main(int argc, char **argv) {
   int fenix_role;
   MPI_Comm world_comm;
   MPI_Comm new_comm;
-  int spare_ranks = atoi(argv[1]);
-  int kKillID = atoi(argv[2]);
   MPI_Info info = MPI_INFO_NULL;
+  int spare_ranks = 4;
+  int kKillID = 2;
   int num_ranks;
   int rank;
   int error;
@@ -103,7 +96,24 @@ int main(int argc, char **argv) {
   int my_timestamp = 0;
   int my_depth = 0;
 
+  int myopt;
+
   MPI_Init(&argc, &argv);
+
+#if 0
+  for( i = 0; i < argc; i++ ) {
+    if( strcmp(argv[i],"-k") == 0 ) {
+      if( i+1 < argc ) {
+        kKillID = atoi(argv[i+1]);
+      }
+    } else if ( strcmp(argv[i],"-s") == 0 ) {
+      if( i+1 < argc ) {
+        spare_ranks = atoi(argv[i+1]);
+      }
+    }
+  }
+#endif
+
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if( rank == 0 ) {
      printf("Executing the program with %d spare ranks. Rank %d will be killed.\n",spare_ranks,kKillID);
@@ -156,16 +166,19 @@ int main(int argc, char **argv) {
     Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 1);
     Fenix_Data_member_restore(my_group, 778, x, 4, 1);
     Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1);
+    if( rank == kKillID)
+    for( i = 0; i < 4; i++ ) {
+      printf("x[%d] = %f :rank %d\n",i,x[i],rank);
+    }
+     
     recovered = 1;
     reset = 1;
   }
 
-#if 1
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
   }
-#endif
 
   for (i = 0; i < kNumIterations; i++) {
  
