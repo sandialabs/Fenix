@@ -122,32 +122,37 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
     int partner_recovery_status;
     int *current_recovery_status = &(gentry->recovery_status);
 
-    MPI_Sendrecv(current_recovery_status, 1, MPI_INT, gentry->current_rank, PARTNER_STATUS_TAG,
-                 &partner_recovery_status, 1, MPI_INT, gentry->partner_rank, PARTNER_STATUS_TAG,
+    // printf("*group-create* (before) current: %d; role: %d; partner: %d role: %d\n", gentry->current_rank, *current_recovery_status, gentry->partner_rank, partner_recovery_status);
+
+    MPI_Sendrecv(&partner_recovery_status, 1, MPI_INT, gentry->partner_rank, PARTNER_STATUS_TAG,
+                current_recovery_status, 1, MPI_INT, gentry->partner_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
 
-    printf("*group-create* current: %d; role: %d; partner: %d role: %d\n", gentry->current_rank, *current_recovery_status, gentry->partner_rank, partner_recovery_status);
+    // printf("after-sendrecv %d\n", gentry->current_rank);
 
-#if 0
+    printf("*group-create* (after) current: %d; role: %d; partner: %d role: %d\n", gentry->current_rank, *current_recovery_status, gentry->partner_rank, partner_recovery_status);
 
+#if 1
     /* recover group information */
     if (*current_recovery_status == 0 && partner_recovery_status == 1) {
+      printf("*group-create* (send) rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);  
       retval = _send_metadata(gentry->current_rank, gentry->partner_rank, gentry->comm);
       retval = _send_group_data(gentry->current_rank, gentry->partner_rank, gentry, gentry->comm);
     } else if (*current_recovery_status == 1 && partner_recovery_status == 0) {
+      printf("*group-create* (recv) rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);  
       retval = _recover_metadata(gentry->current_rank, gentry->partner_rank, comm);
       retval = _recover_group_data(gentry->current_rank, gentry->partner_rank, gentry, gentry->comm);
       gentry->recovery_status = 0; /* recovery is done -- update the flag */
     }
 
-#endif
-
     /* TODO: error check for retval above */
 
     /* global agreement among the current group */
-    retval = (join_group(group, gentry, comm) != 1) ? FENIX_SUCCESS
-                                                    : FENIX_ERROR_GROUP_CREATE;
+    // retval = (join_group(group, gentry, comm) != 1) ? FENIX_SUCCESS;
+#endif
+
   }
+
   return retval;
 }
 
@@ -180,9 +185,6 @@ int member_create(int groupid, int memberid, void *data, int count,
                 memberid);
     retval = FENIX_ERROR_INVALID_MEMBERID;
   } else {
-    int i;
-    int remote_count;
-    MPI_Status status;
 
     fenix_group_t *group = g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
@@ -210,24 +212,31 @@ int member_create(int groupid, int memberid, void *data, int count,
     int dsize;
     MPI_Type_size(datatype, &dsize);
 
-    mentry->size_datatype = mentry->current_size = dsize;
+    mentry->size_datatype = dsize;
+    mentry->current_size = dsize;
 
     fenix_version_t *version = &(member->member_entry[next_member_position].version);
 
+    int remote_count;
+    MPI_Status status;
     /* Check the size of data in the partner */
     /* We may need to send the data type at remote rank */
-    MPI_Sendrecv(&count, 1, MPI_INT, gentry->out_rank, STORE_DATA_TAG + 1,
-                 &remote_count, 1, MPI_INT, gentry->in_rank, STORE_DATA_TAG + 1,
+    MPI_Sendrecv(&count, 1, MPI_INT, gentry->partner_rank, STORE_DATA_TAG + 1,
+                 &remote_count, 1, MPI_INT, gentry->partner_rank, STORE_DATA_TAG + 1,
                  gentry->comm, &status);
 
-
+#if 1
+    int i;
     /* allocate space for each version */
     /* note: this may conflict w/ SUBSET initalization */
     for (i = 0; i < gentry->depth; i++) {
       fenix_local_entry_t *lentry = &(version->local_entry[i]);
       lentry->data = (void *) s_malloc(mentry->size_datatype * count);
       lentry->count = count;
-      lentry->size = mentry->size_datatype;
+      //lentry->size = mentry->size_datatype;
+      //lentry->size = dsize;
+      //lentry->size = 1;
+
       lentry->datatype = datatype;
       /* bind user data internally to fenix */
       lentry->pdata = data; /* note: this should be handled by member entry rather than version entry! */
@@ -240,6 +249,8 @@ int member_create(int groupid, int memberid, void *data, int count,
     /* Calling global agreement */
     retval = (join_member(member, mentry, gentry->comm) != 1) ? FENIX_SUCCESS
                                                               : FENIX_ERROR_GROUP_CREATE;
+#endif
+
   }
   return retval;
 }
@@ -463,9 +474,9 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     }
 
     int current_role = __fenix_g_role;
-    MPI_Sendrecv(&lentry_packet, sizeof(member_store_packet_t), MPI_BYTE, gentry->out_rank,
+    MPI_Sendrecv(&lentry_packet, sizeof(member_store_packet_t), MPI_BYTE, gentry->partner_rank,
                STORE_SIZE_TAG, &rentry_packet, sizeof(member_store_packet_t), MPI_BYTE,
-               gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status);
+               gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status);
 
     rentry->remoterank = rentry_packet.rank;
     rentry->datatype = rentry_packet.datatype;
@@ -487,21 +498,21 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
       /* exchange subset info */
       roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t) * rentry_packet.num_blocks);
       MPI_Sendrecv(loffsets, sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks,
-                   MPI_BYTE, gentry->out_rank, STORE_SIZE_TAG, roffsets,
+                   MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG, roffsets,
                    sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE,
-                   gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status);
+                   gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status);
       /* temporary buffer to received packed data */
       recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size);
     } else if (lentry_packet.num_blocks > 0) {
       MPI_Send(&loffsets,  sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, 
-               MPI_BYTE, gentry->out_rank, STORE_SIZE_TAG,  (gentry->comm));
+               MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG,  (gentry->comm));
 
       /* sender to me is not using subset */
       recv_buff = (char *) rentry->data;
     } else if (rentry_packet.num_blocks > 0) {
       roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks);
       MPI_Recv(&roffsets, sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE, 
-               gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status );
+               gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status );
       /* temporary buffer to received packed data */
       recv_buff = (char *) s_malloc(sizeof(char) * rentry_packet.entry_real_count * rentry->size);
     } else {
@@ -518,9 +529,9 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     }
 
     /* exchange the payload  */
-    MPI_Sendrecv((void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->out_rank,
+    MPI_Sendrecv((void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->partner_rank,
                   STORE_PAYLOAD_TAG, (void *) recv_buff, (rentry_packet.entry_real_count * rentry->size), MPI_BYTE,
-                  gentry->in_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
+                  gentry->partner_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
 
     if (get_current_rank(*__fenix_g_new_world) == 0) {
         int print_index;

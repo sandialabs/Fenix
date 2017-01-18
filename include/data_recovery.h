@@ -108,7 +108,8 @@ typedef struct __fenix_remote_entry {
 typedef struct __fenix_local_entry {
     int currentrank;
     int count;
-    size_t size;
+    //size_t size;
+    int size;
     MPI_Datatype datatype;
     void *pdata;
     void *data;
