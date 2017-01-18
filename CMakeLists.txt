@@ -25,7 +25,8 @@ include_directories( "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
   #include(testref/TestAgainstReference)
 
   add_subdirectory(src)
-  #add_subdirectory(test/subset_internal)
+  add_subdirectory(test/sendrecv)
+  add_subdirectory(test/online)
   add_subdirectory(examples/01_hello_world/fenix)
   add_subdirectory(examples/01_hello_world/mpi)
   add_subdirectory(examples/02_send_recv/fenix)
@@ -36,3 +37,4 @@ include_directories( "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
   add_subdirectory(examples/04_Isend_Irecv/mpi)
   add_subdirectory(examples/05_subset_create)
   add_subdirectory(examples/06_subset_createv)
+  add_subdirectory(examples/07_subset_full)

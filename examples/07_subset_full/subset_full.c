@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 
     Fenix_Data_member_create(my_group, 777, data, kCount, MPI_INT);
     Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
-    Fenix_Data_commit(my_group, &my_timestamp);
+    //Fenix_Data_commit(my_group, &my_timestamp);
   } else {
 
     Fenix_Data_member_restore(my_group, 777, data, kCount, 1);
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
     }
   }
 
-#if 1
+#if 0
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
@@ -136,11 +136,11 @@ int main(int argc, char **argv) {
       for (data_index = 0; data_index < kCount; data_index++) {
           data[data_index] = data_index + 1; 
       }
-      Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+      //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
   } 
 
-  Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
-  Fenix_Data_commit(my_group, &my_timestamp);
+  //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+  //Fenix_Data_commit(my_group, &my_timestamp);
  
   Fenix_Finalize();
   MPI_Finalize();
