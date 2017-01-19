@@ -471,10 +471,15 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
 
     }
 
+    verbose_print("*before* packets rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);
+
     int current_role = __fenix_g_role;
-    MPI_Sendrecv(&lentry_packet, sizeof(member_store_packet_t), MPI_BYTE, gentry->partner_rank,
-               STORE_SIZE_TAG, &rentry_packet, sizeof(member_store_packet_t), MPI_BYTE,
-               gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status);
+    MPI_Sendrecv(&lentry_packet, sizeof(member_store_packet_t), MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG,
+                 &rentry_packet, sizeof(member_store_packet_t), MPI_BYTE,
+                 gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status);
+
+
+    verbose_print("*after* packets rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);
 
     rentry->remoterank = rentry_packet.rank;
     rentry->datatype = rentry_packet.datatype;
@@ -495,14 +500,13 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     if(rentry_packet.num_blocks > 0 && lentry_packet.num_blocks > 0) { 
       /* exchange subset info */
       roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t) * rentry_packet.num_blocks);
-      MPI_Sendrecv(loffsets, sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks,
-                   MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG, roffsets,
-                   sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE,
+      MPI_Sendrecv(loffsets, sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG,
+                   roffsets, sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE,
                    gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status);
       /* temporary buffer to received packed data */
       recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size);
     } else if (lentry_packet.num_blocks > 0) {
-      MPI_Send(&loffsets,  sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, 
+      MPI_Send(&loffsets, sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, 
                MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG,  (gentry->comm));
 
       /* sender to me is not using subset */
@@ -526,10 +530,14 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
         }
     }
 
+    verbose_print("*before* payload rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);
+
     /* exchange the payload  */
-    MPI_Sendrecv((void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->partner_rank,
-                  STORE_PAYLOAD_TAG, (void *) recv_buff, (rentry_packet.entry_real_count * rentry->size), MPI_BYTE,
-                  gentry->partner_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
+    MPI_Sendrecv((void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->partner_rank, STORE_PAYLOAD_TAG, 
+                 (void *) recv_buff, (rentry_packet.entry_real_count * rentry->size), MPI_BYTE,
+                 gentry->partner_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
+
+    verbose_print("*after* payload rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);
 
     if (get_current_rank(*__fenix_g_new_world) == 0) {
         int print_index;
