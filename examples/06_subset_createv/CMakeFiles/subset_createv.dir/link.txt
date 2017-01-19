@@ -1,1 +1,0 @@
-/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/subset_createv.dir/subset_createv.c.o  -o subset_createv  ../../src/libfenix.a 

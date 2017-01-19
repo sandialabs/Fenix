@@ -1,1 +1,0 @@
-/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/subset_full.dir/subset_full.c.o  -o subset_full  ../../src/libfenix.a 

@@ -1,1 +1,0 @@
-/home/evalen/devtools/bin/mpicc     CMakeFiles/fenix_subset_internal_test.dir/fenix_subset_internal_test.c.o  -o fenix_subset_internal_test  ../../src/libfenix.a 
