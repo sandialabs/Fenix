@@ -1,0 +1,2 @@
+/home/projects/x86-64-haswell/bintuils/2.25.0/bin/ar qc libfenix.a  CMakeFiles/fenix.dir/hash.c.o CMakeFiles/fenix.dir/process_recovery.c.o CMakeFiles/fenix.dir/data_recovery.c.o CMakeFiles/fenix.dir/metadata_recovery.c.o CMakeFiles/fenix.dir/fenix.c.o CMakeFiles/fenix.dir/mpi_override.c.o CMakeFiles/fenix.dir/util.c.o CMakeFiles/fenix.dir/opt.c.o
+/home/projects/x86-64-haswell/bintuils/2.25.0/bin/ranlib libfenix.a
