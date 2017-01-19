@@ -1,0 +1,1 @@
+/home/evalen/devtools/bin/mpicc     CMakeFiles/fenix_ring.dir/fenix_ring.c.o  -o fenix_ring  ../../../src/libfenix.a 

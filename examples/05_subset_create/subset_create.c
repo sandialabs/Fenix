@@ -63,7 +63,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-int max_iter = 2;
+int kIter = 2;
 const int kCount = 20;
 const int kKillID = 2;
 
@@ -98,14 +98,14 @@ int main(int argc, char **argv) {
   Fenix_Init(&fenix_role, world_comm, &new_comm, &argc, &argv,
              spare_ranks, 0, info, &error);
 
+  printf("hello world!\n");
+
   MPI_Comm_size(new_comm, &num_ranks);
   MPI_Comm_rank(new_comm, &rank);
 
-  Fenix_Data_group_create(my_group, new_comm, my_timestamp, my_depth);
+  // Fenix_Data_group_create(my_group, new_comm, my_timestamp, my_depth);
 
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
-
-    printf("here\n");
 
     // Creating subset with fixed stride
     Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
@@ -117,14 +117,13 @@ int main(int argc, char **argv) {
     }
 
     Fenix_Data_member_create(my_group, 777, subset, kCount, MPI_INT);
+    // Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_member_store(my_group, 777, subset_specifier);
-    //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
-    Fenix_Data_commit(my_group, &my_timestamp);
+    //Fenix_Data_commit(my_group, &my_timestamp);
   } else {
     // Creating subset with fixed stride
-    Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
-
-    Fenix_Data_member_restore(my_group, 777, subset, kCount, 1);
+    //Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
+    //Fenix_Data_member_restore(my_group, 777, subset, kCount, 1);
     recovered = 1;
     
     if (rank == kKillID) {
@@ -135,39 +134,32 @@ int main(int argc, char **argv) {
     }
   }
 
-#if 1
+#if 0
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
   }
+  printf("subset create!\n");
 #endif
 
   int index;
   int subset_index;
-  for (index = 0; index < max_iter; index++) {
+  for (index = 0; index < kIter; index++) {
       for (subset_index = 0; subset_index < kCount; subset_index++) {
           subset[subset_index] = subset_index + 1; 
       }
-      Fenix_Data_member_store(my_group, 777, subset_specifier);
+      //Fenix_Data_member_store(my_group, 777, subset_specifier);
   } 
 
- // Fenix_Data_member_store(my_group, 777, subset_specifier);
-  Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
-  Fenix_Data_commit(my_group, &my_timestamp);
+  //Fenix_Data_member_store(my_group, 777, subset_specifier);
+  //Fenix_Data_commit(my_group, &my_timestamp);
 
-#if 0
   if (rank == kKillID) {
      for (index = 0; index < kCount; index++) {
          printf("subset[%d]: %d; rank: %d; role: %d\n", index, subset[index], rank, fenix_role); 
       }
       printf("\n");
-  } else if (rank == 0) {
-   //  for (index = 0; index < kCount; index++) {
-         //printf("subset[%d]: %d; rank: %d; role: %d\n", index, subset[index], rank, fenix_role); 
-   //   }
-      //printf("\n");
-  }
-#endif
+  } 
  
   Fenix_Finalize();
   MPI_Finalize();

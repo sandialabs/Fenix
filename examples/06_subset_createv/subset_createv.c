@@ -93,8 +93,8 @@ int main(int argc, char **argv) {
   int *end_offsets = (int *) malloc(sizeof(int) * num_blocks); 
   start_offsets[0] = 0;
   end_offsets[0] = 1;
-  start_offsets[0] = 5;
-  end_offsets[0] = 10;
+  start_offsets[1] = 5;
+  end_offsets[1] = 10; // total count -- 8 elements
 
   MPI_Init(&argc, &argv);
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
@@ -117,10 +117,14 @@ int main(int argc, char **argv) {
     }
 
     Fenix_Data_member_create(my_group, 777, subset, kCount, MPI_INT);
-    //Fenix_Data_member_store(my_group, 777, subset_specifier);
-    //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+    Fenix_Data_member_store(my_group, 777, subset_specifier);
     Fenix_Data_commit(my_group, &my_timestamp);
   } else {
+
+    // creating custom subset 
+    printf("rank: %d; blocks: %d\n", rank, subset_specifier.num_blocks); 
+    Fenix_Data_subset_createv(num_blocks, start_offsets, end_offsets, &subset_specifier);
+
     Fenix_Data_member_restore(my_group, 777, subset, kCount, 1);
     recovered = 1;
     
@@ -149,20 +153,7 @@ int main(int argc, char **argv) {
   } 
 
   Fenix_Data_member_store(my_group, 777, subset_specifier);
-  //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
   Fenix_Data_commit(my_group, &my_timestamp);
-
-  if (rank == kKillID) {
-     for (index = 0; index < kCount; index++) {
-         //printf("subset[%d]: %d; rank: %d; role: %d\n", index, subset[index], rank, fenix_role); 
-      }
-      //printf("\n");
-  } else if (rank == 0) {
-     for (index = 0; index < kCount; index++) {
-         //printf("subset[%d]: %d; rank: %d; role: %d\n", index, subset[index], rank, fenix_role); 
-      }
-      //printf("\n");
-  }
  
   Fenix_Finalize();
   MPI_Finalize();

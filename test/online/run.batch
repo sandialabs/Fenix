@@ -1,0 +1,8 @@
+#!/bin/bash
+#SBATCH --job-name=online                
+#SBATCH --output=online.out
+#SBATCH --error=online.err
+#SBATCH --nodes=8
+#SBATCH --time=00:2:00
+
+/home/knteran/mpi-ulfm-05022016/bin/mpirun --mca pml ob1 -am ft-enable-mpi --mca btl openib,sm,self --pernode -n 8 ./online

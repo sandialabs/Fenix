@@ -1,0 +1,1 @@
+/home/evalen/devtools/bin/mpicc     CMakeFiles/mpi_reduce.dir/mpi_reduce.c.o  -o mpi_reduce  

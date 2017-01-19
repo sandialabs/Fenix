@@ -1,0 +1,14 @@
+/home/evalen/public/Fenix/examples/02_send_recv/fenix/CMakeFiles/fenix_ring.dir
+/home/evalen/public/Fenix/examples/06_subset_createv/CMakeFiles/subset_createv.dir
+/home/evalen/public/Fenix/examples/05_subset_create/CMakeFiles/subset_create.dir
+/home/evalen/public/Fenix/examples/01_hello_world/fenix/CMakeFiles/fenix_hello_world.dir
+/home/evalen/public/Fenix/examples/04_Isend_Irecv/fenix/CMakeFiles/fenix_stencil_1D.dir
+/home/evalen/public/Fenix/examples/04_Isend_Irecv/mpi/CMakeFiles/mpi_stencil_1D.dir
+/home/evalen/public/Fenix/examples/03_reduce/mpi/CMakeFiles/mpi_reduce.dir
+/home/evalen/public/Fenix/test/online/CMakeFiles/online.dir
+/home/evalen/public/Fenix/examples/02_send_recv/mpi/CMakeFiles/mpi_ring.dir
+/home/evalen/public/Fenix/examples/07_subset_full/CMakeFiles/subset_full.dir
+/home/evalen/public/Fenix/examples/01_hello_world/mpi/CMakeFiles/mpi_hello_world.dir
+/home/evalen/public/Fenix/test/sendrecv/CMakeFiles/mpi_send_recv.dir
+/home/evalen/public/Fenix/src/CMakeFiles/fenix.dir
+/home/evalen/public/Fenix/examples/03_reduce/fenix/CMakeFiles/fenix_reduce.dir

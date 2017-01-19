@@ -1,0 +1,612 @@
+The system is: Linux - 3.14.23 - x86_64
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: /home/evalen/devtools/bin/mpicc 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+
+The C compiler identification is GNU, found in "/home/evalen/public/Fenix/CMakeFiles/3.4.3/CompilerIdC/a.out"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /home/evalen/devtools/bin/mpic++ 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+
+The CXX compiler identification is GNU, found in "/home/evalen/public/Fenix/CMakeFiles/3.4.3/CompilerIdCXX/a.out"
+
+Determining if the C compiler works passed with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_6f434/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_6f434.dir/build.make CMakeFiles/cmTC_6f434.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_6f434.dir/testCCompiler.c.o
+/home/evalen/devtools/bin/mpicc     -o CMakeFiles/cmTC_6f434.dir/testCCompiler.c.o   -c /home/evalen/public/Fenix/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_6f434
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6f434.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpicc       CMakeFiles/cmTC_6f434.dir/testCCompiler.c.o  -o cmTC_6f434 -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+Detecting C compiler ABI info compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_fb2fe/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_fb2fe.dir/build.make CMakeFiles/cmTC_fb2fe.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o
+/home/evalen/devtools/bin/mpicc     -o CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o   -c /home/projects/x86-64-haswell/cmake/3.4.3/share/cmake-3.4/Modules/CMakeCCompilerABI.c
+Linking C executable cmTC_fb2fe
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fb2fe.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpicc      -v CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o  -o cmTC_fb2fe -rdynamic  
+Using built-in specs.
+COLLECT_GCC=/home/projects/x86-64-haswell/gnu/5.2.0/bin/gcc
+COLLECT_LTO_WRAPPER=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/lto-wrapper
+Target: x86_64-unknown-linux-gnu
+Configured with: ./configure --prefix=/home/projects/x86-64-haswell/gnu/5.2.0 --with-mpfr=/home/projects/x86-64-haswell/mpfr/3.1.2 --with-mpc=/home/projects/x86-64-haswell/mpc/1.0.1 --with-gmp=/home/projects/x86-64-haswell/gmp/5.1.3 --enable-lto --disable-multilib
+Thread model: posix
+gcc version 5.2.0 (GCC) 
+COMPILER_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/bin/
+LIBRARY_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/home/projects/x86-64-haswell/util-linux/20151026/lib/:/home/projects/x86-64-haswell/curl/7.48.0/lib/:/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib/:/home/projects/x86-64-haswell/python/2.7.9/lib/:/home/projects/x86-64-haswell/valgrind/3.11.0/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/gnu/5.2.0/lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/:/home/projects/x86-64-haswell/zlib/1.2.8/lib/:/home/projects/x86-64-haswell/gmp/5.1.3/lib/:/home/projects/x86-64-haswell/mpfr/3.1.2/lib/:/home/projects/x86-64-haswell/mpc/1.0.1/lib/:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_fb2fe' '-rdynamic' '-I' '/home/evalen/devtools/include' '-pthread' '-L/home/evalen/devtools/lib' '-L/lib64' '-mtune=generic' '-march=x86-64'
+ /home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/collect2 --eh-frame-hdr -m elf_x86_64 -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_fb2fe /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtbegin.o -L/home/evalen/devtools/lib -L/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/home/projects/x86-64-haswell/util-linux/20151026/lib -L/home/projects/x86-64-haswell/curl/7.48.0/lib -L/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib -L/home/projects/x86-64-haswell/python/2.7.9/lib -L/home/projects/x86-64-haswell/valgrind/3.11.0/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib -L/home/projects/x86-64-haswell/zlib/1.2.8/lib -L/home/projects/x86-64-haswell/gmp/5.1.3/lib -L/home/projects/x86-64-haswell/mpfr/3.1.2/lib -L/home/projects/x86-64-haswell/mpc/1.0.1/lib -L/usr/lib/gcc/x86_64-redhat-linux/4.4.7 -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../.. CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o -lmpi -ldl -lm -lnuma -lpci -lpmi --export-dynamic -lrt -lnsl -lutil -lm -ldl -lgcc --as-needed -lgcc_s --no-as-needed -lpthread -lc -lgcc --as-needed -lgcc_s --no-as-needed /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtend.o /usr/lib/../lib64/crtn.o
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+Parsed C implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:"/usr/bin/gmake" "cmTC_fb2fe/fast"]
+  ignore line: [/usr/bin/gmake -f CMakeFiles/cmTC_fb2fe.dir/build.make CMakeFiles/cmTC_fb2fe.dir/build]
+  ignore line: [gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp']
+  ignore line: [Building C object CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/home/evalen/devtools/bin/mpicc     -o CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o   -c /home/projects/x86-64-haswell/cmake/3.4.3/share/cmake-3.4/Modules/CMakeCCompilerABI.c]
+  ignore line: [Linking C executable cmTC_fb2fe]
+  ignore line: [/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fb2fe.dir/link.txt --verbose=1]
+  ignore line: [/home/evalen/devtools/bin/mpicc      -v CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o  -o cmTC_fb2fe -rdynamic  ]
+  ignore line: [Using built-in specs.]
+  ignore line: [COLLECT_GCC=/home/projects/x86-64-haswell/gnu/5.2.0/bin/gcc]
+  ignore line: [COLLECT_LTO_WRAPPER=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/lto-wrapper]
+  ignore line: [Target: x86_64-unknown-linux-gnu]
+  ignore line: [Configured with: ./configure --prefix=/home/projects/x86-64-haswell/gnu/5.2.0 --with-mpfr=/home/projects/x86-64-haswell/mpfr/3.1.2 --with-mpc=/home/projects/x86-64-haswell/mpc/1.0.1 --with-gmp=/home/projects/x86-64-haswell/gmp/5.1.3 --enable-lto --disable-multilib]
+  ignore line: [Thread model: posix]
+  ignore line: [gcc version 5.2.0 (GCC) ]
+  ignore line: [COMPILER_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/bin/]
+  ignore line: [LIBRARY_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/home/projects/x86-64-haswell/util-linux/20151026/lib/:/home/projects/x86-64-haswell/curl/7.48.0/lib/:/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib/:/home/projects/x86-64-haswell/python/2.7.9/lib/:/home/projects/x86-64-haswell/valgrind/3.11.0/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/gnu/5.2.0/lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/:/home/projects/x86-64-haswell/zlib/1.2.8/lib/:/home/projects/x86-64-haswell/gmp/5.1.3/lib/:/home/projects/x86-64-haswell/mpfr/3.1.2/lib/:/home/projects/x86-64-haswell/mpc/1.0.1/lib/:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../:/lib/:/usr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_fb2fe' '-rdynamic' '-I' '/home/evalen/devtools/include' '-pthread' '-L/home/evalen/devtools/lib' '-L/lib64' '-mtune=generic' '-march=x86-64']
+  link line: [ /home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/collect2 --eh-frame-hdr -m elf_x86_64 -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_fb2fe /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtbegin.o -L/home/evalen/devtools/lib -L/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/home/projects/x86-64-haswell/util-linux/20151026/lib -L/home/projects/x86-64-haswell/curl/7.48.0/lib -L/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib -L/home/projects/x86-64-haswell/python/2.7.9/lib -L/home/projects/x86-64-haswell/valgrind/3.11.0/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib -L/home/projects/x86-64-haswell/zlib/1.2.8/lib -L/home/projects/x86-64-haswell/gmp/5.1.3/lib -L/home/projects/x86-64-haswell/mpfr/3.1.2/lib -L/home/projects/x86-64-haswell/mpc/1.0.1/lib -L/usr/lib/gcc/x86_64-redhat-linux/4.4.7 -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../.. CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o -lmpi -ldl -lm -lnuma -lpci -lpmi --export-dynamic -lrt -lnsl -lutil -lm -ldl -lgcc --as-needed -lgcc_s --no-as-needed -lpthread -lc -lgcc --as-needed -lgcc_s --no-as-needed /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtend.o /usr/lib/../lib64/crtn.o]
+    arg [/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/collect2] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [-m] ==> ignore
+    arg [elf_x86_64] ==> ignore
+    arg [-export-dynamic] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_fb2fe] ==> ignore
+    arg [/usr/lib/../lib64/crt1.o] ==> ignore
+    arg [/usr/lib/../lib64/crti.o] ==> ignore
+    arg [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtbegin.o] ==> ignore
+    arg [-L/home/evalen/devtools/lib] ==> dir [/home/evalen/devtools/lib]
+    arg [-L/lib64] ==> dir [/lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64]
+    arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+    arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+    arg [-L/home/projects/x86-64-haswell/util-linux/20151026/lib] ==> dir [/home/projects/x86-64-haswell/util-linux/20151026/lib]
+    arg [-L/home/projects/x86-64-haswell/curl/7.48.0/lib] ==> dir [/home/projects/x86-64-haswell/curl/7.48.0/lib]
+    arg [-L/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib] ==> dir [/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib]
+    arg [-L/home/projects/x86-64-haswell/python/2.7.9/lib] ==> dir [/home/projects/x86-64-haswell/python/2.7.9/lib]
+    arg [-L/home/projects/x86-64-haswell/valgrind/3.11.0/lib] ==> dir [/home/projects/x86-64-haswell/valgrind/3.11.0/lib]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib]
+    arg [-L/home/projects/x86-64-haswell/bintuils/2.25.0/lib] ==> dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib]
+    arg [-L/home/projects/x86-64-haswell/zlib/1.2.8/lib] ==> dir [/home/projects/x86-64-haswell/zlib/1.2.8/lib]
+    arg [-L/home/projects/x86-64-haswell/gmp/5.1.3/lib] ==> dir [/home/projects/x86-64-haswell/gmp/5.1.3/lib]
+    arg [-L/home/projects/x86-64-haswell/mpfr/3.1.2/lib] ==> dir [/home/projects/x86-64-haswell/mpfr/3.1.2/lib]
+    arg [-L/home/projects/x86-64-haswell/mpc/1.0.1/lib] ==> dir [/home/projects/x86-64-haswell/mpc/1.0.1/lib]
+    arg [-L/usr/lib/gcc/x86_64-redhat-linux/4.4.7] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/4.4.7]
+    arg [-L/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib] ==> dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../..] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../..]
+    arg [CMakeFiles/cmTC_fb2fe.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [-lmpi] ==> lib [mpi]
+    arg [-ldl] ==> lib [dl]
+    arg [-lm] ==> lib [m]
+    arg [-lnuma] ==> lib [numa]
+    arg [-lpci] ==> lib [pci]
+    arg [-lpmi] ==> lib [pmi]
+    arg [--export-dynamic] ==> ignore
+    arg [-lrt] ==> lib [rt]
+    arg [-lnsl] ==> lib [nsl]
+    arg [-lutil] ==> lib [util]
+    arg [-lm] ==> lib [m]
+    arg [-ldl] ==> lib [dl]
+    arg [-lgcc] ==> lib [gcc]
+    arg [--as-needed] ==> ignore
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [--no-as-needed] ==> ignore
+    arg [-lpthread] ==> lib [pthread]
+    arg [-lc] ==> lib [c]
+    arg [-lgcc] ==> lib [gcc]
+    arg [--as-needed] ==> ignore
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [--no-as-needed] ==> ignore
+    arg [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtend.o] ==> ignore
+    arg [/usr/lib/../lib64/crtn.o] ==> ignore
+  remove lib [gcc]
+  remove lib [gcc_s]
+  remove lib [gcc]
+  remove lib [gcc_s]
+  collapse library dir [/home/evalen/devtools/lib] ==> [/home/evalen/devtools/lib]
+  collapse library dir [/lib64] ==> [/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/lib/../lib64] ==> [/lib64]
+  collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/util-linux/20151026/lib] ==> [/home/projects/x86-64-haswell/util-linux/20151026/lib]
+  collapse library dir [/home/projects/x86-64-haswell/curl/7.48.0/lib] ==> [/home/projects/x86-64-haswell/curl/7.48.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib] ==> [/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib]
+  collapse library dir [/home/projects/x86-64-haswell/python/2.7.9/lib] ==> [/home/projects/x86-64-haswell/python/2.7.9/lib]
+  collapse library dir [/home/projects/x86-64-haswell/valgrind/3.11.0/lib] ==> [/home/projects/x86-64-haswell/valgrind/3.11.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib] ==> [/home/projects/x86-64-haswell/bintuils/2.25.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/zlib/1.2.8/lib] ==> [/home/projects/x86-64-haswell/zlib/1.2.8/lib]
+  collapse library dir [/home/projects/x86-64-haswell/gmp/5.1.3/lib] ==> [/home/projects/x86-64-haswell/gmp/5.1.3/lib]
+  collapse library dir [/home/projects/x86-64-haswell/mpfr/3.1.2/lib] ==> [/home/projects/x86-64-haswell/mpfr/3.1.2/lib]
+  collapse library dir [/home/projects/x86-64-haswell/mpc/1.0.1/lib] ==> [/home/projects/x86-64-haswell/mpc/1.0.1/lib]
+  collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/4.4.7] ==> [/usr/lib/gcc/x86_64-redhat-linux/4.4.7]
+  collapse library dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib] ==> [/home/projects/x86-64-haswell/bintuils/2.25.0/x86_64-unknown-linux-gnu/lib]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../..] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib]
+  implicit libs: [mpi;dl;m;numa;pci;pmi;rt;nsl;util;m;dl;pthread;c]
+  implicit dirs: [/home/evalen/devtools/lib;/lib64;/home/projects/x86-64-haswell/gnu/5.2.0/lib64;/usr/lib64;/home/projects/x86-64-haswell/util-linux/20151026/lib;/home/projects/x86-64-haswell/curl/7.48.0/lib;/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib;/home/projects/x86-64-haswell/python/2.7.9/lib;/home/projects/x86-64-haswell/valgrind/3.11.0/lib;/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0;/home/projects/x86-64-haswell/gnu/5.2.0/lib;/home/projects/x86-64-haswell/bintuils/2.25.0/lib;/home/projects/x86-64-haswell/zlib/1.2.8/lib;/home/projects/x86-64-haswell/gmp/5.1.3/lib;/home/projects/x86-64-haswell/mpfr/3.1.2/lib;/home/projects/x86-64-haswell/mpc/1.0.1/lib;/usr/lib/gcc/x86_64-redhat-linux/4.4.7;/home/projects/x86-64-haswell/bintuils/2.25.0/x86_64-unknown-linux-gnu/lib]
+  implicit fwks: []
+
+
+
+
+Detecting C [-std=c11] compiler features compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_5bb42/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_5bb42.dir/build.make CMakeFiles/cmTC_5bb42.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_5bb42.dir/feature_tests.c.o
+/home/evalen/devtools/bin/mpicc    -std=c11 -o CMakeFiles/cmTC_5bb42.dir/feature_tests.c.o   -c /home/evalen/public/Fenix/CMakeFiles/feature_tests.c
+Linking C executable cmTC_5bb42
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5bb42.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpicc       CMakeFiles/cmTC_5bb42.dir/feature_tests.c.o  -o cmTC_5bb42 -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:1c_restrict
+    Feature record: C_FEATURE:1c_static_assert
+    Feature record: C_FEATURE:1c_variadic_macros
+
+
+Detecting C [-std=c99] compiler features compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_e6cf2/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_e6cf2.dir/build.make CMakeFiles/cmTC_e6cf2.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_e6cf2.dir/feature_tests.c.o
+/home/evalen/devtools/bin/mpicc    -std=c99 -o CMakeFiles/cmTC_e6cf2.dir/feature_tests.c.o   -c /home/evalen/public/Fenix/CMakeFiles/feature_tests.c
+Linking C executable cmTC_e6cf2
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e6cf2.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpicc       CMakeFiles/cmTC_e6cf2.dir/feature_tests.c.o  -o cmTC_e6cf2 -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:1c_restrict
+    Feature record: C_FEATURE:0c_static_assert
+    Feature record: C_FEATURE:1c_variadic_macros
+
+
+Detecting C [-std=c90] compiler features compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_90c31/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_90c31.dir/build.make CMakeFiles/cmTC_90c31.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_90c31.dir/feature_tests.c.o
+/home/evalen/devtools/bin/mpicc    -std=c90 -o CMakeFiles/cmTC_90c31.dir/feature_tests.c.o   -c /home/evalen/public/Fenix/CMakeFiles/feature_tests.c
+Linking C executable cmTC_90c31
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_90c31.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpicc       CMakeFiles/cmTC_90c31.dir/feature_tests.c.o  -o cmTC_90c31 -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:0c_restrict
+    Feature record: C_FEATURE:0c_static_assert
+    Feature record: C_FEATURE:0c_variadic_macros
+Determining if the CXX compiler works passed with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_8deb1/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_8deb1.dir/build.make CMakeFiles/cmTC_8deb1.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_8deb1.dir/testCXXCompiler.cxx.o
+/home/evalen/devtools/bin/mpic++      -o CMakeFiles/cmTC_8deb1.dir/testCXXCompiler.cxx.o -c /home/evalen/public/Fenix/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_8deb1
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8deb1.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpic++        CMakeFiles/cmTC_8deb1.dir/testCXXCompiler.cxx.o  -o cmTC_8deb1 -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_2c221/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_2c221.dir/build.make CMakeFiles/cmTC_2c221.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o
+/home/evalen/devtools/bin/mpic++      -o CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o -c /home/projects/x86-64-haswell/cmake/3.4.3/share/cmake-3.4/Modules/CMakeCXXCompilerABI.cpp
+Linking CXX executable cmTC_2c221
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2c221.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpic++       -v CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_2c221 -rdynamic  
+Using built-in specs.
+COLLECT_GCC=/home/projects/x86-64-haswell/gnu/5.2.0/bin/g++
+COLLECT_LTO_WRAPPER=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/lto-wrapper
+Target: x86_64-unknown-linux-gnu
+Configured with: ./configure --prefix=/home/projects/x86-64-haswell/gnu/5.2.0 --with-mpfr=/home/projects/x86-64-haswell/mpfr/3.1.2 --with-mpc=/home/projects/x86-64-haswell/mpc/1.0.1 --with-gmp=/home/projects/x86-64-haswell/gmp/5.1.3 --enable-lto --disable-multilib
+Thread model: posix
+gcc version 5.2.0 (GCC) 
+COMPILER_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/bin/
+LIBRARY_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/home/projects/x86-64-haswell/util-linux/20151026/lib/:/home/projects/x86-64-haswell/curl/7.48.0/lib/:/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib/:/home/projects/x86-64-haswell/python/2.7.9/lib/:/home/projects/x86-64-haswell/valgrind/3.11.0/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/gnu/5.2.0/lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/:/home/projects/x86-64-haswell/zlib/1.2.8/lib/:/home/projects/x86-64-haswell/gmp/5.1.3/lib/:/home/projects/x86-64-haswell/mpfr/3.1.2/lib/:/home/projects/x86-64-haswell/mpc/1.0.1/lib/:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_2c221' '-rdynamic' '-I' '/home/evalen/devtools/include' '-pthread' '-L/home/evalen/devtools/lib' '-L/lib64' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ /home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/collect2 --eh-frame-hdr -m elf_x86_64 -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_2c221 /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtbegin.o -L/home/evalen/devtools/lib -L/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/home/projects/x86-64-haswell/util-linux/20151026/lib -L/home/projects/x86-64-haswell/curl/7.48.0/lib -L/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib -L/home/projects/x86-64-haswell/python/2.7.9/lib -L/home/projects/x86-64-haswell/valgrind/3.11.0/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib -L/home/projects/x86-64-haswell/zlib/1.2.8/lib -L/home/projects/x86-64-haswell/gmp/5.1.3/lib -L/home/projects/x86-64-haswell/mpfr/3.1.2/lib -L/home/projects/x86-64-haswell/mpc/1.0.1/lib -L/usr/lib/gcc/x86_64-redhat-linux/4.4.7 -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../.. CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o -lmpi_cxx -lmpi -ldl -lnuma -lpci -lpmi --export-dynamic -lrt -lnsl -lutil -lm -ldl -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtend.o /usr/lib/../lib64/crtn.o
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+Parsed CXX implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:"/usr/bin/gmake" "cmTC_2c221/fast"]
+  ignore line: [/usr/bin/gmake -f CMakeFiles/cmTC_2c221.dir/build.make CMakeFiles/cmTC_2c221.dir/build]
+  ignore line: [gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp']
+  ignore line: [Building CXX object CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/home/evalen/devtools/bin/mpic++      -o CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o -c /home/projects/x86-64-haswell/cmake/3.4.3/share/cmake-3.4/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Linking CXX executable cmTC_2c221]
+  ignore line: [/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2c221.dir/link.txt --verbose=1]
+  ignore line: [/home/evalen/devtools/bin/mpic++       -v CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_2c221 -rdynamic  ]
+  ignore line: [Using built-in specs.]
+  ignore line: [COLLECT_GCC=/home/projects/x86-64-haswell/gnu/5.2.0/bin/g++]
+  ignore line: [COLLECT_LTO_WRAPPER=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/lto-wrapper]
+  ignore line: [Target: x86_64-unknown-linux-gnu]
+  ignore line: [Configured with: ./configure --prefix=/home/projects/x86-64-haswell/gnu/5.2.0 --with-mpfr=/home/projects/x86-64-haswell/mpfr/3.1.2 --with-mpc=/home/projects/x86-64-haswell/mpc/1.0.1 --with-gmp=/home/projects/x86-64-haswell/gmp/5.1.3 --enable-lto --disable-multilib]
+  ignore line: [Thread model: posix]
+  ignore line: [gcc version 5.2.0 (GCC) ]
+  ignore line: [COMPILER_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/bin/]
+  ignore line: [LIBRARY_PATH=/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/home/projects/x86-64-haswell/util-linux/20151026/lib/:/home/projects/x86-64-haswell/curl/7.48.0/lib/:/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib/:/home/projects/x86-64-haswell/python/2.7.9/lib/:/home/projects/x86-64-haswell/valgrind/3.11.0/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/:/home/projects/x86-64-haswell/gnu/5.2.0/lib64/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/:/home/projects/x86-64-haswell/zlib/1.2.8/lib/:/home/projects/x86-64-haswell/gmp/5.1.3/lib/:/home/projects/x86-64-haswell/mpfr/3.1.2/lib/:/home/projects/x86-64-haswell/mpc/1.0.1/lib/:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/:/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib/:/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../:/lib/:/usr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_2c221' '-rdynamic' '-I' '/home/evalen/devtools/include' '-pthread' '-L/home/evalen/devtools/lib' '-L/lib64' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+  link line: [ /home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/collect2 --eh-frame-hdr -m elf_x86_64 -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_2c221 /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtbegin.o -L/home/evalen/devtools/lib -L/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/home/projects/x86-64-haswell/util-linux/20151026/lib -L/home/projects/x86-64-haswell/curl/7.48.0/lib -L/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib -L/home/projects/x86-64-haswell/python/2.7.9/lib -L/home/projects/x86-64-haswell/valgrind/3.11.0/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib64 -L/home/projects/x86-64-haswell/gnu/5.2.0/lib -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib -L/home/projects/x86-64-haswell/zlib/1.2.8/lib -L/home/projects/x86-64-haswell/gmp/5.1.3/lib -L/home/projects/x86-64-haswell/mpfr/3.1.2/lib -L/home/projects/x86-64-haswell/mpc/1.0.1/lib -L/usr/lib/gcc/x86_64-redhat-linux/4.4.7 -L/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib -L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../.. CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o -lmpi_cxx -lmpi -ldl -lnuma -lpci -lpmi --export-dynamic -lrt -lnsl -lutil -lm -ldl -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtend.o /usr/lib/../lib64/crtn.o]
+    arg [/home/projects/x86-64-haswell/gnu/5.2.0/libexec/gcc/x86_64-unknown-linux-gnu/5.2.0/collect2] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [-m] ==> ignore
+    arg [elf_x86_64] ==> ignore
+    arg [-export-dynamic] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_2c221] ==> ignore
+    arg [/usr/lib/../lib64/crt1.o] ==> ignore
+    arg [/usr/lib/../lib64/crti.o] ==> ignore
+    arg [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtbegin.o] ==> ignore
+    arg [-L/home/evalen/devtools/lib] ==> dir [/home/evalen/devtools/lib]
+    arg [-L/lib64] ==> dir [/lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64]
+    arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+    arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+    arg [-L/home/projects/x86-64-haswell/util-linux/20151026/lib] ==> dir [/home/projects/x86-64-haswell/util-linux/20151026/lib]
+    arg [-L/home/projects/x86-64-haswell/curl/7.48.0/lib] ==> dir [/home/projects/x86-64-haswell/curl/7.48.0/lib]
+    arg [-L/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib] ==> dir [/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib]
+    arg [-L/home/projects/x86-64-haswell/python/2.7.9/lib] ==> dir [/home/projects/x86-64-haswell/python/2.7.9/lib]
+    arg [-L/home/projects/x86-64-haswell/valgrind/3.11.0/lib] ==> dir [/home/projects/x86-64-haswell/valgrind/3.11.0/lib]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib64] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib]
+    arg [-L/home/projects/x86-64-haswell/bintuils/2.25.0/lib] ==> dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib]
+    arg [-L/home/projects/x86-64-haswell/zlib/1.2.8/lib] ==> dir [/home/projects/x86-64-haswell/zlib/1.2.8/lib]
+    arg [-L/home/projects/x86-64-haswell/gmp/5.1.3/lib] ==> dir [/home/projects/x86-64-haswell/gmp/5.1.3/lib]
+    arg [-L/home/projects/x86-64-haswell/mpfr/3.1.2/lib] ==> dir [/home/projects/x86-64-haswell/mpfr/3.1.2/lib]
+    arg [-L/home/projects/x86-64-haswell/mpc/1.0.1/lib] ==> dir [/home/projects/x86-64-haswell/mpc/1.0.1/lib]
+    arg [-L/usr/lib/gcc/x86_64-redhat-linux/4.4.7] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/4.4.7]
+    arg [-L/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib] ==> dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib]
+    arg [-L/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../..] ==> dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../..]
+    arg [CMakeFiles/cmTC_2c221.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [-lmpi_cxx] ==> lib [mpi_cxx]
+    arg [-lmpi] ==> lib [mpi]
+    arg [-ldl] ==> lib [dl]
+    arg [-lnuma] ==> lib [numa]
+    arg [-lpci] ==> lib [pci]
+    arg [-lpmi] ==> lib [pmi]
+    arg [--export-dynamic] ==> ignore
+    arg [-lrt] ==> lib [rt]
+    arg [-lnsl] ==> lib [nsl]
+    arg [-lutil] ==> lib [util]
+    arg [-lm] ==> lib [m]
+    arg [-ldl] ==> lib [dl]
+    arg [-lstdc++] ==> lib [stdc++]
+    arg [-lm] ==> lib [m]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lpthread] ==> lib [pthread]
+    arg [-lc] ==> lib [c]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-lgcc] ==> lib [gcc]
+    arg [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtend.o] ==> ignore
+    arg [/usr/lib/../lib64/crtn.o] ==> ignore
+  remove lib [gcc_s]
+  remove lib [gcc]
+  remove lib [gcc_s]
+  remove lib [gcc]
+  collapse library dir [/home/evalen/devtools/lib] ==> [/home/evalen/devtools/lib]
+  collapse library dir [/lib64] ==> [/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64/../lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/../lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/lib/../lib64] ==> [/lib64]
+  collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/util-linux/20151026/lib] ==> [/home/projects/x86-64-haswell/util-linux/20151026/lib]
+  collapse library dir [/home/projects/x86-64-haswell/curl/7.48.0/lib] ==> [/home/projects/x86-64-haswell/curl/7.48.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib] ==> [/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib]
+  collapse library dir [/home/projects/x86-64-haswell/python/2.7.9/lib] ==> [/home/projects/x86-64-haswell/python/2.7.9/lib]
+  collapse library dir [/home/projects/x86-64-haswell/valgrind/3.11.0/lib] ==> [/home/projects/x86-64-haswell/valgrind/3.11.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib64] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib64]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib] ==> [/home/projects/x86-64-haswell/bintuils/2.25.0/lib]
+  collapse library dir [/home/projects/x86-64-haswell/zlib/1.2.8/lib] ==> [/home/projects/x86-64-haswell/zlib/1.2.8/lib]
+  collapse library dir [/home/projects/x86-64-haswell/gmp/5.1.3/lib] ==> [/home/projects/x86-64-haswell/gmp/5.1.3/lib]
+  collapse library dir [/home/projects/x86-64-haswell/mpfr/3.1.2/lib] ==> [/home/projects/x86-64-haswell/mpfr/3.1.2/lib]
+  collapse library dir [/home/projects/x86-64-haswell/mpc/1.0.1/lib] ==> [/home/projects/x86-64-haswell/mpc/1.0.1/lib]
+  collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/4.4.7] ==> [/usr/lib/gcc/x86_64-redhat-linux/4.4.7]
+  collapse library dir [/home/projects/x86-64-haswell/bintuils/2.25.0/lib/../x86_64-unknown-linux-gnu/lib] ==> [/home/projects/x86-64-haswell/bintuils/2.25.0/x86_64-unknown-linux-gnu/lib]
+  collapse library dir [/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../..] ==> [/home/projects/x86-64-haswell/gnu/5.2.0/lib]
+  implicit libs: [mpi_cxx;mpi;dl;numa;pci;pmi;rt;nsl;util;m;dl;stdc++;m;pthread;c]
+  implicit dirs: [/home/evalen/devtools/lib;/lib64;/home/projects/x86-64-haswell/gnu/5.2.0/lib64;/usr/lib64;/home/projects/x86-64-haswell/util-linux/20151026/lib;/home/projects/x86-64-haswell/curl/7.48.0/lib;/home/projects/x86-64-haswell/boost/1.59.0/openmpi/1.10.2/intel/17.0.042/lib;/home/projects/x86-64-haswell/python/2.7.9/lib;/home/projects/x86-64-haswell/valgrind/3.11.0/lib;/home/projects/x86-64-haswell/gnu/5.2.0/lib/gcc/x86_64-unknown-linux-gnu/5.2.0;/home/projects/x86-64-haswell/gnu/5.2.0/lib;/home/projects/x86-64-haswell/bintuils/2.25.0/lib;/home/projects/x86-64-haswell/zlib/1.2.8/lib;/home/projects/x86-64-haswell/gmp/5.1.3/lib;/home/projects/x86-64-haswell/mpfr/3.1.2/lib;/home/projects/x86-64-haswell/mpc/1.0.1/lib;/usr/lib/gcc/x86_64-redhat-linux/4.4.7;/home/projects/x86-64-haswell/bintuils/2.25.0/x86_64-unknown-linux-gnu/lib]
+  implicit fwks: []
+
+
+
+
+Detecting CXX [-std=c++14] compiler features compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_910ff/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_910ff.dir/build.make CMakeFiles/cmTC_910ff.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_910ff.dir/feature_tests.cxx.o
+/home/evalen/devtools/bin/mpic++     -std=c++14 -o CMakeFiles/cmTC_910ff.dir/feature_tests.cxx.o -c /home/evalen/public/Fenix/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_910ff
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_910ff.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpic++        CMakeFiles/cmTC_910ff.dir/feature_tests.cxx.o  -o cmTC_910ff -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:1cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:1cxx_alias_templates
+    Feature record: CXX_FEATURE:1cxx_alignas
+    Feature record: CXX_FEATURE:1cxx_alignof
+    Feature record: CXX_FEATURE:1cxx_attributes
+    Feature record: CXX_FEATURE:1cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:1cxx_auto_type
+    Feature record: CXX_FEATURE:1cxx_binary_literals
+    Feature record: CXX_FEATURE:1cxx_constexpr
+    Feature record: CXX_FEATURE:1cxx_contextual_conversions
+    Feature record: CXX_FEATURE:1cxx_decltype
+    Feature record: CXX_FEATURE:1cxx_decltype_auto
+    Feature record: CXX_FEATURE:1cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:1cxx_default_function_template_args
+    Feature record: CXX_FEATURE:1cxx_defaulted_functions
+    Feature record: CXX_FEATURE:1cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:1cxx_delegating_constructors
+    Feature record: CXX_FEATURE:1cxx_deleted_functions
+    Feature record: CXX_FEATURE:1cxx_digit_separators
+    Feature record: CXX_FEATURE:1cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:1cxx_explicit_conversions
+    Feature record: CXX_FEATURE:1cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:1cxx_extern_templates
+    Feature record: CXX_FEATURE:1cxx_final
+    Feature record: CXX_FEATURE:1cxx_func_identifier
+    Feature record: CXX_FEATURE:1cxx_generalized_initializers
+    Feature record: CXX_FEATURE:1cxx_generic_lambdas
+    Feature record: CXX_FEATURE:1cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:1cxx_inline_namespaces
+    Feature record: CXX_FEATURE:1cxx_lambdas
+    Feature record: CXX_FEATURE:1cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:1cxx_local_type_template_args
+    Feature record: CXX_FEATURE:1cxx_long_long_type
+    Feature record: CXX_FEATURE:1cxx_noexcept
+    Feature record: CXX_FEATURE:1cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:1cxx_nullptr
+    Feature record: CXX_FEATURE:1cxx_override
+    Feature record: CXX_FEATURE:1cxx_range_for
+    Feature record: CXX_FEATURE:1cxx_raw_string_literals
+    Feature record: CXX_FEATURE:1cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:1cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:1cxx_return_type_deduction
+    Feature record: CXX_FEATURE:1cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:1cxx_rvalue_references
+    Feature record: CXX_FEATURE:1cxx_sizeof_member
+    Feature record: CXX_FEATURE:1cxx_static_assert
+    Feature record: CXX_FEATURE:1cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:1cxx_thread_local
+    Feature record: CXX_FEATURE:1cxx_trailing_return_types
+    Feature record: CXX_FEATURE:1cxx_unicode_literals
+    Feature record: CXX_FEATURE:1cxx_uniform_initialization
+    Feature record: CXX_FEATURE:1cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:1cxx_user_literals
+    Feature record: CXX_FEATURE:1cxx_variable_templates
+    Feature record: CXX_FEATURE:1cxx_variadic_macros
+    Feature record: CXX_FEATURE:1cxx_variadic_templates
+
+
+Detecting CXX [-std=c++11] compiler features compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_0c304/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_0c304.dir/build.make CMakeFiles/cmTC_0c304.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_0c304.dir/feature_tests.cxx.o
+/home/evalen/devtools/bin/mpic++     -std=c++11 -o CMakeFiles/cmTC_0c304.dir/feature_tests.cxx.o -c /home/evalen/public/Fenix/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_0c304
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0c304.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpic++        CMakeFiles/cmTC_0c304.dir/feature_tests.cxx.o  -o cmTC_0c304 -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:0cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:1cxx_alias_templates
+    Feature record: CXX_FEATURE:1cxx_alignas
+    Feature record: CXX_FEATURE:1cxx_alignof
+    Feature record: CXX_FEATURE:1cxx_attributes
+    Feature record: CXX_FEATURE:0cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:1cxx_auto_type
+    Feature record: CXX_FEATURE:0cxx_binary_literals
+    Feature record: CXX_FEATURE:1cxx_constexpr
+    Feature record: CXX_FEATURE:0cxx_contextual_conversions
+    Feature record: CXX_FEATURE:1cxx_decltype
+    Feature record: CXX_FEATURE:0cxx_decltype_auto
+    Feature record: CXX_FEATURE:1cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:1cxx_default_function_template_args
+    Feature record: CXX_FEATURE:1cxx_defaulted_functions
+    Feature record: CXX_FEATURE:1cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:1cxx_delegating_constructors
+    Feature record: CXX_FEATURE:1cxx_deleted_functions
+    Feature record: CXX_FEATURE:0cxx_digit_separators
+    Feature record: CXX_FEATURE:1cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:1cxx_explicit_conversions
+    Feature record: CXX_FEATURE:1cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:1cxx_extern_templates
+    Feature record: CXX_FEATURE:1cxx_final
+    Feature record: CXX_FEATURE:1cxx_func_identifier
+    Feature record: CXX_FEATURE:1cxx_generalized_initializers
+    Feature record: CXX_FEATURE:0cxx_generic_lambdas
+    Feature record: CXX_FEATURE:1cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:1cxx_inline_namespaces
+    Feature record: CXX_FEATURE:1cxx_lambdas
+    Feature record: CXX_FEATURE:0cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:1cxx_local_type_template_args
+    Feature record: CXX_FEATURE:1cxx_long_long_type
+    Feature record: CXX_FEATURE:1cxx_noexcept
+    Feature record: CXX_FEATURE:1cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:1cxx_nullptr
+    Feature record: CXX_FEATURE:1cxx_override
+    Feature record: CXX_FEATURE:1cxx_range_for
+    Feature record: CXX_FEATURE:1cxx_raw_string_literals
+    Feature record: CXX_FEATURE:1cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:0cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:0cxx_return_type_deduction
+    Feature record: CXX_FEATURE:1cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:1cxx_rvalue_references
+    Feature record: CXX_FEATURE:1cxx_sizeof_member
+    Feature record: CXX_FEATURE:1cxx_static_assert
+    Feature record: CXX_FEATURE:1cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:1cxx_thread_local
+    Feature record: CXX_FEATURE:1cxx_trailing_return_types
+    Feature record: CXX_FEATURE:1cxx_unicode_literals
+    Feature record: CXX_FEATURE:1cxx_uniform_initialization
+    Feature record: CXX_FEATURE:1cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:1cxx_user_literals
+    Feature record: CXX_FEATURE:0cxx_variable_templates
+    Feature record: CXX_FEATURE:1cxx_variadic_macros
+    Feature record: CXX_FEATURE:1cxx_variadic_templates
+
+
+Detecting CXX [-std=c++98] compiler features compiled with the following output:
+Change Dir: /home/evalen/public/Fenix/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_e436f/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_e436f.dir/build.make CMakeFiles/cmTC_e436f.dir/build
+gmake[1]: Entering directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_e436f.dir/feature_tests.cxx.o
+/home/evalen/devtools/bin/mpic++     -std=c++98 -o CMakeFiles/cmTC_e436f.dir/feature_tests.cxx.o -c /home/evalen/public/Fenix/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_e436f
+/home/projects/x86-64-haswell/cmake/3.4.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e436f.dir/link.txt --verbose=1
+/home/evalen/devtools/bin/mpic++        CMakeFiles/cmTC_e436f.dir/feature_tests.cxx.o  -o cmTC_e436f -rdynamic 
+gmake[1]: Leaving directory `/home/evalen/public/Fenix/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:0cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:0cxx_alias_templates
+    Feature record: CXX_FEATURE:0cxx_alignas
+    Feature record: CXX_FEATURE:0cxx_alignof
+    Feature record: CXX_FEATURE:0cxx_attributes
+    Feature record: CXX_FEATURE:0cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:0cxx_auto_type
+    Feature record: CXX_FEATURE:0cxx_binary_literals
+    Feature record: CXX_FEATURE:0cxx_constexpr
+    Feature record: CXX_FEATURE:0cxx_contextual_conversions
+    Feature record: CXX_FEATURE:0cxx_decltype
+    Feature record: CXX_FEATURE:0cxx_decltype_auto
+    Feature record: CXX_FEATURE:0cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:0cxx_default_function_template_args
+    Feature record: CXX_FEATURE:0cxx_defaulted_functions
+    Feature record: CXX_FEATURE:0cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:0cxx_delegating_constructors
+    Feature record: CXX_FEATURE:0cxx_deleted_functions
+    Feature record: CXX_FEATURE:0cxx_digit_separators
+    Feature record: CXX_FEATURE:0cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:0cxx_explicit_conversions
+    Feature record: CXX_FEATURE:0cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:0cxx_extern_templates
+    Feature record: CXX_FEATURE:0cxx_final
+    Feature record: CXX_FEATURE:0cxx_func_identifier
+    Feature record: CXX_FEATURE:0cxx_generalized_initializers
+    Feature record: CXX_FEATURE:0cxx_generic_lambdas
+    Feature record: CXX_FEATURE:0cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:0cxx_inline_namespaces
+    Feature record: CXX_FEATURE:0cxx_lambdas
+    Feature record: CXX_FEATURE:0cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:0cxx_local_type_template_args
+    Feature record: CXX_FEATURE:0cxx_long_long_type
+    Feature record: CXX_FEATURE:0cxx_noexcept
+    Feature record: CXX_FEATURE:0cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:0cxx_nullptr
+    Feature record: CXX_FEATURE:0cxx_override
+    Feature record: CXX_FEATURE:0cxx_range_for
+    Feature record: CXX_FEATURE:0cxx_raw_string_literals
+    Feature record: CXX_FEATURE:0cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:0cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:0cxx_return_type_deduction
+    Feature record: CXX_FEATURE:0cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:0cxx_rvalue_references
+    Feature record: CXX_FEATURE:0cxx_sizeof_member
+    Feature record: CXX_FEATURE:0cxx_static_assert
+    Feature record: CXX_FEATURE:0cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:0cxx_thread_local
+    Feature record: CXX_FEATURE:0cxx_trailing_return_types
+    Feature record: CXX_FEATURE:0cxx_unicode_literals
+    Feature record: CXX_FEATURE:0cxx_uniform_initialization
+    Feature record: CXX_FEATURE:0cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:0cxx_user_literals
+    Feature record: CXX_FEATURE:0cxx_variable_templates
+    Feature record: CXX_FEATURE:0cxx_variadic_macros
+    Feature record: CXX_FEATURE:0cxx_variadic_templates
