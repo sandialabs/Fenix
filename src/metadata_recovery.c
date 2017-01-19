@@ -93,12 +93,20 @@ int _send_metadata(int current_rank, int out_rank, MPI_Comm comm) {
   two_container_packet_t gpacket;
   gpacket.count = group->count;
   gpacket.size = group->size;
+
+  verbose_print(
+            "*before* send c-rank: %d, out-rank: %d, g-count: %d, g-size: %d\n",
+            current_rank, out_rank,
+            group->count, group->size);
+
+
+
   MPI_Send(&gpacket, sizeof(two_container_packet_t), MPI_BYTE, out_rank,
            RECOVER_GROUP_TAG, comm); /* Group metadata */
 
   //if (options->verbose == 65) {
     verbose_print(
-            "send c-rank: %d, out-rank: %d, g-count: %d, g-size: %d\n",
+            "*after* send c-rank: %d, out-rank: %d, g-count: %d, g-size: %d\n",
             current_rank, out_rank,
             group->count, group->size);
   //}
@@ -110,15 +118,22 @@ int _recover_metadata(int current_rank, int in_rank, MPI_Comm comm) {
   MPI_Status status;
   fenix_group_t *group = g_data_recovery;
   two_container_packet_t gpacket;
+
+  verbose_print("*before* recv c-rank: %d, in-rank: %d, g-count: %d, g-size: %d\n",
+                  current_rank, in_rank,
+                  group->count, group->size);
+
   MPI_Recv(&gpacket, sizeof(two_container_packet_t), MPI_BYTE, in_rank,
            RECOVER_GROUP_TAG, comm, &status); /* Group metadata */
+
+
   group->count = gpacket.count;
   group->size = gpacket.size;
 
   reinit_group(group, gpacket);
 
   //if (options->verbose == 66) {
-    verbose_print("recv c-rank: %d, in-rank: %d, g-count: %d, g-size: %d\n",
+    verbose_print("*after* recv c-rank: %d, in-rank: %d, g-count: %d, g-size: %d\n",
                   current_rank, in_rank,
                   group->count, group->size);
   //}

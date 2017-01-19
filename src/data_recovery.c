@@ -134,7 +134,7 @@ int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
     /* recover group information */
     if (*current_recovery_status == 0 && partner_recovery_status == 1) {
       printf("*group-create* (send) rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);  
-      retval = _send_metadata(gentry->current_rank, gentry->current_rank, gentry->comm);
+      retval = _send_metadata(gentry->partner_rank, gentry->partner_rank, gentry->comm);
       //retval = _send_group_data(gentry->current_rank, gentry->partner_rank, gentry, gentry->comm);
     } else if (*current_recovery_status == 1 && partner_recovery_status == 0) {
       printf("*group-create* (recv) rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);  
