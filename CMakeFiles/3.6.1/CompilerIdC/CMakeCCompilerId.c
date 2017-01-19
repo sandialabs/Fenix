@@ -5,6 +5,11 @@
 #if defined(__18CXX)
 # define ID_VOID_MAIN
 #endif
+#if defined(__CLASSIC_C__)
+/* cv-qualifiers did not exist in K&R C */
+# define const
+# define volatile
+#endif
 
 
 /* Version number components: V=Version, R=Revision, P=Patch
@@ -45,7 +50,7 @@
 # define COMPILER_ID "Embarcadero"
 # define COMPILER_VERSION_MAJOR HEX(__CODEGEARC_VERSION__>>24 & 0x00FF)
 # define COMPILER_VERSION_MINOR HEX(__CODEGEARC_VERSION__>>16 & 0x00FF)
-# define COMPILER_VERSION_PATCH HEX(__CODEGEARC_VERSION__     & 0xFFFF)
+# define COMPILER_VERSION_PATCH DEC(__CODEGEARC_VERSION__     & 0xFFFF)
 
 #elif defined(__BORLANDC__)
 # define COMPILER_ID "Borland"
@@ -146,6 +151,9 @@
 #elif defined(__TINYC__)
 # define COMPILER_ID "TinyCC"
 
+#elif defined(__BCC__)
+# define COMPILER_ID "Bruce"
+
 #elif defined(__SCO_VERSION__)
 # define COMPILER_ID "SCO"
 
@@ -218,6 +226,21 @@
 #elif defined(__IAR_SYSTEMS_ICC__ ) || defined(__IAR_SYSTEMS_ICC)
 # define COMPILER_ID "IAR"
 
+#elif defined(__ARMCC_VERSION)
+# define COMPILER_ID "ARMCC"
+#if __ARMCC_VERSION >= 1000000
+  /* __ARMCC_VERSION = VRRPPPP */
+  # define COMPILER_VERSION_MAJOR DEC(__ARMCC_VERSION/1000000)
+  # define COMPILER_VERSION_MINOR DEC(__ARMCC_VERSION/10000 % 100)
+  # define COMPILER_VERSION_PATCH DEC(__ARMCC_VERSION     % 10000)
+#else
+  /* __ARMCC_VERSION = VRPPPP */
+  # define COMPILER_VERSION_MAJOR DEC(__ARMCC_VERSION/100000)
+  # define COMPILER_VERSION_MINOR DEC(__ARMCC_VERSION/10000 % 10)
+  # define COMPILER_VERSION_PATCH DEC(__ARMCC_VERSION    % 10000)
+#endif
+
+
 #elif defined(SDCC)
 # define COMPILER_ID "SDCC"
   /* SDCC = VRP */
@@ -264,6 +287,10 @@ char const* info_simulate = "INFO" ":" "simulate[" SIMULATE_ID "]";
 
 #ifdef __QNXNTO__
 char const* qnxnto = "INFO" ":" "qnxnto[]";
+#endif
+
+#if defined(__CRAYXE) || defined(__CRAYXC)
+char const *info_cray = "INFO" ":" "compiler_wrapper[CrayPrgEnv]";
 #endif
 
 #define STRINGIFY_HELPER(X) #X
@@ -359,11 +386,11 @@ char const* qnxnto = "INFO" ":" "qnxnto[]";
 #  define PLATFORM_ID "Windows3x"
 
 # else /* unknown platform */
-#  define PLATFORM_ID ""
+#  define PLATFORM_ID
 # endif
 
 #else /* unknown platform */
-# define PLATFORM_ID ""
+# define PLATFORM_ID
 
 #endif
 
@@ -413,7 +440,7 @@ char const* qnxnto = "INFO" ":" "qnxnto[]";
 # endif
 
 #else
-#  define ARCHITECTURE_ID ""
+#  define ARCHITECTURE_ID
 #endif
 
 /* Convert integer to decimal digit literals.  */
@@ -484,23 +511,32 @@ char const* info_arch = "INFO" ":" "arch[" ARCHITECTURE_ID "]";
 
 
 
-const char* info_language_dialect_default = "INFO" ":" "dialect_default["
-#if !defined(__STDC_VERSION__)
-  "90"
+#if !defined(__STDC__)
+# if defined(_MSC_VER) && !defined(__clang__)
+#  define C_DIALECT "90"
+# else
+#  define C_DIALECT
+# endif
 #elif __STDC_VERSION__ >= 201000L
-  "11"
+# define C_DIALECT "11"
 #elif __STDC_VERSION__ >= 199901L
-  "99"
+# define C_DIALECT "99"
 #else
+# define C_DIALECT "90"
 #endif
-"]";
+const char* info_language_dialect_default =
+  "INFO" ":" "dialect_default[" C_DIALECT "]";
 
 /*--------------------------------------------------------------------------*/
 
 #ifdef ID_VOID_MAIN
 void main() {}
 #else
+# if defined(__CLASSIC_C__)
+int main(argc, argv) int argc; char *argv[];
+# else
 int main(int argc, char* argv[])
+# endif
 {
   int require = 0;
   require += info_compiler[argc];
@@ -514,6 +550,9 @@ int main(int argc, char* argv[])
 #endif
 #ifdef SIMULATE_VERSION_MAJOR
   require += info_simulate_version[argc];
+#endif
+#if defined(__CRAYXE) || defined(__CRAYXC)
+  require += info_cray[argc];
 #endif
   require += info_language_dialect_default[argc];
   (void)argv;

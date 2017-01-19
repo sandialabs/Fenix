@@ -50,7 +50,7 @@
 # define COMPILER_ID "Embarcadero"
 # define COMPILER_VERSION_MAJOR HEX(__CODEGEARC_VERSION__>>24 & 0x00FF)
 # define COMPILER_VERSION_MINOR HEX(__CODEGEARC_VERSION__>>16 & 0x00FF)
-# define COMPILER_VERSION_PATCH HEX(__CODEGEARC_VERSION__     & 0xFFFF)
+# define COMPILER_VERSION_PATCH DEC(__CODEGEARC_VERSION__     & 0xFFFF)
 
 #elif defined(__BORLANDC__)
 # define COMPILER_ID "Borland"
@@ -220,6 +220,21 @@
 #elif defined(__IAR_SYSTEMS_ICC__ ) || defined(__IAR_SYSTEMS_ICC)
 # define COMPILER_ID "IAR"
 
+#elif defined(__ARMCC_VERSION)
+# define COMPILER_ID "ARMCC"
+#if __ARMCC_VERSION >= 1000000
+  /* __ARMCC_VERSION = VRRPPPP */
+  # define COMPILER_VERSION_MAJOR DEC(__ARMCC_VERSION/1000000)
+  # define COMPILER_VERSION_MINOR DEC(__ARMCC_VERSION/10000 % 100)
+  # define COMPILER_VERSION_PATCH DEC(__ARMCC_VERSION     % 10000)
+#else
+  /* __ARMCC_VERSION = VRPPPP */
+  # define COMPILER_VERSION_MAJOR DEC(__ARMCC_VERSION/100000)
+  # define COMPILER_VERSION_MINOR DEC(__ARMCC_VERSION/10000 % 10)
+  # define COMPILER_VERSION_PATCH DEC(__ARMCC_VERSION    % 10000)
+#endif
+
+
 #elif defined(_SGI_COMPILER_VERSION) || defined(_COMPILER_VERSION)
 # define COMPILER_ID "MIPSpro"
 # if defined(_SGI_COMPILER_VERSION)
@@ -259,6 +274,10 @@ char const* info_simulate = "INFO" ":" "simulate[" SIMULATE_ID "]";
 
 #ifdef __QNXNTO__
 char const* qnxnto = "INFO" ":" "qnxnto[]";
+#endif
+
+#if defined(__CRAYXE) || defined(__CRAYXC)
+char const *info_cray = "INFO" ":" "compiler_wrapper[CrayPrgEnv]";
 #endif
 
 #define STRINGIFY_HELPER(X) #X
@@ -354,11 +373,11 @@ char const* qnxnto = "INFO" ":" "qnxnto[]";
 #  define PLATFORM_ID "Windows3x"
 
 # else /* unknown platform */
-#  define PLATFORM_ID ""
+#  define PLATFORM_ID
 # endif
 
 #else /* unknown platform */
-# define PLATFORM_ID ""
+# define PLATFORM_ID
 
 #endif
 
@@ -408,7 +427,7 @@ char const* qnxnto = "INFO" ":" "qnxnto[]";
 # endif
 
 #else
-#  define ARCHITECTURE_ID ""
+#  define ARCHITECTURE_ID
 #endif
 
 /* Convert integer to decimal digit literals.  */
@@ -504,6 +523,9 @@ int main(int argc, char* argv[])
 #endif
 #ifdef SIMULATE_VERSION_MAJOR
   require += info_simulate_version[argc];
+#endif
+#if defined(__CRAYXE) || defined(__CRAYXC)
+  require += info_cray[argc];
 #endif
   require += info_language_dialect_default[argc];
   (void)argv;

@@ -1,1 +1,1 @@
-/home/evalen/devtools/bin/mpicc     CMakeFiles/mpi_hello_world.dir/mpi_hello_world.c.o  -o mpi_hello_world  
+/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/mpi_hello_world.dir/mpi_hello_world.c.o  -o mpi_hello_world  
