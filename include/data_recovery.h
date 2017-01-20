@@ -205,6 +205,9 @@ typedef struct __group_entry_packet {
     int timestamp;
     int depth;
     int rank_separation;
+    int comm_size;
+    int current_rank;
+    int partner_rank;
     enum states state;
 } group_entry_packet_t;
 

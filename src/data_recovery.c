@@ -410,6 +410,9 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
   } else if (specifier.specifier == __FENIX_SUBSET_EMPTY) { // no need to store anything
     retval = FENIX_SUCCESS;
   } else {
+   
+    verbose_print("group_index: %d; member_index: %d\n", group_index, member_index);
+
     fenix_group_t *group = g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
@@ -417,6 +420,9 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     ensure_version_capacity(member);
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = &(mentry->version);
+
+    verbose_print("v->position: %d; rank: %d; role: %d\n", version->position, get_current_rank(*__fenix_g_new_world), __fenix_g_role);
+
     fenix_local_entry_t *lentry = &(version->local_entry[version->position]); /* select the latest local data */
     fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]); /* select the latest remote data */
 
@@ -1043,42 +1049,30 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
       member->count++;
     }
 
-    int remote_status = 0;
+    int remote_status = -1;
     int current_status = mentry->state;
     int current_rank = get_current_rank(*__fenix_g_new_world);
 
-    if (options->verbose == 18 && g_data_recovery->group_entry[group_index].current_rank== 0 ) {
-       debug_print("mentry->state: %d; rank: %d\n", mentry->state, current_rank);
-    }
+    verbose_print("*critical-before* rank: %d; current: %d; status: %d; partner: %d status: %d\n", current_rank, gentry->current_rank, remote_status, gentry->partner_rank, current_status);
 
     /* check role of the neighbor define by group */
     MPI_Status status;
-    MPI_Sendrecv(&current_status, 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
-                 &remote_status, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
+    MPI_Sendrecv(&current_status, 1, MPI_INT, gentry->partner_rank, PARTNER_STATUS_TAG,
+                 &remote_status, 1, MPI_INT, gentry->partner_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
 
-    //printf("*critical* rank: %d; in: %d (%d); out: %d (%d)\n", current_rank, gentry->in_rank, remote_status, gentry->out_rank, current_status);
+    verbose_print("*critical-after* rank: %d; current: %d; status: %d; partner: %d status: %d\n", current_rank, gentry->current_rank, remote_status, gentry->partner_rank, current_status);
 
     fenix_version_t *version = &(mentry->version);
     /* Send the member information if needed */
-    if (current_status == OCCUPIED && remote_status == NEEDFIX) {
-
-      //if (current_rank == 0) {
-        printf("*member-restore* send-member-meta; rank: %d\n", current_rank); 
-      //}
-
+    if (current_status == OCCUPIED && remote_status == EMPTY) { //  == NEEDFIX) {
+       printf("*member-restore* send-member-meta; rank: %d\n", current_rank); 
       _pc_send_member_metadata(gentry->current_rank, gentry->partner_rank, mentry, gentry->comm);
       _pc_send_member_entries(gentry->current_rank, gentry->partner_rank, gentry->depth, version, gentry->comm);
-    } else if (current_status == NEEDFIX && remote_status == OCCUPIED) {
-
-      //if (current_rank == 0) {
+    } else if (current_status == EMPTY && remote_status == OCCUPIED) {
         printf("*member-restore* recv-member-meta; rank: %d\n", current_rank); 
-      //}
-
       _pc_recover_member_metadata(gentry->current_rank, gentry->partner_rank, mentry, gentry->comm);
       _pc_recover_member_entries(gentry->current_rank, gentry->partner_rank, gentry->depth, version, gentry->comm);
-
-
     } else if (current_status == NEEDFIX && remote_status == NEEDFIX) {
        debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
                 memberid,g_data_recovery->group_entry[group_index].current_rank);
@@ -1086,33 +1080,26 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     }
 
     // print the current member id and rank during this restoration process!
-    printf("*restore* memberid: %d; rank-gentry: %d; current: %d; role: %d; time: %d\n", mentry->memberid, gentry->current_rank, current_rank, __fenix_g_role, gentry->timestamp);
+    verbose_print("*restore* memberid: %d; rank-gentry: %d; current: %d; role: %d; time: %d\n", mentry->memberid, gentry->current_rank, current_rank, __fenix_g_role, gentry->timestamp);
     
     /* Get the latest consistent copy */
     
-#if 0
-    if (__fenix_g_role == 1) {
     
-        //printf("*restoring* position: %d; rank: %d\n", version->position-1, gentry->current_rank);
 
-        //if (join_restore(gentry, version, gentry->comm) == 1) {
+        if (join_restore(gentry, version, gentry->comm) == 1) {
 
             //fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
-            fenix_local_entry_t *lentry = &(version->local_entry[1]);
+            fenix_local_entry_t *lentry = &(version->local_entry[0]);
             lentry->pdata = data;
             mentry->current_datatype = lentry->datatype;
             mentry->current_count = lentry->count;
             mentry->current_size = lentry->size;
             memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
 
-            // printf("*restoring* position: %d; rank: %d\n", version->position-1, gentry->current_rank);
+            verbose_print("*restoring* position: %d; rank: %d\n", version->position, gentry->current_rank);
 
             retval = FENIX_SUCCESS;
-        //} else {
-            //retval = FENIX_ERROR_GROUP_CREATE;
-        //}
-    }
-#endif
+        }
 
   }
   return retval;
