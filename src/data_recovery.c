@@ -419,7 +419,6 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     fenix_local_entry_t *lentry = &(version->local_entry[version->position]); /* select the latest local data */
     fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]); /* select the latest remote data */
 
-    /* store the local data */
     memcpy(lentry->data, lentry->pdata, (lentry->count * lentry->size));
 
     fenix_subset_offsets_t *loffsets = NULL, *roffsets = NULL;
@@ -439,36 +438,8 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
       lentry_packet.num_blocks  = 0;  
       lentry_packet.entry_real_count  = lentry->count;
       send_buff = (char *) lentry->data;
-    } else {
+    } 
 
-      lentry_packet.num_blocks  = specifier.num_blocks;
-      loffsets = (fenix_subset_offsets_t *) s_malloc(sizeof(fenix_subset_offsets_t) * specifier.num_blocks);
-
-      /* count buffer storage size */
-      int block_index;
-      int subset_element_count = 0;
-      for (block_index = 0; block_index < specifier.num_blocks; block_index++) {
-        loffsets[block_index].start = specifier.start_offsets[block_index];
-        loffsets[block_index].end = specifier.end_offsets[block_index];
-        subset_element_count += (specifier.end_offsets[block_index] - specifier.start_offsets[block_index]) + 1;
-      }      
-
-      send_buff = (char *) s_malloc(sizeof(char) * subset_element_count * lentry->size);
-
-      /* pack the data into buffer */
-      int index;
-      int offset_index = 0;
-      char *ldata = (char *) lentry->data; 
-      for (index = 0; index < specifier.num_blocks; index++) {
-        int n = (loffsets[index].end - loffsets[index].start) + 1;
-        memcpy((void *) &send_buff[offset_index * lentry->size], (void *) &ldata[loffsets[index].start * lentry->size], n * lentry->size);
-        offset_index += n;
-      }      
-
-      /* metadata -- update number of elements to send to partner rank */
-      lentry_packet.entry_real_count = subset_element_count; 
-
-    }
 
     verbose_print("*before* packets rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);
 
@@ -485,55 +456,11 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     rentry->count = rentry_packet.entry_count;
     rentry->size = rentry_packet.entry_size;
 
-    if (gentry->current_rank == 5) {
-       verbose_print("rank: %d; rentry->count: %d; v->pos: %d\n", gentry->current_rank, rentry->count, version->position);	
-    }
-
     if (rentry->data != NULL) {
       rentry->data = s_malloc(rentry->count * rentry->size);
     }
 
-    /* 
-     * after sending member entry information, the use of subset is checked
-     * case 1: left neighbor and I use subset  
-     * case 2: left neighbor does not use subset, but I use subset
-     * case 3: left neighbor uses subset, but I do not  
-     * case 4: left neighbor is not using subset.  Me either
-     */
-    if(rentry_packet.num_blocks > 0 && lentry_packet.num_blocks > 0) { 
-      /* exchange subset info */
-      roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t) * rentry_packet.num_blocks);
-      MPI_Sendrecv(loffsets, sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG,
-                   roffsets, sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE,
-                   gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status);
-      /* temporary buffer to received packed data */
-      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size);
-    } else if (lentry_packet.num_blocks > 0) {
-      MPI_Send(&loffsets, sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, 
-               MPI_BYTE, gentry->partner_rank, STORE_SIZE_TAG,  (gentry->comm));
-
-      /* sender to me is not using subset */
-      recv_buff = (char *) rentry->data;
-    } else if (rentry_packet.num_blocks > 0) {
-      roffsets = (fenix_subset_offsets_t *)s_malloc(sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks);
-      MPI_Recv(&roffsets, sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE, 
-               gentry->partner_rank, STORE_SIZE_TAG, (gentry->comm), &status );
-      /* temporary buffer to received packed data */
-      recv_buff = (char *) s_malloc(sizeof(char) * rentry_packet.entry_real_count * rentry->size);
-    } else {
-
-      /* sender to me is not using subset */
       recv_buff = rentry->data;
-    }
-
-    if (get_current_rank(*__fenix_g_new_world) == 0) {
-        int print_index;
-        for (print_index = 0; print_index < lentry->count; print_index++) {
-            //printf("*store* sending! data[%d]: %d; pos: %d; time: %d; real-count: %d; rank: %d\n", print_index, send_buff[print_index], version->position, gentry->timestamp, rentry_packet.entry_real_count, get_current_rank(*__fenix_g_new_world));  
-        }
-    }
-
-    verbose_print("*before* payload rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);
 
     /* exchange the payload  */
     MPI_Sendrecv((void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->partner_rank, STORE_PAYLOAD_TAG, 
@@ -541,31 +468,6 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
                  gentry->partner_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
 
     verbose_print("*after* payload rank: %d; partner: %d\n", gentry->current_rank, gentry->partner_rank);
-
-    if (get_current_rank(*__fenix_g_new_world) == 0) {
-        int print_index;
-        for (print_index = 0; print_index < lentry->count; print_index++) {
-            //printf("*store* receiving! data[%d]: %d; pos: %d; time: %d; rank: %d\n", print_index, recv_buff[print_index], version->position, gentry->timestamp, get_current_rank(*__fenix_g_new_world));  
-        }
-    }
-
-    if (lentry_packet.num_blocks > 0) {
-      free(loffsets); 
-      free(send_buff); 
-    }
-
-    if (rentry_packet.num_blocks > 0) {
-      /* re-organize received data */
-      int i, j = 0;
-      char *rdata = (char *) rentry->data;
-      for (i = 0; i < rentry_packet.num_blocks; i++) {
-        int n = (roffsets[i].end - roffsets[i].start) + 1;
-        memcpy((void*) &rdata[roffsets[i].start * rentry->size], (void *) &recv_buff[j*rentry->size], n * rentry->size);
-        j += n;
-      }
-      free(roffsets); 
-      free(recv_buff); 
-    }
 
     /* Need to update the version info */
     if (version->position < version->size - 1) {
