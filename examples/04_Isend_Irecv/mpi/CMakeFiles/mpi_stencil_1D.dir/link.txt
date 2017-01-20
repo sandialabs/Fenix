@@ -1,0 +1,1 @@
+/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/mpi_stencil_1D.dir/mpi_stencil_1D.c.o  -o mpi_stencil_1D  

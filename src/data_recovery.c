@@ -393,13 +393,6 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     member_index = search_memberid(group_index, memberid);
   }
 
-  if (options->verbose == 18 && g_data_recovery->group_entry[group_index].current_rank== 0 ) {
-    verbose_print(
-            "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
-            get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
-            member_index, memberid);
-  }
-
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_member_store: group_id <%d> does not exist\n", groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;

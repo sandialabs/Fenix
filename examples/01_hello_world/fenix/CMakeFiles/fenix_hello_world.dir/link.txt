@@ -1,0 +1,1 @@
+/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/fenix_hello_world.dir/fenix_hello_world.c.o  -o fenix_hello_world  ../../../src/libfenix.a 

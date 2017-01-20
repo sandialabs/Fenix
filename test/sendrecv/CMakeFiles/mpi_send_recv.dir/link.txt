@@ -1,0 +1,1 @@
+/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/mpi_send_recv.dir/mpi_send_recv.c.o  -o mpi_send_recv  
