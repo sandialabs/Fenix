@@ -18,6 +18,9 @@ int _send_group_data(int current_rank, int in_rank, fenix_group_entry_t *gentry,
   gepacket.depth = gentry->depth;
   gepacket.rank_separation = gentry->rank_separation;
   gepacket.state = gentry->state;
+  gepacket.comm_size = gentry->comm_size;
+  gepacket.current_rank = gentry->current_rank;
+  gepacket.partner_rank = gentry->partner_rank;
 
   if (options->verbose == 67) {
     verbose_print(
@@ -57,10 +60,14 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
   MPI_Recv(&gepacket, sizeof(group_entry_packet_t), MPI_BYTE, out_rank,
            RECOVER_GROUP_ENTRY_TAG, comm, &status); /* Group entry */
 
+  gentry->groupid = gepacket.groupid;
   gentry->timestamp = gepacket.timestamp;
   gentry->depth = gepacket.depth;
   gentry->rank_separation = gepacket.rank_separation;
   gentry->state = gepacket.state;
+  gentry->comm_size = gepacket.comm_size;
+  gentry->current_rank = gepacket.current_rank;
+  gentry->partner_rank =  gepacket.partner_rank;
 
   if (options->verbose == 68) {
     verbose_print(
@@ -154,21 +161,17 @@ int _pc_send_member_entries(int current_rank, int out_rank, int depth,
     dpacket.count = rentry->count;
     dpacket.size = rentry->size;
 
-    if (current_rank == 0) {
-      printf("send version[%d], rd-offset: %d, rd-count: %d, rd-size: %d\n",
+    verbose_print("send version[%d], rd-offset: %d, rd-count: %d, rd-size: %d\n",
                     version_index, remote_entry_offset, rentry->count, rentry->size);
-    }
 
     MPI_Send(&dpacket, sizeof(data_entry_packet_t), MPI_BYTE, out_rank,
              RECOVER_SIZE_TAG + version_index, comm); /* remote data metadata */
 
-    if (current_rank == 0) {
          int *data = rentry->data; 
          int data_index;
-         for (data_index = 0; data_index < rentry->size; data_index++) {
-            printf("send version[%d], rd-data[%d]: %d\n", version_index, data_index, data[data_index]);
+         for (data_index = 0; data_index < rentry->count; data_index++) {
+            verbose_print("send version[%d], rd-data[%d]: %d\n", version_index, data_index, data[data_index]);
          }
-      }
 
     /* send content of the latest data */
     if (rentry->count > 0) {
@@ -198,14 +201,19 @@ int _pc_recover_member_entries(int current_rank, int in_rank, int depth,
     lentry->data = s_malloc(lentry->size * lentry->count);
     lentry->currentrank = current_rank;
 
-    //verbose_print("recv current: %d, version[%d], ld-count: %d, ld-size: %d\n", get_current_rank(*__fenix_g_new_world),
-                    //version_index, lentry->count, lentry->size);
+    verbose_print("recv current: %d, version[%d], ld-count: %d, ld-size: %d\n", get_current_rank(*__fenix_g_new_world),
+                    version_index, lentry->count, lentry->size);
 
     /* Grab remote data entry */
     if (lentry->count > 0) {
       MPI_Recv(lentry->data, lentry->size * lentry->count, MPI_BYTE, in_rank,
                RECOVER_DATA_TAG, comm, &status);
-        printf("rank: %d\n", current_rank);
+
+         int *data = lentry->data; 
+         int data_index;
+         for (data_index = 0; data_index < lentry->count; data_index++) {
+            verbose_print("recv version[%d], rd-data[%d]: %d\n", version_index, data_index, data[data_index]);
+         }
     }
 
   }

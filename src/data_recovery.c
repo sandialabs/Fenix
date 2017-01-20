@@ -492,6 +492,10 @@ int member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
     rentry->count = rentry_packet.entry_count;
     rentry->size = rentry_packet.entry_size;
 
+    if (gentry->current_rank == 5) {
+       verbose_print("rank: %d; rentry->count: %d; v->pos: %d\n", gentry->current_rank, rentry->count, version->position);	
+    }
+
     if (rentry->data != NULL) {
       rentry->data = s_malloc(rentry->count * rentry->size);
     }
@@ -1067,12 +1071,12 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     /* Send the member information if needed */
     if (current_status == OCCUPIED && remote_status == EMPTY) { //  == NEEDFIX) {
        printf("*member-restore* send-member-meta; rank: %d\n", current_rank); 
-      _pc_send_member_metadata(gentry->current_rank, gentry->partner_rank, mentry, gentry->comm);
-      _pc_send_member_entries(gentry->current_rank, gentry->partner_rank, gentry->depth, version, gentry->comm);
+      _pc_send_member_metadata(gentry->partner_rank, gentry->partner_rank, mentry, gentry->comm);
+      _pc_send_member_entries(gentry->partner_rank, gentry->partner_rank, gentry->depth, version, gentry->comm);
     } else if (current_status == EMPTY && remote_status == OCCUPIED) {
         printf("*member-restore* recv-member-meta; rank: %d\n", current_rank); 
-      _pc_recover_member_metadata(gentry->current_rank, gentry->partner_rank, mentry, gentry->comm);
-      _pc_recover_member_entries(gentry->current_rank, gentry->partner_rank, gentry->depth, version, gentry->comm);
+      _pc_recover_member_metadata(gentry->partner_rank, gentry->partner_rank, mentry, gentry->comm);
+      _pc_recover_member_entries(gentry->partner_rank, gentry->partner_rank, gentry->depth, version, gentry->comm);
     } else if (current_status == NEEDFIX && remote_status == NEEDFIX) {
        debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
                 memberid,g_data_recovery->group_entry[group_index].current_rank);
@@ -1084,9 +1088,9 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
     
     /* Get the latest consistent copy */
     
-    
-
         if (join_restore(gentry, version, gentry->comm) == 1) {
+
+	    verbose_print("*restoring(1)* rank: %d\n", gentry->current_rank);
 
             //fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
             fenix_local_entry_t *lentry = &(version->local_entry[0]);
@@ -1096,7 +1100,21 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
             mentry->current_size = lentry->size;
             memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
 
-            verbose_print("*restoring* position: %d; rank: %d\n", version->position, gentry->current_rank);
+	    // data that is being recovered!
+	    //
+	    //
+
+	    verbose_print("*current-count* %d\n", lentry->count);
+
+	    int *data = lentry->data;
+	    int *pdata = lentry->pdata;
+            int k;	
+	    for (k = 0; k < lentry->count; k++) {
+		verbose_print("recovering: data[%d]: %d\n", k, data[k]);
+		verbose_print("recovering: pdata[%d]: %d\n", k, pdata[k]);
+	    }
+
+            verbose_print("*restoring(2)* position: %d; rank: %d\n", version->position, gentry->current_rank);
 
             retval = FENIX_SUCCESS;
         }
@@ -2349,10 +2367,10 @@ int join_restore(fenix_group_entry_t *ge, fenix_version_t *v, MPI_Comm comm) {
   if ((minimum_timestamp > depth_difference) && (timestamp_difference < v->num_copies)) {
     /* shift the position of the latest version */
     v->position = (v->position + (v->size - timestamp_difference)) % (v->size);
-    //printf("*join-restore* pos: %d\n", v->position);
+    verbose_print("*found* (%d)\n", ge->current_rank);
     found = 1;
   } else {
-    //printf("*join-restore* not-found\n");
+    verbose_print("*not-found* (%d)\n", ge->current_rank);
     found = -1;
   }
 
@@ -2360,7 +2378,7 @@ int join_restore(fenix_group_entry_t *ge, fenix_version_t *v, MPI_Comm comm) {
   int result = -1;
   MPI_Allreduce(&found, &result, 1, MPI_INT, MPI_MIN, comm);
 
-  return result;
+  return found;
 }
 
 /**
