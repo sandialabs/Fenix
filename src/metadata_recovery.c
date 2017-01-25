@@ -101,22 +101,15 @@ int _send_metadata(int current_rank, int out_rank, MPI_Comm comm) {
   gpacket.count = group->count;
   gpacket.size = group->size;
 
-  verbose_print(
-            "*before* send c-rank: %d, out-rank: %d, g-count: %d, g-size: %d\n",
-            current_rank, out_rank,
-            group->count, group->size);
-
-
-
   MPI_Send(&gpacket, sizeof(two_container_packet_t), MPI_BYTE, out_rank,
            RECOVER_GROUP_TAG, comm); /* Group metadata */
 
-  //if (options->verbose == 65) {
+  if (options->verbose == 65) {
     verbose_print(
-            "*after* send c-rank: %d, out-rank: %d, g-count: %d, g-size: %d\n",
+            "send c-rank: %d, out-rank: %d, g-count: %d, g-size: %d\n",
             current_rank, out_rank,
             group->count, group->size);
-  //}
+  }
 
   return FENIX_SUCCESS;
 }
@@ -125,10 +118,6 @@ int _recover_metadata(int current_rank, int in_rank, MPI_Comm comm) {
   MPI_Status status;
   fenix_group_t *group = g_data_recovery;
   two_container_packet_t gpacket;
-
-  verbose_print("*before* recv c-rank: %d, in-rank: %d, g-count: %d, g-size: %d\n",
-                  current_rank, in_rank,
-                  group->count, group->size);
 
   MPI_Recv(&gpacket, sizeof(two_container_packet_t), MPI_BYTE, in_rank,
            RECOVER_GROUP_TAG, comm, &status); /* Group metadata */
@@ -139,11 +128,11 @@ int _recover_metadata(int current_rank, int in_rank, MPI_Comm comm) {
 
   reinit_group(group, gpacket);
 
-  //if (options->verbose == 66) {
+  if (options->verbose == 66) {
     verbose_print("*after* recv c-rank: %d, in-rank: %d, g-count: %d, g-size: %d\n",
                   current_rank, in_rank,
                   group->count, group->size);
-  //}
+  }
 
   return FENIX_SUCCESS;
 }
@@ -201,8 +190,8 @@ int _pc_recover_member_entries(int current_rank, int in_rank, int depth,
     lentry->data = s_malloc(lentry->size * lentry->count);
     lentry->currentrank = current_rank;
 
-    verbose_print("recv current: %d, version[%d], ld-count: %d, ld-size: %d\n", get_current_rank(*__fenix_g_new_world),
-                    version_index, lentry->count, lentry->size);
+    //verbose_print("recv current: %d, version[%d], ld-count: %d, ld-size: %d\n", get_current_rank(*__fenix_g_new_world),
+                    //version_index, lentry->count, lentry->size);
 
     /* Grab remote data entry */
     if (lentry->count > 0) {
@@ -212,7 +201,7 @@ int _pc_recover_member_entries(int current_rank, int in_rank, int depth,
          int *data = lentry->data; 
          int data_index;
          for (data_index = 0; data_index < lentry->count; data_index++) {
-            verbose_print("recv version[%d], rd-data[%d]: %d\n", version_index, data_index, data[data_index]);
+            //verbose_print("recv version[%d], rd-data[%d]: %d\n", version_index, data_index, data[data_index]);
          }
     }
 
@@ -234,13 +223,6 @@ int _pc_send_member_metadata(int current_rank, int in_rank,
   mepacket.currentrank = mentry->currentrank;
   mepacket.remoterank = mentry->remoterank;
 
-  if (current_rank == 0) {
-     printf("performing verbose-print(1)\n");
-     verbose_print(
-            "send current: %d, c-rank: %d, p-rank: %d,  m-memberid: %d, m-state: %d\n", get_current_rank(*__fenix_g_new_world),
-            current_rank, in_rank, mentry->memberid, mentry->state);
-  }
- 
     MPI_Send(&mepacket, sizeof(member_entry_packet_t), MPI_BYTE, in_rank,
            RECOVER_MEMBER_ENTRY_TAG, comm); /* Member entry */
 
@@ -251,14 +233,6 @@ int _pc_send_member_metadata(int current_rank, int in_rank,
     vpacket.size = version->size;
     vpacket.position = version->position;
     vpacket.num_copies = version->num_copies;
-
-    if (current_rank == 0) {
-     printf("performing verbose-print(2)\n");
-      verbose_print(
-              "send current: %d, c-rank: %d, p-rank: %d, v-count: %d, v-size: %d, v-pos: %d, v-copies: %d\n", get_current_rank(*__fenix_g_new_world),
-              current_rank, in_rank, version->count,
-              version->size, version->position, version->num_copies);
-    }
    
     MPI_Send(&vpacket, sizeof(container_packet_t), MPI_BYTE, in_rank,
              RECOVERY_VERSION_TAG, comm); /* version metadata */
