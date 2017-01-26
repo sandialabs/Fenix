@@ -1,1 +1,0 @@
-/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/mpi_ring.dir/mpi_ring.c.o  -o mpi_ring  

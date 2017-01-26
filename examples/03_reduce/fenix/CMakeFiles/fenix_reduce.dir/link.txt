@@ -1,1 +1,0 @@
-/home/knteran/home-local/mpi-ulfm/bin/mpicc     CMakeFiles/fenix_reduce.dir/fenix_reduce.c.o  -o fenix_reduce  ../../../src/libfenix.a 

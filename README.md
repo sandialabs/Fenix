@@ -55,3 +55,54 @@
 */
 
 </pre>
+
+## Build Instructions
+
+### Install ULFM
+
+Please install ULFM from: https://bitbucket.org/icldistcomp/ulfm
+
+## Enabling ULFM
+
+In UTK ULFM implementation (based on OpenMPI), use the following flag to enable ULFM at runtime:
+
+```
+mpirun -am ft-enable-mpi
+```
+
+In MPICH, you need to pass the following parameter:
+
+```
+mpirun -disable-auto-cleanup
+```
+
+### Install Fenix
+
+modify 'run_cmake.sh' 
+
+```
+
+cmake  /path_to_fenix_dir \
+ -DCMAKE_C_COMPILER:STRING=/path_to_ulfm_dir/mpi-ulfm/bin/mpicc \
+ -DCMAKE_CXX_COMPILER:STRING=/path_to_ulfm_dir/mpi-ulfm/bin/mpic++
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
