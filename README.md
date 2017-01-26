@@ -58,7 +58,7 @@
 
 ## Build Instructions
 
-### Install ULFM
+### Installing ULFM
 
 Please install ULFM from: https://bitbucket.org/icldistcomp/ulfm
 
@@ -76,7 +76,7 @@ In MPICH, you need to pass the following parameter:
 mpirun -disable-auto-cleanup
 ```
 
-### Install Fenix
+### Installing Fenix
 
 modify 'run_cmake.sh' 
 
@@ -87,6 +87,36 @@ cmake  /path_to_fenix_dir \
  -DCMAKE_CXX_COMPILER:STRING=/path_to_ulfm_dir/mpi-ulfm/bin/mpic++
 
 ```
+
+Then: 
+
+```
+chmod +x run_cmake.sh
+./run_cmake.sh
+```
+
+### Running Fenix Examples
+
+BATCH SYSTEM:
+
+```
+#!/bin/bash
+#SBATCH --job-name=fenix_example
+#SBATCH --output=fenix_example.out
+#SBATCH --error=fenix_example.err
+#SBATCH --nodes=2                
+#SBATCH --time=00:02:00
+
+/path_to_ulfm_dir/bin/mpirun --mca pml ob1 -am ft-enable-mpi --mca btl openib,sm,self --npernode 4 -n 8 ./mysim_fenix_example spare_ranks
+```
+
+NON-BATCH SYSTEM:
+
+```
+/path_to_fenix_dir/bin/mpirun -np 8 -am ft-enable-mpi ./mysim_fenix_example spare_ranks
+```
+
+
 
 
 
