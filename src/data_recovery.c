@@ -872,7 +872,7 @@ int data_barrier(int group_id) {
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
     int member_index;
-    for (int member_index = 0; member_index < member->size; member_index++) {
+    for (member_index = 0; member_index < member->size; member_index++) {
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
       fenix_version_t *version = &(mentry->version);
       int version_index;
