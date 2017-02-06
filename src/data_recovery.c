@@ -979,7 +979,7 @@ int data_commit_barrier(int groupid, int *timestamp) {
  * @param group_id
  */
 int data_barrier(int group_id) {
-  int retval = -1;
+  int member_index, retval = -1;
   int group_index = search_groupid(group_id);
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_barrier: group_id <%d> does not exist\n", group_id);
@@ -989,7 +989,7 @@ int data_barrier(int group_id) {
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
     int member_index;
-    for (int member_index = 0; member_index < member->size; member_index++) {
+    for (member_index = 0; member_index < member->size; member_index++) {
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
       fenix_version_t *version = &(mentry->version);
       int version_index;
@@ -2440,23 +2440,24 @@ void store_single() {
  *
  */
 void __feninx_dr_print_store() {
+  int group, member, version, local, remote;
   fenix_group_t *current = g_data_recovery;
   int group_count = current->count;
-  for (int group = 0; group < group_count; group++) {
+  for (group = 0; group < group_count; group++) {
     int member_count = current->group_entry[group].member.count;
-    for (int member = 0; member < member_count; member++) {
+    for (member = 0; member < member_count; member++) {
       int version_count = current->group_entry[group].member.member_entry[member].version.count;
-      for (int version = 0; version < version_count; version++) {
+      for (version = 0; version < version_count; version++) {
         int local_data_count = current->group_entry[group].member.member_entry[member].version.local_entry[version].count;
         int *local_data = current->group_entry[group].member.member_entry[member].version.local_entry[version].data;
-        for (int local = 0; local < local_data_count; local++) {
+        for (local = 0; local < local_data_count; local++) {
           //printf("*** store rank[%d] group[%d] member[%d] local[%d]: %d\n",
           //get_current_rank(*__fenix_g_new_world), group, member, local,
           //local_data[local]);
         }
         int remote_data_count = current->group_entry[group].member.member_entry[member].version.remote_entry[version].count;
         int *remote_data = current->group_entry[group].member.member_entry[member].version.remote_entry[version].data;
-        for (int remote = 0; remote < remote_data_count; remote++) {
+        for (remote = 0; remote < remote_data_count; remote++) {
           printf("*** store rank[%d] group[%d] member[%d] remote[%d]: %d\n",
                  get_current_rank(*__fenix_g_new_world), group, member, remote,
                  remote_data[remote]);
@@ -2486,6 +2487,7 @@ void __fenix_dr_print_restore() {
  *
  */
 void __fenix_dr_print_datastructure() {
+  int group_index, member_index, version_index, remote_data_index, local_data_index;
   fenix_group_t *current = g_data_recovery;
 
   if (!current) {
@@ -2494,7 +2496,7 @@ void __fenix_dr_print_datastructure() {
 
   printf("\n\ncurrent_rank: %d\n", get_current_rank(*__fenix_g_new_world));
   int group_size = current->size;
-  for (int group_index = 0; group_index < group_size; group_index++) {
+  for (group_index = 0; group_index < group_size; group_index++) {
     int depth = current->group_entry[group_index].depth;
     int groupid = current->group_entry[group_index].groupid;
     int timestamp = current->group_entry[group_index].timestamp;
@@ -2521,7 +2523,7 @@ void __fenix_dr_print_datastructure() {
         break;
     }
 
-    for (int member_index = 0; member_index < member_size; member_index++) {
+    for (member_index = 0; member_index < member_size; member_index++) {
       int memberid = current->group_entry[group_index].member.member_entry[member_index].memberid;
       int member_state = current->group_entry[group_index].member.member_entry[member_index].state;
       int version_size = current->group_entry[group_index].member.member_entry[member_index].version.size;
@@ -2546,37 +2548,35 @@ void __fenix_dr_print_datastructure() {
           break;
       }
 
-      for (int verison_index = 0; verison_index < version_size; verison_index++) {
-        int local_data_count = current->group_entry[group_index].member.member_entry[member_index].version.local_entry[verison_index].count;
+      for (version_index = 0; version_index < version_size; version_index++) {
+        int local_data_count = current->group_entry[group_index].member.member_entry[member_index].version.local_entry[version_index].count;
         printf("group[%d] member[%d] version[%d] local_data.count: %d\n",
                group_index,
                member_index,
-               verison_index, local_data_count);
-        if (current->group_entry[group_index].member.member_entry[member_index].version.local_entry[verison_index].data !=
+               version_index, local_data_count);
+        if (current->group_entry[group_index].member.member_entry[member_index].version.local_entry[version_index].data !=
             NULL) {
-          int *current_local_data = (int *) current->group_entry[group_index].member.member_entry[member_index].version.local_entry[verison_index].data;
-          for (int local_data_index = 0;
-               local_data_index < local_data_count; local_data_index++) {
+          int *current_local_data = (int *) current->group_entry[group_index].member.member_entry[member_index].version.local_entry[version_index].data;
+          for (local_data_index = 0; local_data_index < local_data_count; local_data_index++) {
             printf("group[%d] member[%d] depth[%d] local_data[%d]: %d\n",
                    group_index,
                    member_index,
-                   verison_index, local_data_index,
+                   version_index, local_data_index,
                    current_local_data[local_data_index]);
           }
         }
 
-        int remote_data_count = current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[verison_index].count;
+        int remote_data_count = current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[version_index].count;
         printf("group[%d] member[%d] version[%d] remote_data.count: %d\n",
                group_index,
-               member_index, verison_index, remote_data_count);
-        if (current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[verison_index].data !=
+               member_index, version_index, remote_data_count);
+        if (current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[version_index].data !=
             NULL) {
-          int *current_remote_data = current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[verison_index].data;
-          for (int remote_data_index = 0;
-               remote_data_index < remote_data_count; remote_data_index++) {
+          int *current_remote_data = current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[version_index].data;
+          for (remote_data_index = 0; remote_data_index < remote_data_count; remote_data_index++) {
             printf("group[%d] member[%d] depth[%d] remote_data[%d]: %d\n",
                    group_index,
-                   member_index, verison_index, remote_data_index,
+                   member_index, version_index, remote_data_index,
                    current_remote_data[remote_data_index]);
           }
         }
