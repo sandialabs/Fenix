@@ -16,9 +16,12 @@ set (Fenix_VERSION_MINOR 0)
 # Set empty string for shared linking (we use static library only at this moment)
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 
-# THis is include directories
+# This is include directories
 include_directories( "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
   "${CMAKE_BINARY_DIR}/lib" "${CMAKE_BINARY_DIR}" )
+
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
   #ENABLE_TESTING
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
