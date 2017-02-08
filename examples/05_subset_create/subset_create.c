@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
   int fenix_role;
   MPI_Comm world_comm;
   MPI_Comm new_comm;
-  int spare_ranks = atoi(*++argv);
+  int spare_ranks = atoi(argv[1]);
   MPI_Info info = MPI_INFO_NULL;
   int num_ranks;
   int rank;
