@@ -77,12 +77,11 @@
 #define verbose_print(fmt, ...) \
         do { printf("%s(): " fmt, __func__, __VA_ARGS__); } while (0)
 
-struct opt {
+typedef struct __fenix_debug_opt_t {
     int verbose;
-};
+} __fenix_debug_options;
 
-extern struct opt *options;
 
-void init_opt(int argc, char **argv, char *opts);
+void init_opt(int argc, char **argv);
 
 #endif

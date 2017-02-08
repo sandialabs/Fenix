@@ -64,10 +64,10 @@
 #include <mpi.h>
 
 extern int *rank_roles;
-static char *optstring = "v:";
 int __fenix_g_fenix_init_flag = 0;
 struct hash_table *outstanding_request = NULL;
 struct callback_list *__fenix_g_callback_list = NULL;
+__fenix_debug_options __fenix_options;
 
 /**
  * @brief
@@ -104,7 +104,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
   __fenix_g_resume_mode = __FENIX_RESUME_AT_INIT;
   __fenix_g_repair_result = 0;
 
-  init_opt(*argc, *argv, optstring);
+  init_opt(*argc, *argv);
 
   MPI_Op_create((MPI_User_function *) ranks_agree, 1, &__fenix_g_agree_op);
 
@@ -118,13 +118,13 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
     if (flag == 1) {
       if (strcmp(value, "Fenix_init") == 0) {
         __fenix_g_resume_mode = __FENIX_RESUME_AT_INIT;
-        if (options->verbose == 0) {
+        if (__fenix_options.verbose == 0) {
           verbose_print("rank: %d, role: %d, value: %s\n",
             get_current_rank(*__fenix_g_world), __fenix_g_role, value);
         }
       } else if (strcmp(value, "NO_JUMP") == 0) {
         __fenix_g_resume_mode = __FENIX_RESUME_NO_JUMP;
-        if (options->verbose == 0) {
+        if (__fenix_options.verbose == 0) {
            verbose_print("rank: %d, role: %d, value: %s\n",
             get_current_rank(*__fenix_g_world), __fenix_g_role, value);       
         }
@@ -169,7 +169,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
  
   if (spare_rank() != 1) {
     __fenix_g_num_inital_ranks = get_world_size(*__fenix_g_new_world);
-    if (options->verbose == 0) {
+    if (__fenix_options.verbose == 0) {
      verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
                   get_current_rank(*__fenix_g_world), __fenix_g_role,
                   __fenix_g_num_inital_ranks);   
@@ -178,7 +178,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
   } else {
     __fenix_g_num_inital_ranks = spare_ranks;
 
-    if (options->verbose == 0) {
+    if (__fenix_options.verbose == 0) {
        verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
         get_current_rank(*__fenix_g_world), __fenix_g_role,
             __fenix_g_num_inital_ranks);   
@@ -193,14 +193,14 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
     ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, *__fenix_g_world,
                     &mpi_status); // listen for a failure
     if (ret == MPI_SUCCESS) {
-      if (options->verbose == 0) {
+      if (__fenix_options.verbose == 0) {
         verbose_print("Finalize the program; rank: %d, role: %d\n",
                       get_current_rank(*__fenix_g_world), __fenix_g_role);
       }
       finalize_spare();
     } else {
       __fenix_g_repair_result = repair_ranks();
-      if (options->verbose == 0) {
+      if (__fenix_options.verbose == 0) {
         verbose_print("repair ranks; rank: %d, role: %d\n",
                       get_current_rank(*__fenix_g_world), __fenix_g_role);
       }
@@ -228,7 +228,7 @@ int create_new_world() {
     /** Use of the new communicator triggers the program to abort .         **/
     /*************************************************************************/
 
-    if (options->verbose == 1) {
+    if (__fenix_options.verbose == 1) {
       verbose_print("rank: %d, role: %d\n", get_current_rank(*__fenix_g_world),
                     __fenix_g_role);
     }
@@ -241,7 +241,7 @@ int create_new_world() {
 
     int current_rank = get_current_rank(*__fenix_g_world);
 
-    if (options->verbose == 1) {
+    if (__fenix_options.verbose == 1) {
       verbose_print("rank: %d, role: %d\n", get_current_rank(*__fenix_g_world),
                     __fenix_g_role);
     }
@@ -318,7 +318,7 @@ int repair_ranks() {
     world_size = get_world_size(*__fenix_g_world);
     fail_world_size = world_size - survivor_world_size;
 
-    if (options->verbose == 2) {
+    if (__fenix_options.verbose == 2) {
       verbose_print(
               "current_rank: %d, role: %d, world_size: %d, fail_world_size: %d, survivor_world_size: %d\n",
               get_current_rank(*__fenix_g_world), __fenix_g_role, world_size,
@@ -328,7 +328,7 @@ int repair_ranks() {
     if (__fenix_g_spare_ranks < fail_world_size) {
       /* Not enough spare ranks */
 
-      if (options->verbose == 2) {
+      if (__fenix_options.verbose == 2) {
         verbose_print(
                 "current_rank: %d, role: %d, spare_ranks: %d, fail_world_size: %d\n",
                 get_current_rank(*__fenix_g_world), __fenix_g_role, __fenix_g_spare_ranks,
@@ -354,7 +354,7 @@ int repair_ranks() {
           ret = PMPI_Allgather(&current_rank, 1, MPI_INT, survivor_world, 1, MPI_INT,
                                world_without_failures);
 
-          if (options->verbose == 2) {
+          if (__fenix_options.verbose == 2) {
             int index;
             for (index = 0; index < survivor_world_size; index++) {
               verbose_print("current_rank: %s, role: %d, survivor_world[%d]: %d\n",
@@ -398,7 +398,7 @@ int repair_ranks() {
           /* recovered ranks must be the number of spare ranks */
           __fenix_g_num_recovered_ranks = fail_world_size;
 
-          if (options->verbose == 2) {
+          if (__fenix_options.verbose == 2) {
             verbose_print("current_rank: %d, role: %d, recovered_ranks: %d\n",
                           get_current_rank(*__fenix_g_world), __fenix_g_role,
                           __fenix_g_num_recovered_ranks);
@@ -408,7 +408,7 @@ int repair_ranks() {
           fail_world = get_fail_ranks(survivor_world, survivor_world_size,
                                       fail_world_size);
 
-          if (options->verbose == 2) {
+          if (__fenix_options.verbose == 2) {
             int index;
             for (index = 0; index < fail_world_size; index++) {
               verbose_print("fail_world[%d]: %d\n", index, fail_world[index]);
@@ -419,7 +419,7 @@ int repair_ranks() {
 
           active_ranks = world_size - __fenix_g_spare_ranks;
 
-          if (options->verbose == 2) {
+          if (__fenix_options.verbose == 2) {
             verbose_print("current_rank: %d, role: %d, active_ranks: %d\n",
                           get_current_rank(*__fenix_g_world), __fenix_g_role,
                           active_ranks);
@@ -429,7 +429,7 @@ int repair_ranks() {
           if (current_rank >= active_ranks) { // reorder ranks
             int rank_offset = ((world_size - 1) - current_rank);
             if (rank_offset < fail_world_size) {
-              if (options->verbose == 11) {
+              if (__fenix_options.verbose == 11) {
                 verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
                               current_rank, fail_world[rank_offset]);
               }
@@ -497,7 +497,7 @@ int repair_ranks() {
       fail_world = get_fail_ranks(survivor_world, survivor_world_size, fail_world_size);
       free(survivor_world);
 
-      if (options->verbose == 2) {
+      if (__fenix_options.verbose == 2) {
         int index;
         for (index = 0; index < fail_world_size; index++) {
           verbose_print("fail_world[%d]: %d\n", index, fail_world[index]);
@@ -506,7 +506,7 @@ int repair_ranks() {
 
       active_ranks = world_size - __fenix_g_spare_ranks;
 
-      if (options->verbose == 2) {
+      if (__fenix_options.verbose == 2) {
         verbose_print("current_rank: %d, role: %d, active_ranks: %d\n",
                       get_current_rank(*__fenix_g_world), __fenix_g_role, active_ranks);
       }
@@ -514,7 +514,7 @@ int repair_ranks() {
       if (current_rank >= active_ranks) { // reorder ranks
         int rank_offset = ((world_size - 1) - current_rank);
         if (rank_offset < fail_world_size) {
-          if (options->verbose == 2) {
+          if (__fenix_options.verbose == 2) {
             verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
                           current_rank, fail_world[rank_offset]);
           }
@@ -528,7 +528,7 @@ int repair_ranks() {
       /* Update the number of spare ranks */
       /************************************/
       __fenix_g_spare_ranks = __fenix_g_spare_ranks - fail_world_size;
-      if (options->verbose == 2) {
+      if (__fenix_options.verbose == 2) {
         verbose_print("current_rank: %d, role: %d, spare_ranks: %d\n",
                       get_current_rank(*__fenix_g_world), __fenix_g_role,
                       __fenix_g_spare_ranks);
@@ -767,7 +767,7 @@ int *get_fail_ranks(int *survivor_world, int survivor_world_size, int fail_world
   int i;
   for (i = 0; i < survivor_world_size; i++) {
     if (binary_search(survivor_world, survivor_world_size, i) != 1) {
-      if (options->verbose == 14) {
+      if (__fenix_options.verbose == 14) {
         verbose_print("fail_rank: %d, fail_ranks[%d]: %d\n", i, failed_pos,
                       fail_ranks[failed_pos++]);
       }
@@ -789,7 +789,7 @@ int spare_rank() {
   int current_rank = get_current_rank(*__fenix_g_world);
   int new_world_size = get_world_size(*__fenix_g_world) - __fenix_g_spare_ranks;
   if (current_rank >= new_world_size) {
-    if (options->verbose == 6) {
+    if (__fenix_options.verbose == 6) {
       verbose_print("current_rank: %d, new_world_size: %d\n", current_rank, new_world_size);
     }
     result = 1;
@@ -826,7 +826,7 @@ int callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_dat
  */
 void postinit(int *error) {
 
-  if (options->verbose == 9) {
+  if (__fenix_options.verbose == 9) {
     verbose_print("current_rank: %d, role: %d\n", get_current_rank(*__fenix_g_new_world),
                   __fenix_g_role);
   }
@@ -860,7 +860,7 @@ void postinit(int *error) {
       current = current->next;
     }
   }
-  if (options->verbose == 9) {
+  if (__fenix_options.verbose == 9) {
     verbose_print("After barrier. current_rank: %d, role: %d\n", get_current_rank(*__fenix_g_new_world),
                   __fenix_g_role);
   }
@@ -876,7 +876,7 @@ void postinit(int *error) {
 void finalize() {
   /* Last Barrier Statement */
   MPI_Barrier( *__fenix_g_new_world );
-  if (options->verbose == 10) {
+  if (__fenix_options.verbose == 10) {
     verbose_print("current_rank: %d, role: %d\n", get_current_rank(*__fenix_g_new_world),
                   __fenix_g_role);
   }
@@ -889,7 +889,7 @@ void finalize() {
     for (i = 0; i < __fenix_g_spare_ranks; i++) {
       int ret = PMPI_Send(&a, 1, MPI_INT, spare_rank, 1, *__fenix_g_world);
       if (ret != MPI_SUCCESS) { debug_print("MPI_Send: %d\n", ret); }
-      if (options->verbose == 10) {
+      if (__fenix_options.verbose == 10) {
         verbose_print("spare_rank: %d sending msg!\n", spare_rank);
       }
       spare_rank--;
@@ -948,7 +948,7 @@ void finalize_spare() {
  */
 
 void insert_request(MPI_Request *request) {
-  if (options->verbose == 16) {
+  if (__fenix_options.verbose == 16) {
     verbose_print("hash_table_put; request: %lu\n", (long) request);
   }
   hash_table_put(outstanding_request, (long) request, request);
@@ -964,7 +964,7 @@ void insert_request(MPI_Request *request) {
  */
 
 void remove_request(MPI_Request *request) {
-  if (options->verbose == 17) {
+  if (__fenix_options.verbose == 17) {
     verbose_print("hash_table_remove; request: %lu\n", (long) request);
   }
   hash_table_remove(outstanding_request, (long) request);
@@ -990,7 +990,7 @@ void test_MPI(int ret, const char *msg) {
       MPIF_Comm_revoke(*__fenix_g_world);
       MPIF_Comm_revoke(*__fenix_g_new_world);
 
-      if (options->verbose == 20) {
+      if (__fenix_options.verbose == 20) {
         verbose_print(
                 "MPI_ERR_PROC_FAILED; current_rank: %d, role: %d, msg: %s, MPIF_Comm_revoke: %d, MPIF_Comm_revoke: %s\n",
                 msg, "world", "new_world");
@@ -1019,7 +1019,7 @@ void test_MPI(int ret, const char *msg) {
       break;
     case MPI_ERR_REVOKED:
 
-      if (options->verbose == 20) {
+      if (__fenix_options.verbose == 20) {
         verbose_print("MPI_ERR_REVOKED; current_rank: %d, role: %d, msg: %s\n", msg);
       }
 

@@ -56,11 +56,12 @@
 
 #include "opt.h"
 #include "util.h"
+#include "fenix_ext.h"
 
 #define DEBUG 1
 
-struct opt *options;
-static struct option longopts[] = {{"verbose", required_argument, 0, 'v'}};
+
+
 
 /**
  * @brief
@@ -68,33 +69,19 @@ static struct option longopts[] = {{"verbose", required_argument, 0, 'v'}};
  * @param argv
  * @param opts
  */
-void init_opt(int argc, char **argv, char *opts) {
-    int myopt;
-    options = (struct opt *) s_malloc(sizeof(struct opt));
-    /* initalize the value */
-    options->verbose = -1;
-    
-    int index_options;
-    while ((myopt = getopt_long((argc-1), argv, "v:", longopts, &index_options)) != -1) {
-        switch(myopt) {
-            case 'v': 
-                options->verbose = atoi(optarg);
-                break;
-            default:
-                fprintf(stderr, "Usage: ./myprogram [-v level]\n");
-                exit(1); 
-        }        
-    }
+void init_opt(int argc, char **argv) {
+   int i;
 
-  /* ignore any remaining command line arguments -- invalid options */
-#if 0
-  if (optind < (argc-1)) { 
-    //  printf ("non-option ARGV-elements: ");
-      while (optind < (argc-1)) {
-        //printf ("%s ", argv[optind++]);
+   /* initalize the value */
+   __fenix_options.verbose = -1;
+   for( i = 0; i < argc; i++ )
+   {
+      if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
+      {
+         if( i+1 < argc )
+         {
+            __fenix_options.verbose = atoi(argv[i+1]);
+         }
       }
-    //  putchar('\n');
-  }
-#endif
-
+    }
 }
