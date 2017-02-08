@@ -70,7 +70,7 @@ const int kKillID = 2;
 int main(int argc, char **argv) {
 
   int i;
-  int subset[20];
+  int subset[500];
   MPI_Status status;
 
   int fenix_role;
@@ -117,8 +117,8 @@ int main(int argc, char **argv) {
     }
 
     Fenix_Data_member_create(my_group, 777, subset, kCount, MPI_INT);
-    Fenix_Data_member_store(my_group, 777, subset_specifier);
-    //Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+  //  Fenix_Data_member_store(my_group, 777, subset_specifier);
+    Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_commit(my_group, &my_timestamp);
   } else {
     // Creating subset with fixed stride
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
     }
   }
 
-#if 1
+#if 0
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
@@ -148,7 +148,8 @@ int main(int argc, char **argv) {
       for (subset_index = 0; subset_index < kCount; subset_index++) {
           subset[subset_index] = subset_index + 1; 
       }
-      Fenix_Data_member_store(my_group, 777, subset_specifier);
+      Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+    //  Fenix_Data_member_store(my_group, 777, subset_specifier);
   } 
 
  // Fenix_Data_member_store(my_group, 777, subset_specifier);
