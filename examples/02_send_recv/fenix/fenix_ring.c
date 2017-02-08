@@ -71,7 +71,6 @@ int kNumIterations = 2;
 void my_recover_callback(MPI_Comm new_comm, int error, void *callback_data) {
   int rank;
   double *y = (double *) callback_data;
- // MPI_Comm_rank(new_comm, &rank);
 }
 
 int main(int argc, char **argv) {
@@ -160,12 +159,10 @@ int main(int argc, char **argv) {
     reset = 1;
   }
 
-#if 1
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
   }
-#endif
 
   for (i = 0; i < kNumIterations; i++) {
  
@@ -203,7 +200,6 @@ int main(int argc, char **argv) {
     } else {
        printf("Test FAILED:: num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
     }
- //   printf("Checksum: %d %d %d %d %d\n", checksum[0], checksum[1], checksum[2], checksum[3], checksum[100]);
     printf("End of the program %d\n", rank);
   }
 

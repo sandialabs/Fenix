@@ -67,6 +67,7 @@ extern int *rank_roles;
 int __fenix_g_fenix_init_flag = 0;
 struct hash_table *outstanding_request = NULL;
 struct callback_list *__fenix_g_callback_list = NULL;
+__fenix_callback_list *__fenix_g_callback_list;
 __fenix_debug_options __fenix_options;
 
 /**

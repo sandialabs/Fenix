@@ -79,10 +79,10 @@ typedef struct fcouple {
     void *y;
 } fenix_callback_func;
 
-struct callback_list {
+typedef struct callback_list {
     fenix_callback_func callback;
     struct callback_list *next;
-};
+} __fenix_callback_list;
 
 /****************/
 /*              */
