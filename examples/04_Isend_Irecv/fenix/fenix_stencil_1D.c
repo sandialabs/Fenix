@@ -65,7 +65,7 @@
 const int kDOmainSIze = 20;
 const double kCommonValue = 2.0;
 
-void my_recover_callback(int status, MPI_Comm new_comm, int error, void *callback_data) {
+void my_recover_callback( MPI_Comm new_comm, int error, void *callback_data) {
   int rank;
   int i;
   MPI_Comm_rank(new_comm, &rank);
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   double *domain_two_data = init_domain(kDOmainSIze, kCommonValue);
   double *tmp_data;
 
-  void (*recPtr)(int, MPI_Comm, int, void *);
+  void (*recPtr)(MPI_Comm, int, void *);
   recPtr = &my_recover_callback;
 
   if (argc != 3) {
@@ -115,8 +115,8 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  int num_time_steps = atoi(*++ argv);
-  int spare_ranks = atoi(*++ argv);
+  int num_time_steps = atoi(argv[1]);
+  int spare_ranks = atoi(argv[2]);
 
   MPI_Init(&argc, &argv);
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
 
     } else {
       const int kKillId = 2;
-      const int kKillIter = 2;
+      const int kKillIter = 5;
       if (rank == kKillId && i == kKillIter && recovered == 0) {
         pid_t pid = getpid();
         kill(pid, SIGKILL);
@@ -211,6 +211,9 @@ int main(int argc, char **argv) {
   }
 
   Fenix_Finalize();
+
+  free( domain_one_data );
+  free( domain_two_data );
   MPI_Finalize();
   return 0;
 }
