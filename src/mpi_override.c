@@ -91,6 +91,23 @@ int MPI_Allreduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Data
   return ret;
 }
 
+int MPI_Reduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Datatype type,
+                  MPI_Op op, MPI_Comm comm) {
+  int ret, flag;
+
+  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Reduce(sendbuf, recvbuf, count, type, op, root, comm);
+  else {
+    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    if( __fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT ) {
+      ret = PMPI_Reduce(sendbuf, recvbuf, count, type, op, root, *__fenix_g_new_world);
+    } else {
+      ret = PMPI_Reduce(sendbuf, recvbuf, count, type, op, root, comm);
+    }
+  }
+  test_MPI(ret, "MPI_Reduce");
+  return ret;
+}
+
 
 
 /**
