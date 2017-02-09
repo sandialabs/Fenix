@@ -92,7 +92,7 @@ int MPI_Allreduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Data
 }
 
 int MPI_Reduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Datatype type,
-                  MPI_Op op, MPI_Comm comm) {
+                  MPI_Op op, int root, MPI_Comm comm) {
   int ret, flag;
 
   if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Reduce(sendbuf, recvbuf, count, type, op, root, comm);
