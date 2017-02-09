@@ -72,6 +72,7 @@ extern int *rank_roles;
  * @param depth
  */
 int group_create(int groupid, MPI_Comm comm, int timestamp, int depth) {
+
   int retval = -1;
   int group_index = search_groupid(groupid);
   if (__fenix_options.verbose == 12) {

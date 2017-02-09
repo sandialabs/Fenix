@@ -70,6 +70,7 @@ struct callback_list *__fenix_g_callback_list = NULL;
 __fenix_callback_list *__fenix_g_callback_list;
 __fenix_debug_options __fenix_options;
 
+
 /**
  * @brief
  * @param role
