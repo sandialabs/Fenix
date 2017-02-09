@@ -56,6 +56,7 @@
 #include "process_recovery.h"
 
 #include <mpi.h>
+// #include "fenix_ext.h"
 
 #ifdef OPEN_MPI
 #define MPI_SEND_BUFF_TYPE void *
@@ -284,10 +285,11 @@ int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, MPI_Datatype sendtyp
  * @param status
  */
 int MPI_Wait(MPI_Request *request, MPI_Status *status) {
+  int ret;
   if (!(__fenix_g_fenix_init_flag)) {
     ret = PMPI_Send(buf, count, type, dest, tag, comm);
   } else {
-    int ret = PMPI_Wait(request, status);
+    ret = PMPI_Wait(request, status);
     test_MPI(ret, "MPI_Wait");
     remove_request(request);
   }

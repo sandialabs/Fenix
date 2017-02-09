@@ -13,7 +13,7 @@ configure_file (fenix-config.h.in
 set (Fenix_SOURCES 
 hash.c
 process_recovery.c
-meta_data_recovery.c
+metadata_recovery.c
 data_recovery.c
 fenix.c
 mpi_override.c
