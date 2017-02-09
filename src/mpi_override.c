@@ -287,7 +287,7 @@ int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, MPI_Datatype sendtyp
 int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   int ret;
   if (!(__fenix_g_fenix_init_flag)) {
-    ret = PMPI_Send(buf, count, type, dest, tag, comm);
+    ret = PMPI_Wait(request, status);
   } else {
     ret = PMPI_Wait(request, status);
     test_MPI(ret, "MPI_Wait");
