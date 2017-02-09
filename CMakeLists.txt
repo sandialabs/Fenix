@@ -5,6 +5,7 @@
 #  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 #  the U.S. Government retains certain rights in this software.
 #  For more information, see the LICENSE file in the top DHARMA
+
 #  directory.
 #
 cmake_minimum_required (VERSION 2.7)
