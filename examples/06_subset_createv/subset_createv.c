@@ -70,7 +70,7 @@ const int kKillID = 2;
 int main(int argc, char **argv) {
 
   int i;
-  int subset[20];
+  int subset[1000];
   MPI_Status status;
 
   int fenix_role;
