@@ -54,34 +54,33 @@
 //@HEADER
 */
 
-#include "opt.h"
-#include "util.h"
+
+#include "fenix_constants.h"
+#include "fenix_data_recovery.h"
+#include "fenix_opt.h"
+#include "fenix_process_recovery.h"
+#include "fenix_util.h"
 #include "fenix_ext.h"
+#include "fenix_data_recovery_ext.h"
+#include "fenix_metadata.h"
 
-#define DEBUG 1
-
-
-
-
-/**
- * @brief
- * @param argc
- * @param argv
- * @param opts
- */
-void init_opt(int argc, char **argv) {
-   int i;
-
-   /* initalize the value */
-   __fenix_options.verbose = -1;
-   for( i = 0; i < argc; i++ )
-   {
-      if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
-      {
-         if( i+1 < argc )
-         {
-            __fenix_options.verbose = atoi(argv[i+1]);
-         }
-      }
-    }
+inline void __fenix_init_group_metadata ( fenix_group_entry_t *gentry, MPI_Comm comm, int timetamp,
+                                    int depth  )
+{
+   gentry->groupid = groupid;
+   gentry->comm = comm;
+   gentry->timestart = timestamp;
+   gentry->timestamp = timestamp;
+   gentry->depth = depth + 1;
+   gentry->state = OCCUPIED;
 }
+
+inline void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  )
+
+{
+  gentry->current_rank = __fenix_get_current_rank( gentry->comm );
+  gentry->comm_size    = __fenix_get_world_size( gentry->comm );
+  gentry->in_rank      = ( gentry->current_rank + gentry->comm_size - gentry->rank_separation ) % gentry->comm_size;
+  gentry->out_rank     = ( gentry->current_rank + gentry->comm_size + gentry->rank_separation ) % gentry->comm_size;
+}
+

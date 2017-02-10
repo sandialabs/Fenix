@@ -57,7 +57,7 @@
 #ifndef __HASH__
 #define __HASH__
 
-#include "util.h"
+#include "fenix_util.h"
 #include <mpi.h>
 #include <stdlib.h>
 #include <string.h>

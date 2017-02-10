@@ -54,10 +54,10 @@
 //@HEADER
 */
 
-#include "constants.h"
-#include "opt.h"
-#include "process_recovery.h"
-#include "util.h"
+#include "fenix_constants.h"
+#include "fenix_opt.h"
+#include "fenix_process_recovery.h"
+#include "fenix_util.h"
 
 /**
  * @brief
@@ -66,7 +66,7 @@
  * @param length
  * @param datatype
  */
-void ranks_agree(int *invec, int *inoutvec, int *len, MPI_Datatype *dtype) {
+void __fenix_ranks_agree(int *invec, int *inoutvec, int *len, MPI_Datatype *dtype) {
   int index;
   for (index = 0; index < *len; index++) {
     inoutvec[index] = (inoutvec[index] == invec[index]) ? invec[index] : -1;
@@ -79,7 +79,7 @@ void ranks_agree(int *invec, int *inoutvec, int *len, MPI_Datatype *dtype) {
  * @param length
  * @param key
  */
-int binary_search(int *a, int length, int key) {
+int __fenix_binary_search(int *a, int length, int key) {
   int low = 0;
   int high = length - 1;
   int found = -1;
@@ -101,7 +101,7 @@ int binary_search(int *a, int length, int key) {
  * @param p
  * @param q
  */
-int comparator(const void *p, const void *q) {
+int __fenix_comparator(const void *p, const void *q) {
   return *(int *) p - *(int *) q;
 }
 
@@ -109,7 +109,7 @@ int comparator(const void *p, const void *q) {
  * @brief
  * @param data_type
  */
-int get_size(MPI_Datatype type) {
+int __fenix_get_size(MPI_Datatype type) {
   int size = -1;
   MPI_Type_size(type, &size);
   return size;
@@ -119,7 +119,7 @@ int get_size(MPI_Datatype type) {
  * @brief
  * @param comm
  */
-int get_current_rank(MPI_Comm comm) {
+int __fenix_get_current_rank(MPI_Comm comm) {
   int rank = - 1;
   MPI_Comm_rank(comm, &rank);
   return rank;
@@ -130,7 +130,7 @@ int get_current_rank(MPI_Comm comm) {
  * @param current_rank
  * @param comm
  */
-int get_partner_rank(int current_rank, MPI_Comm comm) { 
+int __fenix_get_partner_rank(int current_rank, MPI_Comm comm) {
   int size = - 1;
   MPI_Comm_size(comm, &size);
   return ((current_rank + (size / 2)) % size);
@@ -151,20 +151,20 @@ int get_partner_out_rank(int current_rank, MPI_Comm comm) {
 #endif
 
 
-int wait(MPI_Request *request) {
+int __fenix_wait(MPI_Request *request) {
   MPI_Status status;
   int result = MPI_Wait(request, &status);
   return result;
 }
 
-int _f_test(MPI_Request *request) {
+int __fenix_test(MPI_Request *request) {
   MPI_Status status;
   int flag;
   MPI_Test(request, &flag, &status);
   return flag;
 }
 
-int get_fenix_default_rank_separation( MPI_Comm comm  ) 
+int __fenix_get_fenix_default_rank_separation( MPI_Comm comm  )
 {
   int size = - 1;
   MPI_Comm_size(comm, &size);
@@ -174,7 +174,7 @@ int get_fenix_default_rank_separation( MPI_Comm comm  )
  * @brief
  * @param comm
  */
-int get_world_size(MPI_Comm comm) {
+int  __fenix_get_world_size(MPI_Comm comm) {
   int size = - 1;
   MPI_Comm_size(comm, &size);
   return size;
@@ -186,7 +186,7 @@ int get_world_size(MPI_Comm comm) {
  * @param head
  * @param callback_function
  */
-void push(struct callback_list **head, fenix_callback_func *fp) {
+void __fenix_callback_push(struct callback_list **head, fenix_callback_func *fp) {
     struct callback_list *callback = malloc(sizeof(struct callback_list));
     callback->callback = *fp; 
     callback->next = *head;

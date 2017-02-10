@@ -58,7 +58,7 @@
 #ifndef __DATA_RECOVERY__
 #define __DATA_RECOVERY__
 
-#include "util.h"
+#include "fenix_util.h"
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,63 +227,63 @@ typedef struct __data_entry_packet {
 } data_entry_packet_t;
 
 extern int *rank_roles;
-fenix_group_t *g_data_recovery;
+fenix_group_t *__fenix_g_data_recovery;
 int store_counter;
 
-int group_create(int, MPI_Comm, int, int);
-int member_create(int, int, void *, int, MPI_Datatype);
-int group_get_redundancy_policy(int, int, void *, int *);
-int group_set_redundancy_policy(int, int, void *, int *);
-int data_wait(Fenix_Request);
-int data_test(Fenix_Request, int *);
-int member_store(int, int, Fenix_Data_subset);
-int member_storev(int, int, Fenix_Data_subset);
-int member_istore(int, int, Fenix_Data_subset, Fenix_Request *);
-int member_istorev(int, int, Fenix_Data_subset, Fenix_Request *);
-int data_commit(int, int *);
-int data_commit_barrier(int, int *);
-int data_barrier(int);
-int member_restore(int, int, void *, int, int);
-int member_restore_from_rank(int, int, void *, int, int, int);
-int data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-int data_subset_delete(Fenix_Data_subset *);
-int get_number_of_members(int, int *);
-int get_member_at_position(int, int *, int);
-int get_number_of_snapshots(int, int *);
-int get_snapshot_at_position(int, int, int *);
-int member_get_attribute(int, int, int, void *, int *, int);
-int member_set_attribute(int, int, int, void *, int *);
-int snapshot_delete(int groupid, int timestamp);
-int group_delete(int);
-int member_delete(int, int);
+int __fenix_group_create(int, MPI_Comm, int, int);
+int __fenix_member_create(int, int, void *, int, MPI_Datatype);
+int __fenix_group_get_redundancy_policy(int, int, void *, int *);
+int __fenix_group_set_redundancy_policy(int, int, void *, int *);
+int __fenix_data_wait(Fenix_Request);
+int __fenix_data_test(Fenix_Request, int *);
+int __fenix_member_store(int, int, Fenix_Data_subset);
+int __fenix_member_storev(int, int, Fenix_Data_subset);
+int __fenix_member_istore(int, int, Fenix_Data_subset, Fenix_Request *);
+int __fenix_member_istorev(int, int, Fenix_Data_subset, Fenix_Request *);
+int __fenix_data_commit(int, int *);
+int __fenix_data_commit_barrier(int, int *);
+int __fenix_data_barrier(int);
+int __fenix_member_restore(int, int, void *, int, int);
+int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
+int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
+int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
+int __fenix_data_subset_delete(Fenix_Data_subset *);
+int __fenix_get_number_of_members(int, int *);
+int __fenix_get_member_at_position(int, int *, int);
+int __fenix_get_number_of_snapshots(int, int *);
+int __fenix_get_snapshot_at_position(int, int, int *);
+int __fenix_member_get_attribute(int, int, int, void *, int *, int);
+int __fenix_member_set_attribute(int, int, int, void *, int *);
+int __fenix_snapshot_delete(int groupid, int timestamp);
+int __fenix_group_delete(int);
+int __fenix_member_delete(int, int);
 
-void init_data_recovery();
-void init_partner_copy_recovery();
-fenix_group_t *init_group();
-fenix_member_t *init_member();
-fenix_version_t *init_version();
-fenix_local_entry_t *init_local();
-fenix_remote_entry_t *init_remote();
-void free_local(fenix_local_entry_t *);
-void free_remote(fenix_remote_entry_t *);
-void reinit_group(fenix_group_t *, two_container_packet_t);
-void reinit_version(fenix_version_t *, container_packet_t);
-void reinit_member(fenix_member_t *, two_container_packet_t, enum states);
-void ensure_group_capacity(fenix_group_t *);
-void ensure_member_capacity(fenix_member_t *);
-void ensure_version_capacity(fenix_member_t *);
-int search_groupid(int);
-int search_memberid(int, int);
-int find_next_group_position(fenix_group_t *);
-int find_next_member_position(fenix_member_t *);
-int join_group(fenix_group_t *, fenix_group_entry_t *, MPI_Comm);
-int join_member(fenix_member_t *, fenix_member_entry_t *, MPI_Comm);
-int join_restore(fenix_group_entry_t *, fenix_version_t *, MPI_Comm);
-int join_commit(fenix_group_entry_t *, fenix_version_t *, MPI_Comm);
-fenix_local_entry_t *subset_full(fenix_member_entry_t *);
-void subset(fenix_group_entry_t *, fenix_member_entry_t *, Fenix_Data_subset *);
-fenix_local_entry_t *subset_variable(fenix_member_entry_t *, Fenix_Data_subset *);
+void __fenix_init_data_recovery();
+void __fenix__init_partner_copy_recovery();
+fenix_group_t *__fenix_init_group();
+fenix_member_t *__fenix_init_member();
+fenix_version_t *__fenix_init_version();
+fenix_local_entry_t *__fenix_init_local();
+fenix_remote_entry_t *__fenix_init_remote();
+void __fenix_free_local(fenix_local_entry_t *);
+void __fenix_free_remote(fenix_remote_entry_t *);
+void __fenix_reinit_group(fenix_group_t *, two_container_packet_t);
+void __fenix_reinit_version(fenix_version_t *, container_packet_t);
+void __fenix_reinit_member(fenix_member_t *, two_container_packet_t, enum states);
+void __fenix_ensure_group_capacity(fenix_group_t *);
+void __fenix_ensure_member_capacity(fenix_member_t *);
+void __fenix_ensure_version_capacity(fenix_member_t *);
+int __fenix_search_groupid(int);
+int __fenix_search_memberid(int, int);
+int __fenix_find_next_group_position(fenix_group_t *);
+int __fenix_find_next_member_position(fenix_member_t *);
+int __fenix_join_group(fenix_group_t *, fenix_group_entry_t *, MPI_Comm);
+int __fenix_join_member(fenix_member_t *, fenix_member_entry_t *, MPI_Comm);
+int __fenix_join_restore(fenix_group_entry_t *, fenix_version_t *, MPI_Comm);
+int __fenix_join_commit(fenix_group_entry_t *, fenix_version_t *, MPI_Comm);
+fenix_local_entry_t *__fenix_subset_full(fenix_member_entry_t *);
+void __fenix_subset(fenix_group_entry_t *, fenix_member_entry_t *, Fenix_Data_subset *);
+fenix_local_entry_t *__fenix_subset_variable(fenix_member_entry_t *, Fenix_Data_subset *);
 int _send_metadata(int, int, MPI_Comm);
 int _recover_metadata(int, int, MPI_Comm);
 int _send_group_data(int, int, fenix_group_entry_t *, MPI_Comm);
@@ -297,7 +297,7 @@ int _pc_recover_member_entries(int, int, int, fenix_version_t *, MPI_Comm);
 void __fenix_dr_print_store();
 void __fenix_dr_print_restore();
 void __fenix_dr_print_datastructure();
-void store_single();
-void store_all();
+void __fenix_store_single();
+void __fenix_store_all();
 
 #endif

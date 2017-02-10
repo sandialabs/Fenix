@@ -54,16 +54,15 @@
 //@HEADER
 */
 #include "process_recovery.h"
-
 #include <mpi.h>
-// #include "fenix_ext.h"
+#include "fenix_ext.h"
 
 #ifdef OPEN_MPI
 #define MPI_SEND_BUFF_TYPE void *
 #else
 #define MPI_SEND_BUFF_TYPE const void *
 #endif
-extern int __fenix_g_fenix_init_flag;
+
 
 /**
  * @brief

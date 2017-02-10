@@ -57,8 +57,8 @@
 #ifndef __FENIX__
 #define __FENIX__
 
-#include "constants.h"
-#include "process_recovery.h"
+#include "fenix_constants.h"
+#include "fenix_process_recovery.h"
 
 #include <mpi.h>
 #include <setjmp.h>
@@ -107,6 +107,7 @@ extern "C" {
 #define FENIX_ERROR_SUBSET_START_OFFSET -23
 #define FENIX_ERROR_SUBSET_END_OFFSET   -24
 #define FENIX_ERROR_SUBSET_STRIDE       -25
+#define FENIX_ERROR_NODATA_FOUND        -30
 #define FENIX_WARNING_SPARE_RANKS_DEPLETED 100
 
 #define FENIX_DATA_GROUP_WORLD_ID 10

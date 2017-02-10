@@ -58,7 +58,7 @@
 #define __PROCESS_RECOVERY__
 
 #include "fenix.h"
-#include "constants.h"
+#include "fenix_constants.h"
 
 #include <mpi.h>
 #include <setjmp.h>

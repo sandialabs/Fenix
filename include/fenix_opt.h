@@ -54,64 +54,34 @@
 //@HEADER
 */
 
-#ifndef __UTIL__
-#define __UTIL__
+#ifndef _OPT_
+#define _OPT_
 
-#include "fenix.h"
-#include "process_recovery.h"
-#include <mpi.h>
-#include <syslog.h>
-#include <sys/types.h>
-#include <sys/times.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
-#include <errno.h>
+#include <sysexits.h>
+#include <sys/types.h>
 #include <sys/stat.h>
-#include <stdarg.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <fcntl.h>
-#include <dirent.h>
-#include <sys/time.h>
-#include <signal.h>
-#include <libgen.h>
+#include <getopt.h>
 
-char *logname;
+#define debug_print(fmt, ...) \
+        do { fprintf(stderr, "%s: %d: %s(): " fmt, __FILE__, \
+                                        __LINE__, __func__, __VA_ARGS__); } while (0)
 
-#define LDEBUG(f...)  {LLIND("debug",f);}
-#define LLIND(t,f...) {fprintf(stderr,"%s - %s (%i): %s: \n",logname,__PRETTY_FUNCTION__,getpid(),t); fprintf(stderr,f);}
-#define ERRHANDLE(f...){LFATAL(f);}
-#define LFATAL(f...)  {LLINF("fatal", f);}
-#define LLINF(t,f...) {fprintf(stderr,"(%i): %s: ", getpid(), t); fprintf(stderr, f);}
+#define verbose_print(fmt, ...) \
+        do { printf("%s(): " fmt, __func__, __VA_ARGS__); } while (0)
 
-enum states { EMPTY = 0, OCCUPIED = 1, DELETED = 2, NEEDFIX = 3 };
+typedef struct __fenix_debug_opt_t {
+    int verbose;
+} __fenix_debug_options;
 
-void ranks_agree(int *, int *, int *, MPI_Datatype *);
 
-int binary_search(int *, int, int);
-
-int comparator(const void *, const void *);
-
-int get_size(MPI_Datatype);
-
-int get_fenix_default_rank_separation();
-
-int get_current_rank(MPI_Comm);
-
-int get_partner_rank(int, MPI_Comm);
-
-int get_world_size(MPI_Comm);
-
-int wait(MPI_Request *);
-
-int _f_test(MPI_Request *);
-
-void push(struct callback_list **, fenix_callback_func *);
-
-void *s_calloc(int count, size_t size);
-
-void *s_malloc(size_t size);
-
-void *s_realloc(void *mem, size_t size);
+void __fenix_init_opt(int argc, char **argv);
 
 #endif

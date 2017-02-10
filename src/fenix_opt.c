@@ -54,34 +54,34 @@
 //@HEADER
 */
 
-#ifndef _OPT_
-#define _OPT_
+#include "fenix_opt.h"
+#include "fenix_util.h"
+#include "fenix_ext.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sysexits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <getopt.h>
-
-#define debug_print(fmt, ...) \
-        do { fprintf(stderr, "%s: %d: %s(): " fmt, __FILE__, \
-                                        __LINE__, __func__, __VA_ARGS__); } while (0)
-
-#define verbose_print(fmt, ...) \
-        do { printf("%s(): " fmt, __func__, __VA_ARGS__); } while (0)
-
-typedef struct __fenix_debug_opt_t {
-    int verbose;
-} __fenix_debug_options;
+#define DEBUG 1
 
 
-void init_opt(int argc, char **argv);
 
-#endif
+
+/**
+ * @brief
+ * @param argc
+ * @param argv
+ * @param opts
+ */
+void __fenix_init_opt(int argc, char **argv) {
+   int i;
+
+   /* initalize the value */
+   __fenix_options.verbose = -1;
+   for( i = 0; i < argc; i++ )
+   {
+      if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
+      {
+         if( i+1 < argc )
+         {
+            __fenix_options.verbose = atoi(argv[i+1]);
+         }
+      }
+    }
+}

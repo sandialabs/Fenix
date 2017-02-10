@@ -55,12 +55,12 @@
 */
 
 //#include "fenix.h"
-#include "constants.h"
-#include "process_recovery.h"
-#include "data_recovery.h"
-#include "hash.h"
-#include "opt.h"
-#include "util.h"
+#include "fenix_constants.h"
+#include "fenix_process_recovery.h"
+#include "fenix_data_recovery.h"
+#include "fenix_hash.h"
+#include "fenix_opt.h"
+#include "fenix_util.h"
 #include <mpi.h>
 
 extern int *rank_roles;
@@ -106,7 +106,7 @@ int preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***arg
   __fenix_g_resume_mode = __FENIX_RESUME_AT_INIT;
   __fenix_g_repair_result = 0;
 
-  init_opt(*argc, *argv);
+  __fenix_init_opt(*argc, *argv);
 
   MPI_Op_create((MPI_User_function *) ranks_agree, 1, &__fenix_g_agree_op);
 
