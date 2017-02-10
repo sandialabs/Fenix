@@ -13,7 +13,6 @@ configure_file (fenix-config.h.in
 set (Fenix_SOURCES 
 fenix.c
 fenix_data_recovery.c
-fenix_data_recovery.c.autosave
 fenix_hash.c
 fenix_metadata.c
 fenix_metadata_recovery.c
