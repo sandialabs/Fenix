@@ -84,3 +84,17 @@ inline void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  )
   gentry->out_rank     = ( gentry->current_rank + gentry->comm_size + gentry->rank_separation ) % gentry->comm_size;
 }
 
+inline void __fenix_init_member_metadata ( fenix_member_entry_t *mentry, void *data, int count, MPI_Datatype datatype )
+
+{
+    mentry->memberid = memberid;
+    mentry->state = OCCUPIED;
+    mentry->current_buf = data;
+    mentry->current_count = count;
+    mentry->current_datatype = datatype;
+    int dsize;
+    MPI_Type_size(datatype, &dsize);
+
+    mentry->size_datatype = mentry->current_size = dsize;
+}
+
