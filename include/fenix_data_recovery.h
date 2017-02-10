@@ -1,4 +1,3 @@
-
 //@HEADER
 // ************************************************************************
 //
@@ -99,7 +98,7 @@
 typedef struct __fenix_remote_entry {
     int remoterank;
     int count;
-    size_t size;
+    size_t datatype_size;
     MPI_Datatype datatype;
     void *pdata;
     void *data;
@@ -108,7 +107,7 @@ typedef struct __fenix_remote_entry {
 typedef struct __fenix_local_entry {
     int currentrank;
     int count;
-    size_t size;
+    size_t datatype_size;
     MPI_Datatype datatype;
     void *pdata;
     void *data;
@@ -119,7 +118,7 @@ typedef struct __fenix_version {
     /* Number of copies            */
     size_t count;
     /* Number of versions          */
-    size_t size;
+    size_t total_size;
     /* Size of bucket              */
     size_t position;
     /* Position of current version */
@@ -131,9 +130,9 @@ typedef struct __fenix_member_entry {
     int memberid;
     enum states state;
     fenix_version_t version;
-    void *current_buf;
+    void *user_data;
     MPI_Datatype current_datatype;
-    int size_datatype;
+    int datatype_size;
     int current_count;
     int current_size;
     int currentrank;
@@ -145,7 +144,7 @@ typedef struct __fenix_member_entry {
 typedef struct __fenix_member {
     size_t count;
     int temp_count;
-    size_t size;
+    size_t total_size;
     fenix_member_entry_t *member_entry;
 } fenix_member_t;
 
@@ -168,7 +167,7 @@ typedef struct __fenix_group_entry {
 
 typedef struct __fenix_group {
     size_t count;
-    size_t size;
+    size_t total_size;
     fenix_group_entry_t *group_entry;
 } fenix_group_t;
 
@@ -180,24 +179,24 @@ typedef struct __member_store_packet {
     int entry_real_count;
     int num_blocks;
 
-} member_store_packet_t;
+} fenix_member_store_packet_t;
 
 typedef struct __fenix_subset_offsets  {
     size_t start;
     size_t end;
-} fenix_subset_offsets_t ;
+} fenix_fenix_subset_offsets_t ;
 
 typedef struct __two_container_packet {
     size_t count;
-    size_t size;
-} two_container_packet_t;
+    size_t total_size;
+} fenix_two_container_packet_t;
 
 typedef struct __container_packet {
     size_t count;
-    size_t size;
+    size_t total_size;
     size_t position;
     size_t num_copies;
-} container_packet_t;
+} fenix_container_packet_t;
 
 typedef struct __group_entry_packet {
     int groupid;
@@ -205,7 +204,7 @@ typedef struct __group_entry_packet {
     int depth;
     int rank_separation;
     enum states state;
-} group_entry_packet_t;
+} fenix_group_entry_packet_t;
 
 typedef struct __member_entry_packet {
     int memberid;
@@ -218,13 +217,13 @@ typedef struct __member_entry_packet {
     int remoterank;
     int remoterank_front;
     int remoterank_back;
-} member_entry_packet_t;
+} fenix_member_entry_packet_t;
 
 typedef struct __data_entry_packet {
     MPI_Datatype datatype;
     int count;
-    int size;
-} data_entry_packet_t;
+    int total_size;
+} fenix_data_entry_packet_t;
 
 extern int *rank_roles;
 fenix_group_t *__fenix_g_data_recovery;

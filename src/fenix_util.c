@@ -157,7 +157,7 @@ int __fenix_wait(MPI_Request *request) {
   return result;
 }
 
-int __fenix_test(MPI_Request *request) {
+int __fenix_mpi_test(MPI_Request *request) {
   MPI_Status status;
   int flag;
   MPI_Test(request, &flag, &status);
