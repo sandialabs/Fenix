@@ -108,7 +108,7 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
     MPI_Status status;
 
     /* If the group data is already here. */
-    fenix_group_t *group = __fenix_gdata_recovery;
+    fenix_group_t *group = __fenix_g_data_recovery;
     __fenix_ensure_group_capacity(group);
 
     for (i = 0; i < group->count; i++) {
