@@ -1,0 +1,4 @@
+#ifndef FENIX_DATA_VERSION_H
+#define FENIX_DATA_VERSION_H
+
+#endif // FENIX_DATA_VERSION_H
