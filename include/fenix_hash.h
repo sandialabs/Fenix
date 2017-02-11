@@ -63,30 +63,30 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef struct hash_table_entry {
+typedef struct __fenix_hash_table_entry {
     long key;
     MPI_Request *value;
     enum states state;
-} pair;
+} __fenix_pair;
 
-struct hash_table {
-    pair *table;
+struct __fenix_hash_table {
+    __fenix_pair *table;
     size_t size;
     size_t count;
 };
 
-int hash(long);
+int __fenix_hash(long);
 
-struct hash_table *hash_table_new(size_t);
+struct __fenix_hash_table *__fenix_hash_table_new(size_t);
 
-int hash_table_put(struct hash_table *, long, MPI_Request *);
+int __fenix_hash_table_put(struct __fenix_hash_table *, long, MPI_Request *);
 
-MPI_Request *hash_table_get(const struct hash_table *, long);
+MPI_Request *__fenix_hash_table_get(const struct __fenix_hash_table *, long);
 
-MPI_Request *hash_table_remove(struct hash_table *, long);
+MPI_Request *__fenix_hash_table_remove(struct __fenix_hash_table *, long);
 
-void hash_table_print(const struct hash_table *);
+void __fenix_hash_table_print(const struct __fenix_hash_table *);
 
-void hash_table_destroy(struct hash_table *);
+void __fenix_hash_table_destroy(struct __fenix_hash_table *);
 
 #endif

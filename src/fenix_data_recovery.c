@@ -284,7 +284,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
 
     mentry = &(member->member_entry[next_member_position]);
 
-    __fenix_init_member_metadata( mentry, data, count, datatype );
+    __fenix_init_member_metadata( mentry, memberid, data, count, datatype );
 
 
 //    version = &(member->member_entry[next_member_position].version);
@@ -1698,8 +1698,8 @@ int __fenix_group_delete(int groupid) {
       /* Free-up versions */
       int verison_index;
       for (verison_index = 0; verison_index < version->total_size; verison_index++) {
-        free_local(&(version->local_entry[version->position]));
-        free_remote(&(version->remote_entry[version->position]));
+        __fenix_free_local(&(version->local_entry[version->position]));
+        __fenix_free_remote(&(version->remote_entry[version->position]));
       }
     }
     retval = FENIX_SUCCESS;
@@ -1750,8 +1750,8 @@ int __fenix_member_delete(int groupid, int memberid) {
 
     int verison_index;
     for (verison_index = 0; verison_index < version->total_size; verison_index++) {
-      free_local(&(version->local_entry[verison_index]));
-      free_remote(&(version->remote_entry[verison_index]));
+      __fenix_free_local(&(version->local_entry[verison_index]));
+      __fenix_free_remote(&(version->remote_entry[verison_index]));
     }
     retval = FENIX_SUCCESS;
   }
@@ -1761,7 +1761,7 @@ int __fenix_member_delete(int groupid, int memberid) {
 /**
  * @brief
  */
-fenix_group_t *_-fenix_init_group() {
+fenix_group_t * __fenix_init_group() {
   fenix_group_t *group = (fenix_group_t *)
           s_calloc(1, sizeof(fenix_group_t));
   group->count = 0;
@@ -1791,7 +1791,7 @@ fenix_group_t *_-fenix_init_group() {
               gentry->timestamp, gentry->state);
     }
 
-    gentry->member = *init_member();
+    gentry->member = *(__fenix_init_member());  /* This is ugly */
   }
   return group;
 }
@@ -1826,7 +1826,7 @@ fenix_member_t *__fenix_init_member() {
                     mentry->memberid, mentry->state);
     }
 
-    mentry->version = *init_version();
+    mentry->version = *__fenix_init_version();
   }
   return member;
 }
@@ -1856,8 +1856,8 @@ fenix_version_t *__fenix_init_version() {
   int version_index;
   for (version_index = 0;
        version_index < __FENIX_DEFAULT_VERSION_SIZE; version_index++) {
-    version->local_entry[version_index] = *init_local();
-    version->remote_entry[version_index] = *init_remote();
+    version->local_entry[version_index] = *__fenix_init_local();
+    version->remote_entry[version_index] = *__fenix_init_remote();
   }
   return version;
 }
@@ -1872,14 +1872,14 @@ fenix_local_entry_t *__fenix_init_local() {
   local->pdata = NULL;
   local->data = NULL;
   local->count = 0;
-  local->total_size = 0;
+  local->datatype_size = 0;
   local->datatype = NULL;
 
   if (__fenix_options.verbose == 44) {
     verbose_print(
             "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
               __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, local->currentrank,
-            local->count, local->total_size);
+            local->count, local->datatype_size);
   }
 
   return local;
@@ -1895,14 +1895,14 @@ fenix_remote_entry_t *__fenix_init_remote() {
   remote->pdata = NULL;
   remote->data = NULL;
   remote->count = 0;
-  remote->total_size = 0;
+  remote->datatype_size = 0;
   remote->datatype = NULL;
 
   if (__fenix_options.verbose == 45) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
               __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, remote->remoterank,
-            remote->count, remote->total_size);
+            remote->count, remote->datatype_size);
   }
 
   return remote;
@@ -1919,14 +1919,14 @@ void __fenix_free_local(fenix_local_entry_t *l) {
     free(local->data);
   }
   local->count = 0;
-  local->total_size = 0;
+  local->datatype_size = 0;
   local->datatype = NULL;
 
   if (__fenix_options.verbose == 46) {
     verbose_print(
             "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
               __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
-            local->currentrank, local->count, local->total_size);
+            local->currentrank, local->count, local->datatype_size);
   }
 
 }
@@ -1943,14 +1943,14 @@ void __fenix_free_remote(fenix_remote_entry_t *r) {
     free(remote->data);
   }
   remote->count = 0;
-  remote->total_size = 0;
+  remote->datatype_size = 0;
   remote->datatype = NULL;
 
   if (__fenix_options.verbose == 47) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
               __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
-            remote->remoterank, remote->count, remote->total_size);
+            remote->remoterank, remote->count, remote->datatype_size);
   }
 
 }
@@ -1960,7 +1960,7 @@ void __fenix_free_remote(fenix_remote_entry_t *r) {
  * @param
  * @param
  */
-void __fenix_reinit_group(fenix_group_t *g, two_container_packet_t packet) {
+void __fenix_reinit_group(fenix_group_t *g, fenix_two_container_packet_t packet) {
   fenix_group_t *group = g;
   int start_index = group->total_size;
   group->count = packet.count;
@@ -1989,7 +1989,7 @@ void __fenix_reinit_group(fenix_group_t *g, two_container_packet_t packet) {
               gentry->groupid, gentry->timestamp, gentry->state);
     }
 
-    gentry->member = *init_member();
+    gentry->member = * __fenix_init_member();
   }
 }
 
@@ -1998,7 +1998,7 @@ void __fenix_reinit_group(fenix_group_t *g, two_container_packet_t packet) {
  * @param
  * @param
  */
-void __fenix_reinit_member(fenix_member_t *m, two_container_packet_t packet,
+void __fenix_reinit_member(fenix_member_t *m, fenix_two_container_packet_t packet,
                    enum states mystatus) {
   fenix_member_t *member = m;
   int start_index = member->total_size;
@@ -2027,7 +2027,7 @@ void __fenix_reinit_member(fenix_member_t *m, two_container_packet_t packet,
                     mentry->memberid, mentry->state);
     }
 
-    mentry->version = *init_version();
+    mentry->version = *__fenix_init_version();
   }
 }
 
@@ -2036,7 +2036,7 @@ void __fenix_reinit_member(fenix_member_t *m, two_container_packet_t packet,
  * @param
  * @param
  */
-void __fenix_reinit_version(fenix_version_t *v, container_packet_t packet) {
+void __fenix_reinit_version(fenix_version_t *v, fenix_container_packet_t packet) {
 
   int first_index = v->total_size;
   v->num_copies = packet.num_copies;
@@ -2061,8 +2061,8 @@ void __fenix_reinit_version(fenix_version_t *v, container_packet_t packet) {
  */
   int version_index;
   for (version_index = first_index; version_index < v->total_size; version_index++) {
-    v->local_entry[version_index] = *init_local();
-    v->remote_entry[version_index] = *init_remote();
+    v->local_entry[version_index] = *__fenix_init_local();
+    v->remote_entry[version_index] = *__fenix_init_remote();
   }
 }
 
@@ -2099,7 +2099,7 @@ void __fenix_ensure_group_capacity(fenix_group_t *g) {
                 gentry->timestamp, gentry->state);
       }
 
-      gentry->member = *init_member();
+      gentry->member = *__fenix_init_member();
     }
   }
 }
@@ -2135,7 +2135,7 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
                 member_index, mentry->memberid, mentry->state);
       }
 
-      mentry->version = *init_version();
+      mentry->version = *__fenix_init_version();
     }
   }
 }
@@ -2144,7 +2144,7 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
  * @brief
  * @param
  */
-void __fenix___fenix_ensure_version_capacity(fenix_member_t *m) {
+void __fenix_ensure_version_capacity(fenix_member_t *m) {
   fenix_member_t *member = m;
   int member_index;
   for (member_index = 0; member_index < member->total_size; member_index++) {

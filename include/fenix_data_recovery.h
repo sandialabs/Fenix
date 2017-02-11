@@ -210,7 +210,7 @@ typedef struct __member_entry_packet {
     int memberid;
     enum states state;
     MPI_Datatype current_datatype;
-    int size_datatype;
+    int datatype_size;
     int current_count;
     int current_size;
     int currentrank;
@@ -222,7 +222,7 @@ typedef struct __member_entry_packet {
 typedef struct __data_entry_packet {
     MPI_Datatype datatype;
     int count;
-    int total_size;
+    int datatype_size;
 } fenix_data_entry_packet_t;
 
 extern int *rank_roles;
