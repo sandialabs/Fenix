@@ -133,7 +133,8 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
       gentry = &(group->group_entry[ __fenix_find_next_group_position(group) ] );
 
       /* Initialize Group Meta Data */
-      __fenix_init_grop_metadata ( gentry, groupid, com, timestamp, depth );
+      __fenix_init_group_metadata ( gentry, groupid, comm, timestamp, depth );
+
 //      gentry->state = OCCUPIED;
 
       /* fenix_g_role is kept until Fenix_finalize() */
@@ -262,7 +263,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
     int remote_count;
     MPI_Status status;
 
-    fenix_group_entry_t *gentry = &(__fenix_g_data_recover->group_entry[group_index]);
+    fenix_group_entry_t *gentry = &(__fenix_g_data_recovery->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
     fenix_member_entry_t *mentry = NULL;
     fenix_version_t *version = NULL;
@@ -283,7 +284,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
 
     mentry = &(member->member_entry[next_member_position]);
 
-    __fenix_init_member_metadata( mentry, *data, count, datatype );
+    __fenix_init_member_metadata( mentry, data, count, datatype );
 
 
 //    version = &(member->member_entry[next_member_position].version);
@@ -408,7 +409,7 @@ int __fenix_group_set_redundancy_policy(int group_id, int policy_name, void *pol
  */
 int __fenix_data_wait( Fenix_Request request ) {
   int retval = -1;
-  int result = wait(&(request.mpi_recv_req));
+  int result = __fenix_mpi_wait(&(request.mpi_recv_req));
 
   if (result != MPI_SUCCESS) {
     retval = FENIX_SUCCESS;
@@ -416,7 +417,7 @@ int __fenix_data_wait( Fenix_Request request ) {
     retval = FENIX_ERROR_DATA_WAIT;
   }
 
-  result = wait(&(request.mpi_send_req));
+  result = __fenix_mpi_wait(&(request.mpi_send_req));
 
   if (result != MPI_SUCCESS) {
     retval = FENIX_SUCCESS;
@@ -434,7 +435,7 @@ int __fenix_data_wait( Fenix_Request request ) {
  */
 int __fenix_data_test(Fenix_Request request, int *flag) {
   int retval = -1;
-  int result = ( _fenix_mpi_test(&(request.mpi_recv_req)) & _fenix_mpi_test(&(request.mpi_send_req))) ;
+  int result = ( __fenix_mpi_test(&(request.mpi_recv_req)) & __fenix_mpi_test(&(request.mpi_send_req))) ;
 
   if ( result == 1 ) {
     *flag = 1;
@@ -500,30 +501,27 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
     fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
     fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]);
 
-    /* Store the local data */
-/*    memcpy(lentry->data, lentry->pdata, (lentry->count * lentry->size)); */
-
-
     MPI_Status status;
     /* This data exchange is not necessary when using non-v call */
     fenix_member_store_packet_t lentry_packet, rentry_packet;
-
+    /* Store the local data */
+    memcpy(lentry->data, mentry->user_data, (lentry->count * lentry->datatype_size));
     if( specifier.specifier == __FENIX_SUBSET_FULL ) {
-      /* Store the local data */
-      memcpy(lentry->data, mentry->user_data, (lentry->count * lentry->size));
-      __fenix_init_member_store_packet_init ( lentry_packet, lentry, 0 );
+
+      __fenix_init_member_store_packet ( &lentry_packet, lentry, 0 );
       send_buff = (char *)lentry->data;
     } else if ( specifier.specifier == __FENIX_SUBSET_EMPTY ) {
-      /* Storing the local data but going to send 0 size message */
-      memcpy(lentry->data, mentry->user_data, (lentry->count * lentry->size));
-      __fenix_init_member_store_packet_init ( lentry_packet, lentry, 1 );
+
+      __fenix_init_member_store_packet ( &lentry_packet, lentry, 1 );
       send_buff = (char *)lentry->data;
+
     } else {
+
       char *ldata = (char *)lentry->data;
       lentry_packet.rank = lentry->currentrank;
       lentry_packet.datatype = lentry->datatype;
       lentry_packet.entry_count = lentry->count;
-      lentry_packet.entry_size  = lentry->data_type_size;
+      lentry_packet.entry_size  = lentry->datatype_size;
       lentry_packet.num_blocks  = specifier.num_blocks;
 
       /* Create an array blocks defined by subset specifier */
@@ -541,21 +539,21 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
       lentry_packet.entry_real_count = local_buf_count; /* Tell how many elements is sent */
 
       /* Send buffer is temporary created */
-      send_buff = (char *) s_malloc(sizeof(char) * local_buf_count * lentry->size);
+      send_buff = (char *) s_malloc(sizeof(char) * local_buf_count * lentry->datatype_size);
 
       /* Pack the data into buffer */
       int offset_index = 0;
       for (index = 0; index < specifier.num_blocks; index++) {
         int n = (loffsets[index].end - loffsets[index].start) + 1;
-        memcpy((void *) &send_buff[offset_index * lentry->size], (void *) &ldata[loffsets[index].start * lentry->size], n * lentry->size);
+        memcpy((void *) &send_buff[offset_index * lentry->datatype_size], (void *) &ldata[loffsets[index].start * lentry->datatype_size], n * lentry->datatype_size);
         offset_index += n;
       }      
 
     }
 
     int current_role = __fenix_g_role;
-    MPI_Sendrecv(&lentry_packet, sizeof(member_store_packet_t), MPI_BYTE, gentry->out_rank,
-               STORE_SIZE_TAG, &rentry_packet, sizeof(member_store_packet_t), MPI_BYTE,
+    MPI_Sendrecv(&lentry_packet, sizeof(fenix_member_store_packet_t), MPI_BYTE, gentry->out_rank,
+               STORE_SIZE_TAG, &rentry_packet, sizeof(fenix_member_store_packet_t), MPI_BYTE,
                gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status);
 
     rentry->remoterank = rentry_packet.rank;
@@ -566,7 +564,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
 
     /* If it is not NULL, do not allocate */
     if (rentry->data != NULL) {
-      rentry->data = s_malloc(rentry->count * rentry->size);
+      rentry->data = s_malloc(rentry->count * rentry->datatype_size);
     }
 
     /* 
@@ -584,7 +582,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
                    sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE,
                    gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status);
       /* temporary buffer to received packed data */
-      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size );
+      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->datatype_size );
     } else if ( lentry_packet.num_blocks > 0 ) {
       MPI_Send(&loffsets,  sizeof(fenix_subset_offsets_t)*lentry_packet.num_blocks, 
                MPI_BYTE, gentry->out_rank, STORE_SIZE_TAG,  (gentry->comm)  );
@@ -596,7 +594,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
       MPI_Recv(&roffsets, sizeof(fenix_subset_offsets_t)*rentry_packet.num_blocks, MPI_BYTE, 
                gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status );
       /* temporary buffer to received packed data */
-      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->size );
+      recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->datatype_size );
     } else {
 
       /* The sender to me is not using subset */
@@ -604,7 +602,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
     }
 
     /* Exchange the payload  */
-    MPI_Sendrecv( (void *)send_buff, (lentry_packet.entry_real_count * lentry->size), MPI_BYTE, gentry->out_rank,
+    MPI_Sendrecv( (void *)send_buff, (lentry_packet.entry_real_count * lentry->datatype_size), MPI_BYTE, gentry->out_rank,
                   STORE_PAYLOAD_TAG, (void *) recv_buff, (rentry_packet.entry_real_count * rentry->datatype_size), MPI_BYTE,
                   gentry->in_rank, STORE_PAYLOAD_TAG, gentry->comm, &status);
 
@@ -626,7 +624,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
         char * rdata = (char *) rentry->data;
         for ( i = 0; i < rentry_packet.num_blocks; i++ ) {
         int n = (roffsets[i].end - roffsets[i].start) + 1;
-          memcpy((void*) &rdata[roffsets[i].start * rentry->size], (void *) &recv_buff[j*rentry->size], n * rentry->size);
+          memcpy((void*) &rdata[roffsets[i].start * rentry->datatype_size], (void *) &recv_buff[j*rentry->datatype_size], n * rentry->datatype_size);
           j += n;
         }
         free(roffsets);
@@ -658,8 +656,9 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
 int __fenix_member_istore(int groupid, int memberid, Fenix_Data_subset specifier,
                   Fenix_Request *request) {
 
-#if 0
+
   int retval = -1;
+  #if 0
   int group_index = __fenix_search_groupid(groupid);
   int member_index = -1;
   if (memberid != FENIX_DATA_MEMBER_ALL) {
@@ -740,7 +739,8 @@ int __fenix_member_istore(int groupid, int memberid, Fenix_Data_subset specifier
 
 void __fenix_subset(fenix_group_entry_t *ge, fenix_member_entry_t *me, Fenix_Data_subset *ss) {
 #if 1
-  debug_print("ERROR Fenix_Subset is not currently supported\n");
+  fprintf(stderr,"ERROR Fenix_Subset is not currently supported\n");
+
 #else
   fenix_version_t *version = &(me->version);
   fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
@@ -836,6 +836,10 @@ void __fenix_subset(fenix_group_entry_t *ge, fenix_member_entry_t *me, Fenix_Dat
 }
 
 fenix_local_entry_t *__fenix_subset_variable(fenix_member_entry_t *me, Fenix_Data_subset *ss) {
+#if 1
+  fprintf(stderr,"ERROR Fenix_Subset is not currently supported\n");
+
+#else
   int ss_num_blocks = ss->num_blocks;
   int *ss_start = (int *) s_malloc(ss_num_blocks * sizeof(int));
   int *ss_end = (int *) s_malloc(ss_num_blocks * sizeof(int));;
@@ -861,7 +865,7 @@ fenix_local_entry_t *__fenix_subset_variable(fenix_member_entry_t *me, Fenix_Dat
        (ss_block != ss_num_blocks) && (data_index < data_count); data_index++) {
     if (data_index >= ss_start[offset_index] && data_index <= ss_end[offset_index]) {
       ss_diff = ss_end[offset_index] - ss_start[offset_index];
-      memcpy((ss_data) + ss_index, (me->current_buf) + data_index,
+      memcpy((ss_data) + ss_index, (me->user_data) + data_index,
              sizeof(me->current_datatype));
       ss_index = ss_index + 1;
       data_steps = data_steps + 1;
@@ -884,6 +888,10 @@ fenix_local_entry_t *__fenix_subset_variable(fenix_member_entry_t *me, Fenix_Dat
   memcpy(lentry->data, lentry->pdata, (lentry->count * lentry->size));
 
   return lentry;
+  #endif
+
+
+  return NULL;
 }
 
 
@@ -922,6 +930,7 @@ int __fenix_member_storev(int group_id, int member_id, Fenix_Data_subset subset_
     retval = FENIX_SUCCESS;
   }
   return retval;
+
 }
 #endif
 
@@ -1012,7 +1021,7 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     int min_timestamp;
-    MPI_Allreduce( gentry->timestamp, &min_timestamp, 1, MPI_INT, MPI_MIN,  gentry->comm );
+    MPI_Allreduce( &(gentry->timestamp), &min_timestamp, 1, MPI_INT, MPI_MIN,  gentry->comm );
 
     gentry->timestamp = min_timestamp+1;
     if (timestamp != NULL) {
@@ -1157,20 +1166,20 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
                                  gentry->comm);
     } else if ( current_status == NEEDFIX && remote_status == NEEDFIX) {
        debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
-                memberid,g_data_recovery->group_entry[group_index].current_rank);
+                memberid, __fenix_g_data_recovery->group_entry[group_index].current_rank);
        retval = FENIX_ERROR_INVALID_MEMBERID;
     }
 
     
     /* Get the latest consistent copy */
-    if (  join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
+    if (  __fenix_join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
       //printf("POSITION %d\n",version->position - 1);
       fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
       lentry->pdata = data;
       mentry->current_datatype = lentry->datatype;
       mentry->current_count = lentry->count;
       mentry->current_size = lentry->datatype_size;
-      memcpy(lentry->pdata, lentry->data, lentry->count * lentry->size);
+      memcpy(lentry->pdata, lentry->data, lentry->count * lentry->datatype_size);
       if (__fenix_options.verbose == 25) {
         verbose_print("c-rank: %d, role: %d, v-pos: %d, ld-totalsize: %d\n",
                         __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
@@ -1301,7 +1310,7 @@ int __fenix_data_subset_createv(int num_blocks, int *array_start_offsets, int *a
   return retval;
 }
 
-int __fenix_data_subset_free(Fenix_Data_subset *subset_specifier) {
+int __fenix_data_subset_free( Fenix_Data_subset *subset_specifier ) {
   int  retval = FENIX_SUCCESS;;
   free( subset_specifier->start_offsets );
   free( subset_specifier->end_offsets );
@@ -1313,8 +1322,8 @@ int __fenix_data_subset_free(Fenix_Data_subset *subset_specifier) {
  * @brief
  * @param subset_specifier
  */
-int __fenix_data_subset_delete(Fenix_Data_subset *subset_specifier) {
-  data_subset_free(subset_specifier);
+int __fenix_data_subset_delete( Fenix_Data_subset *subset_specifier ) {
+  __fenix_data_subset_free(subset_specifier);
   free(subset_specifier);
   return FENIX_SUCCESS;
 }
@@ -1333,7 +1342,7 @@ int __fenix_get_number_of_members(int group_id, int *num_members) {
   } else {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    *num_members = gentry->member->count;
+    *num_members = gentry->member.count;
     retval = FENIX_SUCCESS;
   }
   return retval;
@@ -1514,6 +1523,8 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
                 "FENIX_ROLE_INITIAL_RANK");
     retval = FENIX_ERROR_INVALID_LOGIC_CALL;
   } else {
+    int my_datatype_size;
+    int myerr;
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
@@ -1524,7 +1535,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
 
     switch (attributename) {
       case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
-        mentry->usr_data = attributevalue;
+        mentry->user_data = attributevalue;
         break;
       case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
         mentry->current_count = *((int *) (attributevalue));
@@ -1532,8 +1543,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
         retval = FENIX_SUCCESS;
         break;
       case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE:
-        int my_data_type_size;
-        int myerr;
+
         myerr = MPI_Type_size(*((MPI_Datatype *)(attributevalue)), &my_datatype_size);
         if( myerr ) {
           debug_print(
@@ -1544,7 +1554,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
         mentry->current_datatype = *((MPI_Datatype *)(attributevalue));
         lentry->datatype = *((MPI_Datatype *)(attributevalue));
         mentry->datatype_size = my_datatype_size;
-        lentry->datatype_size = my_data_type_size;
+        lentry->datatype_size = my_datatype_size;
         retval = FENIX_SUCCESS;
         break;
 #if 0
@@ -1618,7 +1628,7 @@ int __fenix_snapshot_delete(int group_id, int time_stamp) {
 #endif
       } else {
         int version_index = time_stamp - gentry->timestart;
-        free_local(&(version->local_entry[version_index]));
+        __fenix_free_local(&(version->local_entry[version_index]));
       }
     }
     retval = FENIX_SUCCESS;
@@ -1660,7 +1670,7 @@ int __fenix_group_delete(int groupid) {
     if (__fenix_options.verbose == 37) {
       verbose_print(
               "c-rank: %d, g-count: %d, g-size: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
-                __fenix_get_current_rank(*__fenix_g_new_world), group->count, group->size,
+                __fenix_get_current_rank(*__fenix_g_new_world), group->count, group->total_size,
               gentry->depth, gentry->groupid,
               gentry->timestamp, gentry->state);
     }

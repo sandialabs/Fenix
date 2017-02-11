@@ -151,7 +151,7 @@ int get_partner_out_rank(int current_rank, MPI_Comm comm) {
 #endif
 
 
-int __fenix_wait(MPI_Request *request) {
+int __fenix_mpi_wait(MPI_Request *request) {
   MPI_Status status;
   int result = MPI_Wait(request, &status);
   return result;

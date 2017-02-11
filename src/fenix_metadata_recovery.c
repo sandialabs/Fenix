@@ -443,7 +443,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
     MPI_Recv(&vpacket, sizeof(container_packet_t), MPI_BYTE, in_rank,
              RECOVERY_VERSION_TAG + member_index, comm, &status); /* Version metadata */
 
-    reinit_version(version, vpacket);
+    __fenix_reinit_version(version, vpacket);
 
     if (__fenix_options.verbose == 72) {
       verbose_print(

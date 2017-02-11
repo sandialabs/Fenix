@@ -184,7 +184,7 @@ typedef struct __member_store_packet {
 typedef struct __fenix_subset_offsets  {
     size_t start;
     size_t end;
-} fenix_fenix_subset_offsets_t ;
+} fenix_subset_offsets_t ;
 
 typedef struct __two_container_packet {
     size_t count;

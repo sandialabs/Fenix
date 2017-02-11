@@ -99,22 +99,22 @@ inline void __fenix_init_member_metadata ( fenix_member_entry_t *mentry, void *d
 }
 
 
-inline void __fenix_init_member_store_packet_init ( fenix_member_store_packet_t lentry_packet, fenix_local_entry_t lentry, int flag )
+inline void __fenix_init_member_store_packet ( fenix_member_store_packet_t *lentry_packet, fenix_local_entry_t *lentry, int flag )
 {
   if ( flag == 0 ) {
-    lentry_packet.rank = lentry->currentrank;
-    lentry_packet.datatype = lentry->datatype;
-    lentry_packet.entry_count = lentry->count;
-    lentry_packet.entry_size  = lentry->datatype_size;
-    lentry_packet.entry_real_count  = lentry->count;
-    lentry_packet.num_blocks  = 0;
+    lentry_packet->rank = lentry->currentrank;
+    lentry_packet->datatype = lentry->datatype;
+    lentry_packet->entry_count = lentry->count;
+    lentry_packet->entry_size  = lentry->datatype_size;
+    lentry_packet->entry_real_count  = lentry->count;
+    lentry_packet->num_blocks  = 0;
   } else if ( flag == 1 ) {
-    lentry_packet.rank = lentry->currentrank;
-    lentry_packet.datatype = lentry->datatype;
-    lentry_packet.entry_count = lentry->count;
-    lentry_packet.entry_size  = lentry->datatype_size;
-    lentry_packet.entry_real_count  = 0;
-    lentry_packet.num_blocks  = 0;
+    lentry_packet->rank = lentry->currentrank;
+    lentry_packet->datatype = lentry->datatype;
+    lentry_packet->entry_count = lentry->count;
+    lentry_packet->entry_size  = lentry->datatype_size;
+    lentry_packet->entry_real_count  = 0;
+    lentry_packet->num_blocks  = 0;
   } else if (flag == 2 ) { /* Subset */
 
 
