@@ -58,17 +58,14 @@
 #include "fenix_constants.h"
 #include "fenix_process_recovery_global.h"
 #include "fenix_process_recovery.h"
-//#include "fenix_data_recovery.h"
+#include "fenix_data_recovery.h"
 #include "fenix_hash.h"
 #include "fenix_opt.h"
 #include "fenix_util.h"
 #include <mpi.h>
 
-//int *__fenix_g_rank_roles;
-int __fenix_g_fenix_init_flag = 0;
-struct __fenix_hash_table *outstanding_request = NULL;
-__fenix_callback_list *__fenix_g_callback_list;
-__fenix_debug_options __fenix_options;
+
+
 
 
 /**

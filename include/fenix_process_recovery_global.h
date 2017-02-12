@@ -65,6 +65,10 @@
 #include <stdint.h>
 #include <signal.h>
 
+#include "fenix_opt.h"
+#include "fenix_util.h"
+#include "fenix_data_group.h"
+
 int __fenix_g_num_inital_ranks;
 int __fenix_g_num_survivor_ranks;
 int __fenix_g_num_recovered_ranks;
@@ -78,10 +82,17 @@ jmp_buf *__fenix_g_recover_environment;   // Calling environment to fill the jmp
 
 //enum FenixRankRole __fenix_g_role;    // Role of rank: initial, survivor or repair
 int  __fenix_g_role;    // Role of rank: initial, survivor or repair
+int __fenix_g_fenix_init_flag = 0;
+struct __fenix_hash_table *outstanding_request = NULL;
+
+__fenix_callback_list *__fenix_g_callback_list;
+__fenix_debug_options __fenix_options;
 
 MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
 MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
 MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
 MPI_Comm __fenix_g_original_comm;
 MPI_Op __fenix_g_agree_op;
+
+fenix_group_t __fenix_g_data_recovery;
 #endif // FENIX_PROCES_RECOVERY_GLOBAL_H
