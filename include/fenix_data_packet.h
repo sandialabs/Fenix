@@ -53,29 +53,21 @@
 // ************************************************************************
 //@HEADER
 */
-
-#ifndef __FENIX_DATA_BUFFER_H__
-#define __FENIX_DATA_BUFFER_H__
-
+#ifndef __FENIX_DATA_PACKET_H__
+#define __FENIX_DATA_PACKET_H__
 #include <mpi.h>
-#include "fenix_data_packet.h"
 
-typedef struct __fenix_remote_entry {
-    int remoterank;
-    int count;
-    size_t datatype_size;
-    MPI_Datatype datatype;
-    void *pdata;
-    void *data;
-} fenix_remote_entry_t;
+typedef struct __two_container_packet {
+    size_t count;
+    size_t total_size;
+} fenix_two_container_packet_t;
 
-typedef struct __fenix_local_entry {
-    int currentrank;
-    int count;
-    size_t datatype_size;
-    MPI_Datatype datatype;
-    void *pdata;
-    void *data;
-} fenix_local_entry_t;
+typedef struct __container_packet {
+    size_t count;
+    size_t total_size;
+    size_t position;
+    size_t num_copies;
+} fenix_container_packet_t;
 
-#endif // FENIX_DATA_BUFFER_H
+
+#endif // FENIX_DATA_PACKET_H

@@ -63,7 +63,7 @@
 #include "fenix_util.h"
 #include <mpi.h>
 
-int *__fenix_rank_roles;
+//int *__fenix_g_rank_roles;
 int __fenix_g_fenix_init_flag = 0;
 struct __fenix_hash_table *outstanding_request = NULL;
 __fenix_callback_list *__fenix_g_callback_list;

@@ -1,3 +1,4 @@
+/*
 //@HEADER
 // ************************************************************************
 //
@@ -14,7 +15,6 @@
 // Copyright (C) 2016 Rutgers University and Sandia Corporation
 //
 // Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
-/*
 // the U.S. Government retains certain rights in this software.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,7 @@
 #ifndef __FENIX_DATA_RECOVERY__
 #define __FENIX_DATA_RECOVERY__
 
+#include "fenix_ext.h"
 #include "fenix_data_group.h"
 #include "fenix_data_member.h"
 #include "fenix_data_version.h"
@@ -100,129 +101,14 @@
 #define RECOVER_SIZE_TAG         1906
 #define RECOVER_DATA_TAG         1907
 
-typedef struct __fenix_remote_entry {
-    int remoterank;
-    int count;
-    size_t datatype_size;
-    MPI_Datatype datatype;
-    void *pdata;
-    void *data;
-} fenix_remote_entry_t;
 
-typedef struct __fenix_local_entry {
-    int currentrank;
-    int count;
-    size_t datatype_size;
-    MPI_Datatype datatype;
-    void *pdata;
-    void *data;
-} fenix_local_entry_t;
 
-typedef struct __fenix_version {
-    size_t num_copies;
-    /* Number of copies            */
-    size_t count;
-    /* Number of versions          */
-    size_t total_size;
-    /* Size of bucket              */
-    size_t position;
-    /* Position of current version */
-    fenix_local_entry_t *local_entry;
-    fenix_remote_entry_t *remote_entry;
-} fenix_version_t;
-
-typedef struct __fenix_member_entry {
-    int memberid;
-    enum states state;
-    fenix_version_t version;
-    void *user_data;
-    MPI_Datatype current_datatype;
-    int datatype_size;
-    int current_count;
-    int current_size;
-    int currentrank;
-    int remoterank;
-    int remoterank_front;
-    int remoterank_back;
-} fenix_member_entry_t;
-
-typedef struct __fenix_member {
-    size_t count;
-    int temp_count;
-    size_t total_size;
-    fenix_member_entry_t *member_entry;
-} fenix_member_t;
-
-typedef struct __fenix_group_entry {
-    int groupid;
-    MPI_Comm comm;
-    int comm_size;
-    int current_rank;
-    int in_rank;
-    int out_rank;
-    int timestart;
-    int timestamp;
-    int depth;
-    int rank_separation;
-    /* Subject to change */
-    enum states state;
-    int recovered;
-    fenix_member_t member;
-} fenix_group_entry_t;
-
-typedef struct __fenix_group {
-    size_t count;
-    size_t total_size;
-    fenix_group_entry_t *group_entry;
-} fenix_group_t;
-
-typedef struct __member_store_packet {
-    int rank;
-    MPI_Datatype datatype;
-    int entry_count;
-    size_t entry_size;
-    int entry_real_count;
-    int num_blocks;
-
-} fenix_member_store_packet_t;
 
 typedef struct __fenix_subset_offsets  {
     size_t start;
     size_t end;
 } fenix_subset_offsets_t ;
 
-typedef struct __two_container_packet {
-    size_t count;
-    size_t total_size;
-} fenix_two_container_packet_t;
-
-typedef struct __container_packet {
-    size_t count;
-    size_t total_size;
-    size_t position;
-    size_t num_copies;
-} fenix_container_packet_t;
-
-typedef struct __group_entry_packet {
-    int groupid;
-    int timestamp;
-    int depth;
-    int rank_separation;
-    enum states state;
-} fenix_group_entry_packet_t;
-
-typedef struct __member_entry_packet {
-    int memberid;
-    enum states state;
-    MPI_Datatype current_datatype;
-    int datatype_size;
-    int current_count;
-    int current_size;
-    int currentrank;
-    int remoterank;
-    int remoterank_front;
-    int remoterank_back;
-} fenix_member_entry_packet_t;
 
 typedef struct __data_entry_packet {
     MPI_Datatype datatype;
@@ -230,7 +116,6 @@ typedef struct __data_entry_packet {
     int datatype_size;
 } fenix_data_entry_packet_t;
 
-extern int *rank_roles;
 fenix_group_t *__fenix_g_data_recovery;
 int store_counter;
 
