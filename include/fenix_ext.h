@@ -62,7 +62,7 @@
 
 extern __fenix_debug_options __fenix_options;
 extern int __fenix_g_fenix_init_flag;
-extern int *__fenix_g_role;
+extern int __fenix_g_role;
 extern fenix_group_t *__fenix_g_data_recovery;
 
 extern int __fenix_g_num_inital_ranks;
