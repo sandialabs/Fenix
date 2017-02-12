@@ -21,7 +21,7 @@ fenix_metadata.c
 fenix_metadata_recovery.c
 fenix_data_group.c
 fenix_data_member.c
-fenix_data_vesion.c
+fenix_data_version.c
 fenix_data_buffer.c
 fenix_hash.c
 )
