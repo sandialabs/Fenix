@@ -54,6 +54,7 @@
 //@HEADER
 */
 
+#include <stdio.h>
 #include <string.h>
 #include "fenix_opt.h"
 #include "fenix_util.h"
@@ -77,9 +78,10 @@ void __fenix_init_opt(int argc, char **argv) {
    __fenix_options.verbose = -1;
    for( i = 0; i < argc; i++ )
    {
+      printf("Loop %d\n",i);
       if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
       {
-
+          printf("Inside if %d\n",i);
          if( i+1 < argc )
          {
             __fenix_options.verbose = atoi(argv[i+1]);
