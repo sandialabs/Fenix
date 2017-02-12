@@ -56,6 +56,7 @@
 
 #ifndef __FENIX_EXT_H__
 #define __FENIX_EXT_H__
+#include <mpi.h>
 #include "fenix_opt.h"
 
 extern __fenix_debug_options __fenix_options;
