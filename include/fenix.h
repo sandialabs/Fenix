@@ -156,7 +156,7 @@ typedef struct __fenix_subset {
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
 
-#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error) {static jmp_buf bufjmp; *(_role) = preinit(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error, &bufjmp); if(setjmp(bufjmp)) { *(_role) = FENIX_ROLE_SURVIVOR_RANK; }  postinit( _error ); }
+#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error) {static jmp_buf bufjmp; *(_role) = __fenix_preinit(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error, &bufjmp); if(setjmp(bufjmp)) { *(_role) = FENIX_ROLE_SURVIVOR_RANK; }  __fenix_postinit( _error ); }
 
 int Fenix_Initialized(int *);
 

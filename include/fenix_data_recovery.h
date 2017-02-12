@@ -54,9 +54,14 @@
 //@HEADER
 */
 
-#ifndef __DATA_RECOVERY__
-#define __DATA_RECOVERY__
+#ifndef __FENIX_DATA_RECOVERY__
+#define __FENIX_DATA_RECOVERY__
 
+#include "fenix_data_group.h"
+#include "fenix_data_member.h"
+#include "fenix_data_version.h"
+#include "fenix_data_buffer.h"
+#include "fenix_data_buffer.h"
 #include "fenix_util.h"
 #include <mpi.h>
 #include <stdio.h>

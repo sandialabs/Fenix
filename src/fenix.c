@@ -79,7 +79,7 @@ const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
 
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
-  return callback_register(recover, callback_data);
+  return __fenix_callback_register(recover, callback_data);
 }
 
 int Fenix_Initialized(int *flag) {
@@ -88,7 +88,7 @@ int Fenix_Initialized(int *flag) {
 }
 
 int Fenix_Finalize() {
-  finalize();
+  __fenix_finalize();
   return FENIX_SUCCESS;
 }
 

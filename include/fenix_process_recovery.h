@@ -54,16 +54,12 @@
 //@HEADER
 */
 
-#ifndef __PROCESS_RECOVERY__
-#define __PROCESS_RECOVERY__
+#ifndef __FENIX_PROCESS_RECOVERY__
+#define __FENIX_PROCESS_RECOVERY__
 
 #include "fenix.h"
 #include "fenix_constants.h"
-#include "fenix_data_group.h"
-#include "fenix_data_member.h"
-#include "fenix_data_version.h"
-#include "fenix_data_buffer.h"
-#include "fenix_data_buffer.h"
+
 
 #include <mpi.h>
 #include <setjmp.h>
@@ -136,33 +132,33 @@ MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired rank
 MPI_Comm __fenix_g_original_comm;
 MPI_Op __fenix_g_agree_op;
 
-int preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int, MPI_Info, int *, jmp_buf *);
+int __fenix_preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int, MPI_Info, int *, jmp_buf *);
 
-int create_new_world();
+int __fenix_create_new_world();
 
-int repair_ranks();
+int __fenix_repair_ranks();
 
-void insert_request(MPI_Request *);
+void __fenix_insert_request(MPI_Request *);
 
-void remove_request(MPI_Request *);
+void __fenix_remove_request(MPI_Request *);
 
-int callback_register(void (*recover)(MPI_Comm, int, void *), void *);
+int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
 
-int *get_fail_ranks(int *, int, int);
+int* __fenix_get_fail_ranks(int *, int, int);
 
-int spare_rank();
+int __fenix_spare_rank();
 
-int get_rank_role();
+int __fenix_get_rank_role();
 
 //void set_rank_role(enum FenixRankRole);
-void set_rank_role(int FenixRankRole);
+void __fenix_set_rank_role(int FenixRankRole);
 
-void postinit(int *);
+void __fenix_postinit(int *);
 
-void finalize();
+void __fenix_finalize();
 
-void finalize_spare();
+void __fenix_finalize_spare();
 
-void test_MPI(int, const char *);
+void __fenix_test_MPI(int, const char *);
 
 #endif
