@@ -106,7 +106,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
   __fenix_g_resume_mode = __FENIX_RESUME_AT_INIT;
   __fenix_g_repair_result = 0;
 
-  __fenix_init_opt(*argc, *argv);
+ // __fenix_init_opt(*argc, *argv);
 
   MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &__fenix_g_agree_op);
 
