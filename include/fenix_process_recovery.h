@@ -59,6 +59,11 @@
 
 #include "fenix.h"
 #include "fenix_constants.h"
+#include "fenix_data_group.h"
+#include "fenix_data_member.h"
+#include "fenix_data_version.h"
+#include "fenix_data_buffer.h"
+#include "fenix_data_buffer.h"
 
 #include <mpi.h>
 #include <setjmp.h>
