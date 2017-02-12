@@ -53,94 +53,25 @@
 // ************************************************************************
 //@HEADER
 */
-
-#ifndef __FENIX_PROCESS_RECOVERY__
-#define __FENIX_PROCESS_RECOVERY__
-
-#include "fenix.h"
-#include "fenix_constants.h"
-#include "fenix_process_recovery_global.h"
-
-#include <mpi.h>
-#include <setjmp.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <signal.h>
-
-#define __FENIX_RESUME_AT_INIT 0 
-#define __FENIX_RESUME_NO_JUMP 200
-
-typedef void (*recover)( MPI_Comm, int, void *);
-
-typedef struct fcouple {
-    recover x;
-    void *y;
-} fenix_callback_func;
-
-typedef struct callback_list {
-    fenix_callback_func callback;
-    struct callback_list *next;
-} __fenix_callback_list;
-
-/****************/
-/*              */
-/* Place Holder */
-/* for struct   */
-/*              */
-/****************/
-#if 0
-typedef struct __fenix_session {
-  int __num_inital_ranks;
-  int __num_survivor_ranks;
-  int __num_recovered_ranks;
-  int __resume_mode; // Defines how program resumes after process recovery.
-  int __spawn_policy;
-  int __spare_ranks; // spare ranks entered by user to repair failed ranks 
-  enum FenixRankRole __fenix_rank_role; 
-  // calling environment to fill the jmp_buf structure 
-  jmp_buf *__fenix_g_recover_environment;
-  // role of rank; 3 options: initial, survivor or repair
-  enum FenixRankRole __fenix_g_role; 
-  // a duplicate of the MPI communicator provided by user
-  MPI_Comm *__fenix_world;
-  // global MPI communicator identical to g_world but without spare ranks 
-  MPI_Comm *__fenix_new_world;
-} fenix_session;
-#endif
-/****************/
+#ifndef FENIX_PROCES_RECOVERY_GLOBAL_H
+#define FENIX_PROCES_RECOVERY_GLOBAL_H
+int __fenix_g_num_inital_ranks;
+int __fenix_g_num_survivor_ranks;
+int __fenix_g_num_recovered_ranks;
+int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
+int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
+int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
+int __fenix_g_replace_comm_flag;
+int __fenix_g_repair_result;
+jmp_buf *__fenix_g_recover_environment;   // Calling environment to fill the jmp_buf structure
 
 
+//enum FenixRankRole __fenix_g_role;    // Role of rank: initial, survivor or repair
+int  __fenix_g_role;    // Role of rank: initial, survivor or repair
 
-int __fenix_preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int, MPI_Info, int *, jmp_buf *);
-
-int __fenix_create_new_world();
-
-int __fenix_repair_ranks();
-
-void __fenix_insert_request(MPI_Request *);
-
-void __fenix_remove_request(MPI_Request *);
-
-int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
-
-int* __fenix_get_fail_ranks(int *, int, int);
-
-int __fenix_spare_rank();
-
-int __fenix_get_rank_role();
-
-//void set_rank_role(enum FenixRankRole);
-void __fenix_set_rank_role(int FenixRankRole);
-
-void __fenix_postinit(int *);
-
-void __fenix_finalize();
-
-void __fenix_finalize_spare();
-
-void __fenix_test_MPI(int, const char *);
-
-#endif
+MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
+MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
+MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
+MPI_Comm __fenix_g_original_comm;
+MPI_Op __fenix_g_agree_op;
+#endif // FENIX_PROCES_RECOVERY_GLOBAL_H
