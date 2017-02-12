@@ -56,6 +56,7 @@
 
 #ifndef __FENIX_EXT_H__
 #define __FENIX_EXT_H__
+/* Keep all global variable declarations */
 #include <mpi.h>
 #include "fenix_opt.h"
 #include "fenix_data_group.h"
@@ -73,7 +74,6 @@ extern int __fenix_g_spawn_policy;               // Indicate dynamic process spa
 extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
 extern int __fenix_g_replace_comm_flag;
 extern int __fenix_g_repair_result;
-
 
 extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
 extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
