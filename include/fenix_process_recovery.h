@@ -59,7 +59,7 @@
 
 #include "fenix.h"
 #include "fenix_constants.h"
-#include "fenix_process_recovery_global.h"
+
 
 #include <mpi.h>
 #include <setjmp.h>
