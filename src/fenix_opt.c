@@ -74,11 +74,13 @@ void __fenix_init_opt(int argc, char **argv) {
 
    /* initalize the value */
    __fenix_options.verbose = -1;
-   printf("Argc =%d]\n",argc);
+   printf("Argc =%d\n",argc);
    for( i = 0; i < argc; i++ )
    {
+         printf("Argc =%d %d\n",argc,i);
       if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
       {
+
          if( i+1 < argc )
          {
             __fenix_options.verbose = atoi(argv[i+1]);
