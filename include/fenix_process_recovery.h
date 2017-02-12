@@ -57,7 +57,7 @@
 #ifndef __FENIX_PROCESS_RECOVERY__
 #define __FENIX_PROCESS_RECOVERY__
 
-#include "fenix.h"
+//#include "fenix.h"
 #include "fenix_constants.h"
 
 
