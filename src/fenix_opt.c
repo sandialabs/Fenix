@@ -87,4 +87,5 @@ void __fenix_init_opt(int argc, char **argv) {
          }
       }
     }
+    printf("Loop done\n");
 }
