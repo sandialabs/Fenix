@@ -74,8 +74,11 @@
 void __fenix_init_opt(int argc, char **argv) {
    int i;
 
-   /* initalize the value */
+   /* Initalize the value */
+
    __fenix_options.verbose = -1;
+  printf("Hi %d\n",argc);
+#if 0
    for( i = 0; i < argc; i++ )
    {
       printf("Loop %d\n",i);
@@ -88,4 +91,5 @@ void __fenix_init_opt(int argc, char **argv) {
          }
       }
     }
+#endif
 }
