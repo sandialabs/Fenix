@@ -56,6 +56,7 @@
 
 //#include "fenix.h"
 #include "fenix_constants.h"
+#include "fenix_process_recovery_global.h"
 #include "fenix_process_recovery.h"
 #include "fenix_data_recovery.h"
 #include "fenix_hash.h"
