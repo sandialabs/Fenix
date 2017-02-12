@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
   int old_world_size, new_world_size = - 1;
   int old_rank = 1, new_rank = - 1;
-  int spare_ranks = atoi(*++ argv);
+  int spare_ranks = atoi(argv[1]);
 
   MPI_Init(&argc, &argv);
   MPI_Comm world_comm;
