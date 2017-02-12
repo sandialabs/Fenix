@@ -54,6 +54,7 @@
 //@HEADER
 */
 
+#include <string.h>
 #include "fenix_opt.h"
 #include "fenix_util.h"
 #include "fenix_ext.h"
@@ -77,7 +78,7 @@ void __fenix_init_opt(int argc, char **argv) {
    printf("Argc =%d\n",argc);
    for( i = 0; i < argc; i++ )
    {
-         printf("Argc =%d %d\n",argc,i);
+      printf("Argc =%d %d\n",argc,i);
       if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
       {
 
