@@ -116,7 +116,7 @@ typedef struct __data_entry_packet {
     int datatype_size;
 } fenix_data_entry_packet_t;
 
-fenix_group_t *__fenix_g_data_recovery;
+
 int store_counter;
 
 int __fenix_group_create(int, MPI_Comm, int, int);
