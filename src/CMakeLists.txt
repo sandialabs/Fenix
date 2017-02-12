@@ -12,14 +12,18 @@ configure_file (fenix-config.h.in
 
 set (Fenix_SOURCES 
 fenix.c
-fenix_data_recovery.c
-fenix_hash.c
-fenix_metadata.c
-fenix_metadata_recovery.c
 fenix_mpi_override.c
 fenix_opt.c
 fenix_process_recovery.c
 fenix_util.c
+fenix_data_recovery.c
+fenix_metadata.c
+fenix_metadata_recovery.c
+fenix_data_group.c
+fenix_data_member.c
+fenix_data_vesion.c
+fenix_data_buffer.c
+fenix_hash.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}
