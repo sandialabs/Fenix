@@ -57,7 +57,7 @@
 #ifndef __FENIX_DATA_RECOVERY__
 #define __FENIX_DATA_RECOVERY__
 
-#include "fenix_ext.h"
+
 #include "fenix_data_group.h"
 #include "fenix_data_member.h"
 #include "fenix_data_version.h"
