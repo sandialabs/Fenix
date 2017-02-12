@@ -55,7 +55,7 @@
 */
 #ifndef __FENIX_DATA_VERSION_H__
 #define __FENIX_DATA_VERSION_H__
-
+#include "fenix_data_buffer.h"
 
 typedef struct __fenix_version {
     size_t num_copies;

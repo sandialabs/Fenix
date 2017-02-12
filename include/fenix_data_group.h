@@ -59,6 +59,7 @@
 #include <mpi.h>
 #include "fenix_data_member.h"
 #include "fenix_data_packet.h"
+#include "fenix_util.h"
 
 
 
