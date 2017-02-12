@@ -54,8 +54,8 @@
 //@HEADER
 */
 
-#ifndef __HASH__
-#define __HASH__
+#ifndef __FENIX_HASH__
+#define __FENIX_HASH__
 
 #include "fenix_util.h"
 #include <mpi.h>

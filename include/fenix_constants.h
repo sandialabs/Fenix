@@ -54,8 +54,8 @@
 //@HEADER
 */
 
-#ifndef __CONSTANTS__
-#define __CONSTANTS__
+#ifndef __FENIX_CONSTANTS__
+#define __FENIX_CONSTANTS__
 
 // official Fenix API error codes
 
