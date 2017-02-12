@@ -64,10 +64,6 @@
 #include "fenix_util.h"
 #include <mpi.h>
 
-
-
-
-
 /**
  * @brief
  * @param role
