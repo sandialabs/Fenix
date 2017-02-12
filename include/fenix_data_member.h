@@ -59,6 +59,7 @@
 #include <mpi.h>
 #include "fenix_data_version.h"
 #include "fenix_data_packet.h"
+#include "fenix_util.h"
 
 typedef struct __fenix_member_entry {
     int memberid;
