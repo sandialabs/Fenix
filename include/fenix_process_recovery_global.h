@@ -55,6 +55,16 @@
 */
 #ifndef FENIX_PROCES_RECOVERY_GLOBAL_H
 #define FENIX_PROCES_RECOVERY_GLOBAL_H
+
+#include <mpi.h>
+#include <setjmp.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <signal.h>
+
 int __fenix_g_num_inital_ranks;
 int __fenix_g_num_survivor_ranks;
 int __fenix_g_num_recovered_ranks;
