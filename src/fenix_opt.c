@@ -77,11 +77,11 @@ void __fenix_init_opt(int argc, char **argv) {
    /* Initalize the value */
 
    __fenix_options.verbose = -1;
-  printf("Hi %d\n",argc);
-#if 0
+   printf("Hi %d\n",argc);
+#if 1
    for( i = 0; i < argc; i++ )
    {
-      printf("Loop %d\n",i);
+      printf("Loop %d %s\n",i,argv[i]);
       if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
       {
           printf("Inside if %d\n",i);
