@@ -54,8 +54,8 @@
 //@HEADER
 */
 
-#ifndef _OPT_
-#define _OPT_
+#ifndef __FENIX_OPT__
+#define __FENIX_OPT__
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,5 +1,5 @@
-#ifndef FENIX_METADATA_H
-#define FENIX_METADATA_H
+#ifndef __FENIX_METADATA_H__
+#define __FENIX_METADATA_H__
 #include "fenix_data_recovery.h"
 
 #if 1

@@ -1,4 +1,4 @@
-#ifndef FENIX_DATA_GROUP_H
-#define FENIX_DATA_GROUP_H
+#ifndef __FENIX_DATA_GROUP_H__
+#define __FENIX_DATA_GROUP_H__
 
 #endif // FENIX_DATA_GROUP_H

@@ -1,4 +1,4 @@
-#ifndef FENIX_DATA_SUBSET_H
-#define FENIX_DATA_SUBSET_H
+#ifndef __FENIX_DATA_SUBSET_H__
+#define __FENIX_DATA_SUBSET_H__
 
 #endif // FENIX_DATA_SUBSET_H

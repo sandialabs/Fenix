@@ -74,7 +74,6 @@
 #define MPI_ERR_REVOKED MPIX_ERR_REVOKED
 #endif // MPICH
 
-extern int __fenix_g_fenix_init_flag;
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
 
