@@ -94,5 +94,5 @@ MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired rank
 MPI_Comm __fenix_g_original_comm;
 MPI_Op __fenix_g_agree_op;
 
-fenix_group_t __fenix_g_data_recovery;
+fenix_group_t *__fenix_g_data_recovery;
 #endif // FENIX_PROCES_RECOVERY_GLOBAL_H
