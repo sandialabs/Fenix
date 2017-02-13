@@ -135,7 +135,7 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
   fenix_member_t *member = &(gentry->member);
 
   /* Reinit member entries but no inforation for each entry */
-  __fenix_reinit_member(member, mpacket, NEEDFIX);
+  __fenix_data_member_reinit(member, mpacket, NEEDFIX);
 
   if (__fenix_options.verbose == 68) {
     verbose_print(
@@ -173,7 +173,7 @@ int _recover_metadata(int current_rank, int in_rank, MPI_Comm comm) {
   group->count = gpacket.count;
   group->total_size = gpacket.total_size;
 
-  __fenix_reinit_group(group, gpacket);
+  __fenix_data_group_reinit(group, gpacket);
 
   if (__fenix_options.verbose == 66) {
     verbose_print("recv c-rank: %d, in-rank: %d, g-count: %d, g-size: %d\n",
@@ -340,7 +340,7 @@ int _pc_recover_member_metadata(int current_rank, int out_rank,
     MPI_Recv(&vpacket, sizeof(fenix_container_packet_t), MPI_BYTE, out_rank,
              RECOVERY_VERSION_TAG, comm, &status); /* Version metadata */
 
-    __fenix_reinit_version(version, vpacket);
+    __fenix_data_version_reinit(version, vpacket);
 
   return FENIX_SUCCESS;
 }
@@ -445,7 +445,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
     MPI_Recv(&vpacket, sizeof(fenix_container_packet_t), MPI_BYTE, in_rank,
              RECOVERY_VERSION_TAG + member_index, comm, &status); /* Version metadata */
 
-    __fenix_reinit_version(version, vpacket);
+    __fenix_data_version_reinit(version, vpacket);
 
     if (__fenix_options.verbose == 72) {
       verbose_print(

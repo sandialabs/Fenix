@@ -61,10 +61,13 @@
 #include "fenix_data_packet.h"
 #include "fenix_util.h"
 
+
+#define __FENIX_DEFAULT_MEMBER_SIZE 512
+
 typedef struct __fenix_member_entry {
     int memberid;
     enum states state;
-    fenix_version_t version;
+    fenix_version_t *version;
     void *user_data;
     MPI_Datatype current_datatype;
     int datatype_size;
@@ -106,4 +109,9 @@ typedef struct __member_entry_packet {
     int remoterank_back;
 } fenix_member_entry_packet_t;
 
+fenix_member_t *__fenix_data_member_init( );
+void __fenix_data_member_destroy( fenix_member_t *member ) ;
+
+void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t packet,
+                   enum states mystatus);
 #endif // FENIX_DATA_MEMBER_H

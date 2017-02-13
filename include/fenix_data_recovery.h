@@ -76,9 +76,9 @@
 #define __NUM_MEMBER_ATTR_SIZE  3
 #define __GRP_MEMBER_LENTRY_ATTR_SIZE 11
 
-#define __FENIX_DEFAULT_GROUP_SIZE        2
-#define __FENIX_DEFAULT_MEMBER_SIZE       5
-#define __FENIX_DEFAULT_VERSION_SIZE      3
+
+
+
 
 #define __FENIX_SUBSET_EMPTY   1
 #define __FENIX_SUBSET_FULL    2

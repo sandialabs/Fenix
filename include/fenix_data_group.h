@@ -62,6 +62,7 @@
 #include "fenix_util.h"
 
 
+#define __FENIX_DEFAULT_GROUP_SIZE 32
 
 typedef struct __fenix_group_entry {
     int groupid;
@@ -77,7 +78,7 @@ typedef struct __fenix_group_entry {
     /* Subject to change */
     enum states state;
     int recovered;
-    fenix_member_t member;
+    fenix_member_t *member;
 } fenix_group_entry_t;
 
 typedef struct __fenix_group {
@@ -93,4 +94,8 @@ typedef struct __group_entry_packet {
     int rank_separation;
     enum states state;
 } fenix_group_entry_packet_t;
+
+fenix_group_t * __fenix_data_group_init();
+void __fenix_data_group_destroy( fenix_group_t *fx_group );
+
 #endif // FENIX_DATA_GROUP_H

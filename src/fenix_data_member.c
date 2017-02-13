@@ -53,3 +53,90 @@
 // ************************************************************************
 //@HEADER
 */
+
+#include "mpi.h"
+#include "fenix-config.h"
+#include "fenix_ext.h"
+#include "fenix_data_member.h"
+#include "fenix_data_version.h"
+#include "fenix_data_buffer.h"
+#include "fenix_data_packet.h"
+#include "fenix_constants.h"
+
+/**
+ * @brief
+ */
+fenix_member_t *__fenix_data_member_init() {
+  fenix_member_t *member = (fenix_member_t *)
+          s_calloc(1, sizeof(fenix_member_t));
+  member->count = 0;
+  member->total_size = __FENIX_DEFAULT_MEMBER_SIZE;
+  member->member_entry = (fenix_member_entry_t *) s_malloc(
+          __FENIX_DEFAULT_MEMBER_SIZE * sizeof(fenix_member_entry_t));
+
+  if (__fenix_options.verbose == 42) {
+    verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
+                    __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, member->count,
+                  member->total_size);
+  }
+
+  int member_index;
+  for (member_index = 0; member_index <
+                         __FENIX_DEFAULT_MEMBER_SIZE; member_index++) { // insert default values
+    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
+    mentry->memberid = -1;
+    mentry->state = EMPTY;
+
+    if (__fenix_options.verbose == 42) {
+      verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
+                      __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role,
+                    mentry->memberid, mentry->state);
+    }
+
+    mentry->version = __fenix_data_version_init();
+  }
+  return member;
+}
+
+void __fenix_data_member_destroy( fenix_member_t *member ) {
+
+}
+
+
+/**
+ * @brief
+ * @param
+ * @param
+ */
+void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t packet,
+                   enum states mystatus) {
+  fenix_member_t *member = m;
+  int start_index = member->total_size;
+  member->count = 0;
+  member->temp_count = packet.count;
+  member->total_size = packet.total_size;
+  member->member_entry = (fenix_member_entry_t *) s_realloc(member->member_entry,
+                                                            (member->total_size) *
+                                                            sizeof(fenix_member_entry_t));
+  if (__fenix_options.verbose == 50) {
+    verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
+                    __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
+                  member->count, member->total_size);
+  }
+
+  int member_index;
+  /* Why start_index is set to the number of member entries ? */
+  // for (member_index = start_index; member_index < member->size; member_index++) {
+  for (member_index = 0; member_index < member->total_size; member_index++) {
+    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
+    mentry->memberid = -1;
+    mentry->state = mystatus;
+    if (__fenix_options.verbose == 50) {
+      verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
+                      __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
+                    mentry->memberid, mentry->state);
+    }
+
+    mentry->version = __fenix_data_version_init();
+  }
+}

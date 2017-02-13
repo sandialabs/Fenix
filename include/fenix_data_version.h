@@ -57,7 +57,8 @@
 #define __FENIX_DATA_VERSION_H__
 #include "fenix_data_buffer.h"
 
-#define  __FENIX_DATA_VERSION_DEFAULT 16;
+#define __FENIX_DEFAULT_VERSION_SIZE   16
+
 
 typedef struct __fenix_version {
     size_t num_copies;  /* Number of copies            */
@@ -81,7 +82,8 @@ int __fenix_create_version( fenix_version_t **v );
 int __fenix_free_version(   fenix_version_t *v );
 int __fenix_reset_version(  fenix_version_t *v, );
 #endif
-void __fenix_reinit_version( fenix_version_t *v, fenix_container_packet_t packet );
+fenix_version_t *__fenix_data_version_init();
 
+void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t packet);
 
 #endif // FENIX_DATA_VERSION_H

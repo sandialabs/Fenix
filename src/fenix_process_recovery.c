@@ -58,6 +58,7 @@
 #include "fenix_constants.h"
 #include "fenix_process_recovery_global.h"
 #include "fenix_process_recovery.h"
+#include "fenix_data_group.h"
 #include "fenix_data_recovery.h"
 #include "fenix_hash.h"
 #include "fenix_opt.h"
@@ -138,10 +139,11 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
   }
 
   __fenix_g_world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
+
   MPI_Comm_dup(comm, __fenix_g_world);
   MPI_Comm_dup(comm, &__fenix_g_original_comm);
 
-  __fenix_g_data_recovery = __fenix_init_group();
+  __fenix_g_data_recovery = __fenix_data_group_init();
 
   __fenix_g_new_world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
 
@@ -180,8 +182,10 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
             __fenix_g_num_inital_ranks);   
     }
   }
+
   __fenix_g_num_survivor_ranks = 0;
   __fenix_g_num_recovered_ranks = 0;
+
   while ( __fenix_spare_rank() == 1) {
     int a;
     int myrank;
@@ -777,7 +781,7 @@ void __fenix_finalize() {
   __fenix_callback_destroy( __fenix_g_callback_list );
 
   /* Free data recovery interface */
-
+  __fenix_data_group_destroy( __fenix_g_data_recovery );
 
   __fenix_g_fenix_init_flag = 0;
 }
@@ -810,6 +814,7 @@ void __fenix_finalize_spare() {
   __fenix_callback_destroy( __fenix_g_callback_list );
 
   /* Free data recovery interface */
+  __fenix_data_group_destroy( __fenix_g_data_recovery );
 
   __fenix_g_fenix_init_flag = 0;
 

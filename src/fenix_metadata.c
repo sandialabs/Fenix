@@ -84,7 +84,7 @@ inline void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  )
   gentry->out_rank     = ( gentry->current_rank + gentry->comm_size + gentry->rank_separation ) % gentry->comm_size;
 }
 
-inline void __fenix_init_member_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype )
+inline void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype )
 
 {
     mentry->memberid = memberid;
@@ -99,7 +99,7 @@ inline void __fenix_init_member_metadata ( fenix_member_entry_t *mentry, int mem
 }
 
 
-inline void __fenix_init_member_store_packet ( fenix_member_store_packet_t *lentry_packet, fenix_local_entry_t *lentry, int flag )
+inline void __fenix_data_member_init_store_packet ( fenix_member_store_packet_t *lentry_packet, fenix_local_entry_t *lentry, int flag )
 {
   if ( flag == 0 ) {
     lentry_packet->rank = lentry->currentrank;

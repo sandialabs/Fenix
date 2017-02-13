@@ -264,7 +264,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
     MPI_Status status;
 
     fenix_group_entry_t *gentry = &(__fenix_g_data_recovery->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     fenix_member_entry_t *mentry = NULL;
     fenix_version_t *version = NULL;
 
@@ -284,7 +284,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
 
     mentry = &(member->member_entry[next_member_position]);
 
-    __fenix_init_member_metadata( mentry, memberid, data, count, datatype );
+    __fenix_data_member_init_metadata( mentry, memberid, data, count, datatype );
 
 
 //    version = &(member->member_entry[next_member_position].version);
@@ -299,7 +299,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
     /* Assging the address of the user data */
     mentry->user_data = data;
 
-    version = &(mentry->version);
+    version = mentry->version;
     /* Initalize the space for every single version           */
     /* No log-based storage method.                           */
     for (i = 0; i < gentry->depth; i++) {
@@ -489,7 +489,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
 
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
 
     fenix_subset_offsets_t *loffsets = NULL, *roffsets = NULL;
     char *send_buff, *recv_buff;
@@ -497,7 +497,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
     __fenix_ensure_version_capacity(member);
 
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
     fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]);
 
@@ -508,11 +508,11 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
     memcpy(lentry->data, mentry->user_data, (lentry->count * lentry->datatype_size));
     if( specifier.specifier == __FENIX_SUBSET_FULL ) {
 
-      __fenix_init_member_store_packet ( &lentry_packet, lentry, 0 );
+      __fenix_data_member_init_store_packet ( &lentry_packet, lentry, 0 );
       send_buff = (char *)lentry->data;
     } else if ( specifier.specifier == __FENIX_SUBSET_EMPTY ) {
 
-      __fenix_init_member_store_packet ( &lentry_packet, lentry, 1 );
+      __fenix_data_member_init_store_packet ( &lentry_packet, lentry, 1 );
       send_buff = (char *)lentry->data;
 
     } else {
@@ -1028,12 +1028,12 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
       *timestamp = gentry->timestamp;
     }
 
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     int member_index;
     /* Iterate over current active members */
     for (member_index = 0; member_index < member->count; member_index++) {
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-      fenix_version_t *version = &(mentry->version);
+      fenix_version_t *version = mentry->version;
       int version_index;
       #if 0
       /* Delete storage older than current timestamp + depth */
@@ -1075,12 +1075,12 @@ int __fenix_data_commit_cleanup(int groupid, int *timestamp) {
       *timestamp = gentry->timestamp;
     }
 
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     int member_index;
     /* Iterate over current active members */
     for (member_index = 0; member_index < member->count; member_index++) {
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-      fenix_version_t *version = &(mentry->version);
+      fenix_version_t *version = mentry->version;
       int version_index;
       #if 0
       /* Delete storage older than current timestamp + depth */
@@ -1128,7 +1128,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
     /* Recover the data here  */
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     fenix_member_entry_t *mentry;
 
     /* This part is moved to group recovery and part of group entity */
@@ -1154,7 +1154,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
                  &remote_status, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
                  (gentry->comm), &status);
 
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     /* Send the member information if needed */
     if (current_status == OCCUPIED && remote_status == NEEDFIX) {
       _pc_send_member_metadata(gentry->current_rank, gentry->in_rank, mentry, gentry->comm);
@@ -1342,7 +1342,7 @@ int __fenix_get_number_of_members(int group_id, int *num_members) {
   } else {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    *num_members = gentry->member.count;
+    *num_members = gentry->member->count;
     retval = FENIX_SUCCESS;
   }
   return retval;
@@ -1363,7 +1363,7 @@ int __fenix_get_member_at_position(int group_id, int *member_id, int position) {
   } else {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     if (position < 0 || position > (member->total_size) - 1) {
       debug_print(
               "ERROR Fenix_Data_group_get_member_at_position: position <%d> must be a value between 0 and number_of_members-1 \n",
@@ -1393,9 +1393,9 @@ int __fenix_get_number_of_snapshots(int group_id, int *num_snapshots) {
   } else {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     fenix_member_entry_t *mentry = &(member->member_entry[0]); // does not matter which member you get, every member has the same number of versions 
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     *num_snapshots = version->count;
     retval = FENIX_SUCCESS;
   }
@@ -1456,10 +1456,10 @@ int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
   } else {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     __fenix_ensure_version_capacity(member);
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
 
     switch (attributename) {
@@ -1527,10 +1527,10 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
     int myerr;
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     __fenix_ensure_version_capacity(member);
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
 
     switch (attributename) {
@@ -1595,11 +1595,11 @@ int __fenix_snapshot_delete(int group_id, int time_stamp) {
   } else {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     int member_index;
     for (member_index = 0; member_index < member->count; member_index++) {
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-      fenix_version_t *version = &(mentry->version);
+      fenix_version_t *version = mentry->version;
 
       /* Do not delete physically */
       if (time_stamp == FENIX_DATA_SNAPSHOT_LATEST) {
@@ -1675,7 +1675,7 @@ int __fenix_group_delete(int groupid) {
               gentry->timestamp, gentry->state);
     }
 
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     member->count = 0; /* Logical counter for member */
 
     /* Free-up members */
@@ -1684,7 +1684,7 @@ int __fenix_group_delete(int groupid) {
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
       mentry->memberid = -1;
       mentry->state = DELETED;
-      fenix_version_t *version = &(mentry->version);
+      fenix_version_t *version = mentry->version;
       version->count = 0;
 
       if (__fenix_options.verbose == 37) {
@@ -1734,11 +1734,11 @@ int __fenix_member_delete(int groupid, int memberid) {
   } else {
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    fenix_member_t *member = &(gentry->member);
+    fenix_member_t *member = gentry->member;
     member->count--;
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     mentry->state = DELETED;
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     version->count = 0;
 
     if (__fenix_options.verbose == 38) {
@@ -1758,109 +1758,8 @@ int __fenix_member_delete(int groupid, int memberid) {
   return retval;
 }
 
-/**
- * @brief
- */
-fenix_group_t * __fenix_init_group() {
-  fenix_group_t *group = (fenix_group_t *)
-          s_calloc(1, sizeof(fenix_group_t));
-  group->count = 0;
-  group->total_size = __FENIX_DEFAULT_GROUP_SIZE;
-  group->group_entry = (fenix_group_entry_t *) s_malloc(
-          __FENIX_DEFAULT_GROUP_SIZE * sizeof(fenix_group_entry_t));
 
-  if (__fenix_options.verbose == 41) {
-    verbose_print("c-rank: %d, role: %d, g-count: %d, g-size: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, group->count,
-                  group->total_size);
-  }
 
-  int group_index;
-  for (group_index = 0;
-       group_index < __FENIX_DEFAULT_GROUP_SIZE; group_index++) { // insert default values
-    fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    gentry->depth = 1;
-    gentry->groupid = -1;
-    gentry->timestamp = 0;
-    gentry->state = EMPTY;
-
-    if (__fenix_options.verbose == 41) {
-      verbose_print(
-              "c-rank: %d, role: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d g-state: %d\n",
-                __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, gentry->depth,
-              gentry->timestamp, gentry->state);
-    }
-
-    gentry->member = *(__fenix_init_member());  /* This is ugly */
-  }
-  return group;
-}
-
-/**
- * @brief
- */
-fenix_member_t *__fenix_init_member() {
-  fenix_member_t *member = (fenix_member_t *)
-          s_calloc(1, sizeof(fenix_member_t));
-  member->count = 0;
-  member->total_size = __FENIX_DEFAULT_MEMBER_SIZE;
-  member->member_entry = (fenix_member_entry_t *) s_malloc(
-          __FENIX_DEFAULT_MEMBER_SIZE * sizeof(fenix_member_entry_t));
-
-  if (__fenix_options.verbose == 42) {
-    verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, member->count,
-                  member->total_size);
-  }
-
-  int member_index;
-  for (member_index = 0; member_index <
-                         __FENIX_DEFAULT_MEMBER_SIZE; member_index++) { // insert default values
-    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    mentry->memberid = -1;
-    mentry->state = EMPTY;
-
-    if (__fenix_options.verbose == 42) {
-      verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                      __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role,
-                    mentry->memberid, mentry->state);
-    }
-
-    mentry->version = *__fenix_init_version();
-  }
-  return member;
-}
-
-/**
- * @brief
- */
-fenix_version_t *__fenix_init_version() {
-  fenix_version_t *version = (fenix_version_t *)
-          s_calloc(1, sizeof(fenix_version_t));
-  version->count = 1;
-  version->num_copies = 0;
-  version->total_size = __FENIX_DEFAULT_VERSION_SIZE;
-  version->position = 0;
-  version->local_entry = (fenix_local_entry_t *) s_malloc(
-          __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_local_entry_t));
-  version->remote_entry = (fenix_remote_entry_t *) s_malloc(
-          __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_remote_entry_t));
-
-  if (__fenix_options.verbose == 43) {
-    verbose_print(
-            "c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, version->count,
-            version->total_size, version->position);
-  }
-
-  int version_index;
-  for (version_index = 0;
-       version_index < __FENIX_DEFAULT_VERSION_SIZE; version_index++) {
-    version->local_entry[version_index] = *__fenix_init_local();
-    version->remote_entry[version_index] = *__fenix_init_remote();
-  }
-  return version;
-}
 
 
 
@@ -1911,81 +1810,7 @@ void __fenix_free_remote(fenix_remote_entry_t *r) {
 
 }
 
-/**
- * @brief
- * @param
- * @param
- */
-void __fenix_reinit_group(fenix_group_t *g, fenix_two_container_packet_t packet) {
-  fenix_group_t *group = g;
-  int start_index = group->total_size;
-  group->count = packet.count;
-  group->total_size = packet.total_size;
-  group->group_entry = (fenix_group_entry_t *) s_realloc(group->group_entry,
-                                                         (group->total_size) *
-                                                         sizeof(fenix_group_entry_t));
 
-  if (__fenix_options.verbose == 48) {
-    verbose_print("c-rank: %d, role: %d, g-size: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role, group->total_size);
-  }
-
-  int group_index;
-  for (group_index = start_index; group_index < group->total_size; group_index++) {
-    fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-    gentry->depth = 1;
-    gentry->groupid = -1;
-    gentry->timestamp = 0;
-    gentry->state = EMPTY;
-
-    if (__fenix_options.verbose == 48) {
-      verbose_print(
-              "c-rank: %d, role: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
-                __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role, gentry->depth,
-              gentry->groupid, gentry->timestamp, gentry->state);
-    }
-
-    gentry->member = * __fenix_init_member();
-  }
-}
-
-/**
- * @brief  
- * @param
- * @param
- */
-void __fenix_reinit_member(fenix_member_t *m, fenix_two_container_packet_t packet,
-                   enum states mystatus) {
-  fenix_member_t *member = m;
-  int start_index = member->total_size;
-  member->count = 0;
-  member->temp_count = packet.count;
-  member->total_size = packet.total_size;
-  member->member_entry = (fenix_member_entry_t *) s_realloc(member->member_entry,
-                                                            (member->total_size) *
-                                                            sizeof(fenix_member_entry_t));
-  if (__fenix_options.verbose == 50) {
-    verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
-                  member->count, member->total_size);
-  }
-
-  int member_index;
-  /* Why start_index is set to the number of member entries ? */
-  // for (member_index = start_index; member_index < member->size; member_index++) {
-  for (member_index = 0; member_index < member->total_size; member_index++) {
-    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    mentry->memberid = -1;
-    mentry->state = mystatus;
-    if (__fenix_options.verbose == 50) {
-      verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                      __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
-                    mentry->memberid, mentry->state);
-    }
-
-    mentry->version = *__fenix_init_version();
-  }
-}
 
 
 /**
@@ -2021,7 +1846,7 @@ void __fenix_ensure_group_capacity(fenix_group_t *g) {
                 gentry->timestamp, gentry->state);
       }
 
-      gentry->member = *__fenix_init_member();
+      gentry->member = __fenix_data_member_init();
     }
   }
 }
@@ -2057,7 +1882,7 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
                 member_index, mentry->memberid, mentry->state);
       }
 
-      mentry->version = *__fenix_init_version();
+      mentry->version = __fenix_data_version_init();
     }
   }
 }
@@ -2071,7 +1896,7 @@ void __fenix_ensure_version_capacity(fenix_member_t *m) {
   int member_index;
   for (member_index = 0; member_index < member->total_size; member_index++) {
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     if (version->total_size > __FENIX_DEFAULT_VERSION_SIZE) {
       version->local_entry = (fenix_local_entry_t *) realloc(version->local_entry,
                                                              (version->total_size * 2) *
@@ -2119,7 +1944,7 @@ int __fenix_search_groupid(int key) {
 int __fenix_search_memberid(int group_index, int key) {
   fenix_group_t *group = __fenix_g_data_recovery;
   fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
-  fenix_member_t *member = &(gentry->member);
+  fenix_member_t *member = gentry->member;
   int member_index, found = -1, index = -1;
   for (member_index = 0;
        (found != 1) && (member_index < member->total_size); member_index++) {
@@ -2340,19 +2165,19 @@ void __feninx_dr_print_store() {
   fenix_group_t *current = __fenix_g_data_recovery;
   int group_count = current->count;
   for (group = 0; group < group_count; group++) {
-    int member_count = current->group_entry[group].member.count;
+    int member_count = current->group_entry[group].member->count;
     for (member = 0; member < member_count; member++) {
-      int version_count = current->group_entry[group].member.member_entry[member].version.count;
+      int version_count = current->group_entry[group].member->member_entry[member].version->count;
       for (version = 0; version < version_count; version++) {
-        int local_data_count = current->group_entry[group].member.member_entry[member].version.local_entry[version].count;
-        int *local_data = current->group_entry[group].member.member_entry[member].version.local_entry[version].data;
+        int local_data_count = current->group_entry[group].member->member_entry[member].version->local_entry[version].count;
+        int *local_data = current->group_entry[group].member->member_entry[member].version->local_entry[version].data;
         for (local = 0; local < local_data_count; local++) {
           //printf("*** store rank[%d] group[%d] member[%d] local[%d]: %d\n",
           //get_current_rank(*__fenix_g_new_world), group, member, local,
           //local_data[local]);
         }
-        int remote_data_count = current->group_entry[group].member.member_entry[member].version.remote_entry[version].count;
-        int *remote_data = current->group_entry[group].member.member_entry[member].version.remote_entry[version].data;
+        int remote_data_count = current->group_entry[group].member->member_entry[member].version->remote_entry[version].count;
+        int *remote_data = current->group_entry[group].member->member_entry[member].version->remote_entry[version].data;
         for (remote = 0; remote < remote_data_count; remote++) {
           printf("*** store rank[%d] group[%d] member[%d] remote[%d]: %d\n",
                    __fenix_get_current_rank(*__fenix_g_new_world), group, member, remote,
@@ -2369,10 +2194,10 @@ void __feninx_dr_print_store() {
 void __fenix_dr_print_restore() {
   fenix_group_t *current = __fenix_g_data_recovery;
   int group_count = current->count;
-  int member_count = current->group_entry[0].member.count;
-  int version_count = current->group_entry[0].member.member_entry[0].version.count;
-  int local_data_count = current->group_entry[0].member.member_entry[0].version.local_entry[0].count;
-  int remote_data_count = current->group_entry[0].member.member_entry[0].version.remote_entry[0].count;
+  int member_count = current->group_entry[0].member->count;
+  int version_count = current->group_entry[0].member->member_entry[0].version->count;
+  int local_data_count = current->group_entry[0].member->member_entry[0].version->local_entry[0].count;
+  int remote_data_count = current->group_entry[0].member->member_entry[0].version->remote_entry[0].count;
   printf("*** restore rank: %d; group: %d; member: %d; local: %d; remote: %d\n",
            __fenix_get_current_rank(*__fenix_g_new_world), group_count, member_count,
          local_data_count,
@@ -2397,8 +2222,8 @@ void __fenix_dr_print_datastructure() {
     int groupid = current->group_entry[group_index].groupid;
     int timestamp = current->group_entry[group_index].timestamp;
     int group_state = current->group_entry[group_index].state;
-    int member_size = current->group_entry[group_index].member.total_size;
-    int member_count = current->group_entry[group_index].member.count;
+    int member_size = current->group_entry[group_index].member->total_size;
+    int member_count = current->group_entry[group_index].member->count;
     switch (group_state) {
       case EMPTY:
         printf("group[%d] depth: %d groupid: %d timestamp: %d state: %s member.size: %d member.count: %d\n",
@@ -2420,10 +2245,10 @@ void __fenix_dr_print_datastructure() {
     }
 
     for (member_index = 0; member_index < member_size; member_index++) {
-      int memberid = current->group_entry[group_index].member.member_entry[member_index].memberid;
-      int member_state = current->group_entry[group_index].member.member_entry[member_index].state;
-      int version_size = current->group_entry[group_index].member.member_entry[member_index].version.total_size;
-      int version_count = current->group_entry[group_index].member.member_entry[member_index].version.count;
+      int memberid = current->group_entry[group_index].member->member_entry[member_index].memberid;
+      int member_state = current->group_entry[group_index].member->member_entry[member_index].state;
+      int version_size = current->group_entry[group_index].member->member_entry[member_index].version->total_size;
+      int version_count = current->group_entry[group_index].member->member_entry[member_index].version->count;
       switch (member_state) {
         case EMPTY:
           printf("group[%d] member[%d] memberid: %d state: %s depth.size: %d depth.count: %d\n",
@@ -2445,14 +2270,14 @@ void __fenix_dr_print_datastructure() {
       }
 
       for (version_index = 0; version_index < version_size; version_index++) {
-        int local_data_count = current->group_entry[group_index].member.member_entry[member_index].version.local_entry[version_index].count;
+        int local_data_count = current->group_entry[group_index].member->member_entry[member_index].version->local_entry[version_index].count;
         printf("group[%d] member[%d] version[%d] local_data.count: %d\n",
                group_index,
                member_index,
                version_index, local_data_count);
-        if (current->group_entry[group_index].member.member_entry[member_index].version.local_entry[version_index].data !=
+        if (current->group_entry[group_index].member->member_entry[member_index].version->local_entry[version_index].data !=
             NULL) {
-          int *current_local_data = (int *) current->group_entry[group_index].member.member_entry[member_index].version.local_entry[version_index].data;
+          int *current_local_data = (int *) current->group_entry[group_index].member->member_entry[member_index].version->local_entry[version_index].data;
           for (local_data_index = 0; local_data_index < local_data_count; local_data_index++) {
             printf("group[%d] member[%d] depth[%d] local_data[%d]: %d\n",
                    group_index,
@@ -2462,13 +2287,13 @@ void __fenix_dr_print_datastructure() {
           }
         }
 
-        int remote_data_count = current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[version_index].count;
+        int remote_data_count = current->group_entry[group_index].member->member_entry[member_index].version->remote_entry[version_index].count;
         printf("group[%d] member[%d] version[%d] remote_data.count: %d\n",
                group_index,
                member_index, version_index, remote_data_count);
-        if (current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[version_index].data !=
+        if (current->group_entry[group_index].member->member_entry[member_index].version->remote_entry[version_index].data !=
             NULL) {
-          int *current_remote_data = current->group_entry[group_index].member.member_entry[member_index].version.remote_entry[version_index].data;
+          int *current_remote_data = current->group_entry[group_index].member->member_entry[member_index].version->remote_entry[version_index].data;
           for (remote_data_index = 0; remote_data_index < remote_data_count; remote_data_index++) {
             printf("group[%d] member[%d] depth[%d] remote_data[%d]: %d\n",
                    group_index,
