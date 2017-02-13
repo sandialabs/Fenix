@@ -56,4 +56,10 @@
 #ifndef __FENIX_DATA_SUBSET_H__
 #define __FENIX_DATA_SUBSET_H__
 
+typedef struct __fenix_subset_offsets  {
+    size_t start;
+    size_t end;
+} fenix_subset_offsets_t ;
+
+
 #endif // FENIX_DATA_SUBSET_H

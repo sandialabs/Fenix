@@ -57,17 +57,31 @@
 #define __FENIX_DATA_VERSION_H__
 #include "fenix_data_buffer.h"
 
+#define  __FENIX_DATA_VERSION_DEFAULT 16;
+
 typedef struct __fenix_version {
-    size_t num_copies;
-    /* Number of copies            */
-    size_t count;
-    /* Number of versions          */
-    size_t total_size;
-    /* Size of bucket              */
-    size_t position;
-    /* Position of current version */
+    size_t num_copies;  /* Number of copies            */
+
+    size_t count;       /* Number of versions          */
+
+    size_t num_versions;
+
+    size_t total_size;  /* Size of bucket              */
+
+    size_t position;    /* Position of current version */
+
+    size_t current_position;
+
     fenix_local_entry_t *local_entry;
     fenix_remote_entry_t *remote_entry;
 } fenix_version_t;
+
+#if 0
+int __fenix_create_version( fenix_version_t **v );
+int __fenix_free_version(   fenix_version_t *v );
+int __fenix_reset_version(  fenix_version_t *v, );
+#endif
+void __fenix_reinit_version( fenix_version_t *v, fenix_container_packet_t packet );
+
 
 #endif // FENIX_DATA_VERSION_H

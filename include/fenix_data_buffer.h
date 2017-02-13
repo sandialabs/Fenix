@@ -78,4 +78,7 @@ typedef struct __fenix_local_entry {
     void *data;
 } fenix_local_entry_t;
 
+fenix_local_entry_t *__fenix_init_local();
+fenix_remote_entry_t *__fenix_init_remote();
+
 #endif // FENIX_DATA_BUFFER_H

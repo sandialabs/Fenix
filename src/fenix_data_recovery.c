@@ -1862,51 +1862,7 @@ fenix_version_t *__fenix_init_version() {
   return version;
 }
 
-/**
- * @brief 
- */
-fenix_local_entry_t *__fenix_init_local() {
-  fenix_local_entry_t *local = (fenix_local_entry_t *) s_malloc(
-          sizeof(fenix_local_entry_t));;
-  local->currentrank = -1;
-  local->pdata = NULL;
-  local->data = NULL;
-  local->count = 0;
-  local->datatype_size = 0;
-  local->datatype = NULL;
 
-  if (__fenix_options.verbose == 44) {
-    verbose_print(
-            "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, local->currentrank,
-            local->count, local->datatype_size);
-  }
-
-  return local;
-}
-
-/**
- * @brief
- */
-fenix_remote_entry_t *__fenix_init_remote() {
-  fenix_remote_entry_t *remote = (fenix_remote_entry_t *) s_malloc(
-          sizeof(fenix_remote_entry_t));
-  remote->remoterank = -1;
-  remote->pdata = NULL;
-  remote->data = NULL;
-  remote->count = 0;
-  remote->datatype_size = 0;
-  remote->datatype = NULL;
-
-  if (__fenix_options.verbose == 45) {
-    verbose_print(
-            "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, remote->remoterank,
-            remote->count, remote->datatype_size);
-  }
-
-  return remote;
-}
 
 /**
  * @brief
@@ -2031,40 +1987,6 @@ void __fenix_reinit_member(fenix_member_t *m, fenix_two_container_packet_t packe
   }
 }
 
-/**
- * @brief
- * @param
- * @param
- */
-void __fenix_reinit_version(fenix_version_t *v, fenix_container_packet_t packet) {
-
-  int first_index = v->total_size;
-  v->num_copies = packet.num_copies;
-  v->count = packet.count;
-  v->total_size = packet.total_size;
-  v->position = packet.position;
-  v->local_entry = (fenix_local_entry_t *) realloc(v->local_entry,
-                                                   (v->total_size) *
-                                                   sizeof(fenix_local_entry_t));
-  v->remote_entry = (fenix_remote_entry_t *) realloc(v->remote_entry,
-                                                     (v->total_size) *
-                                                     sizeof(fenix_remote_entry_t));
-
-  if (__fenix_options.verbose == 49) {
-    verbose_print("c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role, v->count,
-                  v->total_size, v->position);
-  }
-
-/*
- * Allocate space for data entry
- */
-  int version_index;
-  for (version_index = first_index; version_index < v->total_size; version_index++) {
-    v->local_entry[version_index] = *__fenix_init_local();
-    v->remote_entry[version_index] = *__fenix_init_remote();
-  }
-}
 
 /**
  * @brief

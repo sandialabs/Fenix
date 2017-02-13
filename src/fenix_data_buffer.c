@@ -53,3 +53,53 @@
 // ************************************************************************
 //@HEADER
 */
+
+#include "fenix-config.h"
+#include "fenix_data_buffer.h"
+#include "fenix_ext.h"
+
+/**
+ * @brief
+ */
+fenix_local_entry_t *__fenix_init_local() {
+  fenix_local_entry_t *local = (fenix_local_entry_t *) s_malloc(
+          sizeof(fenix_local_entry_t));;
+  local->currentrank = -1;
+  local->pdata = NULL;
+  local->data = NULL;
+  local->count = 0;
+  local->datatype_size = 0;
+  local->datatype = NULL;
+
+  if (__fenix_options.verbose == 44) {
+    verbose_print(
+            "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
+              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, local->currentrank,
+            local->count, local->datatype_size);
+  }
+
+  return local;
+}
+
+/**
+ * @brief
+ */
+fenix_remote_entry_t *__fenix_init_remote() {
+  fenix_remote_entry_t *remote = (fenix_remote_entry_t *) s_malloc(
+          sizeof(fenix_remote_entry_t));
+  remote->remoterank = -1;
+  remote->pdata = NULL;
+  remote->data = NULL;
+  remote->count = 0;
+  remote->datatype_size = 0;
+  remote->datatype = NULL;
+
+  if (__fenix_options.verbose == 45) {
+    verbose_print(
+            "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
+              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, remote->remoterank,
+            remote->count, remote->datatype_size);
+  }
+
+  return remote;
+}

@@ -62,7 +62,7 @@
 #include "fenix_data_member.h"
 #include "fenix_data_version.h"
 #include "fenix_data_buffer.h"
-#include "fenix_data_buffer.h"
+#include "fenix_data_subset.h"
 #include "fenix_util.h"
 #include <mpi.h>
 #include <stdio.h>
@@ -104,10 +104,7 @@
 
 
 
-typedef struct __fenix_subset_offsets  {
-    size_t start;
-    size_t end;
-} fenix_subset_offsets_t ;
+
 
 
 typedef struct __data_entry_packet {
@@ -148,16 +145,16 @@ int __fenix_group_delete(int);
 int __fenix_member_delete(int, int);
 
 void __fenix_init_data_recovery();
-void __fenix__init_partner_copy_recovery();
+void __fenix_init_partner_copy_recovery();
 fenix_group_t *__fenix_init_group();
 fenix_member_t *__fenix_init_member();
 fenix_version_t *__fenix_init_version();
-fenix_local_entry_t *__fenix_init_local();
-fenix_remote_entry_t *__fenix_init_remote();
+//fenix_local_entry_t *__fenix_init_local();
+//fenix_remote_entry_t *__fenix_init_remote();
 void __fenix_free_local(fenix_local_entry_t *);
 void __fenix_free_remote(fenix_remote_entry_t *);
 void __fenix_reinit_group(fenix_group_t *, fenix_two_container_packet_t);
-void __fenix_reinit_version(fenix_version_t *, fenix_container_packet_t);
+//void __fenix_reinit_version(fenix_version_t *, fenix_container_packet_t);
 void __fenix_reinit_member(fenix_member_t *, fenix_two_container_packet_t, enum states);
 void __fenix_ensure_group_capacity(fenix_group_t *);
 void __fenix_ensure_member_capacity(fenix_member_t *);
