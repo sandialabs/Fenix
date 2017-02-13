@@ -91,6 +91,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
   } else {
     __fenix_g_replace_comm_flag = 1;
   }
+
   //__fenix_g_original_comm = comm; 
   __fenix_g_spare_ranks = spare_ranks;
   __fenix_g_spawn_policy = spawn;
@@ -160,7 +161,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     }
   }
 
-  outstanding_request = __fenix_hash_table_new(512);
+  __fenix_outstanding_request = __fenix_hash_table_new(__FENIX_HASH_TABLE_SIZE);
  
   if ( __fenix_spare_rank() != 1) {
     __fenix_g_num_inital_ranks = __fenix_get_world_size(*__fenix_g_new_world);
@@ -639,10 +640,45 @@ int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *call
     fenix_callback_func *fp = s_malloc(sizeof(fenix_callback_func));
     fp->x = recover;
     fp->y = callback_data;
-    __fenix_callback_push(&__fenix_g_callback_list, fp);
+    __fenix_callback_push( &__fenix_g_callback_list, fp);
   } else {
     error_code = FENIX_ERROR_UNINITIALIZED;
   }
+  return error_code;
+}
+
+/**
+ * @brief
+ * @param head
+ * @param callback_function
+ */
+void __fenix_callback_push(fenix_callback_list_t **head, fenix_callback_func *fp) {
+    fenix_callback_list_t *callback = malloc(sizeof(fenix_callback_list_t));
+    callback->callback = fp;
+    callback->next = *head;
+    *head = callback;
+}
+
+
+int __fenix_callback_destroy( fenix_callback_list_t *callback_list ) {
+  int error_code = FENIX_SUCCESS;
+
+  if ( __fenix_g_fenix_init_flag ) {
+
+    fenix_callback_list_t *current = callback_list;
+
+    while (current != NULL) {
+      fenix_callback_list_t *old;
+      old = current;
+      current = current->next;
+      free( old->callback );
+      free( old );
+    }
+
+  } else {
+    error_code = FENIX_ERROR_UNINITIALIZED;
+  }
+
   return error_code;
 }
 
@@ -682,10 +718,10 @@ void __fenix_postinit(int *error) {
 #endif
 
   if (__fenix_g_role == FENIX_ROLE_SURVIVOR_RANK) {
-    struct callback_list *current = __fenix_g_callback_list;
+    fenix_callback_list_t *current = __fenix_g_callback_list;
     while (current != NULL) {
-      (current->callback.x)((MPI_Comm) * __fenix_g_new_world, (int) *error,
-                            (void *) current->callback.y);
+      (current->callback->x)((MPI_Comm) * __fenix_g_new_world, (int) *error,
+                            (void *) current->callback->y);
       current = current->next;
     }
   }
@@ -710,7 +746,7 @@ void __fenix_finalize() {
                   __fenix_g_role);
   }
 
-  __fenix_g_fenix_init_flag = 0;
+
   if (__fenix_get_current_rank(*__fenix_g_world) == 0) {
     int spare_rank = __fenix_get_world_size(*__fenix_g_world) - 1;
     int a;
@@ -728,17 +764,22 @@ void __fenix_finalize() {
   int ret = PMPI_Barrier(*__fenix_g_world);
   if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
 
-  MPI_Op_free(&__fenix_g_agree_op);
-  MPI_Comm_set_errhandler(*__fenix_g_world, MPI_ERRORS_ARE_FATAL);
-  MPI_Comm_free(__fenix_g_world);
-  MPI_Comm_free(__fenix_g_new_world);
-  free(__fenix_g_world);
-  free(__fenix_g_new_world);
+  MPI_Op_free( &__fenix_g_agree_op );
+  MPI_Comm_set_errhandler( *__fenix_g_world, MPI_ERRORS_ARE_FATAL );
+  MPI_Comm_free( __fenix_g_world );
+  MPI_Comm_free( __fenix_g_new_world );
+  free( __fenix_g_world );
+  free( __fenix_g_new_world );
 
   /* Free the Hash Table */
-
+  __fenix_hash_table_destroy( __fenix_outstanding_request );
   /* Free Callbacks */
+  __fenix_callback_destroy( __fenix_g_callback_list );
 
+  /* Free data recovery interface */
+
+
+  __fenix_g_fenix_init_flag = 0;
 }
 
 /**
@@ -764,9 +805,15 @@ void __fenix_finalize_spare() {
   free(__fenix_g_new_world);
 
   /* Free the Hash Table */
-
+  __fenix_hash_table_destroy( __fenix_outstanding_request );
   /* Free callbacks */
+  __fenix_callback_destroy( __fenix_g_callback_list );
 
+  /* Free data recovery interface */
+
+  __fenix_g_fenix_init_flag = 0;
+
+  /* Future version do not close MPI. Jump to where Fenix_Finalize is called. */
   MPI_Finalize();
   exit(0);
 }
@@ -784,7 +831,7 @@ void __fenix_insert_request(MPI_Request *request) {
   if (__fenix_options.verbose == 16) {
     verbose_print("hash_table_put; request: %lu\n", (long) request);
   }
-  __fenix_hash_table_put(outstanding_request, (long) request, request);
+  __fenix_hash_table_put(__fenix_outstanding_request, (long) request, request);
 }
 
 
@@ -800,7 +847,7 @@ void __fenix_remove_request(MPI_Request *request) {
   if (__fenix_options.verbose == 17) {
     verbose_print("hash_table_remove; request: %lu\n", (long) request);
   }
-  __fenix_hash_table_remove(outstanding_request, (long) request);
+  __fenix_hash_table_remove(__fenix_outstanding_request, (long) request);
 }
 
 
@@ -833,18 +880,18 @@ void __fenix_test_MPI(int ret, const char *msg) {
         MPIF_Comm_revoke(*__fenix_g_user_world);
       }
 
-      for (index = 0; index < outstanding_request->size; index++) {
-        if (outstanding_request->table[index].state == OCCUPIED) {
-          MPI_Request *value = __fenix_hash_table_get(outstanding_request,
-                                              outstanding_request->table[index].key);
+      for (index = 0; index < __fenix_outstanding_request->size; index++) {
+        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
+          MPI_Request *value = __fenix_hash_table_get(__fenix_outstanding_request,
+                                              __fenix_outstanding_request->table[index].key);
           MPI_Status status;
           PMPI_Wait(value, &status);
         }
       }
 
-      for (index = 0; index < outstanding_request->size; index++) {
-        if (outstanding_request->table[index].state == OCCUPIED) {
-          __fenix_hash_table_remove(outstanding_request, outstanding_request->table[index].key);
+      for (index = 0; index < __fenix_outstanding_request->size; index++) {
+        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
+          __fenix_hash_table_remove(__fenix_outstanding_request, __fenix_outstanding_request->table[index].key);
         }
       }
 
@@ -856,18 +903,18 @@ void __fenix_test_MPI(int ret, const char *msg) {
         verbose_print("MPI_ERR_REVOKED; current_rank: %d, role: %d, msg: %s\n", msg);
       }
 
-      for (index = 0; index < outstanding_request->size; index++) {
-        if (outstanding_request->table[index].state == OCCUPIED) {
-          MPI_Request *value = __fenix_hash_table_get(outstanding_request,
-                                              outstanding_request->table[index].key);
+      for (index = 0; index < __fenix_outstanding_request->size; index++) {
+        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
+          MPI_Request *value = __fenix_hash_table_get(__fenix_outstanding_request,
+                                              __fenix_outstanding_request->table[index].key);
           MPI_Status status;
           PMPI_Wait(value, &status);
         }
       }
 
-      for (index = 0; index < outstanding_request->size; index++) {
-        if (outstanding_request->table[index].state == OCCUPIED) {
-          __fenix_hash_table_remove(outstanding_request, outstanding_request->table[index].key);
+      for (index = 0; index < __fenix_outstanding_request->size; index++) {
+        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
+          __fenix_hash_table_remove(__fenix_outstanding_request, __fenix_outstanding_request->table[index].key);
         }
       }
 

@@ -181,17 +181,7 @@ int  __fenix_get_world_size(MPI_Comm comm) {
 }
 
 
-/**
- * @brief
- * @param head
- * @param callback_function
- */
-void __fenix_callback_push(struct callback_list **head, fenix_callback_func *fp) {
-    struct callback_list *callback = malloc(sizeof(struct callback_list));
-    callback->callback = *fp; 
-    callback->next = *head;
-    *head = callback;
-}
+
 
 /**
  * @brief

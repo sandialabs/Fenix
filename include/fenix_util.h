@@ -106,7 +106,9 @@ int __fenix_mpi_wait(MPI_Request *);
 
 int __fenix_mpi_test(MPI_Request *);
 
-void __fenix_callback_push(struct callback_list **, fenix_callback_func *);
+void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
+
+int __fenix_callback_destroy( fenix_callback_list_t *callback_list );
 
 void *s_calloc(int count, size_t size);
 

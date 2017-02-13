@@ -80,10 +80,10 @@ typedef struct fcouple {
     void *y;
 } fenix_callback_func;
 
-typedef struct callback_list {
-    fenix_callback_func callback;
-    struct callback_list *next;
-} __fenix_callback_list;
+typedef struct __fenix_callback_list {
+    fenix_callback_func *callback;
+    struct __fenix_callback_list *next;
+} fenix_callback_list_t;
 
 /****************/
 /*              */
@@ -125,6 +125,10 @@ void __fenix_insert_request(MPI_Request *);
 void __fenix_remove_request(MPI_Request *);
 
 int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
+
+void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
+
+int __fenix_callback_destroy( fenix_callback_list_t *callback_list );
 
 int* __fenix_get_fail_ranks(int *, int, int);
 

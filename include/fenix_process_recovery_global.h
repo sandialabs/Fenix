@@ -53,8 +53,8 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef FENIX_PROCES_RECOVERY_GLOBAL_H
-#define FENIX_PROCES_RECOVERY_GLOBAL_H
+#ifndef __FENIX_PROCES_RECOVERY_GLOBAL_H__
+#define __FENIX_PROCES_RECOVERY_GLOBAL_H__
 
 #include <mpi.h>
 #include <setjmp.h>
@@ -68,6 +68,10 @@
 #include "fenix_opt.h"
 #include "fenix_util.h"
 #include "fenix_data_group.h"
+
+
+/* This header file is intended to proivde global variable defintiions for fenix_process_recovery.c only */
+#define __FENIX_HASH_TABLE_SIZE 512
 
 int __fenix_g_num_inital_ranks;
 int __fenix_g_num_survivor_ranks;
@@ -83,16 +87,16 @@ jmp_buf *__fenix_g_recover_environment;   // Calling environment to fill the jmp
 //enum FenixRankRole __fenix_g_role;    // Role of rank: initial, survivor or repair
 int  __fenix_g_role;    // Role of rank: initial, survivor or repair
 int __fenix_g_fenix_init_flag = 0;
-struct __fenix_hash_table *outstanding_request = NULL;
+struct __fenix_hash_table* __fenix_outstanding_request = NULL;
 
-__fenix_callback_list *__fenix_g_callback_list;
+fenix_callback_list_t* __fenix_g_callback_list;
 __fenix_debug_options __fenix_options;
 
 MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
 MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
 MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
 MPI_Comm __fenix_g_original_comm;
-MPI_Op __fenix_g_agree_op;
+MPI_Op   __fenix_g_agree_op;
 
 fenix_group_t *__fenix_g_data_recovery;
-#endif // FENIX_PROCES_RECOVERY_GLOBAL_H
+#endif // __FENIX_PROCES_RECOVERY_GLOBAL_H__
