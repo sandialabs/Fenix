@@ -103,3 +103,26 @@ fenix_remote_entry_t *__fenix_init_remote() {
 
   return remote;
 }
+
+/**
+ * @brief
+ */
+fenix_remote_entry_t *__fenix_data_buffer_create() {
+  fenix_remote_entry_t *remote = (fenix_remote_entry_t *) s_malloc(
+          sizeof(fenix_remote_entry_t));
+  remote->remoterank = -1;
+  remote->pdata = NULL;
+  remote->data = NULL;
+  remote->count = 0;
+  remote->datatype_size = 0;
+  remote->datatype = NULL;
+
+  if (__fenix_options.verbose == 45) {
+    verbose_print(
+            "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
+              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, remote->remoterank,
+            remote->count, remote->datatype_size);
+  }
+
+  return remote;
+}

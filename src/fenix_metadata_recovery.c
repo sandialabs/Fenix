@@ -88,7 +88,7 @@ int _send_group_data(int current_rank, int in_rank, fenix_group_entry_t *gentry,
            RECOVER_GROUP_ENTRY_TAG, (gentry->comm)); /* Group entry */
 
   /* Send a meta data for members  */
-  fenix_member_t *member = &(gentry->member);
+  fenix_member_t *member = gentry->member;
   fenix_two_container_packet_t mpacket;
   mpacket.count = member->count;
   mpacket.total_size = member->total_size;
@@ -132,7 +132,7 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
   MPI_Recv(&mpacket, sizeof(fenix_two_container_packet_t), MPI_BYTE, out_rank,
            RECOVER_MEMBER_TAG, comm, &status); /* Member metadata */
 
-  fenix_member_t *member = &(gentry->member);
+  fenix_member_t *member = gentry->member;
 
   /* Reinit member entries but no inforation for each entry */
   __fenix_data_member_reinit(member, mpacket, NEEDFIX);
@@ -287,7 +287,7 @@ int _pc_send_member_metadata(int current_rank, int in_rank,
 
   {
     /* Send the meta data of versioning */
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     fenix_container_packet_t vpacket;
     vpacket.count = version->count;
     vpacket.total_size = version->total_size;
@@ -334,7 +334,7 @@ int _pc_recover_member_metadata(int current_rank, int out_rank,
   
   
   /* Recover version */
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     fenix_container_packet_t vpacket;
 
     MPI_Recv(&vpacket, sizeof(fenix_container_packet_t), MPI_BYTE, out_rank,
@@ -364,7 +364,7 @@ int _pc_send_members(int current_rank, int out_rank, int depth, fenix_member_t *
              RECOVER_MEMBER_ENTRY_TAG + member_index, comm); /* Member entry */
 
     /* Send the meta data of versioning */
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     fenix_container_packet_t vpacket;
     vpacket.count = version->count;
     vpacket.total_size = version->total_size;
@@ -439,7 +439,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
               current_rank, in_rank, mentry->memberid, mentry->state);
     }
 
-    fenix_version_t *version = &(mentry->version);
+    fenix_version_t *version = mentry->version;
     fenix_container_packet_t vpacket;
 
     MPI_Recv(&vpacket, sizeof(fenix_container_packet_t), MPI_BYTE, in_rank,

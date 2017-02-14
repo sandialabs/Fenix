@@ -75,6 +75,7 @@ typedef struct __fenix_version {
 
     fenix_local_entry_t *local_entry;
     fenix_remote_entry_t *remote_entry;
+
 } fenix_version_t;
 
 #if 0
@@ -82,7 +83,12 @@ int __fenix_create_version( fenix_version_t **v );
 int __fenix_free_version(   fenix_version_t *v );
 int __fenix_reset_version(  fenix_version_t *v, );
 #endif
+
 fenix_version_t *__fenix_data_version_init();
+
+void __fenix_data_version_destroy( fenix_version_t *v );
+
+void __fenix_ensure_version_capacity2( fenix_member_t *m) ;
 
 void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t packet);
 

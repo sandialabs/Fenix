@@ -93,37 +93,70 @@ int __fenix_reset_version( fenix_version_t *v ) {
 
   return 0;
 }
-
 #endif
+
 /**
  * @brief
  */
 fenix_version_t *__fenix_data_version_init() {
-  fenix_version_t *version = (fenix_version_t *)
-          s_calloc(1, sizeof(fenix_version_t));
+
+  fenix_version_t *version = (fenix_version_t *)s_calloc(1, sizeof(fenix_version_t));
   version->count = 1;
   version->num_copies = 0;
   version->total_size = __FENIX_DEFAULT_VERSION_SIZE;
   version->position = 0;
-  version->local_entry = (fenix_local_entry_t *) s_malloc(
-          __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_local_entry_t));
-  version->remote_entry = (fenix_remote_entry_t *) s_malloc(
-          __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_remote_entry_t));
+
+  version->local_entry = (fenix_local_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_local_entry_t) );
+  version->remote_entry = (fenix_remote_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_remote_entry_t) );
 
   if (__fenix_options.verbose == 43) {
     verbose_print(
             "c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
               __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, version->count,
-            version->total_size, version->position);
+              version->total_size, version->position);
   }
 
   int version_index;
-  for (version_index = 0;
-       version_index < __FENIX_DEFAULT_VERSION_SIZE; version_index++) {
-    version->local_entry[version_index] = *__fenix_init_local();
-    version->remote_entry[version_index] = *__fenix_init_remote();
+  for (version_index = 0; version_index < __FENIX_DEFAULT_VERSION_SIZE; version_index++) {
+  //  __fenix_init_local(& (version->local_entry[version_index]) );
+ //   version->remote_entry[version_index] = __fenix_init_remote();
   }
   return version;
+}
+
+
+void  __fenix_data_version_destroy( fenix_version_t *version ) {
+  int version_index;
+  for (version_index = 0; version_index < version->total_size; version_index++) {
+ //   __fenix_data_buffer_destroy( version->local_entry[version_index]  );
+ //   __fenix_data_buffer_destroy( version->remote_entry[version_index] );
+  }
+  free( version );
+}
+
+
+/**
+ * @brief
+ * @param
+ */
+void __fenix_ensure_version_capacity2(fenix_version_t *version) {
+
+  if (version->total_size > __FENIX_DEFAULT_VERSION_SIZE) {
+    version->local_entry = (fenix_local_entry_t *) realloc(version->local_entry,
+                                                             (version->total_size * 2) *
+                                                             sizeof(fenix_local_entry_t));
+    version->remote_entry = (fenix_remote_entry_t *) realloc(
+              version->remote_entry,
+              (version->total_size * 2) *
+              sizeof(fenix_remote_entry_t));
+    version->total_size = version->total_size * 2;
+
+    if (__fenix_options.verbose == 53) {
+      verbose_print( "c-rank: %d, role: %d, member[%d] v-count: %d, v-size: %d\n",
+                     __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
+                     member_index, version->count, version->total_size);
+    }
+  }
 }
 
 
@@ -157,7 +190,7 @@ void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t pa
  */
   int version_index;
   for (version_index = first_index; version_index < v->total_size; version_index++) {
-    v->local_entry[version_index] = *__fenix_init_local();
-    v->remote_entry[version_index] = *__fenix_init_remote();
+  //  v->local_entry[version_index] = __fenix_init_local();
+  //  v->remote_entry[version_index] = __fenix_init_remote();
   }
 }

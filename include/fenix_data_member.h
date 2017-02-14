@@ -112,6 +112,9 @@ typedef struct __member_entry_packet {
 fenix_member_t *__fenix_data_member_init( );
 void __fenix_data_member_destroy( fenix_member_t *member ) ;
 
+void __fenix_ensure_member_capacity( fenix_member_t *m );
+void __fenix_ensure_version_capacity( fenix_member_t *m ) ;
+
 void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t packet,
                    enum states mystatus);
 #endif // FENIX_DATA_MEMBER_H

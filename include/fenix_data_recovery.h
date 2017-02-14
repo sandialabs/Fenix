@@ -130,7 +130,7 @@ int __fenix_data_commit(int, int *);
 int __fenix_data_commit_barrier(int, int *);
 int __fenix_data_barrier(int);
 int __fenix_member_restore(int, int, void *, int, int);
-int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
+int __fenix_member_restore_from_rank(int, int, void *, int, int, int);'
 int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
 int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
 int __fenix_data_subset_delete(Fenix_Data_subset *);
@@ -141,25 +141,23 @@ int __fenix_get_snapshot_at_position(int, int, int *);
 int __fenix_member_get_attribute(int, int, int, void *, int *, int);
 int __fenix_member_set_attribute(int, int, int, void *, int *);
 int __fenix_snapshot_delete(int groupid, int timestamp);
+
 int __fenix_group_delete(int);
 int __fenix_member_delete(int, int);
 
 void __fenix_init_data_recovery();
 void __fenix_init_partner_copy_recovery();
-fenix_group_t *__fenix_init_group();
-fenix_member_t *__fenix_init_member();
-fenix_version_t *__fenix_init_version();
+
+
 //fenix_local_entry_t *__fenix_init_local();
 //fenix_remote_entry_t *__fenix_init_remote();
 void __fenix_free_local(fenix_local_entry_t *);
 void __fenix_free_remote(fenix_remote_entry_t *);
-void __fenix_reinit_group(fenix_group_t *, fenix_two_container_packet_t);
-//void __fenix_reinit_version(fenix_version_t *, fenix_container_packet_t);
-void __fenix_reinit_member(fenix_member_t *, fenix_two_container_packet_t, enum states);
-void __fenix_ensure_group_capacity(fenix_group_t *);
+
+
 void __fenix_ensure_member_capacity(fenix_member_t *);
 void __fenix_ensure_version_capacity(fenix_member_t *);
-int __fenix_search_groupid(int);
+
 int __fenix_search_memberid(int, int);
 int __fenix_find_next_group_position(fenix_group_t *);
 int __fenix_find_next_member_position(fenix_member_t *);

@@ -84,8 +84,8 @@ fenix_group_t * __fenix_data_group_init() {
   }
 
   int group_index;
-  for (group_index = 0;
-       group_index < __FENIX_DEFAULT_GROUP_SIZE; group_index++) { // insert default values
+  for ( group_index = 0;
+        group_index < __FENIX_DEFAULT_GROUP_SIZE; group_index++) { // insert default values
 
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     gentry->depth = 1;
@@ -106,12 +106,15 @@ fenix_group_t * __fenix_data_group_init() {
 }
 
 
-void __fenix_data_group_destroy( fenix_group_t *fx_group )  {
-  //free(fx_group);
+void __fenix_data_group_destroy( fenix_group_t *group )  {
 
+  int group_index;
+  for ( group_index = 0; group_index < group->total_size; group_index++ ) {
+      __fenix_data_member_destroy( group->group_entry[group_index].member );
+  }
+  free( group->group_entry );
+  free( group );
 }
-
-
 
 /**
  * @brief
@@ -149,4 +152,60 @@ void __fenix_data_group_reinit(fenix_group_t *g, fenix_two_container_packet_t pa
 
     gentry->member = __fenix_data_member_init();
   }
+}
+
+/**
+ * @brief
+ * @param
+ */
+void __fenix_ensure_group_capacity(fenix_group_t *g) {
+  fenix_group_t *group = g;
+  if (group->count >= group->total_size) {
+    int start_index = group->total_size;
+    group->group_entry = (fenix_group_entry_t *) s_realloc(group->group_entry,
+                                                           (group->total_size * 2) *
+                                                           sizeof(fenix_group_entry_t));
+    group->total_size = group->total_size * 2;
+
+    if (__fenix_options.verbose == 51) {
+      verbose_print("g-count: %d, g-size: %d\n", group->count, group->total_size);
+    }
+
+    int group_index;
+    for (group_index = start_index; group_index < group->total_size; group_index++) {
+      fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
+      gentry->depth = 1;
+      gentry->groupid = -1;
+      gentry->timestamp = 0;
+      gentry->state = EMPTY;
+
+      if (__fenix_options.verbose == 51) {
+        verbose_print(
+                "c-rank: %d, role: %d, group[%d] g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
+                  __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
+                group_index, gentry->depth, gentry->groupid, gentry->groupid,
+                gentry->timestamp, gentry->state);
+      }
+
+      gentry->member = __fenix_data_member_init();
+    }
+  }
+}
+
+/**
+ * @brief
+ * @param
+ */
+int __fenix_search_groupid(int key) {
+  fenix_group_t *group = __fenix_g_data_recovery;
+  int group_index, found = -1, index = -1;
+  for (group_index = 0;
+       (found != 1) && (group_index < group->total_size); group_index++) {
+    fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
+    if (key == gentry->groupid) {
+      index = group_index;
+      found = 1;
+    }
+  }
+  return index;
 }
