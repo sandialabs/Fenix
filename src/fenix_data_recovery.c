@@ -98,6 +98,7 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
 
   } else {
 
+#if 1
     /* This code block checks the need for data recovery.   */
     /* If so, recover the data and set the recovery         */
     /* for member recovery.                                 */
@@ -138,16 +139,15 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
       /* Initialize Group Meta Data */
       __fenix_init_group_metadata ( gentry, groupid, comm, timestamp, depth );
 
-//      gentry->state = OCCUPIED;
-
       /* fenix_g_role is kept until Fenix_finalize() */
       /* The group needs to keep the information.    */
 
-      if ( __fenix_g_role == FENIX_ROLE_RECOVERED_RANK ) {
+      if ( __fenix_g_role == FENIX_ROLE_RECOVERED_RANK  ) {
+        /* This flag is necessary */
         gentry->recovered = 1;
 
       } else {
-
+        /* This flag indicates I am new */
         gentry->recovered = 0;
 
       }
@@ -172,10 +172,14 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
                 gentry->depth,
                 gentry->state);
       }
+
     } else { /* Already created. Renew the MPI communicator  */
+
       gentry = &( group->group_entry[group_position] );
       gentry->comm = comm; /* Renew communicator */
+
     }
+
 
     /* Re-iniitalize Group MetaData */
     __fenix_reinit_group_metadata ( gentry );
@@ -183,36 +187,44 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
     /* Check the role of the neighbor define by the group */
     MPI_Sendrecv(&(gentry->recovered), 1, MPI_INT, gentry->out_rank, PARTNER_STATUS_TAG,
                  &remote_need_recovery, 1, MPI_INT, gentry->in_rank, PARTNER_STATUS_TAG,
-                 (gentry->comm), &status);
+                 gentry->comm, &status);
 
     /* Recover group information */
     if ( gentry->recovered == 0 && remote_need_recovery == 1) {
+
        if (__fenix_options.verbose == 18) {
         verbose_print(
-                "c-rank: %d receiving group data %d from rank %d\n",
+                "c-rank: %d receiving group data %d from rank %d: remote data needs fix\n",
                 __fenix_get_current_rank(*__fenix_g_new_world), gentry->groupid,
                 gentry->out_rank);
       }
+
+      /* Remote peer needs the data */
       retval = _send_metadata(gentry->current_rank, gentry->in_rank, gentry->comm);
       retval = _send_group_data(gentry->current_rank, gentry->in_rank, gentry, gentry->comm);
+
     } else if ( gentry->recovered == 1 && remote_need_recovery == 0) {
       if (__fenix_options.verbose == 18) {
         verbose_print(
-                "c-rank: %d receiving group data %d from rank %d\n",
+                "c-rank: %d receiving group data %d from rank %d: I need to fix\n",
                  __fenix_get_current_rank(*__fenix_g_new_world), gentry->groupid,
                 gentry->out_rank);
       }
+
+      /* I need fix */
       retval = _recover_metadata(gentry->current_rank, gentry->out_rank, comm);
       retval = _recover_group_data(gentry->current_rank, gentry->out_rank, gentry, gentry->comm);
+
       /* Recovery is done. Change the flag */
       gentry->recovered = 0;
+
     } else if ( gentry->recovered == 1 && remote_need_recovery == 1 ) {
       /* I need recovery and you need recovery         */
       /* Curret Fenix cannot figure out how to recover */
       /* Thrown an error message                       */
       if (__fenix_options.verbose == 18) {
         verbose_print(
-                "c-rank: %d receiving group data %d from rank %d\n",
+                "c-rank: %d receiving group data %d from rank %d: two ranks needing recovery cannot find the source of the original data\n",
                 __fenix_get_current_rank(*__fenix_g_new_world), gentry->groupid,
                 gentry->out_rank);
       }
@@ -221,7 +233,10 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
 
     /* Need Error check for retval above */
     /* ********************************* */
+#else
+    /* Future Version will use other schemes to recover group data */
 
+#endif
 
     /* Global agreement among the group */
     retval = ( __fenix_join_group(group, gentry, comm) != 1) ? FENIX_SUCCESS
