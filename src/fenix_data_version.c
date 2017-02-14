@@ -152,9 +152,9 @@ void __fenix_ensure_version_capacity2(fenix_version_t *version) {
     version->total_size = version->total_size * 2;
 
     if (__fenix_options.verbose == 53) {
-      verbose_print( "c-rank: %d, role: %d, member[%d] v-count: %d, v-size: %d\n",
+      verbose_print( "c-rank: %d, role: %d, v-count: %d, v-size: %d\n",
                      __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
-                     member_index, version->count, version->total_size);
+                      version->count, version->total_size);
     }
   }
 }

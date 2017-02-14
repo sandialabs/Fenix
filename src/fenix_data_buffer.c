@@ -85,8 +85,7 @@ fenix_local_entry_t *__fenix_init_local() {
  * @brief
  */
 fenix_remote_entry_t *__fenix_init_remote() {
-  fenix_remote_entry_t *remote = (fenix_remote_entry_t *) s_malloc(
-          sizeof(fenix_remote_entry_t));
+  fenix_remote_entry_t *remote = (fenix_remote_entry_t *) s_malloc(    sizeof(fenix_remote_entry_t));
   remote->remoterank = -1;
   remote->pdata = NULL;
   remote->data = NULL;
@@ -107,22 +106,48 @@ fenix_remote_entry_t *__fenix_init_remote() {
 /**
  * @brief
  */
-fenix_remote_entry_t *__fenix_data_buffer_create() {
-  fenix_remote_entry_t *remote = (fenix_remote_entry_t *) s_malloc(
-          sizeof(fenix_remote_entry_t));
-  remote->remoterank = -1;
-  remote->pdata = NULL;
-  remote->data = NULL;
-  remote->count = 0;
-  remote->datatype_size = 0;
-  remote->datatype = NULL;
+fenix_buffer_entry_t *__fenix_data_buffer_create() {
+  fenix_buffer_entry_t *buffer = (fenix_buffer_entry_t *) s_malloc( sizeof( fenix_buffer_entry_t ) );
+  buffer->origin_rank = -1;
+  buffer->data = NULL;
+  buffer->count = 0;
+  buffer->datatype_size = 0;
+  buffer->datatype = NULL;
 
   if (__fenix_options.verbose == 45) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, remote->remoterank,
-            remote->count, remote->datatype_size);
+              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, buffer->origin_rank,
+           buffer->count, buffer->datatype_size);
   }
 
-  return remote;
+  return buffer;
+}
+
+
+int __fenix_data_buffer_reset( fenix_buffer_entry_t *buffer ) {
+  buffer->origin_rank = -1;
+  buffer->data = NULL;
+  buffer->count = 0;
+  buffer->datatype_size = 0;
+  buffer->datatype = NULL;
+
+  if (__fenix_options.verbose == 45) {
+    verbose_print(
+            "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
+              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, buffer->origin_rank,
+           buffer->count, buffer->datatype_size);
+  }
+
+
+  return FENIX_SUCCESS;
+}
+
+void __fenix_data_buffer_destroy(  fenix_buffer_entry_t *buffer  ) {
+
+  if( buffer->data != NULL ) {
+    free( buffer->data );
+  }
+  free( buffer );
+
 }

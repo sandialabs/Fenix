@@ -61,6 +61,8 @@
 
 
 typedef struct __fenix_version {
+    size_t depth;
+
     size_t num_copies;  /* Number of copies            */
 
     size_t count;       /* Number of versions          */
@@ -88,7 +90,7 @@ fenix_version_t *__fenix_data_version_init();
 
 void __fenix_data_version_destroy( fenix_version_t *v );
 
-void __fenix_ensure_version_capacity2( fenix_member_t *m) ;
+void __fenix_ensure_version_capacity2( fenix_version_t *m) ;
 
 void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t packet);
 

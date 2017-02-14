@@ -2013,7 +2013,7 @@ int __fenix_join_restore(fenix_group_entry_t *ge, fenix_version_t *v, MPI_Comm c
  * @param
  * @param
  */
-int __fenix_join_commit(fenix_group_entry_t *ge, fenix_version_t *v, MPI_Comm comm) {
+int __fenix_join_commit( fenix_group_entry_t *ge, fenix_version_t *v, MPI_Comm comm) {
   int found = -1;
   int min_timestamp;
   MPI_Allreduce(&(ge->timestamp), &min_timestamp, 1, MPI_INT, MPI_MIN, comm);

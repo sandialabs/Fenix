@@ -80,10 +80,10 @@ typedef struct __fenix_local_entry {
 
 typedef struct __fenix_buffer_entry {
     char id[64];     /* Reserved identifier. May not be used */
-    int rank_origin; /* Subject to change. */
+    int origin_rank; /* Subject to change. */
 
     int count;
-    uint64_t datatype_size;
+    int datatype_size;
     MPI_Datatype datatype;
     void *data;
 
@@ -93,6 +93,7 @@ typedef struct __fenix_buffer_entry {
 fenix_local_entry_t *__fenix_init_local();
 fenix_remote_entry_t *__fenix_init_remote();
 fenix_buffer_entry_t *__fenix_create_data_buffer();
-int __fenix_init_data_buffer( *buf );
+int __fenix_data_buffer_reset( fenix_buffer_entry_t *buf );
+void __fenix_data_buffer_destroy(  fenix_buffer_entry_t *buffer  );
 
 #endif // FENIX_DATA_BUFFER_H

@@ -130,7 +130,7 @@ int __fenix_data_commit(int, int *);
 int __fenix_data_commit_barrier(int, int *);
 int __fenix_data_barrier(int);
 int __fenix_member_restore(int, int, void *, int, int);
-int __fenix_member_restore_from_rank(int, int, void *, int, int, int);'
+int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
 int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
 int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
 int __fenix_data_subset_delete(Fenix_Data_subset *);
