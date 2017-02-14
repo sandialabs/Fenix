@@ -103,6 +103,8 @@ void __fenix_data_group_reinit(fenix_group_t *g, fenix_two_container_packet_t pa
 
 void __fenix_ensure_group_capacity(fenix_group_t *g);
 
-int __fenix_search_groupid(int key);
+int __fenix_search_groupid( int key, fenix_group_t *group );
+
+int __fenix_find_next_group_position( fenix_group_t *g );
 
 #endif // FENIX_DATA_GROUP_H

@@ -196,13 +196,30 @@ void __fenix_ensure_group_capacity(fenix_group_t *g) {
  * @brief
  * @param
  */
-int __fenix_search_groupid(int key) {
-  fenix_group_t *group = __fenix_g_data_recovery;
+int __fenix_search_groupid(int key, fenix_group_t *group) {
+
   int group_index, found = -1, index = -1;
   for (group_index = 0;
        (found != 1) && (group_index < group->total_size); group_index++) {
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     if (key == gentry->groupid) {
+      index = group_index;
+      found = 1;
+    }
+  }
+  return index;
+}
+
+/**
+ * @brief
+ * @param
+ */
+int __fenix_find_next_group_position( fenix_group_t *group ) {
+  int group_index, found = -1, index = -1;
+  for (group_index = 0;
+       (found != 1) && (group_index < group->total_size); group_index++) {
+    fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
+    if (gentry->state == EMPTY || gentry->state == DELETED) {
       index = group_index;
       found = 1;
     }
