@@ -75,8 +75,8 @@ typedef struct __fenix_version {
 
     size_t current_position;
 
-    fenix_local_entry_t *local_entry;
-    fenix_remote_entry_t *remote_entry;
+    fenix_buffer_entry_t *local_entry;
+    fenix_buffer_entry_t *remote_entry;
 
 } fenix_version_t;
 

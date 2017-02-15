@@ -63,7 +63,7 @@ void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  );
 
 void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype );
 
-void __fenix_data_member_init_store_packet( fenix_member_store_packet_t *lentry_packet, fenix_local_entry_t *lentry, int flag );
+void __fenix_data_member_init_store_packet( fenix_member_store_packet_t *lentry_packet, fenix_buffer_entry_t *lentry, int flag );
 
 #endif // FENIX_METADATA_H
 

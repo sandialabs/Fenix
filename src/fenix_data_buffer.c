@@ -114,7 +114,7 @@ fenix_buffer_entry_t *__fenix_data_buffer_create() {
   buffer->datatype_size = 0;
   buffer->datatype = NULL;
 
-  if (__fenix_options.verbose == 45) {
+  if ( __fenix_options.verbose == 45 ) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
               __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, buffer->origin_rank,

@@ -99,9 +99,9 @@ fenix_group_t * __fenix_data_group_init();
 
 void __fenix_data_group_destroy( fenix_group_t *fx_group );
 
-void __fenix_data_group_reinit(fenix_group_t *g, fenix_two_container_packet_t packet);
+void __fenix_data_group_reinit( fenix_group_t *g, fenix_two_container_packet_t packet);
 
-void __fenix_ensure_group_capacity(fenix_group_t *g);
+void __fenix_ensure_group_capacity( fenix_group_t *g);
 
 int __fenix_search_groupid( int key, fenix_group_t *group );
 

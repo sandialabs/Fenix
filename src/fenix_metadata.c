@@ -99,7 +99,7 @@ inline void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, in
 }
 
 
-inline void __fenix_data_member_init_store_packet ( fenix_member_store_packet_t *lentry_packet, fenix_local_entry_t *lentry, int flag )
+inline void __fenix_data_member_init_store_packet ( fenix_member_store_packet_t *lentry_packet, fenix_buffer_entry_t *lentry, int flag )
 {
   if ( flag == 0 ) {
     lentry_packet->rank = lentry->currentrank;

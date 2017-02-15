@@ -86,12 +86,12 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
   }
 
   /* Check the integrity of user's input */
-  if (timestamp < 0) {
+  if ( timestamp < 0 ) {
 
     debug_print("ERROR Fenix_Data_group_create: time_stamp <%d> must be greater than or equal to zero\n", timestamp);
     retval = FENIX_ERROR_INVALID_TIMESTAMP;
 
-  } else if (depth < -1) {
+  } else if ( depth < -1 ) {
 
     debug_print("ERROR Fenix_Data_group_create: depth <%d> must be greater than or equal to -1\n",depth);
     retval = FENIX_ERROR_INVALID_DEPTH;
@@ -121,11 +121,12 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestamp, int depth )
       }
     }
 #endif
+
     its_new = ( group_index != -1 ) ? 0 : 1;
 
-
     /* Initialize Group.  The group hasn't been created.       */
-    /* I am either a brand-new process or a recovered process. =*/
+    /* I am either a brand-new process or a recovered process. */
+
     if ( its_new == 1 ) {
 
       if (__fenix_options.verbose == 12 &&   __fenix_get_current_rank(comm) == 0) {
@@ -289,7 +290,6 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
     /* Check if the entry needs to be reallocated */
     __fenix_ensure_member_capacity(member);
 
-
     member->count++;
 
     int next_member_position = __fenix_find_next_member_position(member);
@@ -304,9 +304,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
 
     __fenix_data_member_init_metadata( mentry, memberid, data, count, datatype );
 
-
 //    version = &(member->member_entry[next_member_position].version);
-
 
     /* Check the size of data in the partner */
     /* We may need to send the data type at remote rank */
@@ -321,19 +319,15 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
     /* Initalize the space for every single version           */
     /* No log-based storage method.                           */
     for (i = 0; i < gentry->depth; i++) {
-      fenix_local_entry_t *lentry = &(version->local_entry[i]);
-      fenix_remote_entry_t *rentry = &(version->remote_entry[i]);
+      fenix_buffer_entry_t *lentry = &(version->local_entry[i]);
+      fenix_buffer_entry_t *rentry = &(version->remote_entry[i]);
 
       lentry->data = (void *) s_malloc(mentry->datatype_size * count);
       lentry->count = count;
       lentry->datatype_size = mentry->datatype_size;
       lentry->datatype = datatype;
-
-      /* Bind the user data to Fenix */
-      lentry->pdata = data; /* This should be handled by member entry rather than version entry */
-
       rentry->data = (void *) s_malloc(mentry->datatype_size * remote_count);
-      rentry->pdata = NULL;
+
     }
 
     /* Calling global agreement */
@@ -516,18 +510,22 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
 
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = mentry->version;
-    fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
-    fenix_remote_entry_t *rentry = &(version->remote_entry[version->position]);
+    fenix_buffer_entry_t *lentry = &(version->local_entry[version->position]);
+    fenix_buffer_entry_t *rentry = &(version->remote_entry[version->position]);
 
     MPI_Status status;
     /* This data exchange is not necessary when using non-v call */
     fenix_member_store_packet_t lentry_packet, rentry_packet;
+
     /* Store the local data */
-    memcpy(lentry->data, mentry->user_data, (lentry->count * lentry->datatype_size));
+    memcpy( lentry->data, mentry->user_data, ( lentry->count * lentry->datatype_size ));
+
     if( specifier.specifier == __FENIX_SUBSET_FULL ) {
 
       __fenix_data_member_init_store_packet ( &lentry_packet, lentry, 0 );
       send_buff = (char *)lentry->data;
+    }
+#if 0
     } else if ( specifier.specifier == __FENIX_SUBSET_EMPTY ) {
 
       __fenix_data_member_init_store_packet ( &lentry_packet, lentry, 1 );
@@ -568,13 +566,14 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
       }      
 
     }
+#endif
 
     int current_role = __fenix_g_role;
     MPI_Sendrecv(&lentry_packet, sizeof(fenix_member_store_packet_t), MPI_BYTE, gentry->out_rank,
                STORE_SIZE_TAG, &rentry_packet, sizeof(fenix_member_store_packet_t), MPI_BYTE,
                gentry->in_rank, STORE_SIZE_TAG, (gentry->comm), &status);
 
-    rentry->remoterank = rentry_packet.rank;
+    rentry->origin_rank = rentry_packet.rank;
     rentry->datatype = rentry_packet.datatype;
     rentry->count = rentry_packet.entry_count;
     rentry->datatype_size = rentry_packet.entry_size;
@@ -614,9 +613,16 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
       /* temporary buffer to received packed data */
       recv_buff = (char *)s_malloc(sizeof(char)* rentry_packet.entry_real_count * rentry->datatype_size );
     } else {
+      if (__fenix_options.verbose == 18 && __fenix_g_data_recovery->group_entry[group_index].current_rank== 0 ) {
+         verbose_print(
+            "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d:  I am not using subset.\n",
+              __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role, group_index,
+            member_index, memberid);
+      }
 
       /* The sender to me is not using subset */
       recv_buff = rentry->data;
+
     }
 
     /* Exchange the payload  */
@@ -1184,7 +1190,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
                                  gentry->comm);
     } else if ( current_status == NEEDFIX && remote_status == NEEDFIX) {
        debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
-                memberid, __fenix_g_data_recovery->group_entry[group_index].current_rank);
+                memberid, __fenix_g_data_recovery->group_entry[group_index].origin_rank);
        retval = FENIX_ERROR_INVALID_MEMBERID;
     }
 
@@ -1285,14 +1291,10 @@ int __fenix_data_subset_createv(int num_blocks, int *array_start_offsets, int *a
                 num_blocks);
     retval = FENIX_ERROR_SUBSET_NUM_BLOCKS;
   } else if (array_start_offsets == NULL) {
-    debug_print(
-            "ERROR Fenix_Data_subset_createv: array_start_offsets %s must be at least of size 1\n",
-            "");
+    debug_print( "ERROR Fenix_Data_subset_createv: array_start_offsets %s must be at least of size 1\n", "");
     retval = FENIX_ERROR_SUBSET_START_OFFSET;
   } else if (array_end_offsets == NULL) {
-    debug_print(
-            "ERROR Fenix_Data_subset_createv: array_end_offsets %s must at least of size 1\n",
-            "");
+    debug_print( "ERROR Fenix_Data_subset_createv: array_end_offsets %s must at least of size 1\n", "");
     retval = FENIX_ERROR_SUBSET_END_OFFSET;
   } else {
 
@@ -1563,12 +1565,14 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
       case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE:
 
         myerr = MPI_Type_size(*((MPI_Datatype *)(attributevalue)), &my_datatype_size);
+
         if( myerr ) {
           debug_print(
                   "ERROR Fenix_Data_member_attr_get: Fenix currently does not support this MPI_DATATYPE; invalid attribute_value <%d>\n",
                   attributevalue);
           retval = FENIX_ERROR_INVALID_ATTRIBUTE_NAME;
         }
+
         mentry->current_datatype = *((MPI_Datatype *)(attributevalue));
         lentry->datatype = *((MPI_Datatype *)(attributevalue));
         mentry->datatype_size = my_datatype_size;
@@ -1827,14 +1831,6 @@ void __fenix_free_remote(fenix_remote_entry_t *r) {
   }
 
 }
-
-
-
-
-
-
-
-
 
 
 /**

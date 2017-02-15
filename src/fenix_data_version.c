@@ -106,8 +106,8 @@ fenix_version_t *__fenix_data_version_init() {
   version->total_size = __FENIX_DEFAULT_VERSION_SIZE;
   version->position = 0;
 
-  version->local_entry = (fenix_local_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_local_entry_t) );
-  version->remote_entry = (fenix_remote_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_remote_entry_t) );
+  version->local_entry = (fenix_buffer_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_buffer_entry_t) );
+  version->remote_entry = (fenix_buffer_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_buffer_entry_t) );
 
   if (__fenix_options.verbose == 43) {
     verbose_print(
@@ -118,7 +118,8 @@ fenix_version_t *__fenix_data_version_init() {
 
   int version_index;
   for (version_index = 0; version_index < __FENIX_DEFAULT_VERSION_SIZE; version_index++) {
-  //  __fenix_init_local(& (version->local_entry[version_index]) );
+      __fenix_data_buffer_reset(& (version->local_entry[version_index]) );
+      __fenix_data_buffer_reset(& (version->remote_entry[version_index]) );
  //   version->remote_entry[version_index] = __fenix_init_remote();
   }
   return version;
@@ -128,8 +129,8 @@ fenix_version_t *__fenix_data_version_init() {
 void  __fenix_data_version_destroy( fenix_version_t *version ) {
   int version_index;
   for (version_index = 0; version_index < version->total_size; version_index++) {
- //   __fenix_data_buffer_destroy( version->local_entry[version_index]  );
- //   __fenix_data_buffer_destroy( version->remote_entry[version_index] );
+    __fenix_data_buffer_destroy( version->local_entry[version_index]  );
+    __fenix_data_buffer_destroy( version->remote_entry[version_index] );
   }
   free( version );
 }
