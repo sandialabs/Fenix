@@ -94,7 +94,7 @@ fenix_local_entry_t *__fenix_init_local();
 fenix_remote_entry_t *__fenix_init_remote();
 fenix_buffer_entry_t *__fenix_create_data_buffer();
 int __fenix_data_buffer_reset( fenix_buffer_entry_t *buf );
-void __fenix_data_buffer_destroy_internal(  fenix_buffer_entry_t *buffer  )
+void __fenix_data_buffer_destroy_internal(  fenix_buffer_entry_t *buffer  );
 void __fenix_data_buffer_destroy(  fenix_buffer_entry_t *buffer  );
 
 #endif // FENIX_DATA_BUFFER_H
