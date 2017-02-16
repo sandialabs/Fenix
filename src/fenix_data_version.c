@@ -129,8 +129,8 @@ fenix_version_t *__fenix_data_version_init() {
 void  __fenix_data_version_destroy( fenix_version_t *version ) {
   int version_index;
   for (version_index = 0; version_index < version->total_size; version_index++) {
-    __fenix_data_buffer_destroy( version->local_entry[version_index]  );
-    __fenix_data_buffer_destroy( version->remote_entry[version_index] );
+    __fenix_data_buffer_destroy( &(version->local_entry[version_index] ) );
+    __fenix_data_buffer_destroy( &(version->remote_entry[version_index] ) );
   }
   free( version );
 }

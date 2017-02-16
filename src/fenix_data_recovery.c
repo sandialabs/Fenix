@@ -304,7 +304,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
 
     __fenix_data_member_init_metadata( mentry, memberid, data, count, datatype );
 
-//    version = &(member->member_entry[next_member_position].version);
+    /* version = &(member->member_entry[next_member_position].version); */
 
     /* Check the size of data in the partner */
     /* We may need to send the data type at remote rank */
@@ -316,6 +316,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
     mentry->user_data = data;
 
     version = mentry->version;
+
     /* Initalize the space for every single version           */
     /* No log-based storage method.                           */
     for (i = 0; i < gentry->depth; i++) {
@@ -1190,7 +1191,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
                                  gentry->comm);
     } else if ( current_status == NEEDFIX && remote_status == NEEDFIX) {
        debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at %d\n",
-                memberid, __fenix_g_data_recovery->group_entry[group_index].origin_rank);
+                memberid, __fenix_g_data_recovery->group_entry[group_index].in_rank);
        retval = FENIX_ERROR_INVALID_MEMBERID;
     }
 
@@ -1198,12 +1199,12 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
     /* Get the latest consistent copy */
     if (  __fenix_join_restore(gentry, version, gentry->comm) == 1 && retval == FENIX_SUCCESS) {
       //printf("POSITION %d\n",version->position - 1);
-      fenix_local_entry_t *lentry = &(version->local_entry[version->position - 1]);
-      lentry->pdata = data;
+      fenix_buffer_entry_t *lentry = &(version->local_entry[version->position - 1]);
+      mentry->user_data = data;
       mentry->current_datatype = lentry->datatype;
       mentry->current_count = lentry->count;
       mentry->current_size = lentry->datatype_size;
-      memcpy(lentry->pdata, lentry->data, lentry->count * lentry->datatype_size);
+      memcpy(mentry->user_data, lentry->data, lentry->count * lentry->datatype_size);
       if (__fenix_options.verbose == 25) {
         verbose_print("c-rank: %d, role: %d, v-pos: %d, ld-totalsize: %d\n",
                         __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
@@ -1480,7 +1481,7 @@ int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
     __fenix_ensure_version_capacity(member);
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = mentry->version;
-    fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
+    fenix_buffer_entry_t *lentry = &(version->local_entry[version->position]);
 
     switch (attributename) {
       case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
@@ -1551,7 +1552,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
     __fenix_ensure_version_capacity(member);
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = mentry->version;
-    fenix_local_entry_t *lentry = &(version->local_entry[version->position]);
+    fenix_buffer_entry_t *lentry = &(version->local_entry[version->position]);
 
     switch (attributename) {
       case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
@@ -1650,7 +1651,8 @@ int __fenix_snapshot_delete(int group_id, int time_stamp) {
 #endif
       } else {
         int version_index = time_stamp - gentry->timestart;
-        __fenix_free_local(&(version->local_entry[version_index]));
+        //__fenix_free_local(&(version->local_entry[version_index]));
+        __fenix_data_buffer_reset(&(version->local_entry[version_index]));
       }
     }
     retval = FENIX_SUCCESS;
@@ -1720,8 +1722,8 @@ int __fenix_group_delete(int groupid) {
       /* Free-up versions */
       int verison_index;
       for (verison_index = 0; verison_index < version->total_size; verison_index++) {
-        __fenix_free_local(&(version->local_entry[version->position]));
-        __fenix_free_remote(&(version->remote_entry[version->position]));
+        __fenix_data_buffer_reset(&(version->local_entry[version->position]));
+        __fenix_data_buffer_reset(&(version->remote_entry[version->position]));
       }
     }
     retval = FENIX_SUCCESS;
@@ -1772,8 +1774,8 @@ int __fenix_member_delete(int groupid, int memberid) {
 
     int verison_index;
     for (verison_index = 0; verison_index < version->total_size; verison_index++) {
-      __fenix_free_local(&(version->local_entry[verison_index]));
-      __fenix_free_remote(&(version->remote_entry[verison_index]));
+      __fenix_data_buffer_reset(&(version->local_entry[verison_index]));
+      __fenix_data_buffer_reset(&(version->remote_entry[verison_index]));
     }
     retval = FENIX_SUCCESS;
   }

@@ -129,8 +129,8 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
   }
 
   fenix_two_container_packet_t mpacket;
-  MPI_Recv(&mpacket, sizeof(fenix_two_container_packet_t), MPI_BYTE, out_rank,
-           RECOVER_MEMBER_TAG, comm, &status); /* Member metadata */
+  MPI_Recv( &mpacket, sizeof(fenix_two_container_packet_t), MPI_BYTE, out_rank,
+            RECOVER_MEMBER_TAG, comm, &status); /* Member metadata */
 
   fenix_member_t *member = gentry->member;
 
@@ -192,7 +192,7 @@ int _pc_send_member_entries(int current_rank, int out_rank, int depth,
                           version->total_size; version_index++) { /* used to be version->num_copies */
     /* Make sure the position is decremented by 1 as this is the most recent valid data */
     int remote_entry_offset = (((version->position - 1) + version_index) % depth);
-    fenix_remote_entry_t *rentry = &(version->remote_entry[version_index]);
+    fenix_buffer_entry_t *rentry = &(version->remote_entry[version_index]);
     fenix_data_entry_packet_t dpacket;
     dpacket.datatype = rentry->datatype;
     dpacket.count = rentry->count;
@@ -236,7 +236,7 @@ int _pc_recover_member_entries(int current_rank, int in_rank, int depth,
   int version_index;
   for (version_index = 0;
        version_index < version->total_size; version_index++) { // used to be version->num_copies
-    fenix_local_entry_t *lentry = &(version->local_entry[version_index]);
+    fenix_buffer_entry_t *lentry = &(version->local_entry[version_index]);
     fenix_data_entry_packet_t dpacket;
     MPI_Recv(&dpacket, sizeof(fenix_data_entry_packet_t), MPI_BYTE, in_rank,
              RECOVER_SIZE_TAG + version_index, comm, &status); /* Remote data metadata */
@@ -245,7 +245,7 @@ int _pc_recover_member_entries(int current_rank, int in_rank, int depth,
     lentry->count = dpacket.count;
     lentry->datatype_size = dpacket.datatype_size;
     lentry->data = s_malloc(lentry->datatype_size * lentry->count);
-    lentry->currentrank = current_rank;
+    lentry->origin_rank = current_rank;
 
     if (__fenix_options.verbose == 74) {
       verbose_print("recv version[%d], ld-count: %d, ld-size: %d\n",
@@ -388,7 +388,7 @@ int _pc_send_members(int current_rank, int out_rank, int depth, fenix_member_t *
 
       /* Make sure the position is decremented by 1 as this is the most recent valid data */
       int remote_entry_offset = (((version->position - 1) + version_index) % depth);
-      fenix_remote_entry_t *rentry = &(version->remote_entry[version_index]);
+      fenix_buffer_entry_t *rentry = &(version->remote_entry[version_index]);
       fenix_data_entry_packet_t dpacket;
       dpacket.datatype = rentry->datatype;
       dpacket.count = rentry->count;
@@ -460,7 +460,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
     for (version_index = 0; version_index <
                             version->total_size; version_index++) { // used to be version->num_copies
       int local_entry_offset = (((version->position - 1) + version_index) % depth);
-      fenix_local_entry_t *lentry = &(version->local_entry[version_index]);
+      fenix_buffer_entry_t *lentry = &(version->local_entry[version_index]);
       fenix_data_entry_packet_t dpacket;
       MPI_Recv(&dpacket, sizeof(fenix_data_entry_packet_t), MPI_BYTE, in_rank,
                RECOVER_SIZE_TAG + version_index, comm,
@@ -470,7 +470,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
       lentry->count = dpacket.count;
       lentry->datatype_size = dpacket.datatype_size;
       lentry->data = s_malloc(lentry->datatype_size * lentry->count); /* Check */
-      lentry->currentrank = current_rank;
+      lentry->origin_rank = current_rank;
 
       if (__fenix_options.verbose == 72) {
         verbose_print("recv version[%d], ld-offset: %d, ld-count: %d, ld-size: %d\n",
