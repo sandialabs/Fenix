@@ -155,8 +155,7 @@ void __fenix_free_local(fenix_local_entry_t *);
 void __fenix_free_remote(fenix_remote_entry_t *);
 
 
-void __fenix_ensure_member_capacity(fenix_member_t *);
-void __fenix_ensure_version_capacity(fenix_member_t *);
+
 
 int __fenix_search_memberid(int, int);
 int __fenix_find_next_group_position(fenix_group_t *);

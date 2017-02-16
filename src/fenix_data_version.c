@@ -140,16 +140,16 @@ void  __fenix_data_version_destroy( fenix_version_t *version ) {
  * @brief
  * @param
  */
-void __fenix_ensure_version_capacity2(fenix_version_t *version) {
+void __fenix_ensure_version_capacity(fenix_version_t *version) {
 
   if (version->total_size > __FENIX_DEFAULT_VERSION_SIZE) {
-    version->local_entry = (fenix_local_entry_t *) realloc(version->local_entry,
+    version->local_entry = (fenix_buffer_entry_t *) realloc(version->local_entry,
                                                              (version->total_size * 2) *
-                                                             sizeof(fenix_local_entry_t));
-    version->remote_entry = (fenix_remote_entry_t *) realloc(
+                                                             sizeof(fenix_buffer_entry_t));
+    version->remote_entry = (fenix_buffer_entry_t *) realloc(
               version->remote_entry,
               (version->total_size * 2) *
-              sizeof(fenix_remote_entry_t));
+              sizeof(fenix_buffer_entry_t));
     version->total_size = version->total_size * 2;
 
     if (__fenix_options.verbose == 53) {
@@ -173,12 +173,12 @@ void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t pa
   v->count = packet.count;
   v->total_size = packet.total_size;
   v->position = packet.position;
-  v->local_entry = (fenix_local_entry_t *) realloc(v->local_entry,
+  v->local_entry = (fenix_buffer_entry_t *) realloc(v->local_entry,
                                                    (v->total_size) *
-                                                   sizeof(fenix_local_entry_t));
-  v->remote_entry = (fenix_remote_entry_t *) realloc(v->remote_entry,
+                                                   sizeof(fenix_buffer_entry_t));
+  v->remote_entry = (fenix_buffer_entry_t *) realloc(v->remote_entry,
                                                      (v->total_size) *
-                                                     sizeof(fenix_remote_entry_t));
+                                                     sizeof(fenix_buffer_entry_t));
 
   if (__fenix_options.verbose == 49) {
     verbose_print("c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",

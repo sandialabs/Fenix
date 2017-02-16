@@ -507,7 +507,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
     fenix_subset_offsets_t *loffsets = NULL, *roffsets = NULL;
     char *send_buff, *recv_buff;
 
-    __fenix_ensure_version_capacity(member);
+    __fenix_ensure_version_capacity_from_member(member);
 
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = mentry->version;
@@ -1478,7 +1478,7 @@ int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = gentry->member;
-    __fenix_ensure_version_capacity(member);
+    __fenix_ensure_version_capacity_from_member(member);
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = mentry->version;
     fenix_buffer_entry_t *lentry = &(version->local_entry[version->position]);
@@ -1549,7 +1549,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
     fenix_group_t *group = __fenix_g_data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = gentry->member;
-    __fenix_ensure_version_capacity(member);
+    __fenix_ensure_version_capacity_from_member(member);
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = mentry->version;
     fenix_buffer_entry_t *lentry = &(version->local_entry[version->position]);

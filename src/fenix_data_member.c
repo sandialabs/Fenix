@@ -148,20 +148,20 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
  * @brief
  * @param
  */
-void __fenix_ensure_version_capacity(fenix_member_t *m) {
+void __fenix_ensure_version_capacity_from_member(fenix_member_t *m) {
   fenix_member_t *member = m;
   int member_index;
   for (member_index = 0; member_index < member->total_size; member_index++) {
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     fenix_version_t *version = mentry->version;
     if (version->total_size > __FENIX_DEFAULT_VERSION_SIZE) {
-      version->local_entry = (fenix_local_entry_t *) realloc(version->local_entry,
+      version->local_entry = (fenix_buffer_entry_t *) realloc(version->local_entry,
                                                              (version->total_size * 2) *
-                                                             sizeof(fenix_local_entry_t));
-      version->remote_entry = (fenix_remote_entry_t *) realloc(
+                                                             sizeof(fenix_buffer_entry_t));
+      version->remote_entry = (fenix_buffer_entry_t *) realloc(
               version->remote_entry,
               (version->total_size * 2) *
-              sizeof(fenix_remote_entry_t));
+              sizeof(fenix_buffer_entry_t));
       version->total_size = version->total_size * 2;
 
       if (__fenix_options.verbose == 53) {
