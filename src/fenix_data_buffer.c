@@ -146,6 +146,11 @@ int __fenix_data_buffer_reset( fenix_buffer_entry_t *buffer ) {
 void __fenix_data_buffer_destroy(  fenix_buffer_entry_t *buffer  ) {
 
   if( buffer->data != NULL ) {
+  if (__fenix_options.verbose == 45) {
+    verbose_print(
+            "c-rank: %d, deleteing the content of buffer\n",
+              __fenix_get_current_rank(*__fenix_g_world));
+   }
     free( buffer->data );
   }
   free( buffer );
