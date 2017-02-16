@@ -75,6 +75,8 @@ int main(int argc, char **argv) {
   int spare_ranks = atoi(argv[1]);
 
   MPI_Init(&argc, &argv);
+
+  MPI_Barrier(MPI_COMM_WORLD);
   MPI_Comm world_comm;
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   MPI_Comm_size(world_comm, &old_world_size);
