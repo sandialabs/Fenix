@@ -120,7 +120,6 @@ fenix_version_t *__fenix_data_version_init() {
   for (version_index = 0; version_index < __FENIX_DEFAULT_VERSION_SIZE; version_index++) {
       __fenix_data_buffer_reset(& (version->local_entry[version_index]) );
       __fenix_data_buffer_reset(& (version->remote_entry[version_index]) );
- //   version->remote_entry[version_index] = __fenix_init_remote();
   }
   return version;
 }
@@ -129,9 +128,11 @@ fenix_version_t *__fenix_data_version_init() {
 void  __fenix_data_version_destroy( fenix_version_t *version ) {
   int version_index;
   for (version_index = 0; version_index < version->total_size; version_index++) {
-    __fenix_data_buffer_destroy( &(version->local_entry[version_index] ) );
-    __fenix_data_buffer_destroy( &(version->remote_entry[version_index] ) );
+    __fenix_data_buffer_destroy_internal( &(version->local_entry[version_index] ) );
+    __fenix_data_buffer_destroy_internal( &(version->remote_entry[version_index] ) );
   }
+  free( version->local_entry );
+  free( version->remote_entry );
   free( version );
 }
 
