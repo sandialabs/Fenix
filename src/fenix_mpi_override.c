@@ -139,7 +139,7 @@ int MPI_Barrier(MPI_Comm comm) {
 int MPI_Bcast(void *buf, int count, MPI_Datatype type, int root, MPI_Comm comm) {
   int ret, flag;
 
-  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Bcast(buf, count, type, root, *__fenix_g_new_world);
+  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Bcast(buf, count, type, root, comm);
   else {
     MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
     if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
