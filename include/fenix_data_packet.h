@@ -53,40 +53,21 @@
 // ************************************************************************
 //@HEADER
 */
-
-#ifndef __HASH__
-#define __HASH__
-
-#include "util.h"
+#ifndef __FENIX_DATA_PACKET_H__
+#define __FENIX_DATA_PACKET_H__
 #include <mpi.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
-typedef struct hash_table_entry {
-    long key;
-    MPI_Request *value;
-    enum states state;
-} pair;
-
-struct hash_table {
-    pair *table;
-    size_t size;
+typedef struct __two_container_packet {
     size_t count;
-};
+    size_t total_size;
+} fenix_two_container_packet_t;
 
-int hash(long);
+typedef struct __container_packet {
+    size_t count;
+    size_t total_size;
+    size_t position;
+    size_t num_copies;
+} fenix_container_packet_t;
 
-struct hash_table *hash_table_new(size_t);
 
-int hash_table_put(struct hash_table *, long, MPI_Request *);
-
-MPI_Request *hash_table_get(const struct hash_table *, long);
-
-MPI_Request *hash_table_remove(struct hash_table *, long);
-
-void hash_table_print(const struct hash_table *);
-
-void hash_table_destroy(struct hash_table *);
-
-#endif
+#endif // FENIX_DATA_PACKET_H

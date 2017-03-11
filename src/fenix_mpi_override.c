@@ -53,17 +53,16 @@
 // ************************************************************************
 //@HEADER
 */
-#include "process_recovery.h"
-
+#include "fenix_process_recovery.h"
 #include <mpi.h>
-// #include "fenix_ext.h"
+#include "fenix_ext.h"
 
 #ifdef OPEN_MPI
 #define MPI_SEND_BUFF_TYPE void *
 #else
 #define MPI_SEND_BUFF_TYPE const void *
 #endif
-extern int __fenix_g_fenix_init_flag;
+
 
 /**
  * @brief
@@ -87,7 +86,7 @@ int MPI_Allreduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Data
       ret = PMPI_Allreduce(sendbuf, recvbuf, count, type, op, comm);
     }
   }
-  test_MPI(ret, "MPI_Allreduce");
+  __fenix_test_MPI(ret, "MPI_Allreduce");
   return ret;
 }
 
@@ -104,7 +103,7 @@ int MPI_Reduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Datatyp
       ret = PMPI_Reduce(sendbuf, recvbuf, count, type, op, root, comm);
     }
   }
-  test_MPI(ret, "MPI_Reduce");
+  __fenix_test_MPI(ret, "MPI_Reduce");
   return ret;
 }
 
@@ -125,7 +124,7 @@ int MPI_Barrier(MPI_Comm comm) {
       ret = PMPI_Barrier(comm);
     }
   }
-  test_MPI(ret, "MPI_Barrier");
+  __fenix_test_MPI(ret, "MPI_Barrier");
   return ret;
 }
 
@@ -140,7 +139,7 @@ int MPI_Barrier(MPI_Comm comm) {
 int MPI_Bcast(void *buf, int count, MPI_Datatype type, int root, MPI_Comm comm) {
   int ret, flag;
 
-  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Bcast(buf, count, type, root, *__fenix_g_new_world);
+  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Bcast(buf, count, type, root, comm);
   else {
     MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
     if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
@@ -149,7 +148,7 @@ int MPI_Bcast(void *buf, int count, MPI_Datatype type, int root, MPI_Comm comm) 
       ret = PMPI_Bcast(buf, count, type, root, comm);
     }
   }
-  test_MPI(ret, "MPI_Bcast");
+  __fenix_test_MPI(ret, "MPI_Bcast");
   return ret;
 }
 
@@ -175,9 +174,9 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
     } else {
       ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     }
-    insert_request(request);
+    __fenix_insert_request(request);
   }
-  test_MPI(ret, "MPI_Irecv");
+  __fenix_test_MPI(ret, "MPI_Irecv");
   return ret;
 }
 
@@ -203,9 +202,9 @@ int MPI_Isend(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype datatype, int dest
     } else {
       ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
     }
-    insert_request(request);
+    __fenix_insert_request(request);
   }
-  test_MPI(ret, "MPI_Isend");
+  __fenix_test_MPI(ret, "MPI_Isend");
   return ret;
 }
 
@@ -231,7 +230,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype type, int source, int tag, MPI_C
       ret = PMPI_Recv(buf, count, type, source, tag, comm, status);
     }
   }
-  test_MPI(ret, "MPI_Recv");
+  __fenix_test_MPI(ret, "MPI_Recv");
   return ret;
 }
 
@@ -257,7 +256,7 @@ int MPI_Send(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype type, int dest, int
       ret = PMPI_Send(buf, count, type, dest, tag, comm);
     }
   }
-  test_MPI(ret, "MPI_Send");
+  __fenix_test_MPI(ret, "MPI_Send");
   return ret;
 }
 
@@ -292,7 +291,7 @@ int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, MPI_Datatype sendtyp
         ret = PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, comm, status);
       }
   }
-    test_MPI(ret, "MPI_Sendrecv");
+    __fenix_test_MPI(ret, "MPI_Sendrecv");
     return ret;
 }
 
@@ -307,8 +306,8 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
     ret = PMPI_Wait(request, status);
   } else {
     ret = PMPI_Wait(request, status);
-    test_MPI(ret, "MPI_Wait");
-    remove_request(request);
+    __fenix_test_MPI(ret, "MPI_Wait");
+    __fenix_remove_request(request);
   }
   return ret;
 }

@@ -54,33 +54,34 @@
 //@HEADER
 */
 
-#ifndef __FENIX_EXT_H__
-#define __FENIX_EXT_H__
-/* Keep all global variable declarations */
-#include <mpi.h>
-#include "fenix_opt.h"
-#include "fenix_data_group.h"
+#ifndef __FENIX_OPT__
+#define __FENIX_OPT__
 
-extern __fenix_debug_options __fenix_options;
-extern int __fenix_g_fenix_init_flag;
-extern int __fenix_g_role;
-extern fenix_group_t *__fenix_g_data_recovery;
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sysexits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <fcntl.h>
+#include <getopt.h>
 
-extern int __fenix_g_num_inital_ranks;
-extern int __fenix_g_num_survivor_ranks;
-extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
-extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
-extern int __fenix_g_replace_comm_flag;
-extern int __fenix_g_repair_result;
+#define debug_print(fmt, ...) \
+        do { fprintf(stderr, "%s: %d: %s(): " fmt, __FILE__, \
+                                        __LINE__, __func__, __VA_ARGS__); } while (0)
 
-extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
-extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
-extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Op __fenix_g_agree_op;
+#define verbose_print(fmt, ...) \
+        do { printf("%s(): " fmt, __func__, __VA_ARGS__); } while (0)
+
+typedef struct __fenix_debug_opt_t {
+    int verbose;
+} __fenix_debug_options;
 
 
-#endif // __FENIX_EXT_H__
+void __fenix_init_opt(int argc, char **argv);
 
+#endif

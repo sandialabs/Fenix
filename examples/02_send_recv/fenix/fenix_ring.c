@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   int error;
   int my_group = 0;
   int my_timestamp = 0;
-  int my_depth = 0;
+  int my_depth = 1;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -152,12 +152,30 @@ int main(int argc, char **argv) {
   } else {
     int out_flag = 0;
     /* Should throw error if kCount is greater than 4 */
-    Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 1);
+    Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 2);
     Fenix_Data_member_restore(my_group, 778, x, 4, 1);
     Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1);
+    printf("inmsg = %d\n",inmsg[0]);
+    printf("outmsg = %d\n",outmsg[0]);
     recovered = 1;
     reset = 1;
   }
+
+  for (i = 0; i < kCount; i++) {
+      inmsg[i] = -1;  
+  }
+
+  for( i = 4; i < kCount; i++ ) {
+    outmsg[i] = 0;
+  }
+  for( i = 0; i < 4; i++ ) {
+      x[i] = (double)(i+1)/(double)10.0;
+  }
+  
+  Fenix_Data_member_store(my_group, 779, FENIX_DATA_SUBSET_FULL);
+  Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+  Fenix_Data_member_store(my_group, 778, FENIX_DATA_SUBSET_FULL);
+  Fenix_Data_commit(my_group, &my_timestamp);
 
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();

@@ -53,34 +53,58 @@
 // ************************************************************************
 //@HEADER
 */
+#ifndef __FENIX_DATA_GROUP_H__
+#define __FENIX_DATA_GROUP_H__
 
-#ifndef __FENIX_EXT_H__
-#define __FENIX_EXT_H__
-/* Keep all global variable declarations */
 #include <mpi.h>
-#include "fenix_opt.h"
-#include "fenix_data_group.h"
-
-extern __fenix_debug_options __fenix_options;
-extern int __fenix_g_fenix_init_flag;
-extern int __fenix_g_role;
-extern fenix_group_t *__fenix_g_data_recovery;
-
-extern int __fenix_g_num_inital_ranks;
-extern int __fenix_g_num_survivor_ranks;
-extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
-extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
-extern int __fenix_g_replace_comm_flag;
-extern int __fenix_g_repair_result;
-
-extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
-extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
-extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Op __fenix_g_agree_op;
+#include "fenix_data_member.h"
+#include "fenix_data_packet.h"
+#include "fenix_util.h"
 
 
-#endif // __FENIX_EXT_H__
+#define __FENIX_DEFAULT_GROUP_SIZE 32
 
+typedef struct __fenix_group_entry {
+    int groupid;
+    MPI_Comm comm;
+    int comm_size;
+    int current_rank;
+    int in_rank;
+    int out_rank;
+    int timestart;
+    int timestamp;
+    int depth;
+    int rank_separation;
+    /* Subject to change */
+    enum states state;
+    int recovered;
+    fenix_member_t *member;
+} fenix_group_entry_t;
+
+typedef struct __fenix_group {
+    size_t count;
+    size_t total_size;
+    fenix_group_entry_t *group_entry;
+} fenix_group_t;
+
+typedef struct __group_entry_packet {
+    int groupid;
+    int timestamp;
+    int depth;
+    int rank_separation;
+    enum states state;
+} fenix_group_entry_packet_t;
+
+fenix_group_t * __fenix_data_group_init();
+
+void __fenix_data_group_destroy( fenix_group_t *fx_group );
+
+void __fenix_data_group_reinit( fenix_group_t *g, fenix_two_container_packet_t packet);
+
+void __fenix_ensure_group_capacity( fenix_group_t *g);
+
+int __fenix_search_groupid( int key, fenix_group_t *group );
+
+int __fenix_find_next_group_position( fenix_group_t *g );
+
+#endif // FENIX_DATA_GROUP_H

@@ -53,65 +53,13 @@
 // ************************************************************************
 //@HEADER
 */
+#ifndef __FENIX_DATA_SUBSET_H__
+#define __FENIX_DATA_SUBSET_H__
 
-#ifndef __UTIL__
-#define __UTIL__
+typedef struct __fenix_subset_offsets  {
+    size_t start;
+    size_t end;
+} fenix_subset_offsets_t ;
 
-#include "fenix.h"
-#include "process_recovery.h"
-#include <mpi.h>
-#include <syslog.h>
-#include <sys/types.h>
-#include <sys/times.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <sys/time.h>
-#include <signal.h>
-#include <libgen.h>
 
-char *logname;
-
-#define LDEBUG(f...)  {LLIND("debug",f);}
-#define LLIND(t,f...) {fprintf(stderr,"%s - %s (%i): %s: \n",logname,__PRETTY_FUNCTION__,getpid(),t); fprintf(stderr,f);}
-#define ERRHANDLE(f...){LFATAL(f);}
-#define LFATAL(f...)  {LLINF("fatal", f);}
-#define LLINF(t,f...) {fprintf(stderr,"(%i): %s: ", getpid(), t); fprintf(stderr, f);}
-
-enum states { EMPTY = 0, OCCUPIED = 1, DELETED = 2, NEEDFIX = 3 };
-
-void ranks_agree(int *, int *, int *, MPI_Datatype *);
-
-int binary_search(int *, int, int);
-
-int comparator(const void *, const void *);
-
-int get_size(MPI_Datatype);
-
-int get_fenix_default_rank_separation();
-
-int get_current_rank(MPI_Comm);
-
-int get_partner_rank(int, MPI_Comm);
-
-int get_world_size(MPI_Comm);
-
-int wait(MPI_Request *);
-
-int _f_test(MPI_Request *);
-
-void push(struct callback_list **, fenix_callback_func *);
-
-void *s_calloc(int count, size_t size);
-
-void *s_malloc(size_t size);
-
-void *s_realloc(void *mem, size_t size);
-
-#endif
+#endif // FENIX_DATA_SUBSET_H

@@ -53,35 +53,68 @@
 // ************************************************************************
 //@HEADER
 */
+#ifndef __FENIX_DATA_MEMBER_H__
+#define __FENIX_DATA_MEMBER_H__
 
-#ifndef _OPT_
-#define _OPT_
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sysexits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <getopt.h>
-
-#define debug_print(fmt, ...) \
-        do { fprintf(stderr, "%s: %d: %s(): " fmt, __FILE__, \
-                                        __LINE__, __func__, __VA_ARGS__); } while (0)
-
-#define verbose_print(fmt, ...) \
-        do { printf("%s(): " fmt, __func__, __VA_ARGS__); } while (0)
-
-typedef struct __fenix_debug_opt_t {
-    int verbose;
-} __fenix_debug_options;
+#include <mpi.h>
+#include "fenix_data_version.h"
+#include "fenix_data_packet.h"
+#include "fenix_util.h"
 
 
-void init_opt(int argc, char **argv);
+#define __FENIX_DEFAULT_MEMBER_SIZE 512
 
-#endif
+typedef struct __fenix_member_entry {
+    int memberid;
+    enum states state;
+    fenix_version_t *version;
+    void *user_data;
+    MPI_Datatype current_datatype;
+    int datatype_size;
+    int current_count;
+    int current_size;
+    int currentrank;
+    int remoterank;
+    int remoterank_front;
+    int remoterank_back;
+} fenix_member_entry_t;
+
+typedef struct __fenix_member {
+    size_t count;
+    int temp_count;
+    size_t total_size;
+    fenix_member_entry_t *member_entry;
+} fenix_member_t;
+
+typedef struct __member_store_packet {
+    int rank;
+    MPI_Datatype datatype;
+    int entry_count;
+    size_t entry_size;
+    int entry_real_count;
+    int num_blocks;
+
+} fenix_member_store_packet_t;
+
+typedef struct __member_entry_packet {
+    int memberid;
+    enum states state;
+    MPI_Datatype current_datatype;
+    int datatype_size;
+    int current_count;
+    int current_size;
+    int currentrank;
+    int remoterank;
+    int remoterank_front;
+    int remoterank_back;
+} fenix_member_entry_packet_t;
+
+fenix_member_t *__fenix_data_member_init( );
+void __fenix_data_member_destroy( fenix_member_t *member ) ;
+
+void __fenix_ensure_member_capacity( fenix_member_t *m );
+void __fenix_ensure_version_capacity_from_member( fenix_member_t *m ) ;
+
+void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t packet,
+                   enum states mystatus);
+#endif // FENIX_DATA_MEMBER_H

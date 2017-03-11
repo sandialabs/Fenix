@@ -53,35 +53,17 @@
 // ************************************************************************
 //@HEADER
 */
+#ifndef __FENIX_METADATA_H__
+#define __FENIX_METADATA_H__
+#include "fenix_data_recovery.h"
 
-#include "opt.h"
-#include "util.h"
-#include "fenix_ext.h"
+void __fenix_init_group_metadata ( fenix_group_entry_t *gentry, int groupid, MPI_Comm comm, int timetamp, int depth  );
 
-#define DEBUG 1
+void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  );
 
+void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype );
 
+void __fenix_data_member_init_store_packet( fenix_member_store_packet_t *lentry_packet, fenix_buffer_entry_t *lentry, int flag );
 
+#endif // FENIX_METADATA_H
 
-/**
- * @brief
- * @param argc
- * @param argv
- * @param opts
- */
-void init_opt(int argc, char **argv) {
-   int i;
-
-   /* initalize the value */
-   __fenix_options.verbose = -1;
-   for( i = 0; i < argc; i++ )
-   {
-      if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
-      {
-         if( i+1 < argc )
-         {
-            __fenix_options.verbose = atoi(argv[i+1]);
-         }
-      }
-    }
-}

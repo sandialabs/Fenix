@@ -65,16 +65,18 @@ const int kKillID = 3;
 
 int main(int argc, char **argv) {
 
-  if (argc != 2) {
-    printf("Usage: %s <# spare ranks> \n", *argv);
-    exit(0);
-  }
+ // if (argc != 2) {
+ //   printf("Usage: %s <# spare ranks> \n", *argv);
+ //  exit(0);
+ // }
 
   int old_world_size, new_world_size = - 1;
   int old_rank = 1, new_rank = - 1;
   int spare_ranks = atoi(argv[1]);
 
   MPI_Init(&argc, &argv);
+
+  MPI_Barrier(MPI_COMM_WORLD);
   MPI_Comm world_comm;
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   MPI_Comm_size(world_comm, &old_world_size);

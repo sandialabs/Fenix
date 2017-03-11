@@ -53,12 +53,8 @@
 // ************************************************************************
 //@HEADER
 */
-
-#ifndef __PROCESS_RECOVERY__
-#define __PROCESS_RECOVERY__
-
-#include "fenix.h"
-#include "constants.h"
+#ifndef __FENIX_PROCES_RECOVERY_GLOBAL_H__
+#define __FENIX_PROCES_RECOVERY_GLOBAL_H__
 
 #include <mpi.h>
 #include <setjmp.h>
@@ -69,95 +65,38 @@
 #include <stdint.h>
 #include <signal.h>
 
-#define __FENIX_RESUME_AT_INIT 0 
-#define __FENIX_RESUME_NO_JUMP 200
+#include "fenix_opt.h"
+#include "fenix_util.h"
+#include "fenix_data_group.h"
 
-typedef void (*recover)( MPI_Comm, int, void *);
 
-typedef struct fcouple {
-    recover x;
-    void *y;
-} fenix_callback_func;
-
-typedef struct callback_list {
-    fenix_callback_func callback;
-    struct callback_list *next;
-} __fenix_callback_list;
-
-/****************/
-/*              */
-/* Place Holder */
-/* for struct   */
-/*              */
-/****************/
-#if 0
-typedef struct __fenix_session {
-  int __num_inital_ranks;
-  int __num_survivor_ranks;
-  int __num_recovered_ranks;
-  int __resume_mode; // Defines how program resumes after process recovery.
-  int __spawn_policy;
-  int __spare_ranks; // spare ranks entered by user to repair failed ranks 
-  enum FenixRankRole __fenix_rank_role; 
-  // calling environment to fill the jmp_buf structure 
-  jmp_buf *__fenix_g_recover_environment;
-  // role of rank; 3 options: initial, survivor or repair
-  enum FenixRankRole __fenix_g_role; 
-  // a duplicate of the MPI communicator provided by user
-  MPI_Comm *__fenix_world;
-  // global MPI communicator identical to g_world but without spare ranks 
-  MPI_Comm *__fenix_new_world;
-} fenix_session;
-#endif
-/****************/
+/* This header file is intended to proivde global variable defintiions for fenix_process_recovery.c only */
+#define __FENIX_HASH_TABLE_SIZE 512
 
 int __fenix_g_num_inital_ranks;
 int __fenix_g_num_survivor_ranks;
 int __fenix_g_num_recovered_ranks;
 int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
 int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks 
+int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
 int __fenix_g_replace_comm_flag;
 int __fenix_g_repair_result;
-jmp_buf *__fenix_g_recover_environment;   // Calling environment to fill the jmp_buf structure 
+jmp_buf *__fenix_g_recover_environment;   // Calling environment to fill the jmp_buf structure
 
 
 //enum FenixRankRole __fenix_g_role;    // Role of rank: initial, survivor or repair
 int  __fenix_g_role;    // Role of rank: initial, survivor or repair
+int __fenix_g_fenix_init_flag = 0;
+struct __fenix_hash_table* __fenix_outstanding_request = NULL;
+
+fenix_callback_list_t* __fenix_g_callback_list;
+__fenix_debug_options __fenix_options;
 
 MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks 
+MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
 MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
 MPI_Comm __fenix_g_original_comm;
-MPI_Op __fenix_g_agree_op;
+MPI_Op   __fenix_g_agree_op;
 
-int preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int, MPI_Info, int *, jmp_buf *);
-
-int create_new_world();
-
-int repair_ranks();
-
-void insert_request(MPI_Request *);
-
-void remove_request(MPI_Request *);
-
-int callback_register(void (*recover)(MPI_Comm, int, void *), void *);
-
-int *get_fail_ranks(int *, int, int);
-
-int spare_rank();
-
-int get_rank_role();
-
-//void set_rank_role(enum FenixRankRole);
-void set_rank_role(int FenixRankRole);
-
-void postinit(int *);
-
-void finalize();
-
-void finalize_spare();
-
-void test_MPI(int, const char *);
-
-#endif
+fenix_group_t *__fenix_g_data_recovery;
+#endif // __FENIX_PROCES_RECOVERY_GLOBAL_H__

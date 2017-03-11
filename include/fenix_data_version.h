@@ -53,34 +53,45 @@
 // ************************************************************************
 //@HEADER
 */
+#ifndef __FENIX_DATA_VERSION_H__
+#define __FENIX_DATA_VERSION_H__
+#include "fenix_data_buffer.h"
 
-#ifndef __FENIX_EXT_H__
-#define __FENIX_EXT_H__
-/* Keep all global variable declarations */
-#include <mpi.h>
-#include "fenix_opt.h"
-#include "fenix_data_group.h"
-
-extern __fenix_debug_options __fenix_options;
-extern int __fenix_g_fenix_init_flag;
-extern int __fenix_g_role;
-extern fenix_group_t *__fenix_g_data_recovery;
-
-extern int __fenix_g_num_inital_ranks;
-extern int __fenix_g_num_survivor_ranks;
-extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
-extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
-extern int __fenix_g_replace_comm_flag;
-extern int __fenix_g_repair_result;
-
-extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
-extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
-extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Op __fenix_g_agree_op;
+#define __FENIX_DEFAULT_VERSION_SIZE   16
 
 
-#endif // __FENIX_EXT_H__
+typedef struct __fenix_version {
+    size_t depth;
 
+    size_t num_copies;  /* Number of copies            */
+
+    size_t count;       /* Number of versions          */
+
+    size_t num_versions;
+
+    size_t total_size;  /* Size of bucket              */
+
+    size_t position;    /* Position of current version */
+
+    size_t current_position;
+
+    fenix_buffer_entry_t *local_entry;
+    fenix_buffer_entry_t *remote_entry;
+
+} fenix_version_t;
+
+#if 0
+int __fenix_create_version( fenix_version_t **v );
+int __fenix_free_version(   fenix_version_t *v );
+int __fenix_reset_version(  fenix_version_t *v, );
+#endif
+
+fenix_version_t *__fenix_data_version_init();
+
+void __fenix_data_version_destroy( fenix_version_t *v );
+
+//void __fenix_ensure_version_capacity( fenix_version_t *m) ;
+
+void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t packet);
+
+#endif // FENIX_DATA_VERSION_H

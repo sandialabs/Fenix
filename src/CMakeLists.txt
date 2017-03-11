@@ -11,14 +11,19 @@ configure_file (fenix-config.h.in
   "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
 
 set (Fenix_SOURCES 
-hash.c
-process_recovery.c
-metadata_recovery.c
-data_recovery.c
 fenix.c
-mpi_override.c
-util.c
-opt.c
+fenix_mpi_override.c
+fenix_opt.c
+fenix_process_recovery.c
+fenix_util.c
+fenix_data_recovery.c
+fenix_metadata.c
+fenix_metadata_recovery.c
+fenix_data_group.c
+fenix_data_member.c
+fenix_data_version.c
+fenix_data_buffer.c
+fenix_hash.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}

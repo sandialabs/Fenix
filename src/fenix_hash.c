@@ -53,17 +53,17 @@
 // ************************************************************************
 //@HEADER
 */
-#include "hash.h"
+#include "fenix_hash.h"
 
 /**
  * @brief
  * @param table 
  */
-void hash_table_print(const struct hash_table *table) {
+void __fenix_hash_table_print(const struct __fenix_hash_table *table) {
     int i; 
     for(i = 0; i < table->size; i++) {
         if(table->table[i].state == OCCUPIED) {
-            MPI_Request *value = hash_table_get(table, table->table[i].key); 
+            MPI_Request *value = __fenix_hash_table_get(table, table->table[i].key);
             printf("[%d] %lu --> %d\n", i, table->table[i].key, (long) value); 
         }
     }
@@ -73,7 +73,7 @@ void hash_table_print(const struct hash_table *table) {
  * @brief
  * @param key 
  */
-int hash (long key) {
+int __fenix_hash (long key) {
   key = (~key) + (key << 18);
   key = key ^ (key >> 31);
   key = key * 21; 
@@ -87,7 +87,7 @@ int hash (long key) {
  * @brief
  * @param table
  */
-long *keys(const struct hash_table *table) {
+long *__fenix_keys(const struct __fenix_hash_table *table) {
 
     int i, n_occupied = 0, n_inserted = 0;
     long *list_of_keys;
@@ -111,12 +111,12 @@ long *keys(const struct hash_table *table) {
  * @brief
  * @param  
  */
-struct hash_table *hash_table_new(size_t size) {
+struct __fenix_hash_table *__fenix_hash_table_new(size_t size) {
     int i;
-    struct hash_table *table = calloc(1, sizeof(struct hash_table));
+    struct __fenix_hash_table *table = calloc(1, sizeof(struct __fenix_hash_table));
 
     table->size = size;
-    table->table = malloc(sizeof(pair) * size);
+    table->table = malloc(sizeof(__fenix_pair) * size);
 
     for(i = 0; i < size; i++) {
         table->table[i].key = 0;
@@ -137,13 +137,13 @@ struct hash_table *hash_table_new(size_t size) {
  * @param  
  * @param  
  */
-MPI_Request *hash_table_get(const struct hash_table *table, long key) {
+MPI_Request *__fenix_hash_table_get(const struct __fenix_hash_table *table, long key) {
 
-    long hash_code = hash(key) % table->size;
+    long hash_code = __fenix_hash(key) % table->size;
     long index = hash_code;
 
     do {
-        pair *list = table->table;
+        __fenix_pair *list = table->table;
         switch (list[index].state)
         {
             case EMPTY: 
@@ -172,7 +172,7 @@ MPI_Request *hash_table_get(const struct hash_table *table, long key) {
  * @brief
  * @param  
  */
-void hash_table_destroy (struct hash_table *table) {
+void __fenix_hash_table_destroy (struct __fenix_hash_table *table) {
     if(table) {
         int i;
         for (i = 0; i < table->size; i++) {
@@ -194,13 +194,13 @@ void hash_table_destroy (struct hash_table *table) {
  * @param  
  * @param  
  */
-int hash_table_put(struct hash_table *table, long key, MPI_Request *value) {
+int __fenix_hash_table_put(struct __fenix_hash_table *table, long key, MPI_Request *value) {
 
-    long hash_code = hash(key) % table->size;
+    long hash_code = __fenix_hash(key) % table->size;
     long index = hash_code;
 
     do {
-        pair *list = table->table;
+        __fenix_pair *list = table->table;
         switch(list[index].state) {
             case EMPTY:
             case DELETED: 
@@ -228,10 +228,10 @@ int hash_table_put(struct hash_table *table, long key, MPI_Request *value) {
  * @param  
  * @param  
  */
-MPI_Request *hash_table_remove(struct hash_table *table, long key) {
-    long hash_code = hash(key) % table->size;
+MPI_Request *__fenix_hash_table_remove(struct __fenix_hash_table *table, long key) {
+    long hash_code = __fenix_hash(key) % table->size;
     long index = hash_code;
-    pair *list = table->table;
+    __fenix_pair *list = table->table;
 
     do {
         switch(list[index].state) {

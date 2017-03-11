@@ -57,8 +57,8 @@
 #ifndef __FENIX__
 #define __FENIX__
 
-#include "constants.h"
-#include "process_recovery.h"
+#include "fenix_constants.h"
+#include "fenix_process_recovery.h"
 
 #include <mpi.h>
 #include <setjmp.h>
@@ -107,6 +107,7 @@ extern "C" {
 #define FENIX_ERROR_SUBSET_START_OFFSET -23
 #define FENIX_ERROR_SUBSET_END_OFFSET   -24
 #define FENIX_ERROR_SUBSET_STRIDE       -25
+#define FENIX_ERROR_NODATA_FOUND        -30
 #define FENIX_WARNING_SPARE_RANKS_DEPLETED 100
 
 #define FENIX_DATA_GROUP_WORLD_ID 10
@@ -118,7 +119,7 @@ extern "C" {
 #define FENIX_DATA_MEMBER_ATTRIBUTE_COUNT    12
 #define FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE 13
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE     14
-#define FENIX_DATA_SNAPSHOT_LATEST 15
+#define FENIX_DATA_SNAPSHOT_LATEST -1
 #define FENIX_DATA_SNAPSHOT_ALL    16
 #define FENIX_DATA_SUBSET_CREATED  2
 
@@ -155,7 +156,7 @@ typedef struct __fenix_subset {
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
 
-#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error) {static jmp_buf bufjmp; *(_role) = preinit(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error, &bufjmp); if(setjmp(bufjmp)) { *(_role) = FENIX_ROLE_SURVIVOR_RANK; }  postinit( _error ); }
+#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error) {static jmp_buf bufjmp; *(_role) = __fenix_preinit(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error, &bufjmp); if(setjmp(bufjmp)) { *(_role) = FENIX_ROLE_SURVIVOR_RANK; }  __fenix_postinit( _error ); }
 
 int Fenix_Initialized(int *);
 

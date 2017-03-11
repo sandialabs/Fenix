@@ -54,33 +54,70 @@
 //@HEADER
 */
 
-#ifndef __FENIX_EXT_H__
-#define __FENIX_EXT_H__
-/* Keep all global variable declarations */
-#include <mpi.h>
+#if 1
+#include "fenix_constants.h"
+#include "fenix_data_recovery.h"
 #include "fenix_opt.h"
-#include "fenix_data_group.h"
+#include "fenix_process_recovery.h"
+#include "fenix_util.h"
+#include "fenix_ext.h"
+#include "fenix_data_recovery_ext.h"
+#include "fenix_metadata.h"
 
-extern __fenix_debug_options __fenix_options;
-extern int __fenix_g_fenix_init_flag;
-extern int __fenix_g_role;
-extern fenix_group_t *__fenix_g_data_recovery;
+inline void __fenix_init_group_metadata ( fenix_group_entry_t *gentry, int groupid, MPI_Comm comm, int timestamp,
+                                    int depth  )
+{
+   gentry->groupid = groupid;
+   gentry->comm = comm;
+   gentry->timestart = timestamp;
+   gentry->timestamp = timestamp;
+   gentry->depth = depth + 1;
+   gentry->state = OCCUPIED;
+}
 
-extern int __fenix_g_num_inital_ranks;
-extern int __fenix_g_num_survivor_ranks;
-extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
-extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
-extern int __fenix_g_replace_comm_flag;
-extern int __fenix_g_repair_result;
+inline void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  )
 
-extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
-extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
-extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Op __fenix_g_agree_op;
+{
+  gentry->current_rank = __fenix_get_current_rank( gentry->comm );
+  gentry->comm_size    = __fenix_get_world_size( gentry->comm );
+  gentry->in_rank      = ( gentry->current_rank + gentry->comm_size - gentry->rank_separation ) % gentry->comm_size;
+  gentry->out_rank     = ( gentry->current_rank + gentry->comm_size + gentry->rank_separation ) % gentry->comm_size;
+}
+
+inline void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype )
+
+{
+    mentry->memberid = memberid;
+    mentry->state = OCCUPIED;
+    mentry->user_data = data;
+    mentry->current_count = count;
+    mentry->current_datatype = datatype;
+    int dsize;
+    MPI_Type_size(datatype, &dsize);
+
+    mentry->datatype_size = mentry->current_size = dsize;
+}
 
 
-#endif // __FENIX_EXT_H__
+inline void __fenix_data_member_init_store_packet ( fenix_member_store_packet_t *lentry_packet, fenix_buffer_entry_t *lentry, int flag )
+{
+  if ( flag == 0 ) {
+    lentry_packet->rank = lentry->origin_rank;
+    lentry_packet->datatype = lentry->datatype;
+    lentry_packet->entry_count = lentry->count;
+    lentry_packet->entry_size  = lentry->datatype_size;
+    lentry_packet->entry_real_count  = lentry->count;
+    lentry_packet->num_blocks  = 0;
+  } else if ( flag == 1 ) {
+    lentry_packet->rank = lentry->origin_rank;
+    lentry_packet->datatype = lentry->datatype;
+    lentry_packet->entry_count = lentry->count;
+    lentry_packet->entry_size  = lentry->datatype_size;
+    lentry_packet->entry_real_count  = 0;
+    lentry_packet->num_blocks  = 0;
+  } else if (flag == 2 ) { /* Subset */
 
+
+  }
+}
+#endif

@@ -54,33 +54,39 @@
 //@HEADER
 */
 
-#ifndef __FENIX_EXT_H__
-#define __FENIX_EXT_H__
-/* Keep all global variable declarations */
+#ifndef __FENIX_HASH__
+#define __FENIX_HASH__
+
+#include "fenix_util.h"
 #include <mpi.h>
-#include "fenix_opt.h"
-#include "fenix_data_group.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-extern __fenix_debug_options __fenix_options;
-extern int __fenix_g_fenix_init_flag;
-extern int __fenix_g_role;
-extern fenix_group_t *__fenix_g_data_recovery;
+typedef struct __fenix_hash_table_entry {
+    long key;
+    MPI_Request *value;
+    enum states state;
+} __fenix_pair;
 
-extern int __fenix_g_num_inital_ranks;
-extern int __fenix_g_num_survivor_ranks;
-extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
-extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
-extern int __fenix_g_replace_comm_flag;
-extern int __fenix_g_repair_result;
+struct __fenix_hash_table {
+    __fenix_pair *table;
+    size_t size;
+    size_t count;
+};
 
-extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
-extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
-extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Op __fenix_g_agree_op;
+int __fenix_hash(long);
 
+struct __fenix_hash_table *__fenix_hash_table_new(size_t);
 
-#endif // __FENIX_EXT_H__
+int __fenix_hash_table_put(struct __fenix_hash_table *, long, MPI_Request *);
 
+MPI_Request *__fenix_hash_table_get(const struct __fenix_hash_table *, long);
+
+MPI_Request *__fenix_hash_table_remove(struct __fenix_hash_table *, long);
+
+void __fenix_hash_table_print(const struct __fenix_hash_table *);
+
+void __fenix_hash_table_destroy(struct __fenix_hash_table *);
+
+#endif
