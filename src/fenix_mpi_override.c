@@ -107,6 +107,45 @@ int MPI_Reduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Datatyp
   return ret;
 }
 
+/**
+ * @brief
+ * @param comm
+ * @param size
+ */
+int MPI_Comm_size(MPI_Comm comm, int *size) {
+  int ret, flag;
+  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_size(comm, size);
+  else {
+    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
+      ret = PMPI_Comm_size(*__fenix_g_new_world, size);
+    } else {
+      ret = PMPI_Comm_size(comm, size);
+    }
+  }
+  __fenix_test_MPI(ret, "MPI_Comm_size");
+  return ret;
+}
+
+/**
+ * @brief
+ * @param comm
+ * @param rank
+ */
+int MPI_Comm_rank(MPI_Comm comm, int *rank) {
+  int ret, flag;
+  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_rank(comm, rank);
+  else {
+    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
+      ret = PMPI_Comm_rank(*__fenix_g_new_world, rank);
+    } else {
+      ret = PMPI_Comm_rank(comm, rank);
+    }
+  }
+  __fenix_test_MPI(ret, "MPI_Comm_rank");
+  return ret;
+}
 
 
 /**
