@@ -121,7 +121,7 @@ int __fenix_get_size(MPI_Datatype type) {
  */
 int __fenix_get_current_rank(MPI_Comm comm) {
   int rank = - 1;
-  MPI_Comm_rank(comm, &rank);
+  PMPI_Comm_rank(comm, &rank);
   return rank;
 }
 
@@ -132,7 +132,7 @@ int __fenix_get_current_rank(MPI_Comm comm) {
  */
 int __fenix_get_partner_rank(int current_rank, MPI_Comm comm) {
   int size = - 1;
-  MPI_Comm_size(comm, &size);
+  PMPI_Comm_size(comm, &size);
   return ((current_rank + (size / 2)) % size);
 }
 
@@ -167,7 +167,7 @@ int __fenix_mpi_test(MPI_Request *request) {
 int __fenix_get_fenix_default_rank_separation( MPI_Comm comm  )
 {
   int size = - 1;
-  MPI_Comm_size(comm, &size);
+  PMPI_Comm_size(comm, &size);
   return size / 2;
 }
 /**
@@ -176,7 +176,7 @@ int __fenix_get_fenix_default_rank_separation( MPI_Comm comm  )
  */
 int  __fenix_get_world_size(MPI_Comm comm) {
   int size = - 1;
-  MPI_Comm_size(comm, &size);
+  PMPI_Comm_size(comm, &size);
   return size;
 }
 
