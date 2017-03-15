@@ -65,6 +65,7 @@
 #include "fenix_util.h"
 #include <mpi.h>
 
+
 /**
  * @brief
  * @param role
@@ -86,6 +87,8 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
   *role = __fenix_g_role;
   *error = 0;
 
+  __fenix_options.verbose = -1;
+
   if (new_comm != NULL) {
     __fenix_g_user_world = new_comm;
     __fenix_g_replace_comm_flag = 0;
@@ -101,7 +104,9 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
   __fenix_g_resume_mode = __FENIX_RESUME_AT_INIT;
   __fenix_g_repair_result = 0;
 
-  __fenix_init_opt(*argc, *argv);
+  // disable option processing as separate action. Maybe integrate options into Fenix_Init 
+  // parameter list
+  //  __fenix_init_opt(*argc, *argv);
 
   MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &__fenix_g_agree_op);
 
@@ -745,14 +750,17 @@ void __fenix_postinit(int *error) {
 void __fenix_finalize() {
   /* Last Barrier Statement */
   MPI_Barrier( *__fenix_g_new_world );
+
   if (__fenix_options.verbose == 10) {
     verbose_print("current_rank: %d, role: %d\n", __fenix_get_current_rank(*__fenix_g_new_world),
                   __fenix_g_role);
   }
 
-
   if (__fenix_get_current_rank(*__fenix_g_world) == 0) {
-    int spare_rank = __fenix_get_world_size(*__fenix_g_world) - 1;
+  //    int spare_rank = __fenix_get_world_size(*__fenix_g_world) - 1;
+  int spare_rank;
+    PMPI_Comm_size(*__fenix_g_world, &spare_rank);
+    spare_rank--;
     int a;
     int i;
     for (i = 0; i < __fenix_g_spare_ranks; i++) {

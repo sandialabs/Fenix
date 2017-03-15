@@ -86,11 +86,11 @@ int main(int argc, char **argv) {
   int recovered = 0;
   MPI_Comm new_comm;
   int error;
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+  Fenix_Init(&fenix_status, world_comm, NULL, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
 
   if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
-    MPI_Comm_size(new_comm, &new_world_size);
-    MPI_Comm_rank(new_comm, &new_rank);
+    MPI_Comm_size(world_comm, &new_world_size);
+    MPI_Comm_rank(world_comm, &new_rank);
     recovered = 1;
   }
 
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     kill(pid, SIGKILL);
   }
 
-  MPI_Barrier(new_comm);
+  MPI_Barrier(world_comm);
 
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   int name_len;
