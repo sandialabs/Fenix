@@ -349,7 +349,6 @@ int __fenix_repair_ranks() {
           int active_ranks;
 
           rt_code = FENIX_WARNING_SPARE_RANKS_DEPLETED;
-          __fenix_g_repair_result = FENIX_WARNING_SPARE_RANKS_DEPLETED;
 
           survivor_world = (int *) s_malloc(survivor_world_size * sizeof(int));
 
