@@ -340,6 +340,8 @@ int __fenix_repair_ranks() {
         debug_print("Spawn policy <%d>is not supported\n", __fenix_g_spawn_policy);
       } else {
 
+        rt_code = FENIX_WARNING_SPARE_RANKS_DEPLETED;
+
         if (__fenix_g_spare_ranks != 0) {
 
           /***************************************/
@@ -347,8 +349,6 @@ int __fenix_repair_ranks() {
           /***************************************/
 
           int active_ranks;
-
-          rt_code = FENIX_WARNING_SPARE_RANKS_DEPLETED;
 
           survivor_world = (int *) s_malloc(survivor_world_size * sizeof(int));
 
