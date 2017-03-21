@@ -753,6 +753,7 @@ void __fenix_finalize() {
 
 
   if (__fenix_get_current_rank(*__fenix_g_world) == 0) {
+
     int spare_rank;
     PMPI_Comm_size(*__fenix_g_world, &spare_rank);
     spare_rank--;
