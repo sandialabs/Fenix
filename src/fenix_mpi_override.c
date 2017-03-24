@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Rob Van der Wijngaart, and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -80,6 +80,77 @@ int MPI_Comm_size(MPI_Comm comm, int *size) {
     }
   }
   __fenix_test_MPI(ret, "MPI_Comm_size");
+  return ret;
+}
+
+int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
+  int ret, flag;
+  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_dup(comm, newcomm);
+  else {
+    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
+      ret = PMPI_Comm_dup(*__fenix_g_new_world, newcomm);
+    } else {
+      ret = PMPI_Comm_dup(comm, newcomm);
+    }
+  }
+  __fenix_test_MPI(ret, "MPI_Comm_dup");
+  return ret;
+}
+
+int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm) {
+  int ret, flag;
+  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_split(comm, color, key, newcomm);
+  else {
+    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
+      ret = PMPI_Comm_split(*__fenix_g_new_world, color, key, newcomm);
+    } else {
+      ret = PMPI_Comm_split(comm, color, key, newcomm);
+    }
+  }
+  __fenix_test_MPI(ret, "MPI_Comm_split");
+  return ret;
+}
+
+int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls, MPI_Datatype sendtype, 
+                  void *recvbuf, int *recvcounts, int *rdispls, MPI_Datatype recvtype,
+                  MPI_Comm comm) {
+  int ret, flag;
+  if (!(__fenix_g_fenix_init_flag)) ret = 
+      PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf,
+                     recvcounts, rdispls, recvtype, comm);
+  else {
+    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
+      ret = PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf,
+                           recvcounts, rdispls, recvtype, *__fenix_g_new_world);
+    } else {
+      ret = PMPI_Alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf,
+                           recvcounts,  rdispls, recvtype, comm);
+    }
+  }
+  __fenix_test_MPI(ret, "MPI_Alltoallv");
+  return ret;
+}
+
+int MPI_Allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                  void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                  MPI_Comm comm) {
+  int ret, flag;
+  if (!(__fenix_g_fenix_init_flag)) ret = 
+      PMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
+  else {
+    PMPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
+      ret = PMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, 
+                           *__fenix_g_new_world);
+    } else {
+      ret = PMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, 
+                           comm);
+    }
+  }
+  __fenix_test_MPI(ret, "MPI_Allgather");
   return ret;
 }
 

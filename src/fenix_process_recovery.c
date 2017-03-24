@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Rob Van der Wijngaart, and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -103,6 +103,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
   __fenix_options.verbose = -1;
  // __fenix_init_opt(*argc, *argv);
+
 
   MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &__fenix_g_agree_op);
 
@@ -907,7 +908,6 @@ void __fenix_test_MPI(int ret, const char *msg) {
       __fenix_g_repair_result = __fenix_repair_ranks();
       break;
     case MPI_ERR_REVOKED:
-
       if (__fenix_options.verbose == 20) {
         verbose_print("MPI_ERR_REVOKED; current_rank: %d, role: %d, msg: %s\n", msg);
       }
@@ -930,6 +930,7 @@ void __fenix_test_MPI(int ret, const char *msg) {
       __fenix_g_repair_result = __fenix_repair_ranks();
       break;
     case MPI_ERR_INTERN:
+      printf("MPI_ERR_INTERN\n");
       break;
     default:
       break;
