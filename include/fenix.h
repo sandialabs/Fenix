@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Rob Van der Wijngaart, and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -87,28 +87,29 @@
 extern "C" {
 #endif
 
-#define FENIX_SUCCESS 0
-#define FENIX_ERROR_UNINITIALIZED -9
-#define FENIX_ERROR_NOCATEGORY   -10
-#define FENIX_ERROR_CALLBACK_NOT_REGISTERD -11
-#define FENIX_ERROR_GROUP_CREATE -12
-#define FENIX_ERROR_MEMBER_CREATE -13
-#define FENIX_ERROR_COMMIT_BARRIER -133
-#define FENIX_ERROR_INVALID_GROUPID -14
-#define FENIX_ERROR_INVALID_MEMBERID -15
-#define FENIX_ERROR_INVALID_LOGIC_CALL -155
-#define FENIX_ERROR_INVALID_TIMESTAMP -16
-#define FENIX_ERROR_INVALID_DEPTH -17
-#define FENIX_ERROR_INVALID_ATTRIBUTE_NAME -18
+#define FENIX_SUCCESS                         0
+#define FENIX_ERROR_UNINITIALIZED            -9
+#define FENIX_ERROR_NOCATEGORY              -10
+#define FENIX_ERROR_CALLBACK_NOT_REGISTERD  -11
+#define FENIX_ERROR_GROUP_CREATE            -12
+#define FENIX_ERROR_MEMBER_CREATE           -13
+#define FENIX_ERROR_COMMIT_BARRIER         -133
+#define FENIX_ERROR_INVALID_GROUPID         -14
+#define FENIX_ERROR_INVALID_MEMBERID        -15
+#define FENIX_ERROR_INVALID_LOGIC_CALL     -155
+#define FENIX_ERROR_INVALID_TIMESTAMP       -16
+#define FENIX_ERROR_INVALID_DEPTH           -17
+#define FENIX_ERROR_INVALID_ATTRIBUTE_NAME  -18
 #define FENIX_ERROR_INVALID_ATTRIBUTE_VALUE -19
-#define FENIX_ERROR_INVALID_POSITION -20
-#define FENIX_ERROR_DATA_WAIT -21
-#define FENIX_ERROR_SUBSET_NUM_BLOCKS   -22
-#define FENIX_ERROR_SUBSET_START_OFFSET -23
-#define FENIX_ERROR_SUBSET_END_OFFSET   -24
-#define FENIX_ERROR_SUBSET_STRIDE       -25
-#define FENIX_ERROR_NODATA_FOUND        -30
-#define FENIX_WARNING_SPARE_RANKS_DEPLETED 100
+#define FENIX_ERROR_INVALID_POSITION        -20
+#define FENIX_ERROR_DATA_WAIT               -21
+#define FENIX_ERROR_SUBSET_NUM_BLOCKS       -22
+#define FENIX_ERROR_SUBSET_START_OFFSET     -23
+#define FENIX_ERROR_SUBSET_END_OFFSET       -24
+#define FENIX_ERROR_SUBSET_STRIDE           -25
+#define FENIX_ERROR_NODATA_FOUND            -30
+#define FENIX_ERROR_INTERN                  -40
+#define FENIX_WARNING_SPARE_RANKS_DEPLETED  100
 
 #define FENIX_DATA_GROUP_WORLD_ID 10
 #define FENIX_GROUP_ID_MAX        11

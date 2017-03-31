@@ -93,6 +93,16 @@ int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
     } else {
       ret = PMPI_Comm_dup(comm, newcomm);
     }
+    if (ret == MPI_SUCCESS) {
+      ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
+      if (ret != MPI_SUCCESS) PMPI_Comm_free(newcomm);
+      else {
+	if (__fenix_communicator_push(*newcomm) != FENIX_SUCCESS) {
+          PMPI_Comm_free(newcomm);
+          return MPI_ERR_INTERN;
+        }
+      }
+    }
   }
   __fenix_test_MPI(ret, "MPI_Comm_dup");
   return ret;
@@ -107,6 +117,16 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm) {
       ret = PMPI_Comm_split(*__fenix_g_new_world, color, key, newcomm);
     } else {
       ret = PMPI_Comm_split(comm, color, key, newcomm);
+    }
+    if (ret == MPI_SUCCESS) {
+      ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
+      if (ret != MPI_SUCCESS) PMPI_Comm_free(newcomm);
+      else {
+	if (__fenix_communicator_push(*newcomm) != FENIX_SUCCESS) {
+          PMPI_Comm_free(newcomm);
+          return MPI_ERR_INTERN;
+        }
+      }
     }
   }
   __fenix_test_MPI(ret, "MPI_Comm_split");

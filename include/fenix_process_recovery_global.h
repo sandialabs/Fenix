@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+//        Rob Van der Wijngaart, and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -70,7 +70,7 @@
 #include "fenix_data_group.h"
 
 
-/* This header file is intended to proivde global variable defintiions for fenix_process_recovery.c only */
+/* This header file is intended to provide global variable defintiions for fenix_process_recovery.c only */
 #define __FENIX_HASH_TABLE_SIZE 512
 
 int __fenix_g_num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
@@ -89,7 +89,8 @@ int __fenix_g_role;    // Role of rank: initial, survivor or repair
 int __fenix_g_fenix_init_flag = 0;
 struct __fenix_hash_table* __fenix_outstanding_request = NULL;
 
-fenix_callback_list_t* __fenix_g_callback_list;  // A singluar linked list for user-defined Fenix callback functions
+fenix_callback_list_t* __fenix_g_callback_list;  // singly linked list for user-defined Fenix callback functions
+fenix_communicator_list_t* __fenix_g_communicator_list;  // singly linked list for Fenix resilient communicators
 __fenix_debug_options __fenix_options;    // This is reserved to store the user options
 
 MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
@@ -98,5 +99,5 @@ MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired rank
 MPI_Comm __fenix_g_original_comm;         // Keep the information of the original global MPI Communicator (this will be umodified until Fenix_finalize)
 MPI_Op   __fenix_g_agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
 
-fenix_group_t *__fenix_g_data_recovery;   // Global pointer for Fenix Data Recovery Data Sturcutre
+fenix_group_t *__fenix_g_data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 #endif // __FENIX_PROCES_RECOVERY_GLOBAL_H__

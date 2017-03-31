@@ -85,6 +85,11 @@ typedef struct __fenix_callback_list {
     struct __fenix_callback_list *next;
 } fenix_callback_list_t;
 
+typedef struct __fenix_communicator_list {
+    MPI_Comm comm;
+    struct __fenix_communicator_list *next;
+} fenix_communicator_list_t;
+
 /****************/
 /*              */
 /* Place Holder */
