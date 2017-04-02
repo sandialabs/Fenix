@@ -90,7 +90,7 @@ int __fenix_g_fenix_init_flag = 0;
 struct __fenix_hash_table* __fenix_outstanding_request = NULL;
 
 fenix_callback_list_t* __fenix_g_callback_list;  // singly linked list for user-defined Fenix callback functions
-fenix_communicator_list_t* __fenix_g_communicator_list;  // singly linked list for Fenix resilient communicators
+//fenix_communicator_list_t* __fenix_g_communicator_list;  // singly linked list for Fenix resilient communicators
 __fenix_debug_options __fenix_options;    // This is reserved to store the user options
 
 MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user

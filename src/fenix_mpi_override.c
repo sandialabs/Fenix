@@ -70,14 +70,20 @@
  */
 int MPI_Comm_size(MPI_Comm comm, int *size) {
   int ret, flag;
-  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_size(comm, size);
+  if (!(__fenix_g_fenix_init_flag)) {
+    ret = PMPI_Comm_size(comm, size);
+    printf("About to enter fenix_test_MPI in pre-size; ret = %d\n", ret);
+  }
   else {
+    printf("About to compare comm %p to %p in size\n", comm, __fenix_g_original_comm);
     MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    printf("Compared com %p in size\n", comm); 
     if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
       ret = PMPI_Comm_size(*__fenix_g_new_world, size);
     } else {
       ret = PMPI_Comm_size(comm, size);
     }
+  printf("About to enter fenix_test_MPI in size; ret = %d\n", ret);
   }
   __fenix_test_MPI(ret, "MPI_Comm_size");
   return ret;
@@ -85,24 +91,31 @@ int MPI_Comm_size(MPI_Comm comm, int *size) {
 
 int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
   int ret, flag;
-  if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_dup(comm, newcomm);
+  if (!(__fenix_g_fenix_init_flag)) {
+    ret = PMPI_Comm_dup(comm, newcomm);
+    printf("About to enter fenix_test_MPI in pre-dup; ret = %d\n", ret);
+  }
   else {
+    printf("About to compare comm %p to %p in dup\n", comm, __fenix_g_original_comm);
     MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    printf("Compared comm %p in dup\n", comm);
     if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
       ret = PMPI_Comm_dup(*__fenix_g_new_world, newcomm);
     } else {
       ret = PMPI_Comm_dup(comm, newcomm);
     }
+    printf("Created in dup: newcomm = %p\n", *newcomm);
     if (ret == MPI_SUCCESS) {
       ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
       if (ret != MPI_SUCCESS) PMPI_Comm_free(newcomm);
       else {
-	if (__fenix_communicator_push(*newcomm) != FENIX_SUCCESS) {
+	if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
           PMPI_Comm_free(newcomm);
           return MPI_ERR_INTERN;
         }
       }
     }
+    printf("About to enter fenix_test_MPI in dup; ret = %d\n", ret);
   }
   __fenix_test_MPI(ret, "MPI_Comm_dup");
   return ret;
@@ -122,7 +135,7 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm) {
       ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
       if (ret != MPI_SUCCESS) PMPI_Comm_free(newcomm);
       else {
-	if (__fenix_communicator_push(*newcomm) != FENIX_SUCCESS) {
+	if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
           PMPI_Comm_free(newcomm);
           return MPI_ERR_INTERN;
         }

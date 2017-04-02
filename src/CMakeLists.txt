@@ -24,6 +24,7 @@ fenix_data_member.c
 fenix_data_version.c
 fenix_data_buffer.c
 fenix_hash.c
+fenix_comm_list.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}

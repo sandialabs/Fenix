@@ -85,10 +85,16 @@ typedef struct __fenix_callback_list {
     struct __fenix_callback_list *next;
 } fenix_callback_list_t;
 
-typedef struct __fenix_communicator_list {
-    MPI_Comm comm;
-    struct __fenix_communicator_list *next;
-} fenix_communicator_list_t;
+typedef struct __fenix_comm_list_elm {
+  struct __fenix_comm_list_elm *next;
+  struct __fenix_comm_list_elm *prev;
+  MPI_Comm *comm;
+} fenix_comm_list_elm_t;
+
+typedef struct {
+  fenix_comm_list_elm_t *head;
+  fenix_comm_list_elm_t *tail;
+} fenix_comm_list_t;
 
 /****************/
 /*              */

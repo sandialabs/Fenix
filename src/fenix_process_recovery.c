@@ -687,41 +687,6 @@ int __fenix_callback_destroy( fenix_callback_list_t *callback_list ) {
   return error_code;
 }
 
-/**
- * @brief
- * @param comm
- */
-int __fenix_communicator_push(MPI_Comm comm) {
-  fenix_communicator_list_t **head = &__fenix_g_communicator_list;
-  if (comm == MPI_COMM_NULL) return;
-  fenix_communicator_list_t *element = (fenix_communicator_list_t *) malloc(sizeof(fenix_communicator_list_t));
-  if (!element) return FENIX_ERROR_INTERN;
-  element->comm = comm;
-  element->next = *head;
-  *head = element;
-  printf("Pushed communicator to list\n");
-  return FENIX_SUCCESS;
-}
-
-int __fenix_communicator_list_destroy(void) {
-  int error_code = FENIX_SUCCESS;
-
-  fenix_communicator_list_t *old;
-  fenix_communicator_list_t *current = __fenix_g_communicator_list;
-
-  printf("Canceling communicator list\n");
-  while (current != NULL) {
-    old = current;
-    current = current->next;
-    printf("Revoking communicator %p\n", old->comm);
-    MPIF_Comm_revoke(old->comm);
-    PMPI_Comm_free(&old->comm);
-    free(old);
-  }
-
-  return error_code;
-}
-
 void __fenix_postinit(int *error) {
 
   if (__fenix_options.verbose == 9) {
@@ -902,7 +867,7 @@ void __fenix_test_MPI(int ret, const char *msg) {
   if (ret == MPI_SUCCESS || __fenix_spare_rank() == 1) {
     return;
   }
-  __fenix_communicator_list_destroy();
+  __fenix_comm_list_destroy();
   switch (ret) {
     case MPI_ERR_PROC_FAILED:
       MPIF_Comm_revoke(*__fenix_g_world);
