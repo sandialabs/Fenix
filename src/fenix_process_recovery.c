@@ -867,6 +867,7 @@ void __fenix_test_MPI(int ret, const char *msg) {
   if (ret == MPI_SUCCESS || __fenix_spare_rank() == 1) {
     return;
   }
+
   __fenix_comm_list_destroy();
   switch (ret) {
     case MPI_ERR_PROC_FAILED:
