@@ -8,7 +8,7 @@
 #  directory.
 #
 configure_file (fenix-config.h.in
-  "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
+  "${CMAKE_SOURCE_DIR}/include/fenix-config.h" @ONLY)
 
 set (Fenix_SOURCES 
 fenix.c
