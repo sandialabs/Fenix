@@ -103,7 +103,7 @@ int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
       else {
 	if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
           PMPI_Comm_free(newcomm);
-          return MPI_ERR_INTERN;
+          ret = MPI_ERR_INTERN;
         }
       }
     }
@@ -124,11 +124,15 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm) {
     }
     if (ret == MPI_SUCCESS) {
       ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
-      if (ret != MPI_SUCCESS) PMPI_Comm_free(newcomm);
+      if (ret != MPI_SUCCESS) {
+        printf("Did not manage to set error handler\n");
+        PMPI_Comm_free(newcomm);
+      }
       else {
 	if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
+          printf("Did not manage to push communicator\n");
           PMPI_Comm_free(newcomm);
-          return MPI_ERR_INTERN;
+          ret = MPI_ERR_INTERN;
         }
       }
     }
