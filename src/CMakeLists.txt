@@ -7,8 +7,8 @@
 #  For more information, see the LICENSE file in the top DHARMA
 #  directory.
 #
-configure_file (fenix-config.h.in
-  "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
+configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
+  "${CMAKE_SOURCE_DIR}/include/fenix-config.h" @ONLY)
 
 set (Fenix_SOURCES 
 fenix.c
