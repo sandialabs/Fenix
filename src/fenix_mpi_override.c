@@ -122,7 +122,7 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm) {
     } else {
       ret = PMPI_Comm_split(comm, color, key, newcomm);
     }
-    if (ret == MPI_SUCCESS) {
+    if (ret == MPI_SUCCESS && *newcomm != MPI_COMM_NULL) {
       ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
       if (ret != MPI_SUCCESS) {
         printf("Did not manage to set error handler\n");
