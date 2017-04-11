@@ -91,14 +91,14 @@ int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
     ret = PMPI_Comm_dup(comm, newcomm);
   }
   else {
-    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    PMPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
     if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
       ret = PMPI_Comm_dup(*__fenix_g_new_world, newcomm);
     } else {
       ret = PMPI_Comm_dup(comm, newcomm);
     }
     if (ret == MPI_SUCCESS) {
-      ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
+      ret = PMPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
       if (ret != MPI_SUCCESS) PMPI_Comm_free(newcomm);
       else {
 	if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
@@ -116,14 +116,14 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm) {
   int ret, flag;
   if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_split(comm, color, key, newcomm);
   else {
-    MPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
+    PMPI_Comm_compare(comm, __fenix_g_original_comm, &flag);
     if(__fenix_g_replace_comm_flag == 1  &&  flag == MPI_CONGRUENT) {
       ret = PMPI_Comm_split(*__fenix_g_new_world, color, key, newcomm);
     } else {
       ret = PMPI_Comm_split(comm, color, key, newcomm);
     }
     if (ret == MPI_SUCCESS && *newcomm != MPI_COMM_NULL) {
-      ret = MPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
+      ret = PMPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
       if (ret != MPI_SUCCESS) {
         printf("Did not manage to set error handler\n");
         PMPI_Comm_free(newcomm);

@@ -104,12 +104,12 @@ int __fenix_comm_delete(MPI_Comm *comm) {
         else my_list.tail = my_list.head = NULL;
       }
       MPIF_Comm_revoke(*comm);
-      PMPI_Comm_free(comm);
       free(current);
       return 1;
     }
     else current = current->next;
   }
+  /* if we end up here, the requested communicator has not been found */
   return 0;
 }
   
@@ -123,12 +123,10 @@ void __fenix_comm_list_destroy(void) {
     while (current->next) {
       fenix_comm_list_elm_t *new = current->next;
       MPIF_Comm_revoke(*current->comm);
-      PMPI_Comm_free(current->comm);
       free(current);
       current = new;
     }
     MPIF_Comm_revoke(*current->comm);
-    PMPI_Comm_free(current->comm);
     free(current);
   }
   my_list.tail = my_list.head = NULL;
