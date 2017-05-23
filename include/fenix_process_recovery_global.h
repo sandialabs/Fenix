@@ -96,6 +96,7 @@ MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator p
 MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
 MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
 MPI_Comm __fenix_g_original_comm;         // Keep the information of the original global MPI Communicator (this will be umodified until Fenix_finalize)
+MPI_Comm __fenix_g_original_comm__;         // Keep the information of the original global MPI Communicator (this will be umodified until Fenix_finalize)
 MPI_Op   __fenix_g_agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
 
 fenix_group_t *__fenix_g_data_recovery;   // Global pointer for Fenix Data Recovery Data Sturcutre

@@ -79,6 +79,7 @@ extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communi
 extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
 extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
 extern MPI_Comm __fenix_g_original_comm;
+extern MPI_Comm __fenix_g_original_comm__;
 extern MPI_Op __fenix_g_agree_op;
 
 

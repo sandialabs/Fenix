@@ -65,6 +65,8 @@
 #include "fenix_util.h"
 #include <mpi.h>
 
+#include "assert.h"
+
 /**
  * @brief
  * @param role
@@ -93,7 +95,13 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     __fenix_g_replace_comm_flag = 1;
   }
 
-  //__fenix_g_original_comm = comm; 
+  //__fenix_g_original_comm = comm;
+  __fenix_g_original_comm__ = comm;
+  // Assert that PMPI performance hack will work
+  /* printf("size mpicomm %d\n", sizeof(MPI_Comm)); */
+  assert(sizeof(MPI_Comm) <= 8);
+  assert(__fenix_g_original_comm__ == comm);
+
   __fenix_g_spare_ranks = spare_ranks;
   __fenix_g_spawn_policy = spawn;
   __fenix_g_recover_environment = jump_environment;
