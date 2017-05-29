@@ -4,15 +4,18 @@
 #  This software is distributed under the BSD License.
 #  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 #  the U.S. Government retains certain rights in this software.
-#  For more information, see the LICENSE file in the top DHARMA
-
+#  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
-cmake_minimum_required (VERSION 2.7)
+cmake_minimum_required (VERSION 2.6)
 project (Fenix)
 # The version number.
-set (Fenix_VERSION_MAJOR 1)
-set (Fenix_VERSION_MINOR 0)
+set (FENIX_VERSION_MAJOR 1)
+set (FENIX_VERSION_MINOR 0)
+
+find_package(MPI REQUIRED)
+
+include_directories(${MPI_INCLUDE_PATH})
 
 # Set empty string for shared linking (we use static library only at this moment)
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)

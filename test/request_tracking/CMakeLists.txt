@@ -4,9 +4,9 @@
 #  This software is distributed under the BSD License.
 #  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 #  the U.S. Government retains certain rights in this software.
-#  For more information, see the LICENSE file in the top DHARMA
+#  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
 
 add_executable(fenix_request_tracking_test fenix_request_tracking_test.c)
-target_link_libraries(fenix_request_tracking_test fenix)
+target_link_libraries(fenix_request_tracking_test fenix ${MPI_C_LIBRARIES})
