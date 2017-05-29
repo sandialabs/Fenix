@@ -235,3 +235,15 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status)
     __fenix_remove_request(request);
     return ret;
 }
+
+int MPI_Waitall(int count, MPI_Request array_of_requests[],
+                MPI_Status *array_of_statuses)
+{
+    int ret, i;
+    ret = PMPI_Waitall(count, array_of_requests, array_of_statuses);
+    __fenix_test_MPI_inline(ret, "MPI_Waitall");
+    for(i=0 ; i<count ; i++)
+        __fenix_remove_request(&(array_of_requests[i]));
+    return ret;
+
+}
