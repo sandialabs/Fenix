@@ -69,7 +69,7 @@ extern fenix_group_t *__fenix_g_data_recovery;
 extern int __fenix_g_num_inital_ranks;
 extern int __fenix_g_num_survivor_ranks;
 extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
+extern int __fenix_g_resume_mode;                // Defines how program resumes after process recovery
 extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
 extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
 extern int __fenix_g_replace_comm_flag;

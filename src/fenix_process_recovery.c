@@ -65,6 +65,8 @@
 #include "fenix_util.h"
 #include <mpi.h>
 
+#include "assert.h"
+
 /**
  * @brief
  * @param role
@@ -93,7 +95,9 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     __fenix_g_replace_comm_flag = 1;
   }
 
-  //__fenix_g_original_comm = comm; 
+  __fenix_g_original_comm = comm;
+  assert(__fenix_g_original_comm == comm);
+
   __fenix_g_spare_ranks = spare_ranks;
   __fenix_g_spawn_policy = spawn;
   __fenix_g_recover_environment = jump_environment;
@@ -143,7 +147,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
   __fenix_g_world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
 
   MPI_Comm_dup(comm, __fenix_g_world);
-  MPI_Comm_dup(comm, &__fenix_g_original_comm);
 
   __fenix_g_data_recovery = __fenix_data_group_init();
 
@@ -838,10 +841,11 @@ void __fenix_finalize_spare() {
  */
 
 void __fenix_insert_request(MPI_Request *request) {
-  if (__fenix_options.verbose == 16) {
-    verbose_print("hash_table_put; request: %lu\n", (long) request);
-  }
-  __fenix_hash_table_put(__fenix_outstanding_request, (long) request, request);
+    if(!__fenix_g_fenix_init_flag) return;
+    if(__fenix_options.verbose == 16) {
+        verbose_print("hash_table_put; request: %lu\n", (long) request);
+    }
+    __fenix_hash_table_put(__fenix_outstanding_request, (long) request, request);
 }
 
 
@@ -854,10 +858,11 @@ void __fenix_insert_request(MPI_Request *request) {
  */
 
 void __fenix_remove_request(MPI_Request *request) {
-  if (__fenix_options.verbose == 17) {
-    verbose_print("hash_table_remove; request: %lu\n", (long) request);
-  }
-  __fenix_hash_table_remove(__fenix_outstanding_request, (long) request);
+    if(!__fenix_g_fenix_init_flag) return;
+    if(__fenix_options.verbose == 17) {
+        verbose_print("hash_table_remove; request: %lu\n", (long) request);
+    }
+    __fenix_hash_table_remove(__fenix_outstanding_request, (long) request);
 }
 
 
@@ -872,9 +877,10 @@ void __fenix_remove_request(MPI_Request *request) {
 void __fenix_test_MPI(int ret, const char *msg) {
   int ret_repair;
   int index;
-  if (ret == MPI_SUCCESS || __fenix_spare_rank() == 1) {
+  if(!__fenix_g_fenix_init_flag || ret == MPI_SUCCESS || __fenix_spare_rank() == 1) {
     return;
   }
+
   switch (ret) {
     case MPI_ERR_PROC_FAILED:
       MPIF_Comm_revoke(*__fenix_g_world);
