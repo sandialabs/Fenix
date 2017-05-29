@@ -63,11 +63,6 @@
 #define MPI_SEND_BUFF_TYPE const void *
 #endif
 
-/**
- * @brief
- * @param comm
- * @param size
- */
 int MPI_Comm_size(MPI_Comm comm, int *size) {
   int ret, flag;
   if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_size(comm, size);
@@ -154,11 +149,6 @@ int MPI_Allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
   return ret;
 }
 
-/**
- * @brief
- * @param comm
- * @param rank
- */
 int MPI_Comm_rank(MPI_Comm comm, int *rank) {
   int ret, flag;
   if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Comm_rank(comm, rank);
@@ -174,16 +164,6 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank) {
   return ret;
 }
 
-
-/**
- * @brief
- * @param sendbuf
- * @param recvbuf
- * @param count
- * @param datatype
- * @param op
- * @param comm
- */
 int MPI_Allreduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Datatype type,
                   MPI_Op op, MPI_Comm comm) {
   int ret, flag;
@@ -218,10 +198,6 @@ int MPI_Reduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Datatyp
   return ret;
 }
 
-/**
- * @brief
- * @param comm
- */
 int MPI_Barrier(MPI_Comm comm) {
   int ret, flag;
   if (!(__fenix_g_fenix_init_flag)) ret = PMPI_Barrier(comm);
@@ -237,14 +213,6 @@ int MPI_Barrier(MPI_Comm comm) {
   return ret;
 }
 
-/**
- * @brief
- * @param buf
- * @param count
- * @param type
- * @param root
- * @param comm
- */
 int MPI_Bcast(void *buf, int count, MPI_Datatype type, int root, MPI_Comm comm) {
   int ret, flag;
 
@@ -261,16 +229,6 @@ int MPI_Bcast(void *buf, int count, MPI_Datatype type, int root, MPI_Comm comm) 
   return ret;
 }
 
-/**
- * @brief
- * @param buf
- * @param count
- * @param data_type
- * @param source
- * @param tag
- * @param comm
- * @param request
- */
 int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
               int source, int tag, MPI_Comm comm, MPI_Request *request) {
   int ret, flag;
@@ -289,16 +247,6 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
   return ret;
 }
 
-/**
- * @brief
- * @param buf
- * @param count
- * @param data_type
- * @param dest
- * @param tag
- * @param comm
- * @param request
- */
 int MPI_Isend(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype datatype, int dest,
               int tag, MPI_Comm comm, MPI_Request *request) {
   int ret, flag;
@@ -317,15 +265,6 @@ int MPI_Isend(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype datatype, int dest
   return ret;
 }
 
-/**
- * @brief
- * @param buf
- * @param type
- * @param source
- * @param tag
- * @param comm
- * @param status
- */
 int MPI_Recv(void *buf, int count, MPI_Datatype type, int source, int tag, MPI_Comm comm,
              MPI_Status *status) {
 #if 0
@@ -395,15 +334,6 @@ int MPI_Recv(void *buf, int count, MPI_Datatype type, int source, int tag, MPI_C
 #endif
 }
 
-/**
- * @brief
- * @param buf
- * @param count
- * @param type
- * @param dest
- * @param tag
- * @param comm
- */
 int MPI_Send(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype type, int dest, int tag,
              MPI_Comm comm) {
 #if 0
@@ -474,21 +404,6 @@ int MPI_Send(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype type, int dest, int
 #endif
 }
 
-
-/**
- * @brief
- * @param sendbuf
- * @param sendcount
- * @param sendtype
- * @param dest
- * @param sendtag
- * @param recvbuf
- * @param recvcount
- * @param recvtype
- * @param source
- * @param comm
- * @param status
- */
 int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, MPI_Datatype sendtype,
                 int dest, int sendtag,
                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
@@ -509,11 +424,6 @@ int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, MPI_Datatype sendtyp
     return ret;
 }
 
-/**
- * @brief
- * @param request
- * @param status
- */
 int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   int ret;
   if (!(__fenix_g_fenix_init_flag)) {
@@ -525,4 +435,3 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status) {
   }
   return ret;
 }
-
