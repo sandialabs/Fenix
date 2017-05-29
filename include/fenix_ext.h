@@ -69,7 +69,7 @@ extern fenix_group_t *__fenix_g_data_recovery;
 extern int __fenix_g_num_inital_ranks;
 extern int __fenix_g_num_survivor_ranks;
 extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;  // Defines how program resumes after process recovery
+extern int __fenix_g_resume_mode;                // Defines how program resumes after process recovery
 extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
 extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
 extern int __fenix_g_replace_comm_flag;
@@ -79,7 +79,6 @@ extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communi
 extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
 extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
 extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Comm __fenix_g_original_comm__;
 extern MPI_Op __fenix_g_agree_op;
 
 
