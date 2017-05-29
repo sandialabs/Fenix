@@ -54,3 +54,11 @@
 // ************************************************************************
 */
 </pre>
+
+# Installation
+
+* Edit `cmake_scripts/run_cmake.sh` and indicate the correct path to `ULFM_HOME`.
+* Then, cd into Fenix's root directory and invoke:
+```
+./cmake_scripts/run_cmake.sh
+```
