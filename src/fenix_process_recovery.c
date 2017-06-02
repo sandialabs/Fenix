@@ -870,7 +870,6 @@ void __fenix_test_MPI(int ret, const char *msg) {
 
   switch (ret) {
     case MPI_ERR_PROC_FAILED:
-      __fenix_comm_list_destroy();
       MPIF_Comm_revoke(*__fenix_g_world);
       MPIF_Comm_revoke(*__fenix_g_new_world);
 
@@ -898,11 +897,11 @@ void __fenix_test_MPI(int ret, const char *msg) {
           __fenix_hash_table_remove(__fenix_outstanding_request, __fenix_outstanding_request->table[index].key);
         }
       }
+      __fenix_comm_list_destroy();
 
       __fenix_g_repair_result = __fenix_repair_ranks();
       break;
     case MPI_ERR_REVOKED:
-      __fenix_comm_list_destroy();
       if (__fenix_options.verbose == 20) {
         verbose_print("MPI_ERR_REVOKED; current_rank: %d, role: %d, msg: %s\n", msg);
       }
@@ -921,6 +920,8 @@ void __fenix_test_MPI(int ret, const char *msg) {
           __fenix_hash_table_remove(__fenix_outstanding_request, __fenix_outstanding_request->table[index].key);
         }
       }
+
+      __fenix_comm_list_destroy();
 
       __fenix_g_repair_result = __fenix_repair_ranks();
       break;
