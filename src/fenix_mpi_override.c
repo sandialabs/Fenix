@@ -54,6 +54,7 @@
 //@HEADER
 */
 #include "fenix_process_recovery.h"
+#include "fenix_comm_list.h"
 #include <mpi.h>
 #include "fenix_ext.h"
 
