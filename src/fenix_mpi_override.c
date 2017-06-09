@@ -178,7 +178,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
     int ret;
     ret = PMPI_Irecv(buf, count, datatype, source, tag, 
                      __fenix_replace_comm(comm), request);
-    __fenix_insert_request(request);
+    //__fenix_insert_request(request);
     __fenix_test_MPI_inline(ret, "MPI_Irecv");
     return ret;
 }
@@ -189,7 +189,7 @@ int MPI_Isend(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype datatype,
     int ret;
     ret = PMPI_Isend(buf, count, datatype, dest, tag, 
                      __fenix_replace_comm(comm), request);
-    __fenix_insert_request(request);
+    //__fenix_insert_request(request);
     __fenix_test_MPI_inline(ret, "MPI_Isend");
     return ret;
 }
@@ -232,7 +232,7 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status)
     int ret;
     ret = PMPI_Wait(request, status);
     __fenix_test_MPI_inline(ret, "MPI_Wait");
-    __fenix_remove_request(request);
+    //__fenix_remove_request(request);
     return ret;
 }
 
@@ -242,8 +242,8 @@ int MPI_Waitall(int count, MPI_Request array_of_requests[],
     int ret, i;
     ret = PMPI_Waitall(count, array_of_requests, array_of_statuses);
     __fenix_test_MPI_inline(ret, "MPI_Waitall");
-    for(i=0 ; i<count ; i++)
-        __fenix_remove_request(&(array_of_requests[i]));
+    /* for(i=0 ; i<count ; i++) */
+    /*     __fenix_remove_request(&(array_of_requests[i])); */
     return ret;
 
 }
