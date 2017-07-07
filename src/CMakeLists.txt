@@ -28,5 +28,5 @@ fenix_comm_list.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}
-  ${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h)
+  ${CMAKE_SOURCE_DIR}/include/fenix-config.h)
 #target_link_libraries( mpi  )
