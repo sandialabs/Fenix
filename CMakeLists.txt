@@ -18,25 +18,34 @@ set (Fenix_VERSION_MINOR 0)
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 
 # This is include directories
-include_directories( "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_BINARY_DIR}/lib" "${CMAKE_BINARY_DIR}" )
+include_directories(
+"${CMAKE_SOURCE_DIR}/include"
+"${CMAKE_SOURCE_DIR}"
+"${CMAKE_SOURCE_DIR}/src"
+"${CMAKE_BINARY_DIR}/lib"
+"${CMAKE_BINARY_DIR}" )
 
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
-  #ENABLE_TESTING
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
-  #include(testref/TestAgainstReference)
+set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O0 -ggdb")
 
-  add_subdirectory(src)
-  #add_subdirectory(test/subset_internal)
-  add_subdirectory(examples/01_hello_world/fenix)
-  add_subdirectory(examples/01_hello_world/mpi)
-  add_subdirectory(examples/02_send_recv/fenix)
-  add_subdirectory(examples/02_send_recv/mpi)
-  add_subdirectory(examples/03_reduce/fenix)
-  add_subdirectory(examples/03_reduce/mpi)
-  add_subdirectory(examples/04_Isend_Irecv/fenix)
-  add_subdirectory(examples/04_Isend_Irecv/mpi)
-  add_subdirectory(examples/05_subset_create)
-  add_subdirectory(examples/06_subset_createv)
+#ENABLE_TESTING
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
+#include(testref/TestAgainstReference)
+
+add_subdirectory(src)
+#add_subdirectory(test/subset_internal)
+add_subdirectory(test/request_tracking)
+add_subdirectory(examples/01_hello_world/fenix)
+add_subdirectory(examples/01_hello_world/mpi)
+add_subdirectory(examples/02_send_recv/fenix)
+add_subdirectory(examples/02_send_recv/mpi)
+add_subdirectory(examples/03_reduce/fenix)
+add_subdirectory(examples/03_reduce/mpi)
+add_subdirectory(examples/04_Isend_Irecv/fenix)
+add_subdirectory(examples/04_Isend_Irecv/mpi)
+add_subdirectory(examples/05_subset_create)
+add_subdirectory(examples/06_subset_createv)

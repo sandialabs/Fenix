@@ -55,14 +55,15 @@
 */
 #include "fenix_process_recovery.h"
 #include <mpi.h>
+#include <assert.h>
 #include "fenix_ext.h"
 
 static inline 
 MPI_Comm __fenix_replace_comm(MPI_Comm comm)
 {
-    if(__fenix_g_fenix_init_flag &&
-       __fenix_g_replace_comm_flag &&
-       comm == __fenix_g_original_comm)
+    if(__fenix_g_replace_comm_flag &&
+       comm == __fenix_g_original_comm &&
+       __fenix_g_fenix_init_flag)
         return *__fenix_g_new_world;
     else
         return comm;
@@ -172,28 +173,6 @@ int MPI_Bcast(void *buf, int count, MPI_Datatype type, int root, MPI_Comm comm)
     return ret;
 }
 
-int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
-              int source, int tag, MPI_Comm comm, MPI_Request *request)
-{
-    int ret;
-    ret = PMPI_Irecv(buf, count, datatype, source, tag, 
-                     __fenix_replace_comm(comm), request);
-    //__fenix_insert_request(request);
-    __fenix_test_MPI_inline(ret, "MPI_Irecv");
-    return ret;
-}
-
-int MPI_Isend(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype datatype, 
-              int dest, int tag, MPI_Comm comm, MPI_Request *request)
-{
-    int ret;
-    ret = PMPI_Isend(buf, count, datatype, dest, tag, 
-                     __fenix_replace_comm(comm), request);
-    //__fenix_insert_request(request);
-    __fenix_test_MPI_inline(ret, "MPI_Isend");
-    return ret;
-}
-
 int MPI_Recv(void *buf, int count, MPI_Datatype type, int source, int tag,
              MPI_Comm comm, MPI_Status *status)
 {
@@ -227,23 +206,119 @@ int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount,
     return ret;
 }
 
-int MPI_Wait(MPI_Request *request, MPI_Status *status)
+#include "fenix_request_store.h"
+extern __fenix_request_store_t __fenix_g_request_store;
+
+static inline
+void __fenix_override_request(int ret, MPI_Request *request)
+{
+    if(ret != MPI_SUCCESS) return;
+
+    assert(*request != MPI_REQUEST_NULL);
+
+    // insert 'request' in the request_store
+    // get location of 'request' in store and return in 'fenix_request'
+    *((int *)request) = __fenix_request_store_add(&__fenix_g_request_store,
+						  request);
+}
+
+int MPI_Isend(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype datatype,
+              int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
     int ret;
-    ret = PMPI_Wait(request, status);
-    __fenix_test_MPI_inline(ret, "MPI_Wait");
-    //__fenix_remove_request(request);
+    ret = PMPI_Isend(buf, count, datatype, dest, tag,
+                     __fenix_replace_comm(comm), request);
+    __fenix_override_request(ret, request);
+    __fenix_test_MPI_inline(ret, "MPI_Isend");
     return ret;
 }
 
-int MPI_Waitall(int count, MPI_Request array_of_requests[],
+int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
+              int source, int tag, MPI_Comm comm, MPI_Request *request)
+{
+    int ret;
+    ret = PMPI_Irecv(buf, count, datatype, source, tag,
+                     __fenix_replace_comm(comm), request);
+    __fenix_override_request(ret, request);
+    __fenix_test_MPI_inline(ret, "MPI_Irecv");
+    return ret;
+}
+
+int MPI_Wait(MPI_Request *fenix_request, MPI_Status *status)
+{
+    int ret;
+    MPI_Request request = MPI_REQUEST_NULL;
+    if(*fenix_request != MPI_REQUEST_NULL)
+        __fenix_request_store_get(&__fenix_g_request_store,
+				  *((int *) fenix_request),
+				  &request);
+
+    ret = PMPI_Wait(&request, status);
+    if(ret == MPI_SUCCESS) {
+        __fenix_request_store_remove(&__fenix_g_request_store,
+				     *((int *) fenix_request));
+        assert(request == MPI_REQUEST_NULL);
+	*fenix_request = MPI_REQUEST_NULL;
+    }
+    __fenix_test_MPI_inline(ret, "MPI_Wait");
+    return ret;
+}
+
+#warning "Fix tabs in source code"
+
+int MPI_Waitall(int count, MPI_Request array_of_fenix_requests[],
                 MPI_Status *array_of_statuses)
 {
+    // The list (array_of_requests) may contain null or inactive handles.
     int ret, i;
-    ret = PMPI_Waitall(count, array_of_requests, array_of_statuses);
-    __fenix_test_MPI_inline(ret, "MPI_Waitall");
-    /* for(i=0 ; i<count ; i++) */
-    /*     __fenix_remove_request(&(array_of_requests[i])); */
-    return ret;
+    for(i=0 ; i<count ; i++)
+        if(array_of_fenix_requests[i] != MPI_REQUEST_NULL)
+	    __fenix_request_store_getremove(&__fenix_g_request_store,
+					    *((int *)&(array_of_fenix_requests[i])),
+					    &(array_of_fenix_requests[i]));
 
+    ret = PMPI_Waitall(count, array_of_fenix_requests, array_of_statuses);
+    __fenix_test_MPI_inline(ret, "MPI_Waitall");
+
+    // Requests are deallocated and the corresponding handles in the
+    // array are set to MPI_REQUEST_NULL.
+    //
+    // The function MPI_WAITALL will return in such case the error
+    // code MPI_ERR_IN_STATUS and will set the error field of each
+    // status to a specific error code. This code will be MPI_SUCCESS,
+    // if the specific communication completed; it will be another
+    // specific error code, if it failed; or it can be MPI_ERR_PENDING
+    // if it has neither failed nor completed. The function
+    // MPI_WAITALL will return MPI_SUCCESS if no request had an error,
+    // or will return another error code if it failed for other
+    // reasons (such as invalid arguments). In such cases, it will not
+    // update the error fields of the statuses.
+    if(ret != MPI_SUCCESS)
+        for(i=0 ; i<count ; i++)
+            if((ret != MPI_ERR_IN_STATUS || array_of_statuses[i].MPI_ERROR == MPI_ERR_PENDING)
+                && (array_of_fenix_requests[i] != MPI_REQUEST_NULL))
+                __fenix_override_request(MPI_SUCCESS, &(array_of_fenix_requests[i]));
+
+    return ret;
+}
+
+
+#warning "Check MPI standard/mpi.h for functions that have MPI_Request"
+
+int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
+{
+#warning "TODO"
+  printf("Fenix: need to implement MPI_Test\n");
+}
+
+int MPI_Cancel(MPI_Request *request)
+{
+#warning "TODO"
+  printf("Fenix: need to implement MPI_Cancel\n");
+}
+
+int MPI_Request_free(MPI_Request *request)
+{
+#warning "TODO"
+  printf("Fenix: need to implement MPI_Request_free\n");
 }

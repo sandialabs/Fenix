@@ -27,3 +27,25 @@
 *.exe
 *.out
 *.app
+examples/01_hello_world/fenix/fenix_hello_world
+examples/01_hello_world/mpi/mpi_hello_world
+examples/02_send_recv/fenix/fenix_ring
+examples/02_send_recv/mpi/mpi_ring
+examples/03_reduce/fenix/fenix_reduce
+examples/03_reduce/mpi/mpi_reduce
+examples/04_Isend_Irecv/fenix/fenix_stencil_1D
+examples/04_Isend_Irecv/mpi/mpi_stencil_1D
+examples/05_subset_create/subset_create
+examples/06_subset_createv/subset_createv
+test/request_tracking/fenix_request_tracking_test
+test/request_tracking/fenix_request_tracking_test_nofenix
+
+# Other
+*~
+
+# Cmake files
+CMakeCache.txt
+*CMakeFiles*
+*Makefile
+*.cmake
+cmake_install.cmake

@@ -89,6 +89,9 @@ int __fenix_g_role;    // Role of rank: initial, survivor or repair
 int __fenix_g_fenix_init_flag = 0;
 struct __fenix_hash_table* __fenix_outstanding_request = NULL;
 
+#include "fenix_request_store.h"
+__fenix_request_store_t __fenix_g_request_store;
+
 fenix_callback_list_t* __fenix_g_callback_list;  // A singluar linked list for user-defined Fenix callback functions
 __fenix_debug_options __fenix_options;    // This is reserved to store the user options
 

@@ -120,10 +120,6 @@ int __fenix_create_new_world();
 
 int __fenix_repair_ranks();
 
-void __fenix_insert_request(MPI_Request *);
-
-void __fenix_remove_request(MPI_Request *);
-
 int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
 
 void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
@@ -136,7 +132,6 @@ int __fenix_spare_rank();
 
 int __fenix_get_rank_role();
 
-//void set_rank_role(enum FenixRankRole);
 void __fenix_set_rank_role(int FenixRankRole);
 
 void __fenix_postinit(int *);

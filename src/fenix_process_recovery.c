@@ -54,6 +54,8 @@
 //@HEADER
 */
 
+#include <assert.h>
+
 //#include "fenix.h"
 #include "fenix_constants.h"
 #include "fenix_process_recovery_global.h"
@@ -65,7 +67,6 @@
 #include "fenix_util.h"
 #include <mpi.h>
 
-#include "assert.h"
 
 /**
  * @brief
@@ -107,6 +108,16 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
   __fenix_options.verbose = -1;
  // __fenix_init_opt(*argc, *argv);
+
+  // For request tracking, make sure we can save at least an integer
+  // in MPI_Request
+  if(sizeof(MPI_Request) < sizeof(int)) {
+    fprintf(stderr, "FENIX ERROR: __fenix_preinit: sizeof(MPI_Request) < sizeof(int)!\n");
+    MPI_Abort(comm, -1);
+  }
+
+  // Initialize request store
+  __fenix_request_store_init(&__fenix_g_request_store);
 
 
   MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &__fenix_g_agree_op);
@@ -791,6 +802,9 @@ void __fenix_finalize() {
   /* Free data recovery interface */
   __fenix_data_group_destroy( __fenix_g_data_recovery );
 
+  /* Free the request store */
+  __fenix_request_store_destroy(&__fenix_g_request_store);
+
   __fenix_g_fenix_init_flag = 0;
 }
 
@@ -829,40 +843,6 @@ void __fenix_finalize_spare() {
   /* Future version do not close MPI. Jump to where Fenix_Finalize is called. */
   MPI_Finalize();
   exit(0);
-}
-
-
-/**
- * @brief
- * @param 
- * @param
- * @param 
- * @param 
- */
-
-void __fenix_insert_request(MPI_Request *request) {
-    if(!__fenix_g_fenix_init_flag) return;
-    if(__fenix_options.verbose == 16) {
-        verbose_print("hash_table_put; request: %lu\n", (long) request);
-    }
-    __fenix_hash_table_put(__fenix_outstanding_request, (long) request, request);
-}
-
-
-/**
- * @brief
- * @param 
- * @param
- * @param 
- * @param 
- */
-
-void __fenix_remove_request(MPI_Request *request) {
-    if(!__fenix_g_fenix_init_flag) return;
-    if(__fenix_options.verbose == 17) {
-        verbose_print("hash_table_remove; request: %lu\n", (long) request);
-    }
-    __fenix_hash_table_remove(__fenix_outstanding_request, (long) request);
 }
 
 
