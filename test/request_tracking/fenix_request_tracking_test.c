@@ -1,6 +1,8 @@
 #include <mpi.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #ifndef RTT_NO_FENIX
 #include <fenix.h>
@@ -18,7 +20,6 @@ int main(int argc, char **argv)
 
 #ifndef RTT_NO_FENIX
     int fenix_status;
-    int recovered = 0;
     int error;
     int spare_ranks = 1;
     Fenix_Init(&fenix_status, MPI_COMM_WORLD, &newcomm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
@@ -47,6 +48,10 @@ int main(int argc, char **argv)
         // for(i=0 ; i<isends ; i++)
         //     MPI_Isend(&(bufs[i]), 1, MPI_INT, (rank+1)%size, 0, newcomm, &(reqs[i]));
         for(i=0 ; i<isends ; i++) {
+            if(0 && rank==0 && it==10 && i==10) {
+                printf("Killing self\n");
+                kill(getpid(), 9);
+            }
             MPI_Isend(&(bufs[i]), 1, MPI_INT, (rank+1)%size, 0, newcomm, &r);
             memcpy(&(reqs[i]), &r, sizeof(MPI_Request));
         }
