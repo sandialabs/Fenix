@@ -1,16 +1,51 @@
+```
+ ************************************************************************
+
+
+            _|_|_|_|  _|_|_|_|  _|      _|  _|_|_|  _|      _|
+            _|        _|        _|_|    _|    _|      _|  _|
+            _|_|_|    _|_|_|    _|  _|  _|    _|        _|
+            _|        _|        _|    _|_|    _|      _|  _|
+            _|        _|_|_|_|  _|      _|  _|_|_|  _|      _|
+
+
+ ************************************************************************
+```
+
+# Installation
+
+These instructions assume you are in your home directory.
+
+* Checkout Fenix sources
+  * For example:
+```
+git clone <address of this repo>
+```
+* Include the installation directory of MPI in your PATH (note that MPI should include ULFM extensions!).
+  * For example:
+```
+export PATH=~/install/mpi-ulfm/bin:$PATH
+```
+  * You can check this by running `which mpicc` and making sure it points to the correct `mpicc`.
+* Create a build directory.
+  * For example:
+```
+mkdir -p ~/build/fenix/
+cd ~/build/fenix/
+```
+* Run `cmake <Fenix source directory>` and `make`
+  * For example:
+```
+cmake ~/Fenix
+make
+```
+
+# TODO
+* Make install?
+
+
 <pre>
-/*
 // ************************************************************************
-//
-//
-//            _|_|_|_|  _|_|_|_|  _|      _|  _|_|_|  _|      _|
-//            _|        _|        _|_|    _|    _|      _|  _|
-//            _|_|_|    _|_|_|    _|  _|  _|    _|        _|
-//            _|        _|        _|    _|_|    _|      _|  _|
-//            _|        _|_|_|_|  _|      _|  _|_|_|  _|      _|
-//
-//
-//
 //
 // Copyright (C) 2016 Rutgers University and Sandia Corporation
 //
@@ -50,15 +85,5 @@
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
-//
 // ************************************************************************
-*/
 </pre>
-
-# Installation
-
-* Edit `cmake_scripts/run_cmake.sh` and indicate the correct path to `ULFM_HOME`.
-* Then, cd into Fenix's root directory and invoke:
-```
-./cmake_scripts/run_cmake.sh
-```

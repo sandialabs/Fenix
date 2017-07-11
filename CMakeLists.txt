@@ -4,15 +4,18 @@
 #  This software is distributed under the BSD License.
 #  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 #  the U.S. Government retains certain rights in this software.
-#  For more information, see the LICENSE file in the top DHARMA
-
+#  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
-cmake_minimum_required (VERSION 2.7)
+cmake_minimum_required (VERSION 2.6)
 project (Fenix)
 # The version number.
-set (Fenix_VERSION_MAJOR 1)
-set (Fenix_VERSION_MINOR 0)
+set (FENIX_VERSION_MAJOR 1)
+set (FENIX_VERSION_MINOR 0)
+
+find_package(MPI REQUIRED)
+
+include_directories(${MPI_INCLUDE_PATH})
 
 # Set empty string for shared linking (we use static library only at this moment)
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
@@ -28,9 +31,9 @@ include_directories(
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
-set(CMAKE_BUILD_TYPE Release)
-#set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O0 -ggdb")
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O0 -ggdb")
 
 #ENABLE_TESTING
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
@@ -39,6 +42,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(src)
 #add_subdirectory(test/subset_internal)
 add_subdirectory(test/request_tracking)
+
+
 add_subdirectory(examples/01_hello_world/fenix)
 add_subdirectory(examples/01_hello_world/mpi)
 add_subdirectory(examples/02_send_recv/fenix)

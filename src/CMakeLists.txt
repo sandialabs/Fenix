@@ -4,7 +4,7 @@
 #  This software is distributed under the BSD License.
 #  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 #  the U.S. Government retains certain rights in this software.
-#  For more information, see the LICENSE file in the top DHARMA
+#  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
 configure_file (fenix-config.h.in
@@ -23,7 +23,6 @@ fenix_data_group.c
 fenix_data_member.c
 fenix_data_version.c
 fenix_data_buffer.c
-fenix_hash.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}
