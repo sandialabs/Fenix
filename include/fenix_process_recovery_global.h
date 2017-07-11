@@ -71,7 +71,6 @@
 
 
 /* This header file is intended to proivde global variable defintiions for fenix_process_recovery.c only */
-#define __FENIX_HASH_TABLE_SIZE 512
 
 int __fenix_g_num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
 int __fenix_g_num_survivor_ranks;   // Keeps the global information on the number of survived MPI ranks after failure
@@ -87,7 +86,6 @@ jmp_buf *__fenix_g_recover_environment; // Calling environment to fill the jmp_b
 //enum FenixRankRole __fenix_g_role;    // Role of rank: initial, survivor or repair
 int __fenix_g_role;    // Role of rank: initial, survivor or repair
 int __fenix_g_fenix_init_flag = 0;
-struct __fenix_hash_table* __fenix_outstanding_request = NULL;
 
 #include "fenix_request_store.h"
 __fenix_request_store_t __fenix_g_request_store;
