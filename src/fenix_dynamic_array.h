@@ -10,6 +10,7 @@
 #define __fenix_dynamic_array_destroy NAME(_dynamic_array_destroy)
 #define __fenix_dynamic_array_inc     NAME(_dynamic_array_inc)
 #define __fenix_dynamic_array_dec     NAME(_dynamic_array_dec)
+#define __fenix_dynamic_array_clear   NAME(_dynamic_array_clear)
 
 typedef struct {
     int size;         // number of used elements in 'elements'
@@ -59,6 +60,11 @@ void __fenix_dynamic_array_dec(__fenix_dynamic_array_t *d)
     d->size--;
 }
 
+static inline
+void __fenix_dynamic_array_clear(__fenix_dynamic_array_t *d)
+{
+    d->size = 0;
+}
 
 #undef CAT__
 #undef CAT_
@@ -68,3 +74,4 @@ void __fenix_dynamic_array_dec(__fenix_dynamic_array_t *d)
 #undef __fenix_dynamic_array_destroy
 #undef __fenix_dynamic_array_inc
 #undef __fenix_dynamic_array_dec
+#undef __fenix_dynamic_array_clear

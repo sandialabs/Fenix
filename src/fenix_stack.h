@@ -35,3 +35,8 @@ int __fenix_int_stack_pop(__fenix_stack_t *s)
     return ret;
 }
 
+static inline
+void __fenix_int_stack_clear(__fenix_stack_t *s)
+{
+    __fenix_int_stack_dynamic_array_clear(s);
+}

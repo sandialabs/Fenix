@@ -157,7 +157,21 @@ void __fenix_request_store_getremove(__fenix_request_store_t *s,
 }
 
 static inline
-void __fenix_request_store_remove_all(__fenix_request_store_t *s)
+void __fenix_request_store_waitall_removeall(__fenix_request_store_t *s)
 {
-#warning "    //todo;"
+  int i;
+  for(i=0 ; i<s->first_unused_position ; i++) {
+    __fenix_request_t *f = &(s->reqs.elements[i]);
+    if(f->valid) {
+#warning "What to do with requests upon failure? Wait or Cancel?"
+      PMPI_Wait(&(f->r), MPI_STATUS_IGNORE);
+      if(i == MPI_REQUEST_NULL)
+	__fenix_request_store_remove(s, -123);
+      else
+	__fenix_request_store_remove(s, i);
+    }
+  }
+
+  s->first_unused_position = 0;
+  __fenix_int_stack_clear(&(s->freed_list));
 }
