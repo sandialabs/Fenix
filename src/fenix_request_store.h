@@ -51,11 +51,11 @@ void __fenix_request_store_init(__fenix_request_store_t *s)
 static inline
 void __fenix_request_store_destroy(__fenix_request_store_t *s)
 {
-  int valid_count = 0, i;
-  for(i=0 ; i<s->first_unused_position ; i++)
-    if(s->reqs.elements[i].valid) valid_count++;
-  if(valid_count > 0)
-    printf("[Fenix warning] __fenix_request_store_destroy. store contains valid elements (valid elems %d, first_unused_pos %d)\n", valid_count, s->first_unused_position);
+    int valid_count = 0, i;
+    for(i=0 ; i<s->first_unused_position ; i++)
+        if(s->reqs.elements[i].valid) valid_count++;
+    if(valid_count > 0)
+        printf("[Fenix warning] __fenix_request_store_destroy. store contains valid elements (valid elems %d, first_unused_pos %d)\n", valid_count, s->first_unused_position);
     __fenix_req_dynamic_array_destroy(&(s->reqs));
     __fenix_int_stack_destroy(&(s->freed_list));
     s->first_unused_position = 0;
@@ -159,19 +159,19 @@ void __fenix_request_store_getremove(__fenix_request_store_t *s,
 static inline
 void __fenix_request_store_waitall_removeall(__fenix_request_store_t *s)
 {
-  int i;
-  for(i=0 ; i<s->first_unused_position ; i++) {
-    __fenix_request_t *f = &(s->reqs.elements[i]);
-    if(f->valid) {
+    int i;
+    for(i=0 ; i<s->first_unused_position ; i++) {
+        __fenix_request_t *f = &(s->reqs.elements[i]);
+        if(f->valid) {
 #warning "What to do with requests upon failure? Wait or Cancel?"
-      PMPI_Wait(&(f->r), MPI_STATUS_IGNORE);
-      if(i == MPI_REQUEST_NULL)
-	__fenix_request_store_remove(s, -123);
-      else
-	__fenix_request_store_remove(s, i);
+            PMPI_Wait(&(f->r), MPI_STATUS_IGNORE);
+            if(i == MPI_REQUEST_NULL)
+                __fenix_request_store_remove(s, -123);
+            else
+                __fenix_request_store_remove(s, i);
+        }
     }
-  }
 
-  s->first_unused_position = 0;
-  __fenix_int_stack_clear(&(s->freed_list));
+    s->first_unused_position = 0;
+    __fenix_int_stack_clear(&(s->freed_list));
 }
