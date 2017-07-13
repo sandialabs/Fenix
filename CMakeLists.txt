@@ -7,15 +7,31 @@
 #  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
-cmake_minimum_required (VERSION 2.6)
-project (Fenix)
+
+cmake_minimum_required(VERSION 3.0.2)
+
+project(Fenix)
 # The version number.
-set (FENIX_VERSION_MAJOR 1)
-set (FENIX_VERSION_MINOR 0)
+set(FENIX_VERSION_MAJOR 1)
+set(FENIX_VERSION_MINOR 0)
 
-find_package(MPI REQUIRED)
-
-include_directories(${MPI_INCLUDE_PATH})
+if("a$ENV{MPICC}" STREQUAL "a")
+       message("[fenix] MPICC (MPI compiler) environment variable is not defined. Trying to find MPI compiler...")
+       find_package(MPI REQUIRED)
+       if(${MPI_C_FOUND})
+              message("[fenix] MPI found! ${MPI_C_COMPILER}")
+       else()
+              message( FATAL_ERROR "[fenix] MPI not found :( Aborting! Export environment variable MPI_C_COMPILER and retry")
+       endif()
+       message("[fenix] MPI COMPILE FLAGS: ${MPI_C_COMPILE_FLAGS}")
+       message("[fenix] MPI LINK FLAGS: ${MPI_C_LINK_FLAGS}")
+       message("[fenix] MPI INCLUDE PATH: ${MPI_C_INCLUDE_PATH}")
+       message("[fenix] MPI COMPILER: ${MPI_C_COMPILER}")
+else()
+       message("[fenix] MPICC has been passed: $ENV{MPICC}")
+       set(MPI_C_COMPILER $ENV{MPICC})
+endif()
+SET(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 
 # Set empty string for shared linking (we use static library only at this moment)
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
