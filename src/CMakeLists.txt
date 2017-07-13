@@ -7,8 +7,10 @@
 #  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
+
 configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
   "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set (Fenix_SOURCES 
 fenix.c
