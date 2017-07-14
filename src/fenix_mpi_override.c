@@ -158,6 +158,8 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank)
     return ret;
 }
 
+
+#warning "For OpenMPI 2.0.2, const void * is used!"
 #ifdef OPEN_MPI
 #define MPI_SEND_BUFF_TYPE void *
 #else
