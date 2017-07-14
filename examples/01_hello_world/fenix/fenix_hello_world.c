@@ -65,10 +65,11 @@ const int kKillID = 3;
 
 int main(int argc, char **argv) {
 
- // if (argc != 2) {
- //   printf("Usage: %s <# spare ranks> \n", *argv);
- //  exit(0);
- // }
+#warning "It's a good idea to complain when not enough parameters! Should add this code to other examples too."
+  if (argc < 2) {
+      printf("Usage: %s <# spare ranks> \n", *argv);
+      exit(0);
+  }
 
   int old_world_size, new_world_size = - 1;
   int old_rank = 1, new_rank = - 1;
