@@ -16,29 +16,18 @@
 
 These instructions assume you are in your home directory.
 
-* Checkout Fenix sources
-  * For example:
-```
-git clone <address of this repo>
-```
-* Include the installation directory of MPI in your PATH (note that MPI should include ULFM extensions!).
-  * For example:
-```
-export PATH=~/install/mpi-ulfm/bin:$PATH
-```
-  * You can check this by running `which mpicc` and making sure it points to the correct `mpicc`.
-* Create a build directory.
-  * For example:
-```
-mkdir -p ~/build/fenix/
-cd ~/build/fenix/
-```
-* Run `cmake <Fenix source directory>` and `make`
-  * For example:
-```
-cmake ~/Fenix
-make
-```
+1. Checkout Fenix sources
+   * For example: ` git clone <address of this repo> `
+2. Create a build directory.
+   * For example: ` mkdir -p ~/build/fenix/ && cd ~/build/fenix/ `
+3. Specify the MPI C compiler to use (note that MPI should include ULFM extensions!). 
+   You have two options:
+   * To manually indicate which compiler `cmake` should use, set the `MPICC` variable to point to it.
+      * For example: ` export MPICC=~/install/mpi-ulfm/bin/mpicc `
+   * If the `MPICC` environment variable is not there, `cmake` will try to guess where the MPI implementation is. To help, make sure you include the installation directory of MPI in your `PATH`.
+      * For example: ` export PATH=~/install/mpi-ulfm/bin:$PATH `
+4. Run ` cmake <Fenix source directory> ` and ` make `
+   * For example: ` cmake ~/Fenix && make `
 
 # TODO
 * Make install?
