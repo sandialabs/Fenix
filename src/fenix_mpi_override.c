@@ -74,6 +74,7 @@ static inline
 int __fenix_notify_newcomm(int ret, MPI_Comm *newcomm)
 {
     if (ret != MPI_SUCCESS) return ret;
+    if (!__fenix_g_fenix_init_flag) return ret;
     if (*newcomm == MPI_COMM_NULL) return MPI_ERR_INTERN;
     ret = PMPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
     if (ret != MPI_SUCCESS) {

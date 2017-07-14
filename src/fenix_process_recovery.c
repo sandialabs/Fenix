@@ -96,6 +96,10 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     __fenix_g_replace_comm_flag = 1;
   }
 
+#warning "I think that by setting this errhandler, all other derived comms inherit it! no need for the gazillion set_errhandler calls in this file!"
+#warning "When was the last time I tried to set an actual errhndlr? Maybe it works, now"
+  PMPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
+
   __fenix_g_original_comm = comm;
   assert(__fenix_g_original_comm == comm);
 
