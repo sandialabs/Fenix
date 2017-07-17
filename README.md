@@ -1,16 +1,40 @@
+```
+ ************************************************************************
+
+
+            _|_|_|_|  _|_|_|_|  _|      _|  _|_|_|  _|      _|
+            _|        _|        _|_|    _|    _|      _|  _|
+            _|_|_|    _|_|_|    _|  _|  _|    _|        _|
+            _|        _|        _|    _|_|    _|      _|  _|
+            _|        _|_|_|_|  _|      _|  _|_|_|  _|      _|
+
+
+ ************************************************************************
+```
+
+# Installation
+
+These instructions assume you are in your home directory.
+
+1. Checkout Fenix sources
+   * For example: ` git clone <address of this repo> `
+2. Create a build directory.
+   * For example: ` mkdir -p ~/build/fenix/ && cd ~/build/fenix/ `
+3. Specify the MPI C compiler to use (note that MPI should include ULFM extensions!). 
+   You have two options:
+   * To manually indicate which compiler `cmake` should use, set the `MPICC` variable to point to it.
+      * For example: ` export MPICC=~/install/mpi-ulfm/bin/mpicc `
+   * If the `MPICC` environment variable is not there, `cmake` will try to guess where the MPI implementation is. To help, make sure you include the installation directory of MPI in your `PATH`.
+      * For example: ` export PATH=~/install/mpi-ulfm/bin:$PATH `
+4. Run ` cmake <Fenix source directory> ` and ` make `
+   * For example: ` cmake ~/Fenix && make `
+
+# TODO
+* Make install?
+
+
 <pre>
-/*
 // ************************************************************************
-//
-//
-//            _|_|_|_|  _|_|_|_|  _|      _|  _|_|_|  _|      _|
-//            _|        _|        _|_|    _|    _|      _|  _|
-//            _|_|_|    _|_|_|    _|  _|  _|    _|        _|
-//            _|        _|        _|    _|_|    _|      _|  _|
-//            _|        _|_|_|_|  _|      _|  _|_|_|  _|      _|
-//
-//
-//
 //
 // Copyright (C) 2016 Rutgers University and Sandia Corporation
 //
@@ -50,7 +74,5 @@
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
-//
 // ************************************************************************
-*/
 </pre>

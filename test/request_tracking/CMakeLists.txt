@@ -8,6 +8,5 @@
 #  directory.
 #
 
-add_executable(fenix_reduce fenix_reduce.c)
-target_link_libraries(fenix_reduce fenix ${MPI_C_LIBRARIES})
-#test_against_reference(1d_heat_eqn 1d_heat_eqn 120)
+add_executable(fenix_request_tracking_test fenix_request_tracking_test.c)
+target_link_libraries(fenix_request_tracking_test fenix ${MPI_C_LIBRARIES})

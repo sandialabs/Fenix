@@ -4,11 +4,13 @@
 #  This software is distributed under the BSD License.
 #  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 #  the U.S. Government retains certain rights in this software.
-#  For more information, see the LICENSE file in the top DHARMA
+#  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
+
 configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
-  "${CMAKE_SOURCE_DIR}/include/fenix-config.h" @ONLY)
+  "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set (Fenix_SOURCES 
 fenix.c
@@ -23,7 +25,6 @@ fenix_data_group.c
 fenix_data_member.c
 fenix_data_version.c
 fenix_data_buffer.c
-fenix_hash.c
 fenix_comm_list.c
 )
 

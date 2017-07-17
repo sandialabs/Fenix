@@ -54,6 +54,8 @@
 //@HEADER
 */
 
+#include <assert.h>
+
 //#include "fenix.h"
 #include "fenix_constants.h"
 #include "fenix_comm_list.h"
@@ -61,10 +63,10 @@
 #include "fenix_process_recovery.h"
 #include "fenix_data_group.h"
 #include "fenix_data_recovery.h"
-#include "fenix_hash.h"
 #include "fenix_opt.h"
 #include "fenix_util.h"
 #include <mpi.h>
+
 
 /**
  * @brief
@@ -94,7 +96,13 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     __fenix_g_replace_comm_flag = 1;
   }
 
-  //__fenix_g_original_comm = comm; 
+#warning "I think that by setting this errhandler, all other derived comms inherit it! no need for the gazillion set_errhandler calls in this file!"
+#warning "When was the last time I tried to set an actual errhndlr? Maybe it works, now"
+  PMPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
+
+  __fenix_g_original_comm = comm;
+  assert(__fenix_g_original_comm == comm);
+
   __fenix_g_spare_ranks = spare_ranks;
   __fenix_g_spawn_policy = spawn;
   __fenix_g_recover_environment = jump_environment;
@@ -104,6 +112,16 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
   __fenix_options.verbose = -1;
  // __fenix_init_opt(*argc, *argv);
+
+  // For request tracking, make sure we can save at least an integer
+  // in MPI_Request
+  if(sizeof(MPI_Request) < sizeof(int)) {
+    fprintf(stderr, "FENIX ERROR: __fenix_preinit: sizeof(MPI_Request) < sizeof(int)!\n");
+    MPI_Abort(comm, -1);
+  }
+
+  // Initialize request store
+  __fenix_request_store_init(&__fenix_g_request_store);
 
 
   MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &__fenix_g_agree_op);
@@ -144,7 +162,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
   __fenix_g_world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
 
   MPI_Comm_dup(comm, __fenix_g_world);
-  MPI_Comm_dup(comm, &__fenix_g_original_comm);
 
   __fenix_g_data_recovery = __fenix_data_group_init();
 
@@ -166,8 +183,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     }
   }
 
-  __fenix_outstanding_request = __fenix_hash_table_new(__FENIX_HASH_TABLE_SIZE);
- 
   if ( __fenix_spare_rank() != 1) {
     __fenix_g_num_inital_ranks = __fenix_get_world_size(*__fenix_g_new_world);
     if (__fenix_options.verbose == 0) {
@@ -773,13 +788,14 @@ void __fenix_finalize() {
   free( __fenix_g_world );
   free( __fenix_g_new_world );
 
-  /* Free the Hash Table */
-  __fenix_hash_table_destroy( __fenix_outstanding_request );
   /* Free Callbacks */
   __fenix_callback_destroy( __fenix_g_callback_list );
 
   /* Free data recovery interface */
   __fenix_data_group_destroy( __fenix_g_data_recovery );
+
+  /* Free the request store */
+  __fenix_request_store_destroy(&__fenix_g_request_store);
 
   __fenix_g_fenix_init_flag = 0;
 }
@@ -806,8 +822,6 @@ void __fenix_finalize_spare() {
   free(__fenix_g_world);
   free(__fenix_g_new_world);
 
-  /* Free the Hash Table */
-  __fenix_hash_table_destroy( __fenix_outstanding_request );
   /* Free callbacks */
   __fenix_callback_destroy( __fenix_g_callback_list );
 
@@ -830,42 +844,12 @@ void __fenix_finalize_spare() {
  * @param 
  */
 
-void __fenix_insert_request(MPI_Request *request) {
-  if (__fenix_options.verbose == 16) {
-    verbose_print("hash_table_put; request: %lu\n", (long) request);
-  }
-  __fenix_hash_table_put(__fenix_outstanding_request, (long) request, request);
-}
 
-
-/**
- * @brief
- * @param 
- * @param
- * @param 
- * @param 
- */
-
-void __fenix_remove_request(MPI_Request *request) {
-  if (__fenix_options.verbose == 17) {
-    verbose_print("hash_table_remove; request: %lu\n", (long) request);
-  }
-  __fenix_hash_table_remove(__fenix_outstanding_request, (long) request);
-}
-
-
-/**
- * @brief
- * @param 
- * @param
- * @param 
- * @param 
- */
 
 void __fenix_test_MPI(int ret, const char *msg) {
   int ret_repair;
   int index;
-  if (ret == MPI_SUCCESS || __fenix_spare_rank() == 1) {
+  if(!__fenix_g_fenix_init_flag || ret == MPI_SUCCESS || __fenix_spare_rank() == 1) {
     return;
   }
 
@@ -884,20 +868,8 @@ void __fenix_test_MPI(int ret, const char *msg) {
         MPIF_Comm_revoke(*__fenix_g_user_world);
       }
 
-      for (index = 0; index < __fenix_outstanding_request->size; index++) {
-        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
-          MPI_Request *value = __fenix_hash_table_get(__fenix_outstanding_request,
-                                              __fenix_outstanding_request->table[index].key);
-          MPI_Status status;
-          PMPI_Wait(value, &status);
-        }
-      }
+      __fenix_request_store_waitall_removeall(&__fenix_g_request_store);
 
-      for (index = 0; index < __fenix_outstanding_request->size; index++) {
-        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
-          __fenix_hash_table_remove(__fenix_outstanding_request, __fenix_outstanding_request->table[index].key);
-        }
-      }
       __fenix_comm_list_destroy();
 
       __fenix_g_repair_result = __fenix_repair_ranks();
@@ -907,20 +879,7 @@ void __fenix_test_MPI(int ret, const char *msg) {
         verbose_print("MPI_ERR_REVOKED; current_rank: %d, role: %d, msg: %s\n", msg);
       }
 
-      for (index = 0; index < __fenix_outstanding_request->size; index++) {
-        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
-          MPI_Request *value = __fenix_hash_table_get(__fenix_outstanding_request,
-                                              __fenix_outstanding_request->table[index].key);
-          MPI_Status status;
-          PMPI_Wait(value, &status);
-        }
-      }
-
-      for (index = 0; index < __fenix_outstanding_request->size; index++) {
-        if (__fenix_outstanding_request->table[index].state == OCCUPIED) {
-          __fenix_hash_table_remove(__fenix_outstanding_request, __fenix_outstanding_request->table[index].key);
-        }
-      }
+      __fenix_request_store_waitall_removeall(&__fenix_g_request_store);
 
       __fenix_comm_list_destroy();
 
