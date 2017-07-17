@@ -10,6 +10,10 @@
 
 configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
   "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
+
+configure_file(${CMAKE_SOURCE_DIR}/include/fenix.h
+  "${CMAKE_BINARY_DIR}/include/fenix.h" COPYONLY)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set (Fenix_SOURCES 
@@ -29,5 +33,7 @@ fenix_comm_list.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}
-  ${CMAKE_SOURCE_DIR}/include/fenix-config.h)
+  ${CMAKE_SOURCE_DIR}/include/fenix-config.h
+  ${CMAKE_SOURCE_DIR}/include/fenix.h
+  )
 #target_link_libraries( mpi  )
