@@ -14,10 +14,10 @@ configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
 configure_file(${CMAKE_SOURCE_DIR}/include/fenix.h
   "${CMAKE_BINARY_DIR}/include/fenix.h" COPYONLY)
 
-configure_file(${CMAKE_SOURCE_DIR}/include/fenix.h
+configure_file(${CMAKE_SOURCE_DIR}/include/fenix_constants.h
   "${CMAKE_BINARY_DIR}/include/fenix_constants.h" COPYONLY)
 
-configure_file(${CMAKE_SOURCE_DIR}/include/fenix.h
+configure_file(${CMAKE_SOURCE_DIR}/include/fenix_process_recovery.h
   "${CMAKE_BINARY_DIR}/include/fenix_process_recovery.h" COPYONLY)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
