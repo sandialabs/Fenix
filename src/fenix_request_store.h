@@ -164,7 +164,7 @@ void __fenix_request_store_waitall_removeall(__fenix_request_store_t *s)
         __fenix_request_t *f = &(s->reqs.elements[i]);
         if(f->valid) {
 #warning "What to do with requests upon failure? Wait or Cancel?"
-            PMPI_Wait(&(f->r), MPI_STATUS_IGNORE);
+            PMPI_Cancel(&(f->r));
             if(i == MPI_REQUEST_NULL)
                 __fenix_request_store_remove(s, -123);
             else
