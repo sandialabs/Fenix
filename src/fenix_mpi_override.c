@@ -73,9 +73,9 @@ MPI_Comm __fenix_replace_comm(MPI_Comm comm)
 static inline 
 int __fenix_notify_newcomm(int ret, MPI_Comm *newcomm)
 {
-    if (ret != MPI_SUCCESS) return ret;
-    if (!__fenix_g_fenix_init_flag) return ret;
-    if (*newcomm == MPI_COMM_NULL) return MPI_ERR_INTERN;
+    if (ret != MPI_SUCCESS || 
+        !__fenix_g_fenix_init_flag ||
+        *newcomm == MPI_COMM_NULL) return ret;
     ret = PMPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
     if (ret != MPI_SUCCESS) {
         fprintf(stderr, "[fenix error] Did not manage to set error handler\n");
