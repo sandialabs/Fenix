@@ -9,6 +9,6 @@
 #
 
 add_executable(fenix_ring fenix_ring.c)
-target_link_libraries(fenix_ring fenix ${MPI_C_LIBRARIES})
+target_link_libraries(fenix_ring fenix ${MPI_C_LIBRARIES} m )
 #test_against_reference(1d_heat_eqn 1d_heat_eqn 120)
 
