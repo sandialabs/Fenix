@@ -84,7 +84,7 @@ void __fenix_callback_invoke_all(int error)
 {
     fenix_callback_list_t *current = __fenix_g_callback_list;
     while (current != NULL) {
-        (current->callback->x)((MPI_Comm) * __fenix_g_new_world, (int) *error,
+        (current->callback->x)((MPI_Comm) * __fenix_g_new_world, error,
                                (void *) current->callback->y);
         current = current->next;
     }
