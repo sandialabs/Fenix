@@ -54,6 +54,8 @@
 //@HEADER
 */
 
+
+
 #ifndef __FENIX_EXT_H__
 #define __FENIX_EXT_H__
 /* Keep all global variable declarations */
