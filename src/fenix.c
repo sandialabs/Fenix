@@ -78,17 +78,17 @@ const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
 
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
-  return __fenix_callback_register(recover, callback_data);
+    return __fenix_callback_register(recover, callback_data);
 }
 
 int Fenix_Initialized(int *flag) {
-  *flag = (__fenix_g_fenix_init_flag) ? 1 : 0;  
-  return FENIX_SUCCESS;
+    *flag = (__fenix_g_fenix_init_flag) ? 1 : 0;  
+    return FENIX_SUCCESS;
 }
 
 int Fenix_Finalize() {
-  __fenix_finalize();
-  return FENIX_SUCCESS;
+    __fenix_finalize();
+    return FENIX_SUCCESS;
 }
 
 int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth ) {
@@ -101,18 +101,17 @@ int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int cou
 
 int Fenix_Data_group_get_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
     return __fenix_group_get_redundancy_policy( group_id, policy_name, policy_value, flag );
-
 }
 
-int Fenix_Data_group_set_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag )  {
+int Fenix_Data_group_set_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
     return  __fenix_group_set_redundancy_policy( group_id, policy_name, policy_value, flag);
 }
 
-int Fenix_Data_wait(Fenix_Request request){
+int Fenix_Data_wait(Fenix_Request request) {
     return __fenix_data_wait(request);
 }
 
-int Fenix_Data_test(Fenix_Request request, int *flag){
+int Fenix_Data_test(Fenix_Request request, int *flag) {
     return __fenix_data_test(request, flag);
 }
 
@@ -180,11 +179,11 @@ int Fenix_Data_group_get_snapshot_at_position(int group_id, int position, int *t
     return __fenix_get_snapshot_at_position(group_id, position, time_stamp);
 }
 
-int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename, void *attributevalue, int *flag, int source_rank){
+int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename, void *attributevalue, int *flag, int source_rank) {
     return __fenix_member_get_attribute(group_id, member_id, attributename, attributevalue, flag, source_rank);
 }
 
-int Fenix_Data_member_attr_set(int group_id, int member_id, int attribute_name, void *attribute_value, int *flag){
+int Fenix_Data_member_attr_set(int group_id, int member_id, int attribute_name, void *attribute_value, int *flag) {
     return __fenix_member_set_attribute(group_id, member_id, attribute_name, attribute_value, flag);
 }
 

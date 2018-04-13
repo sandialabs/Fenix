@@ -135,7 +135,9 @@ int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
 
 void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
 
-int __fenix_callback_destroy( fenix_callback_list_t *callback_list );
+void __fenix_callback_invoke_all(int error);
+
+int __fenix_callback_destroy(fenix_callback_list_t *callback_list);
 
 int* __fenix_get_fail_ranks(int *, int, int);
 
