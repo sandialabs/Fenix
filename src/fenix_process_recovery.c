@@ -200,17 +200,17 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, *__fenix_g_world,
                         &mpi_status); // listen for a failure
         if (ret == MPI_SUCCESS) {
-            if (__fenix_options.verbose == 0) {
+            //if (__fenix_options.verbose == 0) {
                 verbose_print("Finalize the program; rank: %d, role: %d\n",
                               __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role);
-            }
+                //}
             __fenix_finalize_spare();
         } else {
             __fenix_g_repair_result = __fenix_repair_ranks();
-            if (__fenix_options.verbose == 0) {
+            //if (__fenix_options.verbose == 0) {
                 verbose_print("repair ranks; rank: %d, role: %d\n",
                               __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role);
-            }
+                //}
         }
         __fenix_g_role = FENIX_ROLE_RECOVERED_RANK;
     }
@@ -677,9 +677,9 @@ void __fenix_finalize()
         for (i = 0; i < __fenix_g_spare_ranks; i++) {
             int ret = MPI_Send(&a, 1, MPI_INT, spare_rank, 1, *__fenix_g_world);
             if (ret != MPI_SUCCESS) { debug_print("MPI_Send: %d\n", ret); }
-            if (__fenix_options.verbose == 10) {
+            //if (__fenix_options.verbose == 10) {
                 verbose_print("spare_rank: %d sending msg!\n", spare_rank);
-            }
+                //}
             spare_rank--;
         }
     }
@@ -687,6 +687,8 @@ void __fenix_finalize()
     int ret = MPI_Barrier(*__fenix_g_world);
     if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
 
+    debug_print("%d MPI_Barrier: %d\n", __fenix_get_current_rank(*__fenix_g_world), ret);
+    
     MPI_Op_free( &__fenix_g_agree_op );
     MPI_Comm_set_errhandler( *__fenix_g_world, MPI_ERRORS_ARE_FATAL );
     MPI_Comm_free( __fenix_g_world );
