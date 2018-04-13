@@ -684,7 +684,7 @@ void __fenix_finalize()
         }
     }
 
-    debug_print("%d Finalize before MPI_Barrier: %d\n", __fenix_get_current_rank(*__fenix_g_world), ret);
+    debug_print("%d Finalize before MPI_Barrier\n", __fenix_get_current_rank(*__fenix_g_world));
 
     int ret = MPI_Barrier(*__fenix_g_world);
     if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
