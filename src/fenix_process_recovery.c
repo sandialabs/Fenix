@@ -208,7 +208,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         } else {
             __fenix_g_repair_result = __fenix_repair_ranks();
             //if (__fenix_options.verbose == 0) {
-                verbose_print("repair ranks; rank: %d, role: %d\n",
+                verbose_print("spare rank exiting from MPI_Recv - repair ranks; rank: %d, role: %d\n",
                               __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role);
                 //}
         }
@@ -279,9 +279,9 @@ int __fenix_repair_ranks()
     int flag_g_world_freed = 0;
     MPI_Comm world_without_failures;
 
-    if (__fenix_get_current_rank(*__fenix_g_world) == 0) {
-        printf("Fenix: repairing communicators\n");
-    }
+    //if (__fenix_get_current_rank(*__fenix_g_world) == 0) {
+    printf("%d Fenix: repairing communicators\n", __fenix_get_current_rank(*__fenix_g_world));
+        //}
 
     while (!repair_success) {
         repair_success = 1;
@@ -620,10 +620,10 @@ int __fenix_spare_rank()
 void __fenix_postinit(int *error)
 {
 
-    if (__fenix_options.verbose == 9) {
-        verbose_print("current_rank: %d, role: %d\n", __fenix_get_current_rank(*__fenix_g_new_world),
+    //if (__fenix_options.verbose == 9) {
+        verbose_print(" postinit: current_rank: %d, role: %d\n", __fenix_get_current_rank(*__fenix_g_new_world),
                       __fenix_g_role);
-    }
+        //}
 
     PMPI_Barrier(*__fenix_g_new_world);
 
@@ -684,10 +684,12 @@ void __fenix_finalize()
         }
     }
 
+    debug_print("%d Finalize before MPI_Barrier: %d\n", __fenix_get_current_rank(*__fenix_g_world), ret);
+
     int ret = MPI_Barrier(*__fenix_g_world);
     if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
 
-    debug_print("%d MPI_Barrier: %d\n", __fenix_get_current_rank(*__fenix_g_world), ret);
+    debug_print("%d Finalize after MPI_Barrier: %d\n", __fenix_get_current_rank(*__fenix_g_world), ret);
     
     MPI_Op_free( &__fenix_g_agree_op );
     MPI_Comm_set_errhandler( *__fenix_g_world, MPI_ERRORS_ARE_FATAL );
