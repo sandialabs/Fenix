@@ -663,6 +663,11 @@ void __fenix_finalize()
     debug_print("Before barrier1  %d\n", __fenix_get_current_rank(*__fenix_g_new_world));
     /* Last Barrier Statement */
     MPI_Barrier( *__fenix_g_new_world );
+    if (ret != MPI_SUCCESS) {
+        __fenix_finalize();
+        return;
+    }
+    
     if (__fenix_options.verbose == 10) {
         verbose_print("current_rank: %d, role: %d\n", __fenix_get_current_rank(*__fenix_g_new_world),
                       __fenix_g_role);
@@ -679,20 +684,27 @@ void __fenix_finalize()
         int i;
         for (i = 0; i < __fenix_g_spare_ranks; i++) {
             int ret = MPI_Send(&a, 1, MPI_INT, spare_rank, 1, *__fenix_g_world);
-            //if (ret != MPI_SUCCESS) { debug_print("MPI_Send: %d\n", ret); }
             //if (__fenix_options.verbose == 10) {
             debug_print("%d spare_rank: %d sending msg!\n", __fenix_get_current_rank(*__fenix_g_new_world), spare_rank);
             //}
+            if (ret != MPI_SUCCESS) {
+                __fenix_finalize();
+                return;
+            }
             spare_rank--;
         }
     }
 
-    debug_print("%d Finalize before MPI_Barrier2\n", __fenix_get_current_rank(*__fenix_g_world));
 
+    debug_print("%d Finalize before MPI_Barrier2\n", __fenix_get_current_rank(*__fenix_g_world));
     int ret = MPI_Barrier(*__fenix_g_world);
+    debug_print("%d Finalize after  MPI_Barrier2: %d\n", __fenix_get_current_rank(*__fenix_g_world), ret);
+    if (ret != MPI_SUCCESS) {
+        __fenix_finalize();
+        return;
+    }
     //if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
 
-    debug_print("%d Finalize after  MPI_Barrier2: %d\n", __fenix_get_current_rank(*__fenix_g_world), ret);
     
     MPI_Op_free( &__fenix_g_agree_op );
     MPI_Comm_set_errhandler( *__fenix_g_world, MPI_ERRORS_ARE_FATAL );
