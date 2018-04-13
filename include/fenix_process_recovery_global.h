@@ -80,6 +80,7 @@ int __fenix_g_spawn_policy;         // Indicate dynamic process spawning
 int __fenix_g_spare_ranks;          // Spare ranks entered by user to repair failed ranks
 int __fenix_g_replace_comm_flag;    // Internal global variable to describe the status of MPI communicator
 int __fenix_g_repair_result;        // Internal global variable to store the result of MPI communicator repair
+int __fenix_g_finalized;
 jmp_buf *__fenix_g_recover_environment; // Calling environment to fill the jmp_buf structure
 
 

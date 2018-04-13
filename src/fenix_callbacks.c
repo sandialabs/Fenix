@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Rob Van der Wijngaart, and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -54,38 +54,70 @@
 //@HEADER
 */
 
-
-
-#ifndef __FENIX_EXT_H__
-#define __FENIX_EXT_H__
-/* Keep all global variable declarations */
-#include <mpi.h>
-#include "fenix_opt.h"
-#include "fenix_data_group.h"
+#include <assert.h>
+#include "fenix_constants.h"
+#include "fenix_comm_list.h"
+#include "fenix_ext.h"
 #include "fenix_process_recovery.h"
-
-extern __fenix_debug_options __fenix_options;
-extern int __fenix_g_fenix_init_flag;
-extern int __fenix_g_role;
-extern fenix_group_t *__fenix_g_data_recovery;
-
-extern int __fenix_g_num_inital_ranks;
-extern int __fenix_g_num_survivor_ranks;
-extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;                // Defines how program resumes after process recovery
-extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
-extern int __fenix_g_replace_comm_flag;
-extern int __fenix_g_repair_result;
-extern int __fenix_g_finalized;
-
-extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
-extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
-extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Op __fenix_g_agree_op;
-extern fenix_callback_list_t* __fenix_g_callback_list;  // singly linked list for user-defined Fenix callback functions
+#include "fenix_data_group.h"
+#include "fenix_data_recovery.h"
+#include "fenix_opt.h"
+#include "fenix_util.h"
+#include <mpi.h>
 
 
-#endif // __FENIX_EXT_H__
+int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data)
+{
+    int error_code = FENIX_SUCCESS;
+    if (__fenix_g_fenix_init_flag) {
+        fenix_callback_func *fp = s_malloc(sizeof(fenix_callback_func));
+        fp->x = recover;
+        fp->y = callback_data;
+        __fenix_callback_push( &__fenix_g_callback_list, fp);
+    } else {
+        error_code = FENIX_ERROR_UNINITIALIZED;
+    }
+    return error_code;
+}
+
+void __fenix_callback_invoke_all(int error)
+{
+    fenix_callback_list_t *current = __fenix_g_callback_list;
+    while (current != NULL) {
+        (current->callback->x)((MPI_Comm) * __fenix_g_new_world, error,
+                               (void *) current->callback->y);
+        current = current->next;
+    }
+}
+
+void __fenix_callback_push(fenix_callback_list_t **head, fenix_callback_func *fp)
+{
+    fenix_callback_list_t *callback = malloc(sizeof(fenix_callback_list_t));
+    callback->callback = fp;
+    callback->next = *head;
+    *head = callback;
+}
+
+int __fenix_callback_destroy(fenix_callback_list_t *callback_list)
+{
+    int error_code = FENIX_SUCCESS;
+
+    if ( __fenix_g_fenix_init_flag ) {
+
+        fenix_callback_list_t *current = callback_list;
+
+        while (current != NULL) {
+            fenix_callback_list_t *old;
+            old = current;
+            current = current->next;
+            free( old->callback );
+            free( old );
+        }
+
+    } else {
+        error_code = FENIX_ERROR_UNINITIALIZED;
+    }
+
+    return error_code;
+}
 

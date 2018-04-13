@@ -36,6 +36,7 @@ fenix_data_member.c
 fenix_data_version.c
 fenix_data_buffer.c
 fenix_comm_list.c
+fenix_callbacks.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}
