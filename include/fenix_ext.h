@@ -60,6 +60,7 @@
 #include <mpi.h>
 #include "fenix_opt.h"
 #include "fenix_data_group.h"
+#include "fenix_process_recovery.h"
 
 extern __fenix_debug_options __fenix_options;
 extern int __fenix_g_fenix_init_flag;
@@ -81,6 +82,7 @@ extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator iden
 extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
 extern MPI_Comm __fenix_g_original_comm;
 extern MPI_Op __fenix_g_agree_op;
+extern fenix_callback_list_t* __fenix_g_callback_list;  // singly linked list for user-defined Fenix callback functions
 
 
 #endif // __FENIX_EXT_H__
