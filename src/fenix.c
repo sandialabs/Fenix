@@ -58,8 +58,6 @@
 #include "fenix_process_recovery.h"
 #include "fenix_util.h"
 #include "fenix_ext.h"
-#include "fenix_process_recovery_ext.h"
-#include "fenix_data_recovery_ext.h"
 
 #ifdef OPEN_MPI
 #include <mpi-ext.h>
@@ -82,7 +80,7 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callba
 }
 
 int Fenix_Initialized(int *flag) {
-    *flag = (__fenix_g_fenix_init_flag) ? 1 : 0;  
+    *flag = (fenix.fenix_init_flag) ? 1 : 0;
     return FENIX_SUCCESS;
 }
 

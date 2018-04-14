@@ -63,29 +63,40 @@
 #include "fenix_opt.h"
 #include "fenix_data_group.h"
 #include "fenix_process_recovery.h"
+#include "fenix_request_store.h"
 
-extern __fenix_debug_options __fenix_options;
-extern int __fenix_g_fenix_init_flag;
-extern int __fenix_g_role;
-extern fenix_group_t *__fenix_g_data_recovery;
-
-extern int __fenix_g_num_inital_ranks;
-extern int __fenix_g_num_survivor_ranks;
-extern int __fenix_g_num_recovered_ranks;
-extern int __fenix_g_resume_mode;                // Defines how program resumes after process recovery
-extern int __fenix_g_spawn_policy;               // Indicate dynamic process spawning
-extern int __fenix_g_spare_ranks;                // Spare ranks entered by user to repair failed ranks
-extern int __fenix_g_replace_comm_flag;
-extern int __fenix_g_repair_result;
-extern int __fenix_g_finalized;
-
-extern MPI_Comm *__fenix_g_world;                // Duplicate of the MPI communicator provided by user
-extern MPI_Comm *__fenix_g_new_world;            // Global MPI communicator identical to g_world but without spare ranks
-extern MPI_Comm *__fenix_g_user_world;           // MPI communicator with repaired ranks
-extern MPI_Comm __fenix_g_original_comm;
-extern MPI_Op __fenix_g_agree_op;
-extern fenix_callback_list_t* __fenix_g_callback_list;  // singly linked list for user-defined Fenix callback functions
+typedef struct {
+    int num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
+    int num_survivor_ranks;   // Keeps the global information on the number of survived MPI ranks after failure
+    int num_recovered_ranks;  // Keeps the number of spare ranks brought into MPI communicator recovery
+    int resume_mode;          // Defines how program resumes after process recovery
+    int spawn_policy;         // Indicate dynamic process spawning
+    int spare_ranks;          // Spare ranks entered by user to repair failed ranks
+    int replace_comm_flag;    // Internal global variable to describe the status of MPI communicator
+    int repair_result;        // Internal global variable to store the result of MPI communicator repair
+    int finalized;
+    jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
 
 
+    //enum FenixRankRole role;    // Role of rank: initial, survivor or repair
+    int role;    // Role of rank: initial, survivor or repair
+    int fenix_init_flag;
+
+    fenix_request_store_t request_store;
+
+    fenix_callback_list_t* callback_list;  // singly linked list for user-defined Fenix callback functions
+    //fenix_communicator_list_t* communicator_list;  // singly linked list for Fenix resilient communicators
+    fenix_debug_opt_t options;    // This is reserved to store the user options
+
+    MPI_Comm *world;                // Duplicate of the MPI communicator provided by user
+    MPI_Comm *new_world;            // Global MPI communicator identical to g_world but without spare ranks
+    MPI_Comm *user_world;           // MPI communicator with repaired ranks
+    MPI_Comm original_comm;         // Keep the information of the original global MPI Communicator (this will be umodified until Fenix_finalize)
+    MPI_Op   agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
+
+    fenix_group_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
+} fenix_t;
+
+extern fenix_t fenix;
 #endif // __FENIX_EXT_H__
 

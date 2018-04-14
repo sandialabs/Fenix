@@ -77,9 +77,9 @@ fenix_group_t * __fenix_data_group_init() {
   group->group_entry = (fenix_group_entry_t *) s_malloc(
           __FENIX_DEFAULT_GROUP_SIZE * sizeof(fenix_group_entry_t));
 
-  if (__fenix_options.verbose == 41) {
+  if (fenix.options.verbose == 41) {
     verbose_print("c-rank: %d, role: %d, g-count: %d, g-size: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, group->count,
+                    __fenix_get_current_rank(*fenix.world), fenix.role, group->count,
                   group->total_size);
   }
 
@@ -93,10 +93,10 @@ fenix_group_t * __fenix_data_group_init() {
     gentry->timestamp = 0;
     gentry->state = EMPTY;
 
-    if (__fenix_options.verbose == 41) {
+    if (fenix.options.verbose == 41) {
       verbose_print(
               "c-rank: %d, role: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d g-state: %d\n",
-                __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, gentry->depth,
+                __fenix_get_current_rank(*fenix.world), fenix.role, gentry->depth,
               gentry->groupid, gentry->timestamp, gentry->state);
     }
 
@@ -130,9 +130,9 @@ void __fenix_data_group_reinit(fenix_group_t *g, fenix_two_container_packet_t pa
                                                          (group->total_size) *
                                                          sizeof(fenix_group_entry_t));
 
-  if (__fenix_options.verbose == 48) {
+  if (fenix.options.verbose == 48) {
     verbose_print("c-rank: %d, role: %d, g-size: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role, group->total_size);
+                    __fenix_get_current_rank(*fenix.new_world), fenix.role, group->total_size);
   }
 
   int group_index;
@@ -143,10 +143,10 @@ void __fenix_data_group_reinit(fenix_group_t *g, fenix_two_container_packet_t pa
     gentry->timestamp = 0;
     gentry->state = EMPTY;
 
-    if (__fenix_options.verbose == 48) {
+    if (fenix.options.verbose == 48) {
       verbose_print(
               "c-rank: %d, role: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
-                __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role, gentry->depth,
+                __fenix_get_current_rank(*fenix.new_world), fenix.role, gentry->depth,
               gentry->groupid, gentry->timestamp, gentry->state);
     }
 
@@ -167,7 +167,7 @@ void __fenix_ensure_group_capacity(fenix_group_t *g) {
                                                            sizeof(fenix_group_entry_t));
     group->total_size = group->total_size * 2;
 
-    if (__fenix_options.verbose == 51) {
+    if (fenix.options.verbose == 51) {
       verbose_print("g-count: %d, g-size: %d\n", group->count, group->total_size);
     }
 
@@ -179,10 +179,10 @@ void __fenix_ensure_group_capacity(fenix_group_t *g) {
       gentry->timestamp = 0;
       gentry->state = EMPTY;
 
-      if (__fenix_options.verbose == 51) {
+      if (fenix.options.verbose == 51) {
         verbose_print(
                 "c-rank: %d, role: %d, group[%d] g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
-                  __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
+                  __fenix_get_current_rank(*fenix.new_world), fenix.role,
                 group_index, gentry->depth, gentry->groupid, 
                 gentry->timestamp, gentry->state);
       }

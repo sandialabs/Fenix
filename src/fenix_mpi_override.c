@@ -62,10 +62,10 @@
 static inline 
 MPI_Comm __fenix_replace_comm(MPI_Comm comm)
 {
-    if(__fenix_g_replace_comm_flag &&
-       comm == __fenix_g_original_comm &&
-       __fenix_g_fenix_init_flag)
-        return *__fenix_g_new_world;
+    if(fenix.replace_comm_flag &&
+       comm == fenix.original_comm &&
+       fenix.fenix_init_flag)
+        return *fenix.new_world;
     else
         return comm;
 }
@@ -74,7 +74,7 @@ static inline
 int __fenix_notify_newcomm(int ret, MPI_Comm *newcomm)
 {
     if (ret != MPI_SUCCESS || 
-        !__fenix_g_fenix_init_flag ||
+        !fenix.fenix_init_flag ||
         *newcomm == MPI_COMM_NULL) return ret;
     ret = PMPI_Comm_set_errhandler(*newcomm, MPI_ERRORS_RETURN);
     if (ret != MPI_SUCCESS) {
@@ -233,9 +233,6 @@ int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount,
     return ret;
 }
 
-#include "fenix_request_store.h"
-extern __fenix_request_store_t __fenix_g_request_store;
-
 static inline
 void __fenix_override_request(int ret, MPI_Request *request)
 {
@@ -245,7 +242,7 @@ void __fenix_override_request(int ret, MPI_Request *request)
 
     // insert 'request' in the request_store
     // get location of 'request' in store and return in 'fenix_request'
-    *((int *)request) = __fenix_request_store_add(&__fenix_g_request_store,
+    *((int *)request) = __fenix_request_store_add(&fenix.request_store,
 						  request);
 }
 
@@ -276,13 +273,13 @@ int MPI_Wait(MPI_Request *fenix_request, MPI_Status *status)
     int ret;
     MPI_Request request = MPI_REQUEST_NULL;
     if(*fenix_request != MPI_REQUEST_NULL)
-        __fenix_request_store_get(&__fenix_g_request_store,
+        __fenix_request_store_get(&fenix.request_store,
 				  *((int *) fenix_request),
 				  &request);
 
     ret = PMPI_Wait(&request, status);
     if(ret == MPI_SUCCESS) {
-        __fenix_request_store_remove(&__fenix_g_request_store,
+        __fenix_request_store_remove(&fenix.request_store,
 				     *((int *) fenix_request));
         assert(request == MPI_REQUEST_NULL);
 	*fenix_request = MPI_REQUEST_NULL;
@@ -300,7 +297,7 @@ int MPI_Waitall(int count, MPI_Request array_of_fenix_requests[],
     int ret, i;
     for(i=0 ; i<count ; i++)
         if(array_of_fenix_requests[i] != MPI_REQUEST_NULL)
-	    __fenix_request_store_getremove(&__fenix_g_request_store,
+	    __fenix_request_store_getremove(&fenix.request_store,
 					    *((int *)&(array_of_fenix_requests[i])),
 					    &(array_of_fenix_requests[i]));
 

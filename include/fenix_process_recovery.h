@@ -96,35 +96,6 @@ typedef struct {
   fenix_comm_list_elm_t *tail;
 } fenix_comm_list_t;
 
-/****************/
-/*              */
-/* Place Holder */
-/* for struct   */
-/*              */
-/****************/
-#if 0
-typedef struct __fenix_session {
-  int __num_inital_ranks;
-  int __num_survivor_ranks;
-  int __num_recovered_ranks;
-  int __resume_mode; // Defines how program resumes after process recovery.
-  int __spawn_policy;
-  int __spare_ranks; // spare ranks entered by user to repair failed ranks 
-  enum FenixRankRole __fenix_rank_role; 
-  // calling environment to fill the jmp_buf structure 
-  jmp_buf *__fenix_g_recover_environment;
-  // role of rank; 3 options: initial, survivor or repair
-  enum FenixRankRole __fenix_g_role; 
-  // a duplicate of the MPI communicator provided by user
-  MPI_Comm *__fenix_world;
-  // global MPI communicator identical to g_world but without spare ranks 
-  MPI_Comm *__fenix_new_world;
-} fenix_session;
-#endif
-/****************/
-
-
-
 int __fenix_preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int, MPI_Info, int *, jmp_buf *);
 
 int __fenix_create_new_world();
