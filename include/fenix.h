@@ -57,9 +57,6 @@
 #ifndef __FENIX__
 #define __FENIX__
 
-#include "fenix_constants.h"
-#include "fenix_process_recovery.h"
-
 #include <mpi.h>
 #include <setjmp.h>
 #include <stdio.h>
