@@ -59,26 +59,6 @@
 
 #include <mpi.h>
 #include <setjmp.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <signal.h>
-
-#ifdef OPEN_MPI
-#include <mpi-ext.h>
-#define MPIF_Comm_shrink MPIX_Comm_shrink
-#define MPIF_Comm_revoke MPIX_Comm_revoke
-#endif // OPEN_MPI
-
-#ifdef MPICH
-#define MPIF_Comm_shrink MPIX_Comm_shrink
-#define MPIF_Comm_revoke MPIX_Comm_revoke
-#define MPI_ERR_PROC_FAILED MPIX_ERR_PROC_FAILED
-#define MPI_ERR_REVOKED MPIX_ERR_REVOKED
-#endif // MPICH
 
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
@@ -108,28 +88,28 @@ extern "C" {
 #define FENIX_ERROR_INTERN                  -40
 #define FENIX_WARNING_SPARE_RANKS_DEPLETED  100
 
-#define FENIX_DATA_GROUP_WORLD_ID 10
-#define FENIX_GROUP_ID_MAX        11
-#define FENIX_TIME_STAMP_MAX      12
+#define FENIX_DATA_GROUP_WORLD_ID            10
+#define FENIX_GROUP_ID_MAX                   11
+#define FENIX_TIME_STAMP_MAX                 12
 #define FENIX_DATA_POLICY_PEER_RANK_SEPARATION 13
-#define FENIX_DATA_MEMBER_ALL     15
+#define FENIX_DATA_MEMBER_ALL                15
 #define FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER   11
 #define FENIX_DATA_MEMBER_ATTRIBUTE_COUNT    12
 #define FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE 13
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE     14
-#define FENIX_DATA_SNAPSHOT_LATEST -1
-#define FENIX_DATA_SNAPSHOT_ALL    16
-#define FENIX_DATA_SUBSET_CREATED  2
+#define FENIX_DATA_SNAPSHOT_LATEST           -1
+#define FENIX_DATA_SNAPSHOT_ALL              16
+#define FENIX_DATA_SUBSET_CREATED             2
 
 enum FenixProcessMode {
-	FENIX_PROC_FULL = 0,
-	FENIX_PROC_ONLY_COMM = 1,
-	FENIX_PROC_DISABLE = 2
+    FENIX_PROC_FULL = 0,
+    FENIX_PROC_ONLY_COMM = 1,
+    FENIX_PROC_DISABLE = 2
 };
 
 enum FenixResumeMode {
-	FENIX_RESUME_LAST_SAVEPOINT = 0,
-	FENIX_RESUME_BEGINNING = 1
+    FENIX_RESUME_LAST_SAVEPOINT = 0,
+    FENIX_RESUME_BEGINNING = 1
 };
 
 enum FenixRankRole {
@@ -139,22 +119,29 @@ enum FenixRankRole {
 };
 
 typedef struct __request {
-  MPI_Request mpi_send_req;
-  MPI_Request mpi_recv_req;
+    MPI_Request mpi_send_req;
+    MPI_Request mpi_recv_req;
 } Fenix_Request;
 
 typedef struct __fenix_subset {
-  int num_blocks;
-  int *start_offsets;
-  int *end_offsets;
-  int stride;
-  int specifier;
+    int num_blocks;
+    int *start_offsets;
+    int *end_offsets;
+    int stride;
+    int specifier;
 } Fenix_Data_subset;
 
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
 
-#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error) {static jmp_buf bufjmp; *(_role) = __fenix_preinit(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error, &bufjmp); if(setjmp(bufjmp)) { *(_role) = FENIX_ROLE_SURVIVOR_RANK; }  __fenix_postinit( _error ); }
+#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error) \
+{                                                \
+    static jmp_buf bufjmp; *(_role) = __fenix_preinit(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _spawn, _info, _error, &bufjmp); \
+    if(setjmp(bufjmp)) {                         \
+        *(_role) = FENIX_ROLE_SURVIVOR_RANK;     \
+    }                                            \
+    __fenix_postinit( _error );                  \
+}
 
 int Fenix_Initialized(int *);
 

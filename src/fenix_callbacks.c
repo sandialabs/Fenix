@@ -55,7 +55,7 @@
 */
 
 #include <assert.h>
-#include "fenix_constants.h"
+
 #include "fenix_comm_list.h"
 #include "fenix_ext.h"
 #include "fenix_process_recovery.h"

@@ -60,6 +60,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <signal.h>
 
 float *create_rand_nums(int num_elements) {
   float *rand_nums = (float *) malloc(sizeof(float) * num_elements);

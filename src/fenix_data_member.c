@@ -61,7 +61,7 @@
 #include "fenix_data_version.h"
 #include "fenix_data_buffer.h"
 #include "fenix_data_packet.h"
-#include "fenix_constants.h"
+
 
 /**
  * @brief

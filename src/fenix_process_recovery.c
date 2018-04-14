@@ -57,7 +57,6 @@
 #include <assert.h>
 
 #include "fenix_ext.h"
-#include "fenix_constants.h"
 #include "fenix_comm_list.h"
 #include "fenix_process_recovery_global.h"
 #include "fenix_process_recovery.h"
@@ -286,7 +285,7 @@ int __fenix_repair_ranks()
 
     while (!repair_success) {
         repair_success = 1;
-        ret = MPIF_Comm_shrink(*fenix.world, &world_without_failures);
+        ret = MPIX_Comm_shrink(*fenix.world, &world_without_failures);
         /* if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_shrink. repair_ranks\n"); } */
         if (ret != MPI_SUCCESS) {
             repair_success = 0;
@@ -368,7 +367,7 @@ int __fenix_repair_ranks()
                     if (ret != MPI_SUCCESS) {
                         repair_success = 0;
                         if (ret == MPI_ERR_PROC_FAILED) {
-                            MPIF_Comm_revoke(world_without_failures);
+                            MPIX_Comm_revoke(world_without_failures);
                         }
                         MPI_Comm_free(&world_without_failures);
                         free(survivor_world);
@@ -387,7 +386,7 @@ int __fenix_repair_ranks()
                     if (ret != MPI_SUCCESS) {
                         repair_success = 0;
                         if (ret == MPI_ERR_PROC_FAILED) {
-                            MPIF_Comm_revoke(world_without_failures);
+                            MPIX_Comm_revoke(world_without_failures);
                         }
                         MPI_Comm_free(&world_without_failures);
                         free(survivor_world);
@@ -466,7 +465,7 @@ int __fenix_repair_ranks()
             if (ret != MPI_SUCCESS) {
                 repair_success = 0;
                 if (ret == MPI_ERR_PROC_FAILED) {
-                    MPIF_Comm_revoke(world_without_failures);
+                    MPIX_Comm_revoke(world_without_failures);
                 }
                 MPI_Comm_free(&world_without_failures);
                 free(survivor_world);
@@ -484,7 +483,7 @@ int __fenix_repair_ranks()
             if (ret != MPI_SUCCESS) {
                 repair_success = 0;
                 if (ret != MPI_ERR_PROC_FAILED) {
-                    MPIF_Comm_revoke(world_without_failures);
+                    MPIX_Comm_revoke(world_without_failures);
                 }
                 MPI_Comm_free(&world_without_failures);
                 free(survivor_world);
@@ -550,7 +549,7 @@ int __fenix_repair_ranks()
         if (ret != MPI_SUCCESS) {
             repair_success = 0;
             if (ret != MPI_ERR_PROC_FAILED) {
-                MPIF_Comm_revoke(world_without_failures);
+                MPIX_Comm_revoke(world_without_failures);
             }
             MPI_Comm_free(&world_without_failures);
             goto END_LOOP;
@@ -566,7 +565,7 @@ int __fenix_repair_ranks()
         if (ret != MPI_SUCCESS) {
             repair_success = 0;
             if (ret != MPI_ERR_PROC_FAILED) {
-                MPIF_Comm_revoke(*fenix.world);
+                MPIX_Comm_revoke(*fenix.world);
             }
         }
 
@@ -763,11 +762,11 @@ void __fenix_test_MPI(int ret, const char *msg)
 
     switch (ret) {
     case MPI_ERR_PROC_FAILED:
-        MPIF_Comm_revoke(*fenix.world);
-        MPIF_Comm_revoke(*fenix.new_world);
+        MPIX_Comm_revoke(*fenix.world);
+        MPIX_Comm_revoke(*fenix.new_world);
 
         if (fenix.replace_comm_flag == 0) {
-            MPIF_Comm_revoke(*fenix.user_world);
+            MPIX_Comm_revoke(*fenix.user_world);
         }
 
         __fenix_request_store_waitall_removeall(&fenix.request_store);
@@ -789,9 +788,9 @@ void __fenix_test_MPI(int ret, const char *msg)
         return;
         break;
 #ifdef MPICH
-        MPIF_Comm_revoke(*fenix.world);
-        MPIF_Comm_revoke(*fenix.new_world);
-        //MPIF_Comm_revoke(*fenix.user_world);
+        MPIX_Comm_revoke(*fenix.world);
+        MPIX_Comm_revoke(*fenix.new_world);
+        //MPIX_Comm_revoke(*fenix.user_world);
         fenix.repair_result = __fenix_repair_ranks();
 #endif
     }
