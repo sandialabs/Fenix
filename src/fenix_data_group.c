@@ -97,7 +97,7 @@ fenix_group_t * __fenix_data_group_init() {
       verbose_print(
               "c-rank: %d, role: %d, g-depth: %d, g-groupid: %d, g-timestamp: %d g-state: %d\n",
                 __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, gentry->depth,
-              gentry->timestamp, gentry->state);
+              gentry->groupid, gentry->timestamp, gentry->state);
     }
 
     gentry->member = __fenix_data_member_init();
@@ -183,7 +183,7 @@ void __fenix_ensure_group_capacity(fenix_group_t *g) {
         verbose_print(
                 "c-rank: %d, role: %d, group[%d] g-depth: %d, g-groupid: %d, g-timestamp: %d, g-state: %d\n",
                   __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
-                group_index, gentry->depth, gentry->groupid, gentry->groupid,
+                group_index, gentry->depth, gentry->groupid, 
                 gentry->timestamp, gentry->state);
       }
 

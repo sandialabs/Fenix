@@ -766,12 +766,6 @@ void __fenix_test_MPI(int ret, const char *msg)
         MPIF_Comm_revoke(*__fenix_g_world);
         MPIF_Comm_revoke(*__fenix_g_new_world);
 
-        if (__fenix_options.verbose == 20) {
-            verbose_print(
-                "MPI_ERR_PROC_FAILED; current_rank: %d, role: %d, msg: %s, MPIF_Comm_revoke: %d, MPIF_Comm_revoke: %s\n",
-                msg, "world", "new_world");
-        }
-
         if (__fenix_g_replace_comm_flag == 0) {
             MPIF_Comm_revoke(*__fenix_g_user_world);
         }
@@ -783,10 +777,6 @@ void __fenix_test_MPI(int ret, const char *msg)
         __fenix_g_repair_result = __fenix_repair_ranks();
         break;
     case MPI_ERR_REVOKED:
-        if (__fenix_options.verbose == 20) {
-            verbose_print("MPI_ERR_REVOKED; current_rank: %d, role: %d, msg: %s\n", msg);
-        }
-
         __fenix_request_store_waitall_removeall(&__fenix_g_request_store);
 
         __fenix_comm_list_destroy();
@@ -794,7 +784,7 @@ void __fenix_test_MPI(int ret, const char *msg)
         __fenix_g_repair_result = __fenix_repair_ranks();
         break;
     case MPI_ERR_INTERN:
-        printf("MPI_ERR_INTERN\n");
+        printf("Fenix detected error: MPI_ERR_INTERN\n");
     default: 
         return;
         break;

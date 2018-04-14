@@ -122,7 +122,7 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
 
   if (__fenix_options.verbose == 68) {
     verbose_print(
-            "recv c-rank: %d, p-rank: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
+            "recv c-rank: %d, p-rank: %d, g-groupid: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
             current_rank, out_rank, gentry->groupid,
             gentry->timestamp, gentry->depth,
             gentry->state);

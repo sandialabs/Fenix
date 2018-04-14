@@ -123,6 +123,7 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
 
     if (__fenix_options.verbose == 52) {
       verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
+                    __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
                     member->count, member->total_size);
     }
 
