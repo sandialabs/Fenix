@@ -54,12 +54,11 @@
 //@HEADER
 */
 
-
-
 #ifndef __FENIX_EXT_H__
 #define __FENIX_EXT_H__
-/* Keep all global variable declarations */
+
 #include <mpi.h>
+#include "fenix.h"
 #include "fenix_opt.h"
 #include "fenix_data_group.h"
 #include "fenix_process_recovery.h"
@@ -69,7 +68,7 @@ typedef struct {
     int num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
     int num_survivor_ranks;   // Keeps the global information on the number of survived MPI ranks after failure
     int num_recovered_ranks;  // Keeps the number of spare ranks brought into MPI communicator recovery
-    int resume_mode;          // Defines how program resumes after process recovery
+    Fenix_Resume_mode resume_mode;          // Defines how program resumes after process recovery
     int spawn_policy;         // Indicate dynamic process spawning
     int spare_ranks;          // Spare ranks entered by user to repair failed ranks
     int replace_comm_flag;    // Internal global variable to describe the status of MPI communicator
