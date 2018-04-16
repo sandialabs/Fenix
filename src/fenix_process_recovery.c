@@ -147,6 +147,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
                     fenix.spare_ranks);
     }
 
+#warning "There is no reason why fenix.world (and other) need to be malloced..."
     fenix.world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
 
     MPI_Comm_dup(comm, fenix.world);
@@ -657,25 +658,19 @@ void __fenix_postinit(int *error)
 
 void __fenix_finalize()
 {
+    // Any MPI communication call needs to be protected in case they
+    // fail. In that case, we need to recursively call fenix_finalize.
+    // By setting fenix.finalized to 1 we are skipping the longjump
+    // after recovery.
     fenix.finalized = 1;
 
-    debug_print("Before barrier1  %d\n", __fenix_get_current_rank(*fenix.new_world));
-    /* Last Barrier Statement */
     int ret = MPI_Barrier( *fenix.new_world );
     if (ret != MPI_SUCCESS) {
         __fenix_finalize();
         return;
     }
-    
-    if (fenix.options.verbose == 10) {
-        verbose_print("current_rank: %d, role: %d\n", __fenix_get_current_rank(*fenix.new_world),
-                      fenix.role);
-    }
-    debug_print("After  barrier1  %d\n", __fenix_get_current_rank(*fenix.new_world));
-
 
     if (__fenix_get_current_rank(*fenix.world) == 0) {
-
         int spare_rank;
         MPI_Comm_size(*fenix.world, &spare_rank);
         spare_rank--;
@@ -683,9 +678,6 @@ void __fenix_finalize()
         int i;
         for (i = 0; i < fenix.spare_ranks; i++) {
             int ret = MPI_Send(&a, 1, MPI_INT, spare_rank, 1, *fenix.world);
-            //if (fenix.options.verbose == 10) {
-            debug_print("%d spare_rank: %d sending msg!\n", __fenix_get_current_rank(*fenix.new_world), spare_rank);
-            //}
             if (ret != MPI_SUCCESS) {
                 __fenix_finalize();
                 return;
@@ -694,16 +686,11 @@ void __fenix_finalize()
         }
     }
 
-
-    debug_print("%d Finalize before MPI_Barrier2\n", __fenix_get_current_rank(*fenix.world));
     ret = MPI_Barrier(*fenix.world);
-    debug_print("%d Finalize after  MPI_Barrier2: %d\n", __fenix_get_current_rank(*fenix.world), ret);
     if (ret != MPI_SUCCESS) {
         __fenix_finalize();
         return;
     }
-    //if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
-
     
     MPI_Op_free( &fenix.agree_op );
     MPI_Comm_set_errhandler( *fenix.world, MPI_ERRORS_ARE_FATAL );
