@@ -55,7 +55,7 @@
 */
 
 #include <assert.h>
-#include "fenix_constants.h"
+
 #include "fenix_comm_list.h"
 #include "fenix_ext.h"
 #include "fenix_process_recovery.h"
@@ -69,11 +69,11 @@
 int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data)
 {
     int error_code = FENIX_SUCCESS;
-    if (__fenix_g_fenix_init_flag) {
+    if (fenix.fenix_init_flag) {
         fenix_callback_func *fp = s_malloc(sizeof(fenix_callback_func));
         fp->x = recover;
         fp->y = callback_data;
-        __fenix_callback_push( &__fenix_g_callback_list, fp);
+        __fenix_callback_push( &fenix.callback_list, fp);
     } else {
         error_code = FENIX_ERROR_UNINITIALIZED;
     }
@@ -82,9 +82,9 @@ int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *call
 
 void __fenix_callback_invoke_all(int error)
 {
-    fenix_callback_list_t *current = __fenix_g_callback_list;
+    fenix_callback_list_t *current = fenix.callback_list;
     while (current != NULL) {
-        (current->callback->x)((MPI_Comm) * __fenix_g_new_world, error,
+        (current->callback->x)((MPI_Comm) * fenix.new_world, error,
                                (void *) current->callback->y);
         current = current->next;
     }
@@ -102,7 +102,7 @@ int __fenix_callback_destroy(fenix_callback_list_t *callback_list)
 {
     int error_code = FENIX_SUCCESS;
 
-    if ( __fenix_g_fenix_init_flag ) {
+    if ( fenix.fenix_init_flag ) {
 
         fenix_callback_list_t *current = callback_list;
 

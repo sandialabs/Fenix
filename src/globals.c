@@ -12,7 +12,7 @@
 //
 //
 //
-// Copyright (C) 2016 Rutgers University and Sandia Corporation
+// Copyright (C) 2018 Rutgers University and Sandia Corporation
 //
 // Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 // the U.S. Government retains certain rights in this software.
@@ -54,10 +54,8 @@
 //@HEADER
 */
 
-#ifndef __FENIX_EXT_DATA_RECOVERY_H__
-#define __FENIX_EXT_DATA_RECOVERY_H__
-#include "fenix_data_recovery.h"
+#include "fenix_ext.h"
 
-//extern fenix_group_t *__fenix_g_data_recovery;
-#endif // FENIX_EXT_DATA_RECOVERY_H
-
+fenix_t fenix = {
+    .fenix_init_flag = 0
+};

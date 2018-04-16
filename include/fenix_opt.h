@@ -79,7 +79,7 @@
 
 typedef struct __fenix_debug_opt_t {
     int verbose;
-} __fenix_debug_options;
+} fenix_debug_opt_t;
 
 
 void __fenix_init_opt(int argc, char **argv);

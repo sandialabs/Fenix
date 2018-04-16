@@ -54,10 +54,28 @@
 //@HEADER
 */
 
-#ifndef __FENIX_CONSTANTS__
-#define __FENIX_CONSTANTS__
+#include <assert.h>
+#include "fenix_request_store.h"
 
-// official Fenix API error codes
+void __fenix_request_store_waitall_removeall(fenix_request_store_t *s)
+{
+    int i;
+    for(i=0 ; i<s->first_unused_position ; i++) {
+        __fenix_request_t *f = &(s->reqs.elements[i]);
+        if(f->valid) {
+#warning "What to do with requests upon failure? Wait or Cancel?"
+            PMPI_Cancel(&(f->r));
+            if(i == MPI_REQUEST_NULL) // This may look ugly and
+                                      // produce a warning, but it is
+                                      // necessary to make sure an
+                                      // MPI_Request NULL does not
+                                      // collide in the request store
+                __fenix_request_store_remove(s, -123);
+            else
+                __fenix_request_store_remove(s, i);
+        }
+    }
 
-
-#endif
+    s->first_unused_position = 0;
+    __fenix_int_stack_clear(&(s->freed_list));
+}

@@ -57,7 +57,7 @@
 
 
 
-#include "fenix_constants.h"
+
 #include "fenix_data_version.h"
 #include "fenix_data_recovery.h"
 #include "fenix_opt.h"
@@ -77,7 +77,7 @@ int _send_group_data(int current_rank, int in_rank, fenix_group_entry_t *gentry,
   gepacket.rank_separation = gentry->rank_separation;
   gepacket.state = gentry->state;
 
-  if (__fenix_options.verbose == 67) {
+  if (fenix.options.verbose == 67) {
     verbose_print(
             "send c-rank: %d, out-rank: %d, g-id: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
             current_rank, in_rank, gentry->groupid, gentry->timestamp, gentry->depth,
@@ -93,7 +93,7 @@ int _send_group_data(int current_rank, int in_rank, fenix_group_entry_t *gentry,
   mpacket.count = member->count;
   mpacket.total_size = member->total_size;
 
-  if (__fenix_options.verbose == 67) {
+  if (fenix.options.verbose == 67) {
     verbose_print(
             "send c-rank: %d, inrank: %d,  m-count: %d, m-size: %d\n",
             current_rank, in_rank, member->count, member->total_size);
@@ -120,9 +120,9 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
   gentry->rank_separation = gepacket.rank_separation;
   gentry->state = gepacket.state;
 
-  if (__fenix_options.verbose == 68) {
+  if (fenix.options.verbose == 68) {
     verbose_print(
-            "recv c-rank: %d, p-rank: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
+            "recv c-rank: %d, p-rank: %d, g-groupid: %d, g-timestamp: %d, g-depth: %d, g-state: %d\n",
             current_rank, out_rank, gentry->groupid,
             gentry->timestamp, gentry->depth,
             gentry->state);
@@ -137,7 +137,7 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
   /* Reinit member entries but no inforation for each entry */
   __fenix_data_member_reinit(member, mpacket, NEEDFIX);
 
-  if (__fenix_options.verbose == 68) {
+  if (fenix.options.verbose == 68) {
     verbose_print(
             "recv c-rank: %d, p-rank: %d,  m-count: %d, m-size: %d\n",
             current_rank, out_rank, member->count, member->total_size);
@@ -147,14 +147,14 @@ int _recover_group_data(int current_rank, int out_rank, fenix_group_entry_t *gen
 
 int _send_metadata(int current_rank, int out_rank, MPI_Comm comm) {
   /* Implicitly send data to the partner rank */
-  fenix_group_t *group = __fenix_g_data_recovery;
+  fenix_group_t *group = fenix.data_recovery;
   fenix_two_container_packet_t gpacket;
   gpacket.count = group->count;
   gpacket.total_size = group->total_size;
   MPI_Send(&gpacket, sizeof(fenix_two_container_packet_t), MPI_BYTE, out_rank,
            RECOVER_GROUP_TAG, comm); /* Group metadata */
 
-  if (__fenix_options.verbose == 65) {
+  if (fenix.options.verbose == 65) {
     verbose_print(
             "send c-rank: %d, out-rank: %d, g-count: %d, g-size: %d\n",
             current_rank, out_rank,
@@ -166,7 +166,7 @@ int _send_metadata(int current_rank, int out_rank, MPI_Comm comm) {
 
 int _recover_metadata(int current_rank, int in_rank, MPI_Comm comm) {
   MPI_Status status;
-  fenix_group_t *group = __fenix_g_data_recovery;
+  fenix_group_t *group = fenix.data_recovery;
   fenix_two_container_packet_t gpacket;
   MPI_Recv(&gpacket, sizeof(fenix_two_container_packet_t), MPI_BYTE, in_rank,
            RECOVER_GROUP_TAG, comm, &status); /* Group metadata */
@@ -175,7 +175,7 @@ int _recover_metadata(int current_rank, int in_rank, MPI_Comm comm) {
 
   __fenix_data_group_reinit(group, gpacket);
 
-  if (__fenix_options.verbose == 66) {
+  if (fenix.options.verbose == 66) {
     verbose_print("recv c-rank: %d, in-rank: %d, g-count: %d, g-size: %d\n",
                   current_rank, in_rank,
                   group->count, group->total_size);
@@ -198,7 +198,7 @@ int _pc_send_member_entries(int current_rank, int out_rank, int depth,
     dpacket.count = rentry->count;
     dpacket.datatype_size = rentry->datatype_size;  /* Need to double-check */
 
-    if (__fenix_options.verbose == 73) {
+    if (fenix.options.verbose == 73) {
       verbose_print("send version[%d], rd-offset: %d, rd-count: %d, rd-size: %d\n",
                     version_index, remote_entry_offset, rentry->count, rentry->datatype_size);
     }
@@ -206,7 +206,7 @@ int _pc_send_member_entries(int current_rank, int out_rank, int depth,
     MPI_Send(&dpacket, sizeof(fenix_data_entry_packet_t), MPI_BYTE, out_rank,
              RECOVER_SIZE_TAG + version_index, comm); /* Remote data metadata */
 
-    if (__fenix_options.verbose == 73) {
+    if (fenix.options.verbose == 73) {
          int *data = rentry->data; 
          int data_index;
          for (data_index = 0; data_index < rentry->count; data_index++) {
@@ -247,7 +247,7 @@ int _pc_recover_member_entries(int current_rank, int in_rank, int depth,
     lentry->data = s_malloc(lentry->datatype_size * lentry->count);
     lentry->origin_rank = current_rank;
 
-    if (__fenix_options.verbose == 74) {
+    if (fenix.options.verbose == 74) {
       verbose_print("recv version[%d], ld-count: %d, ld-size: %d\n",
                     version_index, lentry->count, lentry->datatype_size);
     }
@@ -276,7 +276,7 @@ int _pc_send_member_metadata(int current_rank, int in_rank,
   mepacket.currentrank = mentry->currentrank;
   mepacket.remoterank = mentry->remoterank;
 
-  if (__fenix_options.verbose == 69) {
+  if (fenix.options.verbose == 69) {
     verbose_print(
             "send c-rank: %d, p-rank: %d,  m-memberid: %d, m-state: %d\n",
             current_rank, in_rank, mentry->memberid, mentry->state);
@@ -294,7 +294,7 @@ int _pc_send_member_metadata(int current_rank, int in_rank,
     vpacket.position = version->position;
     vpacket.num_copies = version->num_copies;
 
-    if (__fenix_options.verbose == 69) {
+    if (fenix.options.verbose == 69) {
       verbose_print(
               "send c-rank: %d, p-rank: %d, v-count: %d, v-size: %d, v-pos: %d, v-copies: %d\n",
               current_rank, in_rank, version->count,
@@ -326,7 +326,7 @@ int _pc_recover_member_metadata(int current_rank, int out_rank,
   mentry->currentrank = mepacket.currentrank;
   mentry->remoterank = mepacket.remoterank;
 
-  if (__fenix_options.verbose == 70) {
+  if (fenix.options.verbose == 70) {
     verbose_print(
           "send c-rank: %d, p-rank: %d,  m-memberid: %d, m-state: %d\n",
            current_rank, out_rank, mentry->memberid, mentry->state);
@@ -355,7 +355,7 @@ int _pc_send_members(int current_rank, int out_rank, int depth, fenix_member_t *
     mepacket.memberid = mentry->memberid;
     mepacket.state = mentry->state;
 
-    if (__fenix_options.verbose == 71) {
+    if (fenix.options.verbose == 71) {
       verbose_print("send c-rank: %d, p-rank: %d, m-memberid: %d, m-state: %d\n",
                     current_rank, out_rank, mentry->memberid, mentry->state);
     }
@@ -371,7 +371,7 @@ int _pc_send_members(int current_rank, int out_rank, int depth, fenix_member_t *
     vpacket.position = version->position;
     vpacket.num_copies = version->num_copies;
 
-    if (__fenix_options.verbose == 71) {
+    if (fenix.options.verbose == 71) {
       verbose_print(
               "send c-rank: %d, p-rank: %d, v-count: %d, v-size: %d, v-pos: %d, v-copies: %d\n",
               current_rank, out_rank, version->count,
@@ -394,7 +394,7 @@ int _pc_send_members(int current_rank, int out_rank, int depth, fenix_member_t *
       dpacket.count = rentry->count;
       dpacket.datatype_size = rentry->datatype_size;
 
-      if (__fenix_options.verbose == 71) {
+      if (fenix.options.verbose == 71) {
         verbose_print("send version[%d], rd-offset: %d, rd-count: %d, rd-size: %d\n",
                       version_index, remote_entry_offset, rentry->count, rentry->datatype_size);
       }
@@ -402,7 +402,7 @@ int _pc_send_members(int current_rank, int out_rank, int depth, fenix_member_t *
       MPI_Send(&dpacket, sizeof(fenix_data_entry_packet_t), MPI_BYTE, out_rank,
                RECOVER_SIZE_TAG + version_index, comm); /* Remote data metadata */
 
-      if (__fenix_options.verbose == 71) {
+      if (fenix.options.verbose == 71) {
          int *data = rentry->data; 
          int data_index;
          for (data_index = 0; data_index < rentry->datatype_size; data_index++) {
@@ -433,7 +433,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
     mentry->memberid = mepacket.memberid;
     mentry->state = mepacket.state;
 
-    if (__fenix_options.verbose == 72) {
+    if (fenix.options.verbose == 72) {
       verbose_print(
               "recv c-rank: %d, p-rank: %d, m-memberid: %d, m-state: %d\n",
               current_rank, in_rank, mentry->memberid, mentry->state);
@@ -447,7 +447,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
 
     __fenix_data_version_reinit(version, vpacket);
 
-    if (__fenix_options.verbose == 72) {
+    if (fenix.options.verbose == 72) {
       verbose_print(
               "recv c-rank: %d, p-rank: %d, v-count: %d, v-size: %d, v-pos: %d, v-copies: %d\n",
               current_rank, in_rank, version->count, version->total_size,
@@ -472,7 +472,7 @@ int _pc_recover_members(int current_rank, int in_rank, int depth, fenix_member_t
       lentry->data = s_malloc(lentry->datatype_size * lentry->count); /* Check */
       lentry->origin_rank = current_rank;
 
-      if (__fenix_options.verbose == 72) {
+      if (fenix.options.verbose == 72) {
         verbose_print("recv version[%d], ld-offset: %d, ld-count: %d, ld-size: %d\n",
                       version_index, local_entry_offset, lentry->count, lentry->datatype_size);
       }

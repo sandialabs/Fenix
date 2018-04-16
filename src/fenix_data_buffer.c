@@ -71,10 +71,10 @@ fenix_local_entry_t *__fenix_init_local() {
   local->datatype_size = 0;
   local->datatype = NULL;
 
-  if (__fenix_options.verbose == 44) {
+  if (fenix.options.verbose == 44) {
     verbose_print(
             "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, local->currentrank,
+              __fenix_get_current_rank(*fenix.world), fenix.role, local->currentrank,
             local->count, local->datatype_size);
   }
 
@@ -93,10 +93,10 @@ fenix_remote_entry_t *__fenix_init_remote() {
   remote->datatype_size = 0;
   remote->datatype = NULL;
 
-  if (__fenix_options.verbose == 45) {
+  if (fenix.options.verbose == 45) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, remote->remoterank,
+              __fenix_get_current_rank(*fenix.world), fenix.role, remote->remoterank,
             remote->count, remote->datatype_size);
   }
 
@@ -114,10 +114,10 @@ fenix_buffer_entry_t *__fenix_data_buffer_create() {
   buffer->datatype_size = 0;
   buffer->datatype = NULL;
 
-  if ( __fenix_options.verbose == 45 ) {
+  if ( fenix.options.verbose == 45 ) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, buffer->origin_rank,
+              __fenix_get_current_rank(*fenix.world), fenix.role, buffer->origin_rank,
            buffer->count, buffer->datatype_size);
   }
 
@@ -132,10 +132,10 @@ int __fenix_data_buffer_reset( fenix_buffer_entry_t *buffer ) {
   buffer->datatype_size = 0;
   buffer->datatype = NULL;
 
-  if (__fenix_options.verbose == 45) {
+  if (fenix.options.verbose == 45) {
     verbose_print(
             "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, buffer->origin_rank,
+              __fenix_get_current_rank(*fenix.world), fenix.role, buffer->origin_rank,
            buffer->count, buffer->datatype_size);
   }
 
@@ -154,10 +154,10 @@ void __fenix_data_buffer_destroy_internal(  fenix_buffer_entry_t *buffer  ) {
 void __fenix_data_buffer_destroy(  fenix_buffer_entry_t *buffer  ) {
 
   if( buffer->data != NULL ) {
-    if (__fenix_options.verbose == 100) {
+    if (fenix.options.verbose == 100) {
       verbose_print(
             "c-rank: %d, deleteing the content of buffer\n",
-              __fenix_get_current_rank(*__fenix_g_world));
+              __fenix_get_current_rank(*fenix.world));
     }
     free( buffer->data );
   }

@@ -72,6 +72,7 @@
 
 /* This header file is intended to provide global variable defintiions for fenix_process_recovery.c only */
 
+<<<<<<< HEAD
 int __fenix_g_num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
 int __fenix_g_num_survivor_ranks;   // Keeps the global information on the number of survived MPI ranks after failure
 int __fenix_g_num_recovered_ranks;  // Keeps the number of spare ranks brought into MPI communicator recovery
@@ -102,4 +103,6 @@ MPI_Comm __fenix_g_original_comm;         // Keep the information of the origina
 MPI_Op   __fenix_g_agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
 
 fenix_group_t *__fenix_g_data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
+=======
+>>>>>>> 17a8befda45abf9f1eddbcb5c51b82e31977d90c
 #endif // __FENIX_PROCES_RECOVERY_GLOBAL_H__

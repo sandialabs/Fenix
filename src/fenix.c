@@ -58,21 +58,6 @@
 #include "fenix_process_recovery.h"
 #include "fenix_util.h"
 #include "fenix_ext.h"
-#include "fenix_process_recovery_ext.h"
-#include "fenix_data_recovery_ext.h"
-
-#ifdef OPEN_MPI
-#include <mpi-ext.h>
-#define MPIF_Comm_shrink MPIX_Comm_shrink
-#define MPIF_Comm_revoke MPIX_Comm_revoke
-#endif // OPEN_MPI
-
-#ifdef MPICH
-#define MPIF_Comm_shrink MPIX_Comm_shrink
-#define MPIF_Comm_revoke MPIX_Comm_revoke
-#define MPI_ERR_PROC_FAILED MPIX_ERR_PROC_FAILED
-#define MPI_ERR_REVOKED MPIX_ERR_REVOKED
-#endif // MPICH
 
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
@@ -82,7 +67,11 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callba
 }
 
 int Fenix_Initialized(int *flag) {
+<<<<<<< HEAD
     *flag = (__fenix_g_fenix_init_flag) ? 1 : 0;  
+=======
+    *flag = (fenix.fenix_init_flag) ? 1 : 0;
+>>>>>>> 17a8befda45abf9f1eddbcb5c51b82e31977d90c
     return FENIX_SUCCESS;
 }
 
