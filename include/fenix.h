@@ -101,19 +101,6 @@ extern "C" {
 #define FENIX_DATA_SNAPSHOT_ALL              16
 #define FENIX_DATA_SUBSET_CREATED             2
 
-#warning "Why is Fenix_Process_mode necessary?"
-typedef enum {
-    FENIX_PROC_FULL = 0,
-    FENIX_PROC_ONLY_COMM = 1,
-    FENIX_PROC_DISABLE = 2
-} Fenix_Process_mode;
-
-#warning "Why is Fenix_Resume_mode necessary?"
-typedef enum {
-    FENIX_RESUME_LAST_SAVEPOINT = 0,
-    FENIX_RESUME_BEGINNING = 1
-} Fenix_Resume_mode;
-
 typedef enum {
     FENIX_ROLE_INITIAL_RANK = 0,
     FENIX_ROLE_RECOVERED_RANK = 1,
