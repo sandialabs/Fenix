@@ -14,9 +14,6 @@ configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
 configure_file(${CMAKE_SOURCE_DIR}/include/fenix.h
   "${CMAKE_BINARY_DIR}/include/fenix.h" COPYONLY)
 
-configure_file(${CMAKE_SOURCE_DIR}/include/fenix_constants.h
-  "${CMAKE_BINARY_DIR}/include/fenix_constants.h" COPYONLY)
-
 configure_file(${CMAKE_SOURCE_DIR}/include/fenix_process_recovery.h
   "${CMAKE_BINARY_DIR}/include/fenix_process_recovery.h" COPYONLY)
 
@@ -36,6 +33,9 @@ fenix_data_member.c
 fenix_data_version.c
 fenix_data_buffer.c
 fenix_comm_list.c
+fenix_callbacks.c
+fenix_request_store.c
+globals.c
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES}

@@ -12,7 +12,7 @@
 //
 //
 //
-// Copyright (C) 2016 Rutgers University and Sandia Corporation
+// Copyright (C) 2018 Rutgers University and Sandia Corporation
 //
 // Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 // the U.S. Government retains certain rights in this software.
@@ -54,10 +54,8 @@
 //@HEADER
 */
 
-#ifndef __FENIX_CONSTANTS__
-#define __FENIX_CONSTANTS__
+#include "fenix_ext.h"
 
-// official Fenix API error codes
-
-
-#endif
+fenix_t fenix = {
+    .fenix_init_flag = 0
+};

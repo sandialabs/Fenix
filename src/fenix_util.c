@@ -54,7 +54,6 @@
 //@HEADER
 */
 
-#include "fenix_constants.h"
 #include "fenix_opt.h"
 #include "fenix_process_recovery.h"
 #include "fenix_util.h"

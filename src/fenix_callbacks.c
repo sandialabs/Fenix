@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Rob Van der Wijngaart, and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -54,10 +54,70 @@
 //@HEADER
 */
 
-#ifndef __FENIX_EXT_DATA_RECOVERY_H__
-#define __FENIX_EXT_DATA_RECOVERY_H__
-#include "fenix_data_recovery.h"
+#include <assert.h>
 
-//extern fenix_group_t *__fenix_g_data_recovery;
-#endif // FENIX_EXT_DATA_RECOVERY_H
+#include "fenix_comm_list.h"
+#include "fenix_ext.h"
+#include "fenix_process_recovery.h"
+#include "fenix_data_group.h"
+#include "fenix_data_recovery.h"
+#include "fenix_opt.h"
+#include "fenix_util.h"
+#include <mpi.h>
+
+
+int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data)
+{
+    int error_code = FENIX_SUCCESS;
+    if (fenix.fenix_init_flag) {
+        fenix_callback_func *fp = s_malloc(sizeof(fenix_callback_func));
+        fp->x = recover;
+        fp->y = callback_data;
+        __fenix_callback_push( &fenix.callback_list, fp);
+    } else {
+        error_code = FENIX_ERROR_UNINITIALIZED;
+    }
+    return error_code;
+}
+
+void __fenix_callback_invoke_all(int error)
+{
+    fenix_callback_list_t *current = fenix.callback_list;
+    while (current != NULL) {
+        (current->callback->x)((MPI_Comm) * fenix.new_world, error,
+                               (void *) current->callback->y);
+        current = current->next;
+    }
+}
+
+void __fenix_callback_push(fenix_callback_list_t **head, fenix_callback_func *fp)
+{
+    fenix_callback_list_t *callback = malloc(sizeof(fenix_callback_list_t));
+    callback->callback = fp;
+    callback->next = *head;
+    *head = callback;
+}
+
+int __fenix_callback_destroy(fenix_callback_list_t *callback_list)
+{
+    int error_code = FENIX_SUCCESS;
+
+    if ( fenix.fenix_init_flag ) {
+
+        fenix_callback_list_t *current = callback_list;
+
+        while (current != NULL) {
+            fenix_callback_list_t *old;
+            old = current;
+            current = current->next;
+            free( old->callback );
+            free( old );
+        }
+
+    } else {
+        error_code = FENIX_ERROR_UNINITIALIZED;
+    }
+
+    return error_code;
+}
 

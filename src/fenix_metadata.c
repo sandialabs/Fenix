@@ -55,13 +55,12 @@
 */
 
 #if 1
-#include "fenix_constants.h"
+
 #include "fenix_data_recovery.h"
 #include "fenix_opt.h"
 #include "fenix_process_recovery.h"
 #include "fenix_util.h"
 #include "fenix_ext.h"
-#include "fenix_data_recovery_ext.h"
 #include "fenix_metadata.h"
 
 inline void __fenix_init_group_metadata ( fenix_group_entry_t *gentry, int groupid, MPI_Comm comm, int timestamp,

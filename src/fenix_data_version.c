@@ -109,10 +109,10 @@ fenix_version_t *__fenix_data_version_init() {
   version->local_entry = (fenix_buffer_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_buffer_entry_t) );
   version->remote_entry = (fenix_buffer_entry_t *) s_malloc( __FENIX_DEFAULT_VERSION_SIZE * sizeof(fenix_buffer_entry_t) );
 
-  if (__fenix_options.verbose == 43) {
+  if (fenix.options.verbose == 43) {
     verbose_print(
             "c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
-              __fenix_get_current_rank(*__fenix_g_world), __fenix_g_role, version->count,
+              __fenix_get_current_rank(*fenix.world), fenix.role, version->count,
               version->total_size, version->position);
   }
 
@@ -153,9 +153,9 @@ void __fenix_ensure_version_capacity(fenix_version_t *version) {
               sizeof(fenix_buffer_entry_t));
     version->total_size = version->total_size * 2;
 
-    if (__fenix_options.verbose == 53) {
+    if (fenix.options.verbose == 53) {
       verbose_print( "c-rank: %d, role: %d, v-count: %d, v-size: %d\n",
-                     __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role,
+                     __fenix_get_current_rank(*fenix.new_world), fenix.role,
                       version->count, version->total_size);
     }
   }
@@ -181,9 +181,9 @@ void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t pa
                                                      (v->total_size) *
                                                      sizeof(fenix_buffer_entry_t));
 
-  if (__fenix_options.verbose == 49) {
+  if (fenix.options.verbose == 49) {
     verbose_print("c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
-                    __fenix_get_current_rank(*__fenix_g_new_world), __fenix_g_role, v->count,
+                    __fenix_get_current_rank(*fenix.new_world), fenix.role, v->count,
                   v->total_size, v->position);
   }
 

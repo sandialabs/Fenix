@@ -76,7 +76,7 @@ void __fenix_init_opt(int argc, char **argv) {
 
    /* Initalize the value */
 
-   __fenix_options.verbose = -1;
+   fenix.options.verbose = -1;
 
    for( i = 0; i < argc; i++ )
    {
@@ -86,7 +86,7 @@ void __fenix_init_opt(int argc, char **argv) {
           printf("Inside if %d\n",i);
          if( i+1 < argc )
          {
-            __fenix_options.verbose = atoi(argv[i+1]);
+            fenix.options.verbose = atoi(argv[i+1]);
          }
       }
     }
