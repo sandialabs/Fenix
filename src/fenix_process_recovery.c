@@ -197,21 +197,20 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         int a;
         int myrank;
         MPI_Status mpi_status;
-        debug_print("spare %d going back inside the Recv\n", __fenix_get_current_rank(*fenix.world));
         ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, *fenix.world,
                         &mpi_status); // listen for a failure
         if (ret == MPI_SUCCESS) {
-            //if (fenix.options.verbose == 0) {
+            if (fenix.options.verbose == 0) {
                 verbose_print("Finalize the program; rank: %d, role: %d\n",
                               __fenix_get_current_rank(*fenix.world), fenix.role);
-                //}
+            }
             __fenix_finalize_spare();
         } else {
             fenix.repair_result = __fenix_repair_ranks();
-            //if (fenix.options.verbose == 0) {
+            if (fenix.options.verbose == 0) {
                 verbose_print("spare rank exiting from MPI_Recv - repair ranks; rank: %d, role: %d\n",
                               __fenix_get_current_rank(*fenix.world), fenix.role);
-                //}
+            }
         }
         fenix.role = FENIX_ROLE_RECOVERED_RANK;
     }
@@ -279,10 +278,6 @@ int __fenix_repair_ranks()
     int num_try = 0;
     int flag_g_world_freed = 0;
     MPI_Comm world_without_failures;
-
-    //if (__fenix_get_current_rank(*fenix.world) == 0) {
-    printf("%d Fenix: repairing communicators\n", __fenix_get_current_rank(*fenix.world));
-        //}
 
     while (!repair_success) {
         repair_success = 1;
