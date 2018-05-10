@@ -617,8 +617,8 @@ void __fenix_postinit(int *error)
 {
 
     //if (fenix.options.verbose == 9) {
-        verbose_print(" postinit: current_rank: %d, role: %d\n", __fenix_get_current_rank(*fenix.new_world),
-                      fenix.role);
+    //      verbose_print(" postinit: current_rank: %d, role: %d\n", __fenix_get_current_rank(*fenix.new_world),
+    //                fenix.role);
         //}
 
     PMPI_Barrier(*fenix.new_world);
