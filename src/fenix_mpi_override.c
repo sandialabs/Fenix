@@ -127,8 +127,12 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
     return ret;
 }
 
-int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls, MPI_Datatype sendtype, 
-                  void *recvbuf, int *recvcounts, int *rdispls, MPI_Datatype recvtype,
+//#warning "For ULFM2, const int [] is used! Older versions use int *"
+#warning "For OpenMPI 2.0.2, const void * is used!"
+#define MPI_SEND_BUFF_TYPE const void *
+
+int MPI_Alltoallv(MPI_SEND_BUFF_TYPE sendbuf, const int sendcounts[], const int sdispls[], MPI_Datatype sendtype, 
+                  void *recvbuf, const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
                   MPI_Comm comm)
 {
     int ret;
@@ -139,7 +143,7 @@ int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls, MPI_Datatype sen
     return ret;
 }
 
-int MPI_Allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
+int MPI_Allgather(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, MPI_Datatype sendtype,
                   void *recvbuf, int recvcount, MPI_Datatype recvtype,
                   MPI_Comm comm)
 {
@@ -159,12 +163,11 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank)
 }
 
 
-#warning "For OpenMPI 2.0.2, const void * is used!"
-#ifdef OPEN_MPI
+/*#ifdef OPEN_MPI
 #define MPI_SEND_BUFF_TYPE void *
 #else
 #define MPI_SEND_BUFF_TYPE const void *
-#endif
+#endif*/
 
 int MPI_Allreduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, 
                   MPI_Datatype type, MPI_Op op, MPI_Comm comm)
