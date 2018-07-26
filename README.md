@@ -20,8 +20,7 @@ These instructions assume you are in your home directory.
    * For example: ` git clone <address of this repo> `
 2. Create a build directory.
    * For example: ` mkdir -p ~/build/fenix/ && cd ~/build/fenix/ `
-3. Specify the MPI C compiler to use (note that MPI should include ULFM extensions!). 
-   You have two options:
+3. Specify the MPI C compiler to use. [ULFM2 Open MPI](https://bitbucket.org/icldistcomp/ulfm2) is the required version.
    * To manually indicate which compiler `cmake` should use, set the `MPICC` variable to point to it.
       * For example: ` export MPICC=~/install/mpi-ulfm/bin/mpicc `
    * If the `MPICC` environment variable is not there, `cmake` will try to guess where the MPI implementation is. To help, make sure you include the installation directory of MPI in your `PATH`.
