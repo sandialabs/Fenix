@@ -163,8 +163,9 @@ int Fenix_Data_wait(Fenix_Request request);
 
 int Fenix_Data_test(Fenix_Request request, int *flag);
 
-int Fenix_Data_member_store(int group_id, int member_id,
-                            Fenix_Data_subset subset_specifier);
+//int Fenix_Data_member_store(int group_id, int member_id,
+//                            Fenix_Data_subset subset_specifier);
+int Fenix_Data_member_store(int group_id, int member_id);
 
 int Fenix_Data_member_storev(int member_id, int group_id,
                              Fenix_Data_subset subset_specifier);
@@ -183,8 +184,10 @@ int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
 
 int Fenix_Data_barrier(int group_id);
 
+/*int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer,
+                              int max_count, int time_stamp);*/
 int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer,
-                              int max_count, int time_stamp);
+                              int max_count, MPI_Datatype datatype, int time_stamp);
 
 int Fenix_Data_member_restore_from_rank(int member_id, void *data, int max_count,
                                         int time_stamp, int group_id,

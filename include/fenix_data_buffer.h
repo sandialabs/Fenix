@@ -58,7 +58,7 @@
 #define __FENIX_DATA_BUFFER_H__
 
 #include <mpi.h>
-#include "fenix_data_packet.h"
+//#include "fenix_data_packet.h"
 
 typedef struct __fenix_remote_entry {
     int remoterank;

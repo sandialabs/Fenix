@@ -77,14 +77,16 @@ int Fenix_Finalize() {
 }
 
 int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth ) {
-    return __fenix_group_create(group_id, comm, start_time_stamp, depth);
+    //return __fenix_group_create(group_id, comm, start_time_stamp, depth);
+    return __Fenix_Data_group_create(group_id, comm, start_time_stamp, depth);
 }
 
 int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int count, MPI_Datatype datatype ) {
-    return __fenix_member_create(group_id, member_id, buffer, count, datatype);
+    //return __fenix_member_create(group_id, member_id, buffer, count, datatype);
+    return __Fenix_Data_member_create(group_id, member_id, buffer, count, datatype);
 }
 
-int Fenix_Data_group_get_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
+/*int Fenix_Data_group_get_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
     return __fenix_group_get_redundancy_policy( group_id, policy_name, policy_value, flag );
 }
 
@@ -98,13 +100,15 @@ int Fenix_Data_wait(Fenix_Request request) {
 
 int Fenix_Data_test(Fenix_Request request, int *flag) {
     return __fenix_data_test(request, flag);
+}*/
+
+//int Fenix_Data_member_store(int group_id, int member_id, Fenix_Data_subset subset_specifier) {
+int Fenix_Data_member_store(int group_id, int member_id) {
+    //return __fenix_member_store(group_id, member_id, subset_specifier);
+    return __Fenix_Data_member_store(group_id, member_id);
 }
 
-int Fenix_Data_member_store(int group_id, int member_id, Fenix_Data_subset subset_specifier) {
-    return __fenix_member_store(group_id, member_id, subset_specifier);
-}
-
-int Fenix_Data_member_storev(int group_id, int member_id, Fenix_Data_subset subset_specifier) {
+/*int Fenix_Data_member_storev(int group_id, int member_id, Fenix_Data_subset subset_specifier) {
     return 0;
 }
 
@@ -118,21 +122,25 @@ int Fenix_Data_member_istorev(int group_id, int member_id, Fenix_Data_subset sub
 
 int Fenix_Data_commit(int group_id, int *time_stamp) {
     return __fenix_data_commit(group_id, time_stamp);
-}
+}*/
 
 int Fenix_Data_commit_barrier(int group_id, int *time_stamp) {
-    return __fenix_data_commit_barrier(group_id, time_stamp);
+    return __Fenix_Data_commit_barrier(group_id, time_stamp);
 }
 
+/*
 int Fenix_Data_barrier(int group_id) {
     return 0;
+}*/
+
+/*int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp) {
+    return __Fenix_Data_member_restore(group_id, member_id, target_buffer, max_count, time_stamp);
+}*/
+int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer, int max_count, MPI_Datatype datatype, int time_stamp) {
+    return __Fenix_Data_member_restore(group_id, member_id, target_buffer, max_count, datatype, time_stamp);
 }
 
-int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp) {
-    return __fenix_member_restore(group_id, member_id, target_buffer, max_count, time_stamp);
-}
-
-int Fenix_Data_member_resore_from_rank(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, int source_rank) {
+/*int Fenix_Data_member_resore_from_rank(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, int source_rank) {
     return 0;
 }
 
@@ -166,20 +174,22 @@ int Fenix_Data_group_get_snapshot_at_position(int group_id, int position, int *t
 
 int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename, void *attributevalue, int *flag, int source_rank) {
     return __fenix_member_get_attribute(group_id, member_id, attributename, attributevalue, flag, source_rank);
-}
+}*/
 
 int Fenix_Data_member_attr_set(int group_id, int member_id, int attribute_name, void *attribute_value, int *flag) {
     return __fenix_member_set_attribute(group_id, member_id, attribute_name, attribute_value, flag);
 }
 
-int Fenix_Data_snapshot_delete(int group_id, int time_stamp) {
+/*int Fenix_Data_snapshot_delete(int group_id, int time_stamp) {
     return __fenix_snapshot_delete(group_id, time_stamp);
-}
+}*/
 
 int Fenix_Data_group_delete(int group_id) {
-    return __fenix_group_delete(group_id);
+    //return __fenix_group_delete(group_id);
+    return __Fenix_Data_group_delete(group_id);
 }
 
 int Fenix_Data_member_delete(int group_id, int member_id) {
-    return __fenix_member_delete(group_id, member_id);
+    //return __fenix_member_delete(group_id, member_id);
+    return __Fenix_Data_member_delete(group_id, member_id);
 }
