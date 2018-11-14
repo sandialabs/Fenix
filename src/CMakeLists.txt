@@ -14,27 +14,18 @@ configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
 configure_file(${CMAKE_SOURCE_DIR}/include/fenix.h
   "${CMAKE_BINARY_DIR}/include/fenix.h" COPYONLY)
 
-configure_file(${CMAKE_SOURCE_DIR}/include/fenix_process_recovery.h
-  "${CMAKE_BINARY_DIR}/include/fenix_process_recovery.h" COPYONLY)
+#configure_file(${CMAKE_SOURCE_DIR}/include/fenix_process_recovery.h
+#  "${CMAKE_BINARY_DIR}/include/fenix_process_recovery.h" COPYONLY)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set (Fenix_SOURCES 
 fenix.c
-fenix_mpi_override.c
-fenix_opt.c
-fenix_process_recovery.c
 fenix_util.c
+fenix_data_buffer.c
 fenix_data_recovery.c
-#fenix_metadata.c
-#fenix_metadata_recovery.c
 fenix_data_group.c
 fenix_data_member.c
-#fenix_data_version.c
-#fenix_data_buffer.c
-fenix_comm_list.c
-fenix_callbacks.c
-fenix_request_store.c
 globals.c
 )
 

@@ -62,6 +62,7 @@
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
 
+/*
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
     return __fenix_callback_register(recover, callback_data);
 }
@@ -75,6 +76,7 @@ int Fenix_Finalize() {
     __fenix_finalize();
     return FENIX_SUCCESS;
 }
+*/
 
 int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth ) {
     //return __fenix_group_create(group_id, comm, start_time_stamp, depth);

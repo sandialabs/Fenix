@@ -59,12 +59,20 @@ int main(int argc, char **argv) {
    /* When a rank fails and is repaired by Fenix,
     * it will restart here 
     */ 
+ 
+   /*Hemanth: Commented out call to Fenix_Init */
+   /*For data_recover_only, we're not dealing with resilient communicator, rather plain old world_comm */
+   /*
    Fenix_Init(&fenix_role, world_comm, &new_comm, &argc, &argv,
               spare_ranks, 0, info, &error);
 
    MPI_Comm_size(new_comm, &fenix_comm_size);
    MPI_Comm_rank(new_comm, &fenix_rank); 
+   */
 
+   fenix_comm_size = old_world_size;
+   fenix_rank = old_rank;
+   
    int chunk_size = arr_size / fenix_comm_size;
    int start = fenix_rank * chunk_size;
    int end = start + chunk_size;
@@ -72,7 +80,11 @@ int main(int argc, char **argv) {
 
    int ndx;
 
+   /*Hemanth: Creating group with world_comm instead of new_comm
    Fenix_Data_group_create(24, new_comm, 0, 0);
+   */
+
+   Fenix_Data_group_create(24, world_comm, 0, 0);
 
    if (!error && fenix_role == FENIX_ROLE_INITIAL_RANK) {
       for (ndx = 0; ndx < arr_size; ndx++) {
@@ -132,6 +144,7 @@ int main(int argc, char **argv) {
       }
       Fenix_Data_commit_barrier(24, NULL);
 
+      /* Hemanth: Commenting killing of an actual MPI process
       if (fenix_rank == 2 && recovered == 0 && ndx == 21) {
    
          printf("\nKilling rank 2 to be recovered by Fenix.\n");
@@ -139,6 +152,7 @@ int main(int argc, char **argv) {
          pid_t pid = getpid();
          kill(pid, SIGKILL);
       }
+      */
    }
 
    /* Compute the global sum from the sums of each rank */
@@ -146,7 +160,9 @@ int main(int argc, char **argv) {
    
 
    /* Finalize Fenix and MPI */
+   /* Hemanth: Commenting out Fenix_Finalize
    Fenix_Finalize();
+   */
    MPI_Finalize();
 
 
