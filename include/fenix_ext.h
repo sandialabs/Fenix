@@ -61,8 +61,8 @@
 #include "fenix.h"
 #include "fenix_opt.h"
 #include "fenix_data_group.h"
-#include "fenix_process_recovery.h"
-#include "fenix_request_store.h"
+//#include "fenix_process_recovery.h"
+//#include "fenix_request_store.h"
 
 typedef struct {
     int num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
@@ -81,7 +81,7 @@ typedef struct {
     int role;    // Role of rank: initial, survivor or repair
     int fenix_init_flag;
 
-    fenix_request_store_t request_store;
+//    fenix_request_store_t request_store;
 
     fenix_callback_list_t* callback_list;  // singly linked list for user-defined Fenix callback functions
     //fenix_communicator_list_t* communicator_list;  // singly linked list for Fenix resilient communicators

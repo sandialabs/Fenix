@@ -55,7 +55,7 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
 #include(testref/TestAgainstReference)
 
-add_subdirectory(try_src)
+add_subdirectory(src)
 add_subdirectory(Hemanth_test)
 #add_subdirectory(test/subset_internal)
 #add_subdirectory(test/request_tracking)
