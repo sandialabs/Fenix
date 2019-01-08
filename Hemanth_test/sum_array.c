@@ -62,6 +62,7 @@ int main(int argc, char **argv) {
  
    /*Hemanth: Commented out call to Fenix_Init */
    /*For data_recover_only, we're not dealing with resilient communicator, rather plain old world_comm */
+   Fenix_Data_recovery_init();
    /*
    Fenix_Init(&fenix_role, world_comm, &new_comm, &argc, &argv,
               spare_ranks, 0, info, &error);

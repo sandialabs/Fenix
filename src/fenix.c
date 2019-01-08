@@ -78,6 +78,10 @@ int Fenix_Finalize() {
 }
 */
 
+void Fenix_Data_recovery_init() {
+  fenix.data_recovery = __fenix_data_group_init();
+}
+
 int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth ) {
     //return __fenix_group_create(group_id, comm, start_time_stamp, depth);
     return __Fenix_Data_group_create(group_id, comm, start_time_stamp, depth);

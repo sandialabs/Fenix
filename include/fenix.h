@@ -147,6 +147,8 @@ int Fenix_get_role(MPI_Comm comm, int rank, int *role);
 
 int Fenix_Finalize();
 
+void Fenix_Data_recovery_init();
+
 int Fenix_Data_group_create(int group_id, MPI_Comm, int start_time_stamp,
                             int depth);
 
