@@ -78,7 +78,10 @@ int Fenix_Finalize() {
 }
 */
 
-void Fenix_Data_recovery_init() {
+void Fenix_Data_recovery_init(int *role) {
+  MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &fenix.agree_op);
+  fenix.role = FENIX_ROLE_INITIAL_RANK;
+  *role = fenix.role;
   fenix.data_recovery = __fenix_data_group_init();
 }
 
