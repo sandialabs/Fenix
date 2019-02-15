@@ -61,6 +61,7 @@
 
 #include <mpi.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "fenix_stack.h"
 
