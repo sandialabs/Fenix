@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define CAT__(a,b,c) a##b##c
 #define CAT_(a,b,c) CAT__(a,b,c)

@@ -127,12 +127,17 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
     return ret;
 }
 
-//#warning "For ULFM2, const int [] is used! Older versions use int *"
-#warning "For OpenMPI 2.0.2, const void * is used!"
-#define MPI_SEND_BUFF_TYPE const void *
+/* #warning "For MPI >= 3.0, const void * is used!" */
+#if MPI_VERSION < 3
+#define MPI_CONST_TYPE
+#else
+#define MPI_CONST_TYPE const
+#endif
 
-int MPI_Alltoallv(MPI_SEND_BUFF_TYPE sendbuf, const int sendcounts[], const int sdispls[], MPI_Datatype sendtype, 
-                  void *recvbuf, const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
+int MPI_Alltoallv(MPI_CONST_TYPE void* sendbuf, MPI_CONST_TYPE int sendcounts[],
+                  MPI_CONST_TYPE int sdispls[], MPI_Datatype sendtype,
+                  void *recvbuf, MPI_CONST_TYPE int recvcounts[],
+                  MPI_CONST_TYPE int rdispls[], MPI_Datatype recvtype,
                   MPI_Comm comm)
 {
     int ret;
@@ -143,7 +148,7 @@ int MPI_Alltoallv(MPI_SEND_BUFF_TYPE sendbuf, const int sendcounts[], const int 
     return ret;
 }
 
-int MPI_Allgather(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, MPI_Datatype sendtype,
+int MPI_Allgather(MPI_CONST_TYPE void* sendbuf, int sendcount, MPI_Datatype sendtype,
                   void *recvbuf, int recvcount, MPI_Datatype recvtype,
                   MPI_Comm comm)
 {
@@ -163,13 +168,7 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank)
 }
 
 
-/*#ifdef OPEN_MPI
-#define MPI_SEND_BUFF_TYPE void *
-#else
-#define MPI_SEND_BUFF_TYPE const void *
-#endif*/
-
-int MPI_Allreduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, 
+int MPI_Allreduce(MPI_CONST_TYPE void* sendbuf, void *recvbuf, int count,
                   MPI_Datatype type, MPI_Op op, MPI_Comm comm)
 {
     int ret;
@@ -178,7 +177,7 @@ int MPI_Allreduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count,
     return ret;
 }
 
-int MPI_Reduce(MPI_SEND_BUFF_TYPE sendbuf, void *recvbuf, int count, MPI_Datatype type,
+int MPI_Reduce(MPI_CONST_TYPE void* sendbuf, void *recvbuf, int count, MPI_Datatype type,
                   MPI_Op op, int root, MPI_Comm comm)
 {
     int ret;
@@ -213,7 +212,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype type, int source, int tag,
     return ret;
 }
 
-int MPI_Send(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype type, int dest,
+int MPI_Send(MPI_CONST_TYPE void* buf, int count, MPI_Datatype type, int dest,
              int tag, MPI_Comm comm)
 {
     int ret;
@@ -222,7 +221,7 @@ int MPI_Send(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype type, int dest,
     return ret;
 }
 
-int MPI_Sendrecv(MPI_SEND_BUFF_TYPE sendbuf, int sendcount, 
+int MPI_Sendrecv(MPI_CONST_TYPE void* sendbuf, int sendcount, 
                  MPI_Datatype sendtype, int dest, int sendtag,
                  void *recvbuf, int recvcount, MPI_Datatype recvtype,
                  int source, int recvtag,
@@ -249,7 +248,7 @@ void __fenix_override_request(int ret, MPI_Request *request)
 						  request);
 }
 
-int MPI_Isend(MPI_SEND_BUFF_TYPE buf, int count, MPI_Datatype datatype,
+int MPI_Isend(MPI_CONST_TYPE void* buf, int count, MPI_Datatype datatype,
               int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
     int ret;

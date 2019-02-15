@@ -65,6 +65,7 @@
 #include "fenix_opt.h"
 #include "fenix_util.h"
 #include <mpi.h>
+#include <mpi-ext.h>
 
 int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***argv,
                     int spare_ranks,
