@@ -53,17 +53,59 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_METADATA_H__
-#define __FENIX_METADATA_H__
-#include "fenix_data_recovery.h"
 
-void __fenix_init_group_metadata ( fenix_group_entry_t *gentry, int groupid, MPI_Comm comm, int timetamp, int depth  );
+#include <mpi.h>
+#include "fenix_data_policy_in_memory_raid.h"
+#include "fenix_data_policy.h"
+#include "fenix_data_group.h"
+#include "fenix_opt.h"
+#include "fenix_ext.h"
+#include "fenix.h"
 
-void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  );
+/**
+ *@brief
+ **/
+int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
+      int timestart, int depth, int policy_name, void* policy_value, 
+      int* flag){
+   int retval = -1;
+   
+   switch (policy_name){
+      case FENIX_DATA_POLICY_IN_MEMORY_RAID:
+         __fenix_policy_in_memory_raid_get_group(group, comm, timestart, 
+               depth, policy_value, flag);
+         retval = FENIX_SUCCESS;
+         break;
+      default:
+         debug_print("ERROR Fenix_Data_group_create: the specified policy <%d> is not supported.\n", policy_name);
+         retval = -1;
+         break;
+   }
 
-void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype );
+   return retval;
+}
 
-void __fenix_data_member_init_store_packet( fenix_member_store_packet_t *lentry_packet, fenix_buffer_entry_t *lentry, int flag );
+/**
+ * @brief
+ * @param group_id
+ * @param policy_name
+ * @param policy_value
+ * @param flag
+ */
+int __fenix_group_get_redundancy_policy(int group_id, int* policy_name, void *policy_value, int *flag) {
 
-#endif // FENIX_METADATA_H
+  int retval = -1;
+  int group_index = __fenix_search_groupid(group_id, fenix.data_recovery );
+
+  if (group_index == -1) {
+    debug_print( "ERROR Fenix_Data_group_get_redundancy_policy: group_id <%d> does not exist\n", group_id);
+    retval = FENIX_ERROR_INVALID_GROUPID;
+  } else {
+    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    *policy_name = group->policy_name;
+    group->vtbl.get_policy_value(group, policy_value, flag);
+    retval = FENIX_SUCCESS;
+  }
+  return retval;
+}
 

@@ -116,7 +116,7 @@ typedef struct __data_entry_packet {
 
 int store_counter;
 
-int __fenix_group_create(int, MPI_Comm, int, int);
+int __fenix_group_create(int, MPI_Comm, int, int, int, void*, int*);
 int __fenix_member_create(int, int, void *, int, MPI_Datatype);
 int __fenix_group_get_redundancy_policy(int, int, void *, int *);
 int __fenix_group_set_redundancy_policy(int, int, void *, int *);
@@ -158,19 +158,19 @@ void __fenix_free_remote(fenix_remote_entry_t *);
 
 
 int __fenix_search_memberid(int, int);
-int __fenix_find_next_group_position(fenix_group_t *);
+int __fenix_find_next_group_position(fenix_data_recovery_t *);
 int __fenix_find_next_member_position(fenix_member_t *);
-int __fenix_join_group(fenix_group_t *, fenix_group_entry_t *, MPI_Comm);
+int __fenix_join_group(fenix_data_recovery_t *, fenix_group_t *, MPI_Comm);
 int __fenix_join_member(fenix_member_t *, fenix_member_entry_t *, MPI_Comm);
-int __fenix_join_restore(fenix_group_entry_t *, fenix_version_t *, MPI_Comm);
-int __fenix_join_commit(fenix_group_entry_t *, fenix_version_t *, MPI_Comm);
+int __fenix_join_restore(fenix_group_t *, fenix_version_t *, MPI_Comm);
+int __fenix_join_commit(fenix_group_t *, fenix_version_t *, MPI_Comm);
 fenix_local_entry_t *__fenix_subset_full(fenix_member_entry_t *);
-void __fenix_subset(fenix_group_entry_t *, fenix_member_entry_t *, Fenix_Data_subset *);
+void __fenix_subset(fenix_group_t *, fenix_member_entry_t *, Fenix_Data_subset *);
 fenix_local_entry_t *__fenix_subset_variable(fenix_member_entry_t *, Fenix_Data_subset *);
 int _send_metadata(int, int, MPI_Comm);
 int _recover_metadata(int, int, MPI_Comm);
-int _send_group_data(int, int, fenix_group_entry_t *, MPI_Comm);
-int _recover_group_data(int, int, fenix_group_entry_t *, MPI_Comm);
+int _send_group_data(int, int, fenix_group_t *, MPI_Comm);
+int _recover_group_data(int, int, fenix_group_t *, MPI_Comm);
 int _pc_send_member_metadata(int, int, fenix_member_entry_t *, MPI_Comm);
 int _pc_recover_member_metadata(int, int, fenix_member_entry_t *, MPI_Comm);
 int _pc_send_members(int, int, int, fenix_member_t *, MPI_Comm);

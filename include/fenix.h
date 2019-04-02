@@ -91,7 +91,6 @@ extern "C" {
 #define FENIX_DATA_GROUP_WORLD_ID            10
 #define FENIX_GROUP_ID_MAX                   11
 #define FENIX_TIME_STAMP_MAX                 12
-#define FENIX_DATA_POLICY_PEER_RANK_SEPARATION 13
 #define FENIX_DATA_MEMBER_ALL                15
 #define FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER   11
 #define FENIX_DATA_MEMBER_ATTRIBUTE_COUNT    12
@@ -148,15 +147,13 @@ int Fenix_get_role(MPI_Comm comm, int rank, int *role);
 int Fenix_Finalize();
 
 int Fenix_Data_group_create(int group_id, MPI_Comm, int start_time_stamp,
-                            int depth);
+                            int depth, int polic_name, void* policy_value,
+                            int* flag);
 
 int Fenix_Data_member_create(int group_id, int member_id, void *buffer,
                              int count, MPI_Datatype datatype);
 
 int Fenix_Data_group_get_redundancy_policy(int group_id, int policy_name,
-                                           void *policy_value, int *flag);
-
-int Fenix_Data_group_set_redundancy_policy(int group_id, int policy_name,
                                            void *policy_value, int *flag);
 
 int Fenix_Data_wait(Fenix_Request request);

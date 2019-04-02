@@ -111,7 +111,7 @@ fenix_version_t *__fenix_data_version_init() {
 
   if (fenix.options.verbose == 43) {
     verbose_print(
-            "c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
+            "c-rank: %d, role: %d, v-count: %zu, v-size: %zu, v-position: %zu\n",
               __fenix_get_current_rank(*fenix.world), fenix.role, version->count,
               version->total_size, version->position);
   }
@@ -154,7 +154,7 @@ void __fenix_ensure_version_capacity(fenix_version_t *version) {
     version->total_size = version->total_size * 2;
 
     if (fenix.options.verbose == 53) {
-      verbose_print( "c-rank: %d, role: %d, v-count: %d, v-size: %d\n",
+      verbose_print( "c-rank: %d, role: %d, v-count: %zu, v-size: %zu\n",
                      __fenix_get_current_rank(*fenix.new_world), fenix.role,
                       version->count, version->total_size);
     }
@@ -182,7 +182,7 @@ void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t pa
                                                      sizeof(fenix_buffer_entry_t));
 
   if (fenix.options.verbose == 49) {
-    verbose_print("c-rank: %d, role: %d, v-count: %d, v-size: %d, v-position: %d\n",
+    verbose_print("c-rank: %d, role: %d, v-count: %zu, v-size: %zu, v-position: %zu\n",
                     __fenix_get_current_rank(*fenix.new_world), fenix.role, v->count,
                   v->total_size, v->position);
   }

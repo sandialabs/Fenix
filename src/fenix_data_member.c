@@ -75,7 +75,7 @@ fenix_member_t *__fenix_data_member_init() {
           __FENIX_DEFAULT_MEMBER_SIZE * sizeof(fenix_member_entry_t));
 
   if (fenix.options.verbose == 42) {
-    verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
+    verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
                     __fenix_get_current_rank(*fenix.world), fenix.role, member->count,
                   member->total_size);
   }
@@ -122,7 +122,7 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
     member->total_size = member->total_size * 2;
 
     if (fenix.options.verbose == 52) {
-      verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
+      verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
                     __fenix_get_current_rank(*fenix.new_world), fenix.role,
                     member->count, member->total_size);
     }
@@ -167,7 +167,7 @@ void __fenix_ensure_version_capacity_from_member(fenix_member_t *m) {
 
       if (fenix.options.verbose == 53) {
         verbose_print(
-                "c-rank: %d, role: %d, member[%d] v-count: %d, v-size: %d\n",
+                "c-rank: %d, role: %d, member[%d] v-count: %zu, v-size: %zu\n",
                   __fenix_get_current_rank(*fenix.new_world), fenix.role,
                 member_index, version->count, version->total_size);
       }
@@ -192,7 +192,7 @@ void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t 
                                                             (member->total_size) *
                                                             sizeof(fenix_member_entry_t));
   if (fenix.options.verbose == 50) {
-    verbose_print("c-rank: %d, role: %d, m-count: %d, m-size: %d\n",
+    verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
                     __fenix_get_current_rank(*fenix.new_world), fenix.role,
                   member->count, member->total_size);
   }

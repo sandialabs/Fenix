@@ -76,8 +76,9 @@ int Fenix_Finalize() {
     return FENIX_SUCCESS;
 }
 
-int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth ) {
-    return __fenix_group_create(group_id, comm, start_time_stamp, depth);
+int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy_name, 
+        void* policy_value, int* flag) {
+    return __fenix_group_create(group_id, comm, start_time_stamp, depth, policy_name, policy_value, flag);
 }
 
 int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int count, MPI_Datatype datatype ) {
@@ -86,10 +87,6 @@ int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int cou
 
 int Fenix_Data_group_get_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
     return __fenix_group_get_redundancy_policy( group_id, policy_name, policy_value, flag );
-}
-
-int Fenix_Data_group_set_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
-    return  __fenix_group_set_redundancy_policy( group_id, policy_name, policy_value, flag);
 }
 
 int Fenix_Data_wait(Fenix_Request request) {

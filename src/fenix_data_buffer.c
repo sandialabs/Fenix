@@ -73,7 +73,7 @@ fenix_local_entry_t *__fenix_init_local() {
 
   if (fenix.options.verbose == 44) {
     verbose_print(
-            "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %d\n",
+            "c-rank: %d, role: %d, ld-currentrank: %d, ld-count: %d, ld-size: %zu\n",
               __fenix_get_current_rank(*fenix.world), fenix.role, local->currentrank,
             local->count, local->datatype_size);
   }
@@ -95,7 +95,7 @@ fenix_remote_entry_t *__fenix_init_remote() {
 
   if (fenix.options.verbose == 45) {
     verbose_print(
-            "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %d\n",
+            "c-rank: %d, role: %d, rd-remoterank: %d, rd-count: %d, rd-size: %zu\n",
               __fenix_get_current_rank(*fenix.world), fenix.role, remote->remoterank,
             remote->count, remote->datatype_size);
   }

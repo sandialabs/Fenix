@@ -54,69 +54,12 @@
 //@HEADER
 */
 
-#if 1
+#include <mpi.h>
+#include "fenix.h"
+#include "fenix_data_group.h"
 
-#include "fenix_data_recovery.h"
-#include "fenix_opt.h"
-#include "fenix_process_recovery.h"
-#include "fenix_util.h"
-#include "fenix_ext.h"
-#include "fenix_metadata.h"
-
-inline void __fenix_init_group_metadata ( fenix_group_entry_t *gentry, int groupid, MPI_Comm comm, int timestamp,
-                                    int depth  )
-{
-   gentry->groupid = groupid;
-   gentry->comm = comm;
-   gentry->timestart = timestamp;
-   gentry->timestamp = timestamp;
-   gentry->depth = depth + 1;
-   gentry->state = OCCUPIED;
+void __fenix_policy_in_memory_raid_get_group(fenix_group_t **group, MPI_Comm comm, 
+      int timestart, int depth, void* policy_value, int* flag){
+   *group = (fenix_group_t *)malloc(sizeof(fenix_group_t));
+   *flag = FENIX_SUCCESS;
 }
-
-inline void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  )
-
-{
-  gentry->current_rank = __fenix_get_current_rank( gentry->comm );
-  gentry->comm_size    = __fenix_get_world_size( gentry->comm );
-  gentry->in_rank      = ( gentry->current_rank + gentry->comm_size - gentry->rank_separation ) % gentry->comm_size;
-  gentry->out_rank     = ( gentry->current_rank + gentry->comm_size + gentry->rank_separation ) % gentry->comm_size;
-}
-
-inline void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype )
-
-{
-    mentry->memberid = memberid;
-    mentry->state = OCCUPIED;
-    mentry->user_data = data;
-    mentry->current_count = count;
-    mentry->current_datatype = datatype;
-    int dsize;
-    MPI_Type_size(datatype, &dsize);
-
-    mentry->datatype_size = mentry->current_size = dsize;
-}
-
-
-inline void __fenix_data_member_init_store_packet ( fenix_member_store_packet_t *lentry_packet, fenix_buffer_entry_t *lentry, int flag )
-{
-  if ( flag == 0 ) {
-    lentry_packet->rank = lentry->origin_rank;
-    lentry_packet->datatype = lentry->datatype;
-    lentry_packet->entry_count = lentry->count;
-    lentry_packet->entry_size  = lentry->datatype_size;
-    lentry_packet->entry_real_count  = lentry->count;
-    lentry_packet->num_blocks  = 0;
-  } else if ( flag == 1 ) {
-    lentry_packet->rank = lentry->origin_rank;
-    lentry_packet->datatype = lentry->datatype;
-    lentry_packet->entry_count = lentry->count;
-    lentry_packet->entry_size  = lentry->datatype_size;
-    lentry_packet->entry_real_count  = 0;
-    lentry_packet->num_blocks  = 0;
-  } else if (flag == 2 ) { /* Subset */
-
-
-  }
-}
-#endif
