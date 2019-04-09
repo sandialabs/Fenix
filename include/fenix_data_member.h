@@ -67,16 +67,12 @@
 typedef struct __fenix_member_entry {
     int memberid;
     enum states state;
-    fenix_version_t *version;
     void *user_data;
     MPI_Datatype current_datatype;
     int datatype_size;
     int current_count;
     int current_size;
-    int currentrank;
-    int remoterank;
-    int remoterank_front;
-    int remoterank_back;
+    int source_rank;
 } fenix_member_entry_t;
 
 typedef struct __fenix_member {
@@ -103,17 +99,17 @@ typedef struct __member_entry_packet {
     int datatype_size;
     int current_count;
     int current_size;
-    int currentrank;
-    int remoterank;
-    int remoterank_front;
-    int remoterank_back;
+    int source_rank;
 } fenix_member_entry_packet_t;
 
 fenix_member_t *__fenix_data_member_init( );
 void __fenix_data_member_destroy( fenix_member_t *member ) ;
 
 void __fenix_ensure_member_capacity( fenix_member_t *m );
-void __fenix_ensure_version_capacity_from_member( fenix_member_t *m ) ;
+void __fenix_ensure_version_capacity_from_member( fenix_member_t *m );
+
+int __fenix_search_memberid(fenix_member_t* member, int memberid);
+int __fenix_find_next_member_position(fenix_member_t *m);
 
 void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t packet,
                    enum states mystatus);

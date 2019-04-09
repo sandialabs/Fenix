@@ -58,6 +58,7 @@
 #include "fenix_process_recovery.h"
 #include "fenix_util.h"
 #include "fenix_ext.h"
+#include "fenix.h"
 
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
@@ -85,7 +86,7 @@ int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int cou
     return __fenix_member_create(group_id, member_id, buffer, count, datatype);
 }
 
-int Fenix_Data_group_get_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
+int Fenix_Data_group_get_redundancy_policy( int group_id, int* policy_name, void *policy_value, int *flag ) {
     return __fenix_group_get_redundancy_policy( group_id, policy_name, policy_value, flag );
 }
 

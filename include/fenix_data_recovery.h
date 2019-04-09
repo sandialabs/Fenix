@@ -72,7 +72,7 @@
 #include <sys/time.h>
 
 #define __FENIX_COMMIT_MODE     1
-#define __GROUP_ENTRY_ATTR_SIZE 5
+#define __GROUP_ENTRY_ATTR_SIZE 4
 #define __NUM_MEMBER_ATTR_SIZE  3
 #define __GRP_MEMBER_LENTRY_ATTR_SIZE 11
 
@@ -80,11 +80,6 @@
 
 
 
-#define __FENIX_SUBSET_EMPTY   1
-#define __FENIX_SUBSET_FULL    2
-#define __FENIX_SUBSET_CREATE  3
-#define __FENIX_SUBSET_CREATEV 4
-#define __FENIX_SUBSET_UNDEFINED -1
 
 #define STORE_RANK_TAG  2000
 #define STORE_COUNT_TAG 2001
@@ -117,9 +112,8 @@ typedef struct __data_entry_packet {
 int store_counter;
 
 int __fenix_group_create(int, MPI_Comm, int, int, int, void*, int*);
+int __fenix_group_get_redundancy_policy(int, int*, int*, int*);
 int __fenix_member_create(int, int, void *, int, MPI_Datatype);
-int __fenix_group_get_redundancy_policy(int, int, void *, int *);
-int __fenix_group_set_redundancy_policy(int, int, void *, int *);
 int __fenix_data_wait(Fenix_Request);
 int __fenix_data_test(Fenix_Request, int *);
 int __fenix_member_store(int, int, Fenix_Data_subset);
@@ -131,9 +125,6 @@ int __fenix_data_commit_barrier(int, int *);
 int __fenix_data_barrier(int);
 int __fenix_member_restore(int, int, void *, int, int);
 int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
 int __fenix_get_number_of_members(int, int *);
 int __fenix_get_member_at_position(int, int *, int);
 int __fenix_get_number_of_snapshots(int, int *);
@@ -157,7 +148,6 @@ void __fenix_free_remote(fenix_remote_entry_t *);
 
 
 
-int __fenix_search_memberid(int, int);
 int __fenix_find_next_group_position(fenix_data_recovery_t *);
 int __fenix_find_next_member_position(fenix_member_t *);
 int __fenix_join_group(fenix_data_recovery_t *, fenix_group_t *, MPI_Comm);

@@ -55,11 +55,29 @@
 */
 #ifndef __FENIX_DATA_SUBSET_H__
 #define __FENIX_DATA_SUBSET_H__
+#include <mpi.h>
+
+#define __FENIX_SUBSET_EMPTY   1
+#define __FENIX_SUBSET_FULL    2
+#define __FENIX_SUBSET_CREATE  3
+#define __FENIX_SUBSET_CREATEV 4
+#define __FENIX_SUBSET_UNDEFINED -1
 
 typedef struct __fenix_subset_offsets  {
     size_t start;
     size_t end;
 } fenix_subset_offsets_t ;
 
+typedef struct {
+    int num_blocks;
+    int *start_offsets;
+    int *end_offsets;
+    int stride;
+    int specifier;
+} Fenix_Data_subset;
+
+int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
+int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
+int __fenix_data_subset_delete(Fenix_Data_subset *);
 
 #endif // FENIX_DATA_SUBSET_H

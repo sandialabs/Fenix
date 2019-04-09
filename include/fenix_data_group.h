@@ -76,7 +76,7 @@ typedef struct __fenix_group_vtbl {
    
    int (*member_delete)(fenix_group_t* group, int member_id);
    
-   int (*get_redundant_policy)(fenix_group_t*, int policy_name, 
+   int (*get_redundant_policy)(fenix_group_t*, int* policy_name, 
            void* policy_value, int* flag);
 
    int (*member_store)(fenix_group_t* group, int member_id, 
@@ -110,10 +110,13 @@ typedef struct __fenix_group_vtbl {
    int (*get_snapshot_at_position)(fenix_group_t* group, int position,
            int* time_stamp);
 
-   int (*get_policy_value)(fenix_group_t* group, int* policy_value,
-           int* flag);
-
    int (*reinit)(fenix_group_t* group);
+
+   int (*member_get_attribute)(fenix_group_t* group, fenix_member_t* member, 
+           int attributename, void* attributevalue, int* flag, int sourcerank);
+   
+   int (*member_set_attribute)(fenix_group_t* group, fenix_member_t* member, 
+           int attributename, void* attributevalue, int* flag);
 
 } fenix_group_vtbl_t;
 
@@ -129,7 +132,6 @@ typedef struct __fenix_group {
     int timestamp;
     int depth;
     int policy_name;
-    enum states state;
     fenix_member_t *member;
 } fenix_group_t;
 
@@ -144,10 +146,13 @@ typedef struct __group_entry_packet {
     int timestamp;
     int depth;
     int rank_separation;
-    enum states state;
 } fenix_group_entry_packet_t;
 
 fenix_data_recovery_t * __fenix_data_recovery_init();
+
+int __fenix_group_delete(int groupid);
+
+int __fenix_member_delete(int groupid, int memberid);
 
 void __fenix_data_recovery_destroy( fenix_data_recovery_t *fx_data_recovery );
 

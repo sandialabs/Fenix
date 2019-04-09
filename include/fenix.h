@@ -59,6 +59,8 @@
 
 #include <mpi.h>
 #include <setjmp.h>
+#include <fenix_data_subset.h>
+#include <fenix_process_recovery.h>
 
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
@@ -111,14 +113,6 @@ typedef struct {
     MPI_Request mpi_recv_req;
 } Fenix_Request;
 
-typedef struct {
-    int num_blocks;
-    int *start_offsets;
-    int *end_offsets;
-    int stride;
-    int specifier;
-} Fenix_Data_subset;
-
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
 
@@ -147,13 +141,13 @@ int Fenix_get_role(MPI_Comm comm, int rank, int *role);
 int Fenix_Finalize();
 
 int Fenix_Data_group_create(int group_id, MPI_Comm, int start_time_stamp,
-                            int depth, int polic_name, void* policy_value,
+                            int depth, int policy_name, void* policy_value,
                             int* flag);
 
 int Fenix_Data_member_create(int group_id, int member_id, void *buffer,
                              int count, MPI_Datatype datatype);
 
-int Fenix_Data_group_get_redundancy_policy(int group_id, int policy_name,
+int Fenix_Data_group_get_redundancy_policy(int group_id, int* policy_name,
                                            void *policy_value, int *flag);
 
 int Fenix_Data_wait(Fenix_Request request);

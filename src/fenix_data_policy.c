@@ -84,28 +84,3 @@ int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
 
    return retval;
 }
-
-/**
- * @brief
- * @param group_id
- * @param policy_name
- * @param policy_value
- * @param flag
- */
-int __fenix_group_get_redundancy_policy(int group_id, int* policy_name, void *policy_value, int *flag) {
-
-  int retval = -1;
-  int group_index = __fenix_search_groupid(group_id, fenix.data_recovery );
-
-  if (group_index == -1) {
-    debug_print( "ERROR Fenix_Data_group_get_redundancy_policy: group_id <%d> does not exist\n", group_id);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    *policy_name = group->policy_name;
-    group->vtbl.get_policy_value(group, policy_value, flag);
-    retval = FENIX_SUCCESS;
-  }
-  return retval;
-}
-

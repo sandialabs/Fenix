@@ -92,21 +92,53 @@ fenix_member_t *__fenix_data_member_init() {
                       __fenix_get_current_rank(*fenix.world), fenix.role,
                     mentry->memberid, mentry->state);
     }
-
-    mentry->version = __fenix_data_version_init();
   }
   return member;
 }
 
 void __fenix_data_member_destroy( fenix_member_t *member ) {
-
-  int member_index;
-  for ( member_index = 0; member_index < member->total_size; member_index++ ) {
-      __fenix_data_version_destroy( member->member_entry[member_index].version );
-  }
   free( member->member_entry );
   free( member );
 }
+
+/**
+ * @brief
+ * @param
+ * @param
+ */
+int __fenix_search_memberid(fenix_member_t* member, int key) {
+  fenix_data_recovery_t *data_recovery = fenix.data_recovery;
+  int member_index, found = -1, index = -1;
+  for (member_index = 0;
+       (found != 1) && (member_index < member->total_size); member_index++) {
+    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
+    if (key == mentry->memberid) {
+      index = member_index;
+      found = 1;
+    }
+  }
+  return index;
+}
+
+
+/**
+ * @brief
+ * @param
+ */
+int __fenix_find_next_member_position(fenix_member_t *m) {
+  fenix_member_t *member = m;
+  int member_index, found = -1, index = -1;
+  for (member_index = 0;
+       (found != 1) && (member_index < member->total_size); member_index++) {
+    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
+    if (mentry->state == EMPTY || mentry->state == DELETED) {
+      index = member_index;
+      found = 1;
+    }
+  }
+  return index;
+}
+
 
 /**
  * @brief
@@ -139,39 +171,6 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
                   __fenix_get_current_rank(*fenix.new_world), fenix.role,
                 member_index, mentry->memberid, mentry->state);
       }
-
-      mentry->version = __fenix_data_version_init();
-    }
-  }
-}
-
-/**
- * @brief
- * @param
- */
-void __fenix_ensure_version_capacity_from_member(fenix_member_t *m) {
-  fenix_member_t *member = m;
-  int member_index;
-  for (member_index = 0; member_index < member->total_size; member_index++) {
-    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    fenix_version_t *version = mentry->version;
-    if (version->total_size > __FENIX_DEFAULT_VERSION_SIZE) {
-      version->local_entry = (fenix_buffer_entry_t *) realloc(version->local_entry,
-                                                             (version->total_size * 2) *
-                                                             sizeof(fenix_buffer_entry_t));
-      version->remote_entry = (fenix_buffer_entry_t *) realloc(
-              version->remote_entry,
-              (version->total_size * 2) *
-              sizeof(fenix_buffer_entry_t));
-      version->total_size = version->total_size * 2;
-
-      if (fenix.options.verbose == 53) {
-        verbose_print(
-                "c-rank: %d, role: %d, member[%d] v-count: %zu, v-size: %zu\n",
-                  __fenix_get_current_rank(*fenix.new_world), fenix.role,
-                member_index, version->count, version->total_size);
-      }
-
     }
   }
 }
@@ -209,7 +208,5 @@ void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t 
                       __fenix_get_current_rank(*fenix.new_world), fenix.role,
                     mentry->memberid, mentry->state);
     }
-
-    mentry->version = __fenix_data_version_init();
   }
 }
