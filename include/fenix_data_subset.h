@@ -63,21 +63,25 @@
 #define __FENIX_SUBSET_CREATEV 4
 #define __FENIX_SUBSET_UNDEFINED -1
 
-typedef struct __fenix_subset_offsets  {
-    size_t start;
-    size_t end;
-} fenix_subset_offsets_t ;
 
+//Specifier speeds up the process by letting us know if this is a simple
+//subset in which each region is repeated w/ same stride, or if each
+//region is never repeated (EG create vs createv). Also has specifiers for
+//FULL/EMPTY.
 typedef struct {
     int num_blocks;
-    int *start_offsets;
-    int *end_offsets;
+    int* start_offsets;
+    int* end_offsets;
+    int* num_repeats;
     int stride;
     int specifier;
 } Fenix_Data_subset;
 
 int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
 int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
+void __fenix_data_subset_merge(Fenix_Data_subset* first_subset, 
+      Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
+int __fenix_data_subset_free(Fenix_Data_subset *);
 int __fenix_data_subset_delete(Fenix_Data_subset *);
 
 #endif // FENIX_DATA_SUBSET_H

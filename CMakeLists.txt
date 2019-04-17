@@ -39,10 +39,7 @@ set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 # This is include directories
 include_directories(
 "${CMAKE_SOURCE_DIR}/include"
-"${CMAKE_SOURCE_DIR}"
-"${CMAKE_SOURCE_DIR}/src"
-"${CMAKE_BINARY_DIR}/lib"
-"${CMAKE_BINARY_DIR}" )
+"${CMAKE_SOURCE_DIR}/src")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -57,14 +54,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(src)
 #add_subdirectory(test/subset_internal)
-add_subdirectory(test/request_tracking)
-add_subdirectory(examples/01_hello_world/fenix)
-add_subdirectory(examples/01_hello_world/mpi)
-add_subdirectory(examples/02_send_recv/fenix)
-add_subdirectory(examples/02_send_recv/mpi)
-add_subdirectory(examples/03_reduce/fenix)
-add_subdirectory(examples/03_reduce/mpi)
-add_subdirectory(examples/04_Isend_Irecv/fenix)
-add_subdirectory(examples/04_Isend_Irecv/mpi)
-add_subdirectory(examples/05_subset_create)
-add_subdirectory(examples/06_subset_createv)
+#add_subdirectory(test/request_tracking)
+add_subdirectory(test/group_instantiation)
+add_subdirectory(test/subset_merging)
+
+#add_subdirectory(examples/01_hello_world/fenix)
+#add_subdirectory(examples/01_hello_world/mpi)
+#add_subdirectory(examples/02_send_recv/fenix)
+#add_subdirectory(examples/02_send_recv/mpi)
+#add_subdirectory(examples/03_reduce/fenix)
+#add_subdirectory(examples/03_reduce/mpi)
+#add_subdirectory(examples/04_Isend_Irecv/fenix)
+#add_subdirectory(examples/04_Isend_Irecv/mpi)
+#add_subdirectory(examples/05_subset_create)
+#add_subdirectory(examples/06_subset_createv)
