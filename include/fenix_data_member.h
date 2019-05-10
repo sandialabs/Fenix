@@ -77,7 +77,6 @@ typedef struct __fenix_member_entry {
 
 typedef struct __fenix_member {
     size_t count;
-    int temp_count;
     size_t total_size;
     fenix_member_entry_t *member_entry;
 } fenix_member_t;
@@ -107,6 +106,9 @@ void __fenix_data_member_destroy( fenix_member_t *member ) ;
 
 void __fenix_ensure_member_capacity( fenix_member_t *m );
 void __fenix_ensure_version_capacity_from_member( fenix_member_t *m );
+
+fenix_member_entry_t* __fenix_data_member_add_entry(fenix_member_t* member, 
+        int memberid, void* data, int count, MPI_Datatype datatype);
 
 int __fenix_search_memberid(fenix_member_t* member, int memberid);
 int __fenix_find_next_member_position(fenix_member_t *m);

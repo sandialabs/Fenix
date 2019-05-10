@@ -91,7 +91,7 @@ int __fenix_member_delete(int groupid, int memberid) {
   int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
   int member_index = -1;
   if(group_index !=-1){
-    __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
   }
 
   if (fenix.options.verbose == 38) {

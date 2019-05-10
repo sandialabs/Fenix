@@ -148,15 +148,13 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
       group = ( data_recovery->group[group_position] );
       group->comm = comm; /* Renew communicator */
 
-      //Reinit group metadata, communicate with recovered
-      //ranks if need be.
+      //Reinit group metadata as needed w/ new communicator.
       group->vtbl.reinit(group);
     }
 
 
     /* Global agreement among the group */
-    retval = ( __fenix_join_group(data_recovery, group, comm) != 1) ? FENIX_SUCCESS
-                                                    : FENIX_ERROR_GROUP_CREATE;
+    retval = FENIX_SUCCESS;
   }
   return retval;
 }
@@ -211,8 +209,16 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
   } else {
 
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    int retval = group->vtbl.member_create(group, memberid, data, count, datatype);
+    fenix_member_t *member = group->member;
 
+    //First, we'll make a fenix-core member entry, then pass that info to
+    //the specific data policy.
+    int member_index = __fenix_find_next_member_position(member);
+    fenix_member_entry_t* mentry;
+    mentry = __fenix_data_member_add_entry(member, memberid, data, count, datatype);
+
+    //Pass the info along to the policy
+    retval = group->vtbl.member_create(group, mentry);
   }
   return retval;
   /* No Potential Bug in 2/10/17 */
@@ -913,100 +919,6 @@ int __fenix_snapshot_delete(int group_id, int time_stamp) {
 }
 
 
-
-/**
- * @brief
- * @param
- * @param
- */
-int __fenix_join_group(fenix_data_recovery_t *data_recovery, fenix_group_t *group, MPI_Comm comm) {
-  int current_rank_attributes[__GROUP_ENTRY_ATTR_SIZE];
-  int other_rank_attributes[__GROUP_ENTRY_ATTR_SIZE];
-  current_rank_attributes[0] = data_recovery->count;
-  current_rank_attributes[1] = group->groupid;
-  current_rank_attributes[2] = group->timestart;
-  current_rank_attributes[3] = group->depth;
-
-  if (fenix.options.verbose == 58) {
-    verbose_print(
-            "c-rank: %d, g-count: %zu, g-groupid: %d, g-timestamp: %d, g-depth: %d\n",
-              __fenix_get_current_rank(*fenix.new_world), data_recovery->count, group->groupid,
-            group->timestamp, group->depth);
-  }
-
-  MPI_Allreduce(current_rank_attributes, other_rank_attributes, __GROUP_ENTRY_ATTR_SIZE,
-                MPI_INT, fenix.agree_op, comm);
-
-  int found = -1, index;
-  for (index = 0; found != 1 && (index < __GROUP_ENTRY_ATTR_SIZE); index++) {
-    if (current_rank_attributes[index] !=
-        other_rank_attributes[index]) { // all ranks did not agree! 
-      switch (index) {
-        case 0:
-          debug_print("ERROR ranks did not agree on g-count: %d\n",
-                      current_rank_attributes[0]);
-          break;
-        case 1:
-          debug_print("ERROR ranks did not agree on g-groupid: %d\n",
-                      current_rank_attributes[1]);
-          break;
-        case 2:
-          debug_print("ERROR ranks did not agree on g-timestart: %d\n",
-                      current_rank_attributes[2]);
-          break;
-        case 3:
-          debug_print("ERROR ranks did not agree on g-depth: %d\n",
-                      current_rank_attributes[3]);
-          break;
-        default:
-          break;
-      }
-      found = 2;
-    }
-  }
-
-  return found;
-}
-
-/**
- * @brief
- * @param
- * @param
- */
-int __fenix_join_member(fenix_member_t *m, fenix_member_entry_t *me, MPI_Comm comm) {
-  fenix_member_t *member = m;
-  fenix_member_entry_t *mentry = me;
-  int current_rank_attributes[__NUM_MEMBER_ATTR_SIZE];
-  current_rank_attributes[0] = member->count;
-  current_rank_attributes[1] = mentry->memberid;
-  current_rank_attributes[2] = mentry->state;
-  int other_rank_attributes[__NUM_MEMBER_ATTR_SIZE];
-  MPI_Allreduce(current_rank_attributes, other_rank_attributes, __NUM_MEMBER_ATTR_SIZE,
-                MPI_INT, fenix.agree_op, comm);
-  int found = -1, index;
-  for (index = 0; found != 1 && (index < __NUM_MEMBER_ATTR_SIZE); index++) {
-    if (current_rank_attributes[index] != other_rank_attributes[index]) {
-      switch (index) {
-        case 0:
-          debug_print("ERROR ranks did not agree on m-count: %d\n",
-                      current_rank_attributes[0]);
-          break;
-        case 1:
-          debug_print("ERROR ranks did not agree on m-memberid: %d\n",
-                      current_rank_attributes[1]);
-          break;
-        case 2:
-          debug_print("ERROR ranks did not agree on m-state: %d\n",
-                      current_rank_attributes[2]);
-          break;
-        default:
-          break;
-      }
-      found = 1;
-    }
-  }
-  return found;
-}
 
 /**
  * @brief

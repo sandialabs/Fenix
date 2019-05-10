@@ -71,8 +71,7 @@ typedef struct __fenix_group fenix_group_t;
 typedef struct __fenix_group_vtbl {
    int (*group_delete)(fenix_group_t* group);
    
-   int (*member_create)(fenix_group_t* group, int member_id, 
-           void* source_buffer, int count, MPI_Datatype datatype);
+   int (*member_create)(fenix_group_t* group, fenix_member_entry_t* mentry);
    
    int (*member_delete)(fenix_group_t* group, int member_id);
    

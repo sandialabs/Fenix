@@ -111,8 +111,9 @@ int __fenix_search_memberid(fenix_member_t* member, int key) {
   int member_index, found = -1, index = -1;
   for (member_index = 0;
        (found != 1) && (member_index < member->total_size); member_index++) {
+    
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-    if (key == mentry->memberid) {
+    if (!(mentry->state == EMPTY || mentry->state == DELETED) && key == mentry->memberid) {
       index = member_index;
       found = 1;
     }
@@ -125,8 +126,9 @@ int __fenix_search_memberid(fenix_member_t* member, int key) {
  * @brief
  * @param
  */
-int __fenix_find_next_member_position(fenix_member_t *m) {
-  fenix_member_t *member = m;
+int __fenix_find_next_member_position(fenix_member_t *member) {
+  __fenix_ensure_member_capacity(member);
+  
   int member_index, found = -1, index = -1;
   for (member_index = 0;
        (found != 1) && (member_index < member->total_size); member_index++) {
@@ -139,6 +141,26 @@ int __fenix_find_next_member_position(fenix_member_t *m) {
   return index;
 }
 
+fenix_member_entry_t* __fenix_data_member_add_entry(fenix_member_t* member, 
+        int memberid, void* data, int count, MPI_Datatype datatype){
+    
+    int member_index = __fenix_find_next_member_position(member);
+    fenix_member_entry_t* mentry = member->member_entry + member_index;
+    
+    mentry->memberid = memberid;
+    mentry->state = OCCUPIED;
+    mentry->user_data = data;
+    mentry->current_count = count;
+    mentry->current_datatype = datatype;
+    
+    int dsize;
+    MPI_Type_size(datatype, &dsize);
+    mentry->datatype_size = dsize;
+
+    member->count++;
+
+    return mentry;
+}
 
 /**
  * @brief
@@ -146,7 +168,7 @@ int __fenix_find_next_member_position(fenix_member_t *m) {
  */
 void __fenix_ensure_member_capacity(fenix_member_t *m) {
   fenix_member_t *member = m;
-  if (member->count >= member->total_size) {
+  if (member->count +1 >= member->total_size) {
     int start_index = member->total_size;
     member->member_entry = (fenix_member_entry_t *) s_realloc(member->member_entry,
                                                               (member->total_size * 2) *
@@ -185,7 +207,6 @@ void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t 
   fenix_member_t *member = m;
   int start_index = member->total_size;
   member->count = 0;
-  member->temp_count = packet.count;
   member->total_size = packet.total_size;
   member->member_entry = (fenix_member_entry_t *) s_realloc(member->member_entry,
                                                             (member->total_size) *
