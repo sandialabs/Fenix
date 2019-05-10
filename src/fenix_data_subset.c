@@ -70,6 +70,7 @@ int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset){
       subset->end_offsets = (int*) s_malloc(sizeof(int) * num_blocks);
       subset->num_repeats = (int*) s_calloc(num_blocks, sizeof(int));
       subset->num_blocks = num_blocks;
+      retval = FENIX_SUCCESS;
    }
    return retval;
 }
@@ -96,7 +97,7 @@ int __fenix_data_subset_create(int num_blocks, int start_offset, int end_offset,
     debug_print("ERROR Fenix_Data_subset_create: start_offset <%d> must be positive\n",
                 start_offset);
     retval = FENIX_ERROR_SUBSET_START_OFFSET;
-  } else if (end_offset <= 0) {
+  } else if (end_offset < 0) {
     debug_print("ERROR Fenix_Data_subset_create: end_offset <%d> must be positive\n",
                 end_offset);
     retval = FENIX_ERROR_SUBSET_END_OFFSET;
@@ -172,15 +173,15 @@ int __fenix_data_subset_createv(int num_blocks, int *array_start_offsets, int *a
 
 //This should only be used to copy to a currently non-inited subset
 // If the destination already has memory allocated in the num_blocks/offsets regions
-// then this can lead to double-mallocs or memory leaks.
+// then this can lead to memory leaks.
 void __fenix_data_subset_deep_copy(Fenix_Data_subset* from, Fenix_Data_subset* to){
    if(from->specifier == __FENIX_SUBSET_FULL || from->specifier == __FENIX_SUBSET_EMPTY){
       to->specifier = from->specifier;
    } else {
       __fenix_data_subset_init(from->num_blocks, to);
-      memcpy(to->num_repeats, from->num_repeats, to->num_blocks);
-      memcpy(to->start_offsets, from->start_offsets, to->num_blocks);
-      memcpy(to->end_offsets, from->end_offsets, to->num_blocks);
+      memcpy(to->num_repeats, from->num_repeats, to->num_blocks*sizeof(int));
+      memcpy(to->start_offsets, from->start_offsets, to->num_blocks*sizeof(int));
+      memcpy(to->end_offsets, from->end_offsets, to->num_blocks*sizeof(int));
       to->specifier = from->specifier;
       to->stride = from->stride;
    }
@@ -446,6 +447,8 @@ void __fenix_data_subset_merge(Fenix_Data_subset* first_subset, Fenix_Data_subse
          second_subset->specifier == __FENIX_SUBSET_FULL){
       //We don't need to populate anything else.
       output->specifier = __FENIX_SUBSET_FULL;
+      //We still have to init, else there will be a memory error when the user tries to free later.
+      __fenix_data_subset_init(1, output);
    
    } else if(first_subset->specifier == __FENIX_SUBSET_EMPTY){
       __fenix_data_subset_deep_copy(second_subset, output);
@@ -514,6 +517,182 @@ void __fenix_data_subset_merge(Fenix_Data_subset* first_subset, Fenix_Data_subse
       //Now we have all of the regions, so we just need to simplify them.
       __fenix_data_subset_simplify_regions(output);
    }
+}
+
+//Merge second subset into first subset
+//This reasonably assumes both subsets are already intialized.
+void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, Fenix_Data_subset* second_subset){
+      
+   //Simple cases first
+   if(first_subset->specifier == __FENIX_SUBSET_FULL || 
+         second_subset->specifier == __FENIX_SUBSET_FULL){
+      //We don't need to populate anything else.
+      first_subset->specifier = __FENIX_SUBSET_FULL;
+
+   } else if(second_subset->specifier == __FENIX_SUBSET_EMPTY){
+      //Do nothing.
+      
+   } else if(first_subset->specifier  == __FENIX_SUBSET_EMPTY){
+      //Deep copy requires that the destination be non-initialized, so free sub1 first.
+      __fenix_data_subset_free(first_subset);
+      __fenix_data_subset_deep_copy(second_subset, first_subset);
+
+   } else if(first_subset->specifier == __FENIX_SUBSET_CREATE &&
+         second_subset->specifier == __FENIX_SUBSET_CREATE &&
+         first_subset->stride == second_subset->stride){
+      //Output is just a CREATE type with combined descriptors. 
+      //Start by making a list of all descriptors, then merge any with overlaps.
+      first_subset->num_repeats = (int*)s_realloc(first_subset->num_repeats, 
+            (first_subset->num_blocks + second_subset->num_blocks)*sizeof(int));
+      first_subset->start_offsets = (int*)s_realloc(first_subset->start_offsets, 
+            (first_subset->num_blocks + second_subset->num_blocks)*sizeof(int));
+      first_subset->end_offsets = (int*)s_realloc(first_subset->end_offsets, 
+            (first_subset->num_blocks + second_subset->num_blocks)*sizeof(int));
+
+      memcpy(first_subset->num_repeats+first_subset->num_blocks, second_subset->num_repeats, 
+            second_subset->num_blocks * sizeof(int));
+
+      memcpy(first_subset->start_offsets+first_subset->num_blocks, second_subset->start_offsets, 
+            second_subset->num_blocks * sizeof(int));
+      
+      memcpy(first_subset->end_offsets+first_subset->num_blocks, second_subset->end_offsets, 
+            second_subset->num_blocks * sizeof(int));
+      
+      first_subset->num_blocks = first_subset->num_blocks 
+         + second_subset->num_blocks;
+   
+      //Now we have all of the regions, so we just need to simplify them.
+      __fenix_data_subset_simplify_regions(first_subset); 
+   } else {
+      
+      int new_num_blocks = first_subset->num_blocks + second_subset->num_blocks;
+      if(first_subset->specifier == __FENIX_SUBSET_CREATE){
+         for(int i = 0; i < first_subset->num_blocks; i++){
+            new_num_blocks += first_subset->num_repeats[i];
+         }
+      }
+      if(second_subset->specifier == __FENIX_SUBSET_CREATE){
+         for(int i = 0; i < second_subset->num_blocks; i++){
+            new_num_blocks += second_subset->num_repeats[i];
+         }
+      }
+
+      first_subset->num_repeats = (int*)s_realloc(first_subset->num_repeats, new_num_blocks*sizeof(int));
+      first_subset->start_offsets = (int*)s_realloc(first_subset->start_offsets, new_num_blocks*sizeof(int));
+      first_subset->end_offsets = (int*)s_realloc(first_subset->end_offsets, new_num_blocks*sizeof(int));
+
+      //work backwards to prevent overwriting current data.
+
+      int index = new_num_blocks-1;
+      for(int i = second_subset->num_blocks-1; i >= 0; i--){
+         for(int j = 0; j <= second_subset->num_repeats[i]; j++){
+            first_subset->start_offsets[index] = j*second_subset->stride 
+               + second_subset->start_offsets[i];
+            first_subset->end_offsets[index] = j*second_subset->stride 
+               + second_subset->end_offsets[i];
+            first_subset->num_repeats[index] = 0;
+            index--;
+         }
+      }
+      for(int i = first_subset->num_blocks-1; i >= 0; i--){
+         for(int j = 0; j <= first_subset->num_repeats[i]; j++){
+            first_subset->start_offsets[index] = j*first_subset->stride 
+               + first_subset->start_offsets[i];
+            first_subset->end_offsets[index] = j*first_subset->stride 
+               + first_subset->end_offsets[i];
+            first_subset->num_repeats[index] = 0;
+            index--;
+         }
+      }
+      first_subset->specifier = __FENIX_SUBSET_CREATEV;
+      first_subset->num_blocks = new_num_blocks;
+
+      //Now we have all of the regions, so we just need to simplify them.
+      __fenix_data_subset_simplify_regions(first_subset);
+   }
+
+}
+
+
+void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest, void* src, size_t data_type_size){
+   for(int i = 0; i < ss->num_blocks; i++){
+      //Inclusive both directions, so add 1.
+      int length = ss->end_offsets[i]-ss->start_offsets[i] + 1;
+      
+      for(int j = 0; j <= ss->num_repeats[i]; j++){
+         int start = ss->start_offsets[i] + j*ss->stride;
+         printf("Copying from %d to %d, block %d repeat %d\n", start, start+length-1, i, j);
+         memcpy( ((uint8_t*)dest) + start*data_type_size, ((uint8_t*)src) + start*data_type_size, length*data_type_size);
+      }
+   }
+}
+
+//Makes an array with the in-order contents of subset ss of src.
+//size is updated to the size of the serialized array, which is returned as the function's return.
+//User's responsibility to free the returned array.
+void* __fenix_data_subset_serialize(Fenix_Data_subset* ss, void* src, size_t type_size, size_t* size){
+   //First, count up the number of entries to find a size.
+   *size = 0;
+   for(int i = 0; i < ss->num_blocks; i++){
+      *size += (ss->end_offsets[i] - ss->start_offsets[i] + 1)*(ss->num_repeats[i]+1);
+   }
+
+   void* dest = malloc(type_size * (*size));
+   
+   int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
+   //We need to be sure to go in the right order.
+   int stored = 0;
+   while(stored < *size){
+      int lowest_index = -1;
+      int lowest_block = -1;
+      for(int i = 0; i < ss->num_blocks; i++){
+         if(current_repetition[i] <= ss->num_repeats[i]){
+            if(lowest_index == -1 || 
+                  (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
+               lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
+               lowest_block = i;
+            }
+         }
+      }
+      
+      memcpy(((uint8_t*)dest)+stored*type_size, ((uint8_t*)src)+lowest_index*type_size, 
+            type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
+      stored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
+      current_repetition[lowest_block]++;
+   }
+
+   return dest;
+}
+
+void __fenix_data_subset_deserialize(Fenix_Data_subset* ss, void* src, void* dest, size_t type_size){
+   //First, count up the number of entries to find a size.
+   int size = 0;
+   for(int i = 0; i < ss->num_blocks; i++){
+      size += (ss->end_offsets[i] - ss->start_offsets[i] + 1)*(ss->num_repeats[i]+1);
+   }
+ 
+   int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
+   //We need to be sure to go in the right order.
+   int restored = 0;
+   while(restored < size){
+      int lowest_index = -1;
+      int lowest_block = -1;
+      for(int i = 0; i < ss->num_blocks; i++){
+         if(current_repetition[i] <= ss->num_repeats[i]){
+            if(lowest_index == -1 || 
+                  (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
+               lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
+               lowest_block = i;
+            }
+         }
+      }
+      
+      memcpy(((uint8_t*)dest)+lowest_index*type_size, ((uint8_t*)src)+restored*type_size, 
+            type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
+      restored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
+      current_repetition[lowest_block]++;
+   }
+
 }
 
 

@@ -77,10 +77,20 @@ typedef struct {
     int specifier;
 } Fenix_Data_subset;
 
+int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
 int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
 int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
+void __fenix_data_subset_deep_copy(Fenix_Data_subset* from, Fenix_Data_subset* to);
 void __fenix_data_subset_merge(Fenix_Data_subset* first_subset, 
       Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
+void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
+      Fenix_Data_subset* second_subset);
+void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest,
+      void* src, size_t data_type_size);
+void* __fenix_data_subset_serialize(Fenix_Data_subset* ss, void* src, 
+      size_t data_size, size_t* output_size);
+void __fenix_data_subset_deserialize(Fenix_Data_subset* ss, void* src, 
+      void* dest, size_t data_size);
 int __fenix_data_subset_free(Fenix_Data_subset *);
 int __fenix_data_subset_delete(Fenix_Data_subset *);
 

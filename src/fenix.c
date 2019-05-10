@@ -143,7 +143,7 @@ int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets, int *arr
 }
 
 int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier) {
-    return 0;
+    return __fenix_data_subset_free(subset_specifier);
 }
 
 int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members) {
