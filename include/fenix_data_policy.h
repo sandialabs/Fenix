@@ -57,9 +57,8 @@
 #ifndef __FENIX_DATA_POLICY_H__
 #define __FENIX_DATA_POLICY_H__
 
-#define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
-
 #include <mpi.h>
+#include "fenix.h"
 #include "fenix_data_group.h"
 
 int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm, 

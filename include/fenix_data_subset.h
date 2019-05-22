@@ -87,10 +87,14 @@ void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset,
       Fenix_Data_subset* second_subset);
 void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest,
       void* src, size_t data_type_size);
+int __fenix_data_subset_data_size(Fenix_Data_subset* ss, size_t max_size);
 void* __fenix_data_subset_serialize(Fenix_Data_subset* ss, void* src, 
-      size_t data_size, size_t* output_size);
+      size_t type_size, size_t max_size, size_t* output_size);
 void __fenix_data_subset_deserialize(Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t data_size);
+      void* dest, size_t max_size, size_t type_size);
+void __fenix_data_subset_send(Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
+void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
+int __fenix_data_subset_is_full(Fenix_Data_subset* ss, size_t data_length);
 int __fenix_data_subset_free(Fenix_Data_subset *);
 int __fenix_data_subset_delete(Fenix_Data_subset *);
 

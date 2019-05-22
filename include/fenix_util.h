@@ -57,7 +57,6 @@
 #ifndef __FENIX_UTIL__
 #define __FENIX_UTIL__
 
-#include "fenix.h"
 #include "fenix_process_recovery.h"
 #include <mpi.h>
 #include <syslog.h>

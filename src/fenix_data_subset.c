@@ -75,7 +75,6 @@ int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset){
    return retval;
 }
 
-
 /**
  * @brief
  * @param num_blocks
@@ -627,72 +626,155 @@ void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest, void* src,
    }
 }
 
+int __fenix_data_subset_data_size(Fenix_Data_subset* ss, size_t max_size){
+   int size;
+
+   if(ss->specifier == __FENIX_SUBSET_FULL){
+      size = max_size;
+   } else if( ss->specifier == __FENIX_SUBSET_EMPTY){
+      size = 0;
+   } else {
+      size = 0;
+      for(int i = 0; i < ss->num_blocks; i++){
+         size += (ss->end_offsets[i] - ss->start_offsets[i] + 1)*(ss->num_repeats[i]+1);
+      }
+   }
+
+   return size;
+}
+
+int __fenix_data_subset_is_full(Fenix_Data_subset *ss, size_t data_length){
+   return (ss->specifier == __FENIX_SUBSET_FULL) || 
+      ( (ss->start_offsets[0] == 0) && (ss->end_offsets[0] == data_length-1) );
+}
+
 //Makes an array with the in-order contents of subset ss of src.
 //size is updated to the size of the serialized array, which is returned as the function's return.
 //User's responsibility to free the returned array.
-void* __fenix_data_subset_serialize(Fenix_Data_subset* ss, void* src, size_t type_size, size_t* size){
-   //First, count up the number of entries to find a size.
-   *size = 0;
-   for(int i = 0; i < ss->num_blocks; i++){
-      *size += (ss->end_offsets[i] - ss->start_offsets[i] + 1)*(ss->num_repeats[i]+1);
-   }
-
-   void* dest = malloc(type_size * (*size));
+void* __fenix_data_subset_serialize(Fenix_Data_subset* ss, void* src, size_t type_size, size_t max_size, size_t* size){
    
-   int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
-   //We need to be sure to go in the right order.
-   int stored = 0;
-   while(stored < *size){
-      int lowest_index = -1;
-      int lowest_block = -1;
-      for(int i = 0; i < ss->num_blocks; i++){
-         if(current_repetition[i] <= ss->num_repeats[i]){
-            if(lowest_index == -1 || 
-                  (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
-               lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
-               lowest_block = i;
+   void* dest;
+   
+   if(ss->specifier == __FENIX_SUBSET_FULL){
+      dest = malloc(type_size*max_size);
+
+      memcpy(dest, src, type_size*max_size);
+
+      *size = max_size;
+
+   } else if(ss->specifier == __FENIX_SUBSET_EMPTY) {
+
+      dest = NULL;
+      size = 0;
+
+   } else {
+      //First, count up the number of entries to find a size.
+      *size = __fenix_data_subset_data_size(ss, max_size);
+
+      dest = malloc(type_size * (*size));
+      
+      int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
+      //We need to be sure to go in the right order.
+      int stored = 0;
+      while(stored < *size){
+         int lowest_index = -1;
+         int lowest_block = -1;
+         for(int i = 0; i < ss->num_blocks; i++){
+            if(current_repetition[i] <= ss->num_repeats[i]){
+               if(lowest_index == -1 || 
+                     (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
+                  lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
+                  lowest_block = i;
+               }
             }
          }
+         
+         memcpy(((uint8_t*)dest)+stored*type_size, ((uint8_t*)src)+lowest_index*type_size, 
+               type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
+         stored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
+         current_repetition[lowest_block]++;
       }
-      
-      memcpy(((uint8_t*)dest)+stored*type_size, ((uint8_t*)src)+lowest_index*type_size, 
-            type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
-      stored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
-      current_repetition[lowest_block]++;
+
+      free(current_repetition);
+
    }
+
 
    return dest;
 }
 
-void __fenix_data_subset_deserialize(Fenix_Data_subset* ss, void* src, void* dest, size_t type_size){
-   //First, count up the number of entries to find a size.
-   int size = 0;
-   for(int i = 0; i < ss->num_blocks; i++){
-      size += (ss->end_offsets[i] - ss->start_offsets[i] + 1)*(ss->num_repeats[i]+1);
-   }
- 
-   int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
-   //We need to be sure to go in the right order.
-   int restored = 0;
-   while(restored < size){
-      int lowest_index = -1;
-      int lowest_block = -1;
-      for(int i = 0; i < ss->num_blocks; i++){
-         if(current_repetition[i] <= ss->num_repeats[i]){
-            if(lowest_index == -1 || 
-                  (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
-               lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
-               lowest_block = i;
+void __fenix_data_subset_deserialize(Fenix_Data_subset* ss, void* src, void* dest, size_t max_size, size_t type_size){
+   if(ss->specifier == __FENIX_SUBSET_FULL){
+      memcpy(dest, src, type_size*max_size);
+      
+   } else if(ss->specifier != __FENIX_SUBSET_EMPTY){
+      //First, count up the number of entries to find a size.
+      int size = __fenix_data_subset_data_size(ss, max_size);
+    
+      int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
+      //We need to be sure to go in the right order.
+      int restored = 0;
+      while(restored < size){
+         int lowest_index = -1;
+         int lowest_block = -1;
+         for(int i = 0; i < ss->num_blocks; i++){
+            if(current_repetition[i] <= ss->num_repeats[i]){
+               if(lowest_index == -1 || 
+                     (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
+                  lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
+                  lowest_block = i;
+               }
             }
          }
+         
+         memcpy(((uint8_t*)dest)+lowest_index*type_size, ((uint8_t*)src)+restored*type_size, 
+               type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
+         restored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
+         current_repetition[lowest_block]++;
       }
-      
-      memcpy(((uint8_t*)dest)+lowest_index*type_size, ((uint8_t*)src)+restored*type_size, 
-            type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
-      restored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
-      current_repetition[lowest_block]++;
+
+      free(current_repetition);
    }
 
+}
+
+void __fenix_data_subset_send(Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm){
+   int* toSend = (int*)malloc(sizeof(int) * (3 + 3*ss->num_blocks));
+   toSend[0] = ss->num_blocks;
+   
+   for(int i = 0; i < ss->num_blocks; i++){
+      toSend[1+3*i] = ss->start_offsets[i];
+      toSend[2+3*i] = ss->end_offsets[i];
+      toSend[3+3*i] = ss->num_repeats[i];
+   }
+
+   toSend[1+3*ss->num_blocks] = ss->stride;
+   toSend[2+3*ss->num_blocks] = ss->specifier;
+
+   MPI_Send((void*)toSend, 3*ss->num_blocks + 3, MPI_INT, dest, tag, comm); 
+   free(toSend);
+}
+
+void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm){
+   MPI_Status status;
+   MPI_Probe(src, tag, comm, &status);
+
+   int size;
+   MPI_Get_count(&status, MPI_INT, &size);
+
+   int *recvd = (int*)malloc(sizeof(int) * size);
+   MPI_Recv((void*)recvd, size, MPI_INT, src, tag, comm, NULL);
+
+   __fenix_data_subset_init(recvd[0], ss);
+   for(int i = 0; i < ss->num_blocks; i++){
+      ss->start_offsets[i] = recvd[1+3*i];
+      ss->end_offsets[i] = recvd[2+3*i];
+      ss->num_repeats[i] = recvd[3+3*i];
+   }
+   ss->stride = recvd[1+3*ss->num_blocks];
+   ss->specifier = recvd[2+3*ss->num_blocks];
+
+   free(recvd);
 }
 
 

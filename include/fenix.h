@@ -59,8 +59,8 @@
 
 #include <mpi.h>
 #include <setjmp.h>
-#include <fenix_data_subset.h>
-#include <fenix_process_recovery.h>
+#include "fenix_data_subset.h"
+#include "fenix_process_recovery.h"
 
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
@@ -101,6 +101,8 @@ extern "C" {
 #define FENIX_DATA_SNAPSHOT_LATEST           -1
 #define FENIX_DATA_SNAPSHOT_ALL              16
 #define FENIX_DATA_SUBSET_CREATED             2
+
+#define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
 
 typedef enum {
     FENIX_ROLE_INITIAL_RANK = 0,

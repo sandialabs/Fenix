@@ -57,6 +57,7 @@
 #include "mpi.h"
 #include "fenix-config.h"
 #include "fenix_ext.h"
+#include "fenix_data_recovery.h"
 #include "fenix_data_member.h"
 #include "fenix_data_version.h"
 #include "fenix_data_buffer.h"
@@ -196,6 +197,70 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
     }
   }
 }
+
+
+int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank){
+    int retval = -1;
+    
+    fenix_data_recovery_t* data_recovery = fenix.data_recovery;
+    int group_index = __fenix_search_groupid(groupid, data_recovery);
+    int member_index;
+    if(group_index != -1){
+        member_index = __fenix_search_memberid(
+                data_recovery->group[group_index]->member, memberid);
+    }
+    
+    if(group_index == -1){
+        debug_print("ERROR Fenix_Data_member_delete: group_id <%d> does not exist\n",
+                    groupid);
+        retval = FENIX_ERROR_INVALID_GROUPID; 
+    } else if(member_index == -1){
+        debug_print("ERROR Fenix_Data_member_delete: memberid <%d> does not exist\n",
+                    memberid);
+        retval = FENIX_ERROR_INVALID_MEMBERID; 
+    } else {
+        fenix_group_t *group = data_recovery->group[group_index];
+        fenix_member_entry_t mentry = group->member->member_entry[member_index];
+        
+        fenix_member_entry_packet_t packet;
+        packet.memberid = mentry.memberid;
+        packet.current_datatype = mentry.current_datatype;
+        packet.datatype_size = mentry.datatype_size;
+        packet.current_count = mentry.current_count;
+
+        MPI_Send(&packet, sizeof(packet), MPI_BYTE, dest_rank, RECOVER_MEMBER_ENTRY_TAG^groupid,
+                group->comm);
+
+        retval = FENIX_SUCCESS;
+    }
+
+    return retval;
+}
+
+int __fenix_data_member_recv_metadata(int groupid, int src_rank, 
+        fenix_member_entry_packet_t* packet){
+    int retval = -1;
+    
+    fenix_data_recovery_t* data_recovery = fenix.data_recovery;
+    int group_index = __fenix_search_groupid(groupid, data_recovery);
+    
+    if(group_index == -1){
+        debug_print("ERROR Fenix_Data_member_delete: group_id <%d> does not exist\n",
+                    groupid);
+        retval = FENIX_ERROR_INVALID_GROUPID; 
+    } else {
+        fenix_group_t* group = data_recovery->group[group_index];
+
+        MPI_Recv((void*)packet, sizeof(fenix_member_entry_packet_t), MPI_BYTE, src_rank, 
+                RECOVER_MEMBER_ENTRY_TAG^groupid, group->comm, NULL);
+
+        retval = FENIX_SUCCESS;
+    }
+    
+
+    return retval;
+}
+
 
 /**
  * @brief

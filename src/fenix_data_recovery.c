@@ -129,6 +129,7 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
       group = (data_recovery->group[ group_index ] );
       group->groupid = groupid;
       group->timestart = timestart;
+      group->timestamp = -1; //indicates no commits yet
       group->depth = depth;
       group->member = __fenix_data_member_init();
       
@@ -219,6 +220,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
 
     //Pass the info along to the policy
     retval = group->vtbl.member_create(group, mentry);
+
   }
   return retval;
   /* No Potential Bug in 2/10/17 */
@@ -605,7 +607,10 @@ int __fenix_data_commit(int groupid, int *timestamp) {
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
     
-    group->vtbl.commit(group); 
+    group->vtbl.commit(group);
+
+    if (group->timestamp +1 -1) group->timestamp++;
+    else group->timestamp = group->timestart;
     
     if (timestamp != NULL) {
       *timestamp = group->timestamp;

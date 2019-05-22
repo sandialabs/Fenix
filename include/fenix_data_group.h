@@ -57,10 +57,11 @@
 #define __FENIX_DATA_GROUP_H__
 
 #include <mpi.h>
+#include "fenix.h"
 #include "fenix_data_member.h"
 #include "fenix_data_packet.h"
 #include "fenix_util.h"
-
+#include "fenix_data_subset.h"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
 
