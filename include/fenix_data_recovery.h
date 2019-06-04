@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -60,8 +60,6 @@
 
 #include "fenix_data_group.h"
 #include "fenix_data_member.h"
-#include "fenix_data_version.h"
-#include "fenix_data_buffer.h"
 #include "fenix_data_subset.h"
 #include "fenix_util.h"
 #include <mpi.h>
@@ -140,33 +138,6 @@ void __fenix_init_data_recovery();
 void __fenix_init_partner_copy_recovery();
 
 
-//fenix_local_entry_t *__fenix_init_local();
-//fenix_remote_entry_t *__fenix_init_remote();
-void __fenix_free_local(fenix_local_entry_t *);
-void __fenix_free_remote(fenix_remote_entry_t *);
-
-
-
-
-int __fenix_find_next_group_position(fenix_data_recovery_t *);
-int __fenix_find_next_member_position(fenix_member_t *);
-int __fenix_join_group(fenix_data_recovery_t *, fenix_group_t *, MPI_Comm);
-int __fenix_join_member(fenix_member_t *, fenix_member_entry_t *, MPI_Comm);
-int __fenix_join_restore(fenix_group_t *, fenix_version_t *, MPI_Comm);
-int __fenix_join_commit(fenix_group_t *, fenix_version_t *, MPI_Comm);
-fenix_local_entry_t *__fenix_subset_full(fenix_member_entry_t *);
-void __fenix_subset(fenix_group_t *, fenix_member_entry_t *, Fenix_Data_subset *);
-fenix_local_entry_t *__fenix_subset_variable(fenix_member_entry_t *, Fenix_Data_subset *);
-int _send_metadata(int, int, MPI_Comm);
-int _recover_metadata(int, int, MPI_Comm);
-int _send_group_data(int, int, fenix_group_t *, MPI_Comm);
-int _recover_group_data(int, int, fenix_group_t *, MPI_Comm);
-int _pc_send_member_metadata(int, int, fenix_member_entry_t *, MPI_Comm);
-int _pc_recover_member_metadata(int, int, fenix_member_entry_t *, MPI_Comm);
-int _pc_send_members(int, int, int, fenix_member_t *, MPI_Comm);
-int _pc_recover_members(int, int, int, fenix_member_t *, MPI_Comm);
-int _pc_send_member_entries(int, int, int, fenix_version_t *, MPI_Comm);
-int _pc_recover_member_entries(int, int, int, fenix_version_t *, MPI_Comm);
 void __fenix_dr_print_store();
 void __fenix_dr_print_restore();
 void __fenix_dr_print_datastructure();

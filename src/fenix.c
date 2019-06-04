@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -60,8 +60,8 @@
 #include "fenix_ext.h"
 #include "fenix.h"
 
-const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
-const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
+const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_FULL};
+const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_EMPTY};
 
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
     return __fenix_callback_register(recover, callback_data);

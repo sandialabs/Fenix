@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -86,7 +86,7 @@ void __fenix_data_subset_merge(Fenix_Data_subset* first_subset,
 void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
       Fenix_Data_subset* second_subset);
 void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size);
+      void* src, size_t data_type_size, size_t max_size);
 int __fenix_data_subset_data_size(Fenix_Data_subset* ss, size_t max_size);
 void* __fenix_data_subset_serialize(Fenix_Data_subset* ss, void* src, 
       size_t type_size, size_t max_size, size_t* output_size);

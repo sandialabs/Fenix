@@ -57,7 +57,6 @@
 #define __FENIX_DATA_MEMBER_H__
 
 #include <mpi.h>
-#include "fenix_data_version.h"
 #include "fenix_data_packet.h"
 #include "fenix_util.h"
 

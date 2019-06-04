@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -132,7 +132,10 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
       group->timestamp = -1; //indicates no commits yet
       group->depth = depth;
       group->member = __fenix_data_member_init();
-      
+      group->comm = comm;
+      MPI_Comm_rank(comm, &(group->current_rank));
+
+
       //Update the count AFTER finding next group position.
       data_recovery->count++;
 
@@ -148,6 +151,8 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
 
       group = ( data_recovery->group[group_position] );
       group->comm = comm; /* Renew communicator */
+      MPI_Comm_rank(comm, &(group->current_rank));
+
 
       //Reinit group metadata as needed w/ new communicator.
       group->vtbl.reinit(group);
@@ -451,65 +456,6 @@ void __fenix_subset(fenix_group_t *group, fenix_member_entry_t *me, Fenix_Data_s
 #endif
 }
 
-fenix_local_entry_t *__fenix_subset_variable(fenix_member_entry_t *me, Fenix_Data_subset *ss) {
-#if 1
-  fprintf(stderr,"ERROR Fenix_Subset is not currently supported\n");
-
-#else
-  int ss_num_blocks = ss->num_blocks;
-  int *ss_start = (int *) s_malloc(ss_num_blocks * sizeof(int));
-  int *ss_end = (int *) s_malloc(ss_num_blocks * sizeof(int));;
-  memcpy(ss_start, ss->start_offsets, (ss_num_blocks * sizeof(int)));
-  memcpy(ss_end, ss->end_offsets, (ss_num_blocks * sizeof(int)));
-
-  int index;
-  int ss_count = 0;
-  for (index = 0; index < ss_num_blocks; index++) {
-    ss_count = ss_count + (ss_end[index] - ss_start[index]);
-  }
-
-  int offset_index = 0;
-  int ss_block = 0;
-  int ss_index = 0;
-  int ss_diff = ss_end[0] - ss_start[0]; // init diff
-  void *ss_data = (void *) s_malloc(sizeof(void) * ss_count);
-
-  int data_index;
-  int data_steps = 0;
-  int data_count = me->current_count;
-  for (data_index = 0;
-       (ss_block != ss_num_blocks) && (data_index < data_count); data_index++) {
-    if (data_index >= ss_start[offset_index] && data_index <= ss_end[offset_index]) {
-      ss_diff = ss_end[offset_index] - ss_start[offset_index];
-      memcpy((ss_data) + ss_index, (me->user_data) + data_index,
-             sizeof(me->current_datatype));
-      ss_index = ss_index + 1;
-      data_steps = data_steps + 1;
-    }
-    if (data_steps == ss_diff) {
-      data_steps = 0;
-      offset_index = offset_index + 1;
-      ss_block = ss_block + 1;
-    }
-  }
-
-  fenix_local_entry_t *lentry = (fenix_local_entry_t *) s_malloc(
-          sizeof(fenix_local_entry_t));
-  lentry->currentrank = me->currentrank;
-  lentry->count = ss_count;
-  lentry->datatype = me->current_datatype;
-  lentry->pdata = ss_data;
-  lentry->size = sizeof(ss_data);
-  lentry->data = s_malloc(lentry->count * lentry->size);
-  memcpy(lentry->data, lentry->pdata, (lentry->count * lentry->size));
-
-  return lentry;
-  #endif
-
-
-  return NULL;
-}
-
 
 #if 0
 /**
@@ -638,11 +584,12 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    
+    retval = group->vtbl.commit(group);
+    
     int min_timestamp;
     MPI_Allreduce( &(group->timestamp), &min_timestamp, 1, MPI_INT, MPI_MIN,  group->comm );
 
-    retval = group->vtbl.commit(group);
-    
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
     }
@@ -892,9 +839,47 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
     int myerr;
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
     fenix_member_t *member = group->member;
+    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
 
+    //Always pass attribute changes along to group - they might have unknown attributes
+    //or side-effects to handle from changes. They get change info before
+    //changes are made, in case they need prior state.
     retval = group->vtbl.member_set_attribute(group, member, attributename,
             attributevalue, flag);
+    
+    switch (attributename) {
+      case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
+        mentry->user_data = attributevalue;
+        break;
+      case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
+        mentry->current_count = *((int *) (attributevalue));
+        retval = FENIX_SUCCESS;
+        break;
+      case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE:
+
+        myerr = MPI_Type_size(*((MPI_Datatype *)(attributevalue)), &my_datatype_size);
+
+        if( myerr ) {
+          debug_print(
+                  "ERROR Fenix_Data_member_attr_get: Fenix currently does not support this MPI_DATATYPE; invalid attribute_value <%d>\n",
+                  attributevalue);
+          retval = FENIX_ERROR_INVALID_ATTRIBUTE_NAME;
+        }
+
+        mentry->current_datatype = *((MPI_Datatype *)(attributevalue));
+        mentry->datatype_size = my_datatype_size;
+        retval = FENIX_SUCCESS;
+        break;
+      
+      default:
+        //Only an issue if the policy also doesn't have this attribute.
+        if(retval){
+          debug_print("ERROR Fenix_Data_member_attr_get: invalid attribute_name <%d>\n",
+                      attributename);
+          retval = FENIX_ERROR_INVALID_ATTRIBUTE_NAME;
+        }
+        break;
+    }
   }
   return retval;
 }
@@ -921,65 +906,6 @@ int __fenix_snapshot_delete(int group_id, int time_stamp) {
     retval = group->vtbl.snapshot_delete(group, time_stamp);
   }
   return retval;
-}
-
-
-
-/**
- * @brief
- * @param
- * @param
- */
-int __fenix_join_restore(fenix_group_t *group, fenix_version_t *v, MPI_Comm comm) {
-  int current_rank_attributes[2];
-  int other_rank_attributes[2];
-  int found = -1;
-
-/* Find the minimum timestamp among the ranks */
-  int min_timestamp, idiff;
-  MPI_Allreduce(&(group->timestamp), &min_timestamp, 1, MPI_INT, MPI_MIN, comm);
-
-  idiff = group->timestamp - min_timestamp;
-  if ((min_timestamp > (group->timestamp - group->depth))
-      && (idiff < v->num_copies)) {
-    /* Shift the position of the latest version */
-    v->position = (v->position + v->total_size - idiff) % (v->total_size);
-    found = 1;
-  } else {
-    found = -1;
-  }
-
-  /* Check if every rank finds the copy */
-  int result;
-  MPI_Allreduce(&found, &result, 1, MPI_INT, MPI_MIN, comm);
-
-  found = result;
-  return found;
-}
-
-/**
- * @brief
- * @param
- * @param
- */
-int __fenix_join_commit( fenix_group_t *group, fenix_version_t *v, MPI_Comm comm) {
-  int found = -1;
-  int min_timestamp;
-  MPI_Allreduce(&(group->timestamp), &min_timestamp, 1, MPI_INT, MPI_MIN, comm);
-
-  int timestamp_offset = group->timestamp - min_timestamp;
-  int depth_offest = (group->timestamp - group->depth);
-  if ((min_timestamp > depth_offest) && (timestamp_offset < v->num_copies)) {
-    v->position = (v->position + (v->total_size - timestamp_offset)) % (v->total_size);
-    found = 1;
-  } else {
-    found = -1;
-  }
-
-  int result;
-  MPI_Allreduce(&found, &result, 1, MPI_INT, MPI_MIN, comm);
-  found = result;
-  return found;
 }
 
 ///////////////////////////////////////////////////// TODO //

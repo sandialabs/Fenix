@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -159,6 +159,7 @@ int __fenix_data_subset_createv(int num_blocks, int *array_start_offsets, int *a
       memcpy(subset_specifier->end_offsets, array_end_offsets, ( num_blocks * sizeof(int))); // deep copy
       
       subset_specifier->specifier = __FENIX_SUBSET_CREATEV;
+      subset_specifier->stride = 0;
       retval = FENIX_SUCCESS;
     } else {
       debug_print(
@@ -173,8 +174,11 @@ int __fenix_data_subset_createv(int num_blocks, int *array_start_offsets, int *a
 //This should only be used to copy to a currently non-inited subset
 // If the destination already has memory allocated in the num_blocks/offsets regions
 // then this can lead to memory leaks.
+// For the sake of consistent memory management, this will always return a subset with 
+// a valid memory allocation for each pointer in the subset.
 void __fenix_data_subset_deep_copy(Fenix_Data_subset* from, Fenix_Data_subset* to){
    if(from->specifier == __FENIX_SUBSET_FULL || from->specifier == __FENIX_SUBSET_EMPTY){
+      __fenix_data_subset_init(1, to); 
       to->specifier = from->specifier;
    } else {
       __fenix_data_subset_init(from->num_blocks, to);
@@ -613,15 +617,18 @@ void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, Fenix_Da
 }
 
 
-void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest, void* src, size_t data_type_size){
-   for(int i = 0; i < ss->num_blocks; i++){
-      //Inclusive both directions, so add 1.
-      int length = ss->end_offsets[i]-ss->start_offsets[i] + 1;
-      
-      for(int j = 0; j <= ss->num_repeats[i]; j++){
-         int start = ss->start_offsets[i] + j*ss->stride;
-         printf("Copying from %d to %d, block %d repeat %d\n", start, start+length-1, i, j);
-         memcpy( ((uint8_t*)dest) + start*data_type_size, ((uint8_t*)src) + start*data_type_size, length*data_type_size);
+void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest, void* src, size_t data_type_size, size_t max_size){
+   if(ss->specifier == __FENIX_SUBSET_FULL){
+      memcpy(dest, src, max_size*data_type_size);  
+   } else if(ss->specifier != __FENIX_SUBSET_EMPTY){
+      for(int i = 0; i < ss->num_blocks; i++){
+         //Inclusive both directions, so add 1.
+         int length = ss->end_offsets[i]-ss->start_offsets[i] + 1;
+        
+         for(int j = 0; j <= ss->num_repeats[i]; j++){
+            int start = ss->start_offsets[i] + j*ss->stride;
+            memcpy( ((uint8_t*)dest) + start*data_type_size, ((uint8_t*)src) + start*data_type_size, length*data_type_size);
+         }
       }
    }
 }
@@ -644,6 +651,7 @@ int __fenix_data_subset_data_size(Fenix_Data_subset* ss, size_t max_size){
 }
 
 int __fenix_data_subset_is_full(Fenix_Data_subset *ss, size_t data_length){
+   //Assumes a "simplified" subset which has all mergeable regions merged.
    return (ss->specifier == __FENIX_SUBSET_FULL) || 
       ( (ss->start_offsets[0] == 0) && (ss->end_offsets[0] == data_length-1) );
 }
@@ -780,6 +788,9 @@ void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm 
 
 int __fenix_data_subset_free( Fenix_Data_subset *subset_specifier ) {
   int  retval = FENIX_SUCCESS;
+  if(subset_specifier->specifier == __FENIX_SUBSET_UNDEFINED){
+    fprintf(stderr, "Detected double free of subset!\n");
+  }
   free( subset_specifier->num_repeats );
   free( subset_specifier->start_offsets );
   free( subset_specifier->end_offsets );
