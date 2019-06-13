@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -58,9 +58,10 @@
 #include "fenix_process_recovery.h"
 #include "fenix_util.h"
 #include "fenix_ext.h"
+#include "fenix.h"
 
-const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, 0, 2};
-const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, 0, 1};
+const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_FULL};
+const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_EMPTY};
 
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
     return __fenix_callback_register(recover, callback_data);
@@ -76,20 +77,17 @@ int Fenix_Finalize() {
     return FENIX_SUCCESS;
 }
 
-int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth ) {
-    return __fenix_group_create(group_id, comm, start_time_stamp, depth);
+int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy_name, 
+        void* policy_value, int* flag) {
+    return __fenix_group_create(group_id, comm, start_time_stamp, depth, policy_name, policy_value, flag);
 }
 
 int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int count, MPI_Datatype datatype ) {
     return __fenix_member_create(group_id, member_id, buffer, count, datatype);
 }
 
-int Fenix_Data_group_get_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
+int Fenix_Data_group_get_redundancy_policy( int group_id, int* policy_name, void *policy_value, int *flag ) {
     return __fenix_group_get_redundancy_policy( group_id, policy_name, policy_value, flag );
-}
-
-int Fenix_Data_group_set_redundancy_policy( int group_id, int policy_name, void *policy_value, int *flag ) {
-    return  __fenix_group_set_redundancy_policy( group_id, policy_name, policy_value, flag);
 }
 
 int Fenix_Data_wait(Fenix_Request request) {
@@ -145,7 +143,7 @@ int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets, int *arr
 }
 
 int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier) {
-    return 0;
+    return __fenix_data_subset_free(subset_specifier);
 }
 
 int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members) {

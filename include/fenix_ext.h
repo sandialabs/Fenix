@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -93,7 +93,7 @@ typedef struct {
     MPI_Comm original_comm;         // Keep the information of the original global MPI Communicator (this will be umodified until Fenix_finalize)
     MPI_Op   agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
 
-    fenix_group_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
+    fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;
 
 extern fenix_t fenix;

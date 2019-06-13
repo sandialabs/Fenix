@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -54,47 +54,14 @@
 //@HEADER
 */
 
-#ifndef __FENIX_DATA_BUFFER_H__
-#define __FENIX_DATA_BUFFER_H__
+#ifndef __FENIX_DATA_POLICY_H__
+#define __FENIX_DATA_POLICY_H__
 
 #include <mpi.h>
-#include "fenix_data_packet.h"
+#include "fenix.h"
+#include "fenix_data_group.h"
 
-typedef struct __fenix_remote_entry {
-    int remoterank;
-    int count;
-    size_t datatype_size;
-    MPI_Datatype datatype;
-    void *pdata;
-    void *data;
-} fenix_remote_entry_t;
+int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm, 
+      int timestart, int depth, int policy_name, void* policy_value, int* flag);
 
-typedef struct __fenix_local_entry {
-    int currentrank;
-    int count;
-    size_t datatype_size;
-    MPI_Datatype datatype;
-    void *pdata;
-    void *data;
-} fenix_local_entry_t;
-
-typedef struct __fenix_buffer_entry {
-    char id[64];     /* Reserved identifier. May not be used */
-    int origin_rank; /* Subject to change. */
-
-    int count;
-    int datatype_size;
-    MPI_Datatype datatype;
-    void *data;
-
-} fenix_buffer_entry_t;
-
-
-fenix_local_entry_t *__fenix_init_local();
-fenix_remote_entry_t *__fenix_init_remote();
-fenix_buffer_entry_t *__fenix_create_data_buffer();
-int __fenix_data_buffer_reset( fenix_buffer_entry_t *buf );
-void __fenix_data_buffer_destroy_internal(  fenix_buffer_entry_t *buffer  );
-void __fenix_data_buffer_destroy(  fenix_buffer_entry_t *buffer  );
-
-#endif // FENIX_DATA_BUFFER_H
+#endif //__FENIX_DATA_POLICY_H__

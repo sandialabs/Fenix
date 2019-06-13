@@ -153,7 +153,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
     MPI_Comm_dup(comm, fenix.world);
 
-    fenix.data_recovery = __fenix_data_group_init();
+    fenix.data_recovery = __fenix_data_recovery_init();
 
     fenix.new_world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
 
@@ -354,7 +354,7 @@ int __fenix_repair_ranks()
                     if (fenix.options.verbose == 2) {
                         int index;
                         for (index = 0; index < survivor_world_size; index++) {
-                            verbose_print("current_rank: %s, role: %d, survivor_world[%d]: %d\n",
+                            verbose_print("current_rank: %d, role: %d, survivor_world[%d]: %d\n",
                                           __fenix_get_current_rank(*fenix.world), fenix.role, index,
                                           survivor_world[index]);
                         }
@@ -699,7 +699,7 @@ void __fenix_finalize()
     __fenix_callback_destroy( fenix.callback_list );
 
     /* Free data recovery interface */
-    __fenix_data_group_destroy( fenix.data_recovery );
+    __fenix_data_recovery_destroy( fenix.data_recovery );
 
     /* Free the request store */
     __fenix_request_store_destroy(&fenix.request_store);
@@ -726,7 +726,7 @@ void __fenix_finalize_spare()
     __fenix_callback_destroy( fenix.callback_list );
 
     /* Free data recovery interface */
-    __fenix_data_group_destroy( fenix.data_recovery );
+    __fenix_data_recovery_destroy( fenix.data_recovery );
 
     fenix.fenix_init_flag = 0;
 

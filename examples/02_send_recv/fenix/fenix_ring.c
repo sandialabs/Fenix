@@ -45,8 +45,8 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -111,13 +111,19 @@ int main(int argc, char **argv) {
   Fenix_Init(&fenix_role, world_comm, &new_comm, &argc, &argv,
              spare_ranks, 0, info, &error);
 
+  if(error){
+    fprintf(stderr, "FAILURE, Fenix_Init error\n");
+    return 1;
+  }
+
   MPI_Comm_size(new_comm, &num_ranks);
   MPI_Comm_rank(new_comm, &rank);
 
   /* This is called even for recovered/survived ranks */
   /* If called by SURVIVED ranks, make sure the group has been exist */
   /* Recovered rank needs to initalize the data                      */
-  Fenix_Data_group_create( my_group, new_comm, my_timestamp, my_depth );
+  Fenix_Data_group_create( my_group, new_comm, my_timestamp, my_depth, FENIX_DATA_POLICY_IN_MEMORY_RAID,
+        (int[]){0, num_ranks/2}, &error);
 
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
 
@@ -151,10 +157,20 @@ int main(int argc, char **argv) {
 
   } else {
     int out_flag = 0;
-    /* Should throw error if kCount is greater than 4 */
+    
+    fprintf(stderr, "About to restore\n");
     Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 2);
     Fenix_Data_member_restore(my_group, 778, x, 4, 1);
     Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1);
+    fprintf(stderr, "Did restore on node %d\n", rank);
+    
+    Fenix_Data_member_attr_set(my_group, 777, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
+        outmsg, &out_flag);
+    Fenix_Data_member_attr_set(my_group, 778, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
+        x, &out_flag);
+    Fenix_Data_member_attr_set(my_group, 779, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
+        inmsg, &out_flag);
+
     printf("inmsg = %d\n",inmsg[0]);
     printf("outmsg = %d\n",outmsg[0]);
     recovered = 1;
@@ -171,7 +187,7 @@ int main(int argc, char **argv) {
   for( i = 0; i < 4; i++ ) {
       x[i] = (double)(i+1)/(double)10.0;
   }
-  
+ 
   Fenix_Data_member_store(my_group, 779, FENIX_DATA_SUBSET_FULL);
   Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
   Fenix_Data_member_store(my_group, 778, FENIX_DATA_SUBSET_FULL);
@@ -183,7 +199,7 @@ int main(int argc, char **argv) {
   }
 
   for (i = 0; i < kNumIterations; i++) {
- 
+     
   
     if (rank == 0) {
       MPI_Send(outmsg, kCount, MPI_INT, 1, kTag, new_comm); // send to rank # 1

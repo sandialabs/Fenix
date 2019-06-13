@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Rob Van der Wijngaart, and Michael Heroux
+//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -59,6 +59,8 @@
 
 #include <mpi.h>
 #include <setjmp.h>
+#include "fenix_data_subset.h"
+#include "fenix_process_recovery.h"
 
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
@@ -91,7 +93,6 @@ extern "C" {
 #define FENIX_DATA_GROUP_WORLD_ID            10
 #define FENIX_GROUP_ID_MAX                   11
 #define FENIX_TIME_STAMP_MAX                 12
-#define FENIX_DATA_POLICY_PEER_RANK_SEPARATION 13
 #define FENIX_DATA_MEMBER_ALL                15
 #define FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER   11
 #define FENIX_DATA_MEMBER_ATTRIBUTE_COUNT    12
@@ -100,6 +101,8 @@ extern "C" {
 #define FENIX_DATA_SNAPSHOT_LATEST           -1
 #define FENIX_DATA_SNAPSHOT_ALL              16
 #define FENIX_DATA_SUBSET_CREATED             2
+
+#define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
 
 typedef enum {
     FENIX_ROLE_INITIAL_RANK = 0,
@@ -111,14 +114,6 @@ typedef struct {
     MPI_Request mpi_send_req;
     MPI_Request mpi_recv_req;
 } Fenix_Request;
-
-typedef struct {
-    int num_blocks;
-    int *start_offsets;
-    int *end_offsets;
-    int stride;
-    int specifier;
-} Fenix_Data_subset;
 
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
@@ -148,15 +143,13 @@ int Fenix_get_role(MPI_Comm comm, int rank, int *role);
 int Fenix_Finalize();
 
 int Fenix_Data_group_create(int group_id, MPI_Comm, int start_time_stamp,
-                            int depth);
+                            int depth, int policy_name, void* policy_value,
+                            int* flag);
 
 int Fenix_Data_member_create(int group_id, int member_id, void *buffer,
                              int count, MPI_Datatype datatype);
 
-int Fenix_Data_group_get_redundancy_policy(int group_id, int policy_name,
-                                           void *policy_value, int *flag);
-
-int Fenix_Data_group_set_redundancy_policy(int group_id, int policy_name,
+int Fenix_Data_group_get_redundancy_policy(int group_id, int* policy_name,
                                            void *policy_value, int *flag);
 
 int Fenix_Data_wait(Fenix_Request request);

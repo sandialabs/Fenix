@@ -26,12 +26,11 @@ fenix_opt.c
 fenix_process_recovery.c
 fenix_util.c
 fenix_data_recovery.c
-fenix_metadata.c
-fenix_metadata_recovery.c
 fenix_data_group.c
+fenix_data_policy.c
+fenix_data_policy_in_memory_raid.c
 fenix_data_member.c
-fenix_data_version.c
-fenix_data_buffer.c
+fenix_data_subset.c
 fenix_comm_list.c
 fenix_callbacks.c
 fenix_request_store.c

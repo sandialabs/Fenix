@@ -44,8 +44,7 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -53,45 +52,34 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_VERSION_H__
-#define __FENIX_DATA_VERSION_H__
-#include "fenix_data_buffer.h"
 
-#define __FENIX_DEFAULT_VERSION_SIZE   16
+#include <mpi.h>
+#include "fenix_data_policy_in_memory_raid.h"
+#include "fenix_data_policy.h"
+#include "fenix_data_group.h"
+#include "fenix_opt.h"
+#include "fenix_ext.h"
+#include "fenix.h"
 
+/**
+ *@brief
+ **/
+int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
+      int timestart, int depth, int policy_name, void* policy_value, 
+      int* flag){
+   int retval = -1;
+   
+   switch (policy_name){
+      case FENIX_DATA_POLICY_IN_MEMORY_RAID:
+         __fenix_policy_in_memory_raid_get_group(group, comm, timestart, 
+               depth, policy_value, flag);
+         retval = FENIX_SUCCESS;
+         break;
+      default:
+         debug_print("ERROR Fenix_Data_group_create: the specified policy <%d> is not supported.\n", policy_name);
+         retval = -1;
+         break;
+   }
 
-typedef struct __fenix_version {
-    size_t depth;
-
-    size_t num_copies;  /* Number of copies            */
-
-    size_t count;       /* Number of versions          */
-
-    size_t num_versions;
-
-    size_t total_size;  /* Size of bucket              */
-
-    size_t position;    /* Position of current version */
-
-    size_t current_position;
-
-    fenix_buffer_entry_t *local_entry;
-    fenix_buffer_entry_t *remote_entry;
-
-} fenix_version_t;
-
-#if 0
-int __fenix_create_version( fenix_version_t **v );
-int __fenix_free_version(   fenix_version_t *v );
-int __fenix_reset_version(  fenix_version_t *v, );
-#endif
-
-fenix_version_t *__fenix_data_version_init();
-
-void __fenix_data_version_destroy( fenix_version_t *v );
-
-//void __fenix_ensure_version_capacity( fenix_version_t *m) ;
-
-void __fenix_data_version_reinit(fenix_version_t *v, fenix_container_packet_t packet);
-
-#endif // FENIX_DATA_VERSION_H
+   return retval;
+}

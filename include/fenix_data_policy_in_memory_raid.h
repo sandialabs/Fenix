@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -53,17 +53,14 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_METADATA_H__
-#define __FENIX_METADATA_H__
-#include "fenix_data_recovery.h"
 
-void __fenix_init_group_metadata ( fenix_group_entry_t *gentry, int groupid, MPI_Comm comm, int timetamp, int depth  );
+#ifndef __FENIX_DATA_POLICY_IN_MEMORY_RAID_H__
+#define __FENIX_DATA_POLICY_IN_MEMORY_RAID_H__
 
-void __fenix_reinit_group_metadata ( fenix_group_entry_t *gentry  );
+#include <mpi.h>
+#include "fenix_data_group.h"
 
-void __fenix_data_member_init_metadata ( fenix_member_entry_t *mentry, int memberid, void *data, int count, MPI_Datatype datatype );
+void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm comm, 
+      int timestart, int depth, void* policy_value, int* flag);
 
-void __fenix_data_member_init_store_packet( fenix_member_store_packet_t *lentry_packet, fenix_buffer_entry_t *lentry, int flag );
-
-#endif // FENIX_METADATA_H
-
+#endif //__FENIX_DATA_POLICY_IN_MEMORY_RAID_H__
