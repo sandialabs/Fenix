@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   MPI_Comm_rank(new_comm, &rank);
 
   Fenix_Data_group_create(my_group, new_comm, my_timestamp, my_depth, FENIX_DATA_POLICY_IN_MEMORY_RAID,
-          (int[]){0, num_ranks/2}, &error);
+          (int[]){1, num_ranks/2}, &error);
 
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
     // init my subset data 

@@ -111,7 +111,7 @@ fprintf(stderr, "Started\n");
   }
 
   Fenix_Data_group_create(my_group, new_comm, my_timestamp, my_depth, FENIX_DATA_POLICY_IN_MEMORY_RAID,
-          (int[]){0, num_ranks/2}, &error);
+          (int[]){1, num_ranks/2}, &error);
 
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
     // init my subset data 
@@ -149,22 +149,19 @@ fprintf(stderr, "Started\n");
               subset[subset_index] = subset_index + 1; 
           }
       } 
-fprintf(stderr, "Rank %d finished work\n", rank);
   
       //Now that we've finished some work, we'll back it up.
       //We'll store only the small subset that we specified, though.
       //This means that as far as Fenix is concerned only data within that
       //subset was ever changed from the initialized value of -1
       Fenix_Data_member_store(my_group, 777, subset_specifier);
-fprintf(stderr, "Rank %d finished store\n", rank);
       Fenix_Data_commit_barrier(my_group, NULL);
 
   }
 
-fprintf(stderr, "Rank %d finished work and commit\n", rank);
   
   //Kill a rank to test that we can recover from the commits we've made.
-  if (rank == kKillID && recovered == 1) {
+  if (rank == kKillID && recovered == 0) {
     fprintf(stderr, "Doing kill on node %d\n", rank);
     pid_t pid = getpid();
     kill(pid, SIGKILL);
@@ -202,7 +199,6 @@ fprintf(stderr, "Rank %d finished work and commit\n", rank);
     printf("Rank %d successfully recovered\n", rank);
   }
 
-fprintf(stderr, "%d Finalizing!!\n", rank);
 
   Fenix_Data_subset_delete(&subset_specifier);  
 
