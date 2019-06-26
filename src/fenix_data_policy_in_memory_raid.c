@@ -232,8 +232,10 @@ void __imr_alloc_data_region(void** region, int raid_mode, int local_data_size, 
       *region = (void*) malloc(2*local_data_size);
    } else if(raid_mode == 5){
       //We need space for our own local data, as well as space for the parity data
-      //We add one just in case the data size isn't evenly divisble by set_size-1
-      *region = (void*) malloc(local_data_size + local_data_size/(set_size - 1) + 1);
+      //We add two just in case the data size isn't evenly divisble by set_size-1
+      //  3 is needed because making the parity one larger on some nodes requires 
+      //  extra bits of "data" on the other nodes
+      *region = (void*) malloc(local_data_size + local_data_size/(set_size - 1) + 3);
    } else {
       debug_print("Error: raid mode <%d> not supported\n", raid_mode);
    }
@@ -430,16 +432,24 @@ int __imr_member_store(fenix_group_t* g, int member_id,
          //    and network use. Scales well with higher set sizes.
          int parity_size = (member_data->datatype_size * member_data->current_count)/(group->set_size - 1);
          int remainder = (member_data->datatype_size * member_data->current_count)%(group->set_size - 1);
+
+         if(remainder != 0) remainder++;
          
          void* data_buf = mentry->data[mentry->current_head];
          //store parity info after my data in data region.
-         void* parity_buf = data_buf + member_data->datatype_size*member_data->current_count;
+         //we always have a spare data buffer byte for rounding stuff, so store after that as well.
+         void* parity_buf = (void*)((char*)data_buf + member_data->datatype_size*member_data->current_count + 2);
          
          int my_set_rank;
          MPI_Comm_rank(group->set_comm, &my_set_rank);
-         int offset = 0;
+         int offset = 0, rounding_compensator;
          for(int i = 0; i < group->set_size; i++){
-            MPI_Reduce(data_buf + offset, parity_buf, parity_size + (i < remainder ? 1 : 0), MPI_BYTE,
+            //Last node is an edge case.
+            if((my_set_rank == group->set_size-1) && i==my_set_rank){
+              offset = 0;
+            }
+
+            MPI_Reduce((void*)((char*)data_buf) + offset, parity_buf, parity_size + (i < remainder ? 1 : 0), MPI_BYTE,
                 MPI_BXOR, i, group->set_comm);
             if(i != my_set_rank){
                offset += parity_size + (i < remainder ? 1 : 0);
@@ -448,8 +458,14 @@ int __imr_member_store(fenix_group_t* g, int member_id,
 
          //Each node has buffer which contains parity^some_local_data, so now pull parity from that.
          offset = my_set_rank * parity_size + (my_set_rank < remainder ? my_set_rank : remainder);
+         
+         //As above, last node is an edge case.
+         if(my_set_rank == group->set_size - 1){
+            offset = 0;
+         }
+
          //Utilize MPI's local XOR function, assuming it is more optimized than a naive implementation would be.
-         MPI_Reduce_local(data_buf + offset, parity_buf, parity_size + (my_set_rank < remainder ? 1 : 0),
+         MPI_Reduce_local((void*)((char*)data_buf + offset), parity_buf, parity_size + (my_set_rank < remainder ? 1 : 0),
              MPI_BYTE, MPI_BXOR);
 
          //Finally, each node has the right stuff.
@@ -804,8 +820,10 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
             int parity_size = (member_data.datatype_size*member_data.current_count)/(group->set_size-1);
             int remainder = (member_data.datatype_size*member_data.current_count)%(group->set_size-1);
 
+            if(remainder > 0) remainder++;
+
             void* data_buf = mentry->data[snapshot];
-            void* parity_buf = data_buf + member_data.datatype_size*member_data.current_count;
+            void* parity_buf = (void*)((char*)data_buf + member_data.datatype_size*member_data.current_count + 2);
             
             int offset = 0;
             for(int i = 0; i < group->set_size; i++){
@@ -815,34 +833,24 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
                   if(my_set_rank != recovering_node){
                     toSend = parity_buf;
                   } else {
-                    toSend = data_buf + offset;
+                    toSend = data_buf;
                   }
                } else {
                   if(my_set_rank != recovering_node){
-                     toSend = data_buf + offset;
+                     toSend = (void*)((char*)data_buf + offset);
                   } else {
                      toSend = parity_buf;
                   }
                }
                 
-               //recovering rank just uses parity_buf dirty data, then removes afterward.
-               if(my_set_rank == recovering_node){
-                  toSend = parity_buf;
-               }
-                
-               MPI_Reduce(toSend, data_buf+offset, parity_size + (i<remainder? 1 : 0),
-                    MPI_BYTE, MPI_BXOR, recovering_node, group->set_comm);
+               void* recv_buf = (i == my_set_rank ? parity_buf : (void*)((char*)data_buf + offset));
+
+               MPI_Reduce(toSend, recv_buf, parity_size + (1<remainder? 1:0), MPI_BYTE, MPI_BXOR, 
+                   recovering_node, group->set_comm);
 
                if(my_set_rank == recovering_node){
-                  //Remove the random data from the recovered data/parity
-                  void* toRemove = parity_buf;
-                  void* toFix = data_buf + offset;
-                  if(i == my_set_rank){
-                    toRemove = data_buf + offset;
-                    toFix = parity_buf;
-                  }
-
-                  MPI_Reduce_local(toRemove, toFix, parity_size + (i<remainder? 1:0),
+                  //Remove the random data I had to send from the result.
+                  MPI_Reduce_local(toSend, recv_buf, parity_size + (i<remainder? 1:0),
                       MPI_BYTE, MPI_BXOR);
                }
                
