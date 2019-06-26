@@ -114,6 +114,7 @@ typedef struct __fenix_imr_group{
    int rank_separation;
    int* partners;
    int set_size;
+   MPI_Comm set_comm;
    int entries_size;
    int entries_count;
    fenix_imr_mentry_t* entries;
@@ -162,9 +163,22 @@ void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm com
       //Set up the person who is storing my data
       new_group->partners[1] = (my_rank + new_group->rank_separation)%comm_size;
    
-   } else if(new_group->raid_mode == 5 || new_group->raid_mode == 6){
+   } else if(new_group->raid_mode == 5){
       new_group->set_size = policy_vals[2];
-      new_group->partners = (int*) malloc(sizeof(int));
+      new_group->partners = (int*) malloc(sizeof(int) * new_group->set_size);
+
+      //User is responsible for giving values that "make sense" for set size and rank separation given a comm size.
+      int my_set_pos = (my_rank/new_group->rank_separation)%new_group->set_size;
+      for(int index = 0; index < new_group->set_size; index++){
+        new_group->partners[index] = (comm_size + my_rank - (new_group->rank_separation * (my_set_pos-index)))%comm_size;
+      }
+
+      //Build a comm to use for all of the set's reductions we'll need to do for RAID 5.
+      MPI_Group comm_group, set_group;
+      MPI_Comm_group(comm, &comm_group);
+      MPI_Group_incl(comm_group, new_group->set_size, new_group->partners, &set_group);
+      MPI_Comm_create_group(comm, set_group, 0, &(new_group->set_comm));
+
    }
 
    new_group->entries_size = __FENIX_IMR_DEFAULT_MENTRY_NUM;
@@ -213,9 +227,13 @@ int __imr_find_mentry(fenix_imr_group_t* group, int memberid, fenix_imr_mentry_t
    return retval;
 }
 
-void __imr_alloc_data_region(void** region, int raid_mode, int local_data_size){
+void __imr_alloc_data_region(void** region, int raid_mode, int local_data_size, int set_size){
    if(raid_mode == 1){
       *region = (void*) malloc(2*local_data_size);
+   } else if(raid_mode == 5){
+      //We need space for our own local data, as well as space for the parity data
+      //We add one just in case the data size isn't evenly divisble by set_size-1
+      *region = (void*) malloc(local_data_size + local_data_size/(set_size - 1) + 1);
    } else {
       debug_print("Error: raid mode <%d> not supported\n", raid_mode);
    }
@@ -274,7 +292,7 @@ int __imr_member_create(fenix_group_t* g, fenix_member_entry_t* mentry){
       new_imr_mentry->timestamp = (int*) malloc(sizeof(int) * (group->base.depth + 2));
       
       for(int i = 0; i < group->base.depth + 2; i++){
-         __imr_alloc_data_region(new_imr_mentry->data + i, group->raid_mode, local_data_size);
+         __imr_alloc_data_region(new_imr_mentry->data + i, group->raid_mode, local_data_size, group->set_size);
 
          //Initialize to smallest # blocks allowed.
          __fenix_data_subset_init(1, new_imr_mentry->data_regions + i);
@@ -359,12 +377,12 @@ int __imr_member_store(fenix_group_t* g, int member_id,
       __fenix_data_subset_copy_data(&subset_specifier, mentry->data[mentry->current_head],
          member_data->user_data, member_data->datatype_size, member_data->current_count);
       
-      size_t serialized_size;
-      void* serialized = __fenix_data_subset_serialize(&subset_specifier, 
-            mentry->data[mentry->current_head], member_data->datatype_size, 
-            member_data->current_count, &serialized_size);
-
       if(group->raid_mode == 1){
+
+         size_t serialized_size;
+         void* serialized = __fenix_data_subset_serialize(&subset_specifier, 
+               mentry->data[mentry->current_head], member_data->datatype_size, 
+               member_data->current_count, &serialized_size);
 
          void* recv_buf = malloc(serialized_size * member_data->datatype_size);
 
@@ -379,14 +397,68 @@ int __imr_member_store(fenix_group_t* g, int member_id,
                member_data->current_count, member_data->datatype_size);
 
          free(recv_buf);
+         free(serialized);
+
+      } else if(group->raid_mode == 5){
+         //TODO: Try to optimize for partial commits - currently does parity on the whole region regardless of commit area.
+         //TODO: I'm not sure if this is the best way to do this - could be a bottleneck if this is unoptimized since this 
+         //      could be running on a lot of data.
+         
+         //Why does this do it this way?
+         //In order to do recovery on a given block of data, we need to be missing only 1 of:
+         //    all of the data in the corresponding blocks and the parity for those blocks
+         //Standard RAID does this by having one disk store parity for a given block instead of data, but this assumes
+         //    that there is no benefit to data locality - in our case we want each node to have a local copy of it's own 
+         //    data, preferably in a single (virtually) continuous memory range for data movement optomization. So we'll
+         //    store the local data, then put 1/N of the parity data at the bottom of the commit.
+         //The weirdness comes from the fact that a given node CANNOT contribute to the data being checked for parity which
+         //    will be stored on itself. IE, a node cannot save both a portion of the data and the parity for that data portion - 
+         //    doing so would mean if that node fails it is as if we lost two nodes for recovery semantics, making every failure
+         //    non-recoverable.
+         //    This means we need to do an XOR reduction across every node but myself, then store the result on myself - this is 
+         //    a little awkward with MPI's reductions which require full comm participation and do not recieve any information about
+         //    the source of a given chunk of data (IE we can't exclude data from node X, as we want to).
+         //This is easily doable using MPI send/recvs, but doing it that way neglects all of the data/comm size optimizations,
+         //    as well as any block XOR optimizations from MPI's reduction operations.
+         //We could do something like an alltoallv to send appropriate data to each node, then let them calculate parity info locally
+         //    However, we have to either allocate space to hold an extra copy of the entire data size, or we overwrite our
+         //    local buffer and have to re-distribute the data afterward.
+         //I think the best way to handle it will be to manipulate the XOR function. We will do a reduction which uses local data
+         //    that we do not actually want involved in calculating the parity. Then, we will XOR the local data with the result
+         //    to get the accurate parity info.
+         //    This involves computing the XOR on an extra 2/(set_size-1)*parity_size of data, but minimizes excess memory allocation
+         //    and network use. Scales well with higher set sizes.
+         int parity_size = (member_data->datatype_size * member_data->current_count)/(group->set_size - 1);
+         int remainder = (member_data->datatype_size * member_data->current_count)%(group->set_size - 1);
+         
+         void* data_buf = mentry->data[mentry->current_head];
+         //store parity info after my data in data region.
+         void* parity_buf = data_buf + member_data->datatype_size*member_data->current_count;
+         
+         int my_set_rank;
+         MPI_Comm_rank(group->set_comm, &my_set_rank);
+         int offset = 0;
+         for(int i = 0; i < group->set_size; i++){
+            MPI_Reduce(data_buf + offset, parity_buf, parity_size + (i < remainder ? 1 : 0), MPI_BYTE,
+                MPI_BXOR, i, group->set_comm);
+            if(i != my_set_rank){
+               offset += parity_size + (i < remainder ? 1 : 0);
+            }
+         }
+
+         //Each node has buffer which contains parity^some_local_data, so now pull parity from that.
+         offset = my_set_rank * parity_size + (my_set_rank < remainder ? my_set_rank : remainder);
+         //Utilize MPI's local XOR function, assuming it is more optimized than a naive implementation would be.
+         MPI_Reduce_local(data_buf + offset, parity_buf, parity_size + (my_set_rank < remainder ? 1 : 0),
+             MPI_BYTE, MPI_BXOR);
+
+         //Finally, each node has the right stuff.
 
       } else {
          debug_print("ERROR Fenix_Data_member_store: Raid mode <%d> is not supported yet!\n",
                    group->raid_mode);
          retval = FENIX_ERROR_UNINITIALIZED; 
       }
-
-      free(serialized);
 
       //Make sure to update which data regions this entry contains.
       __fenix_data_subset_merge_inplace(mentry->data_regions + mentry->current_head, &subset_specifier);
@@ -547,6 +619,8 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
    int member_data_index = __fenix_search_memberid(group->base.member, member_id);
    fenix_member_entry_t member_data = group->base.member->member_entry[member_data_index];
 
+   int recovery_locally_possible;
+
    if(group->raid_mode == 1){
       int my_data_found, partner_data_found;
 
@@ -644,42 +718,199 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
       }
 
 
-      //Now that we've ensured everyone has data, restore from it.
-      //Don't try to restore if we weren't able to get the relevant data.
-      if(found_member || my_data_found){
-         Fenix_Data_subset* data_region = (Fenix_Data_subset*)malloc(sizeof(Fenix_Data_subset));
-         __fenix_data_subset_init(1, data_region);
-         data_region->specifier = __FENIX_SUBSET_EMPTY;
-         
-         int oldest_snapshot;
-         for(oldest_snapshot = (mentry->current_head - 1); oldest_snapshot >= 0; oldest_snapshot--){
-            __fenix_data_subset_merge_inplace(data_region, mentry->data_regions + oldest_snapshot);
-
-            if(__fenix_data_subset_is_full(data_region, member_data.current_count)){
-               //The snapshots have formed a full set of data, not need to add older snapshots.
-               break;
-            }
-         }
-
-         //If there isn't a full set of data, don't try to pull from nonexistant snapshot.
-         if(oldest_snapshot == -1){ 
-            oldest_snapshot = 0;
-         }
-
-         for(int i = oldest_snapshot; i < mentry->current_head; i++){
-            __fenix_data_subset_copy_data(&mentry->data_regions[i], target_buffer,
-                  mentry->data[i], member_data.datatype_size, member_data.current_count);
-         }
-
-         __fenix_data_subset_free(data_region);
-      }
+      recovery_locally_possible = found_member || my_data_found;
       
+   } else if (group->raid_mode == 5){
+      int* set_results = malloc(sizeof(int) * group->set_size);
+      MPI_Allgather((void*)&found_member, 1, MPI_INT, (void*)set_results, 1, MPI_INT, 
+          group->set_comm);
+
+      int recovering_node = -1, recovery_possible = 1;
+      for(int i = 0; i < group->set_size; i++){
+        if(!set_results[i]){
+          
+          if(recovering_node == -1){
+            recovering_node = i;
+          } else {
+            recovery_possible = 0;
+            break;
+          }
+        
+        }
+      }
+
+      free(set_results);
+
+      //If we have a recovering node, and recovery is possible, do it
+      if((recovering_node != -1) && recovery_possible){
+        int my_set_rank;
+        MPI_Comm_rank(group->set_comm, &my_set_rank);
+
+        //The recovering node needs metadata on this member, just needs it from one partner.
+        if((recovering_node == 0 && my_set_rank == 1) || my_set_rank == 0){
+           //I'm the node that's going to send metadata
+           
+           //This function pulls comm from the base group - so we need to give 
+           //dest_rank in terms of that comm
+           __fenix_data_member_send_metadata(group->base.groupid, member_id, group->partners[recovering_node]);
+
+           //Now my partner will need all of the entries. First they'll need to know how many snapshots
+           //to expect.
+           MPI_Send((void*) &(group->num_snapshots), 1, MPI_INT, recovering_node, 
+                 RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->set_comm);
+
+           //They also need the timestamps for each snapshot, as well as the value for the next.
+           MPI_Send((void*)mentry->timestamp, group->num_snapshots+1, MPI_INT, recovering_node,
+                 RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->set_comm);
+          
+           for(int snapshot = 0; snapshot < group->num_snapshots; snapshot++){
+              __fenix_data_subset_send(mentry->data_regions + snapshot, recovering_node, 
+                    __IMR_RECOVER_DATA_REGION_TAG ^ group->base.groupid, group->set_comm);
+           }
+
+         } else if(!found_member) {
+           //I'm the one that needs the info.
+           fenix_member_entry_packet_t packet;
+           __fenix_data_member_recv_metadata(group->base.groupid, group->partners[my_set_rank==0 ? 1 : 0], &packet);
+           
+           //We remake the new member just like the user would.
+           __fenix_member_create(group->base.groupid, packet.memberid, NULL, packet.current_count,
+                 packet.current_datatype);
+
+           __imr_find_mentry(group, member_id, &mentry);
+           int member_data_index = __fenix_search_memberid(group->base.member, member_id);
+           member_data = group->base.member->member_entry[member_data_index];
+          
+
+           MPI_Recv((void*)&(group->num_snapshots), 1, MPI_INT, (my_set_rank==0 ? 1 : 0),
+                 RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->set_comm, NULL);
+
+           mentry->current_head = group->num_snapshots;
+
+           //We also need to explicitly ask for all timestamps, since user may have deleted some and caused mischief.
+           MPI_Recv((void*)(mentry->timestamp), group->num_snapshots + 1, MPI_INT, (my_set_rank==0 ? 1 : 0),
+                 RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->set_comm, NULL);
+
+           for(int snapshot = 0; snapshot < group->num_snapshots; snapshot++){
+              __fenix_data_subset_free(mentry->data_regions+snapshot);
+              __fenix_data_subset_recv(mentry->data_regions+snapshot, (my_set_rank==0 ? 1 : 0),
+                    __IMR_RECOVER_DATA_REGION_TAG ^ group->base.groupid, group->set_comm);
+           }
+         }
+
+         for(int snapshot = 0; snapshot < group->num_snapshots; snapshot++){
+            //Similar to the process of doing a store, we're going to end up XORing with noisy data from
+            //the recovering node, then XORing with it again to get what we actually want.
+            int parity_size = (member_data.datatype_size*member_data.current_count)/(group->set_size-1);
+            int remainder = (member_data.datatype_size*member_data.current_count)%(group->set_size-1);
+
+            void* data_buf = mentry->data[snapshot];
+            void* parity_buf = data_buf + member_data.datatype_size*member_data.current_count;
+            
+            int offset = 0;
+            for(int i = 0; i < group->set_size; i++){
+               //Make sure to send the (out of order) parity info on the correct grouping
+               void* toSend;
+               if(i == my_set_rank){
+                  if(my_set_rank != recovering_node){
+                    toSend = parity_buf;
+                  } else {
+                    toSend = data_buf + offset;
+                  }
+               } else {
+                  if(my_set_rank != recovering_node){
+                     toSend = data_buf + offset;
+                  } else {
+                     toSend = parity_buf;
+                  }
+               }
+                
+               //recovering rank just uses parity_buf dirty data, then removes afterward.
+               if(my_set_rank == recovering_node){
+                  toSend = parity_buf;
+               }
+                
+               MPI_Reduce(toSend, data_buf+offset, parity_size + (i<remainder? 1 : 0),
+                    MPI_BYTE, MPI_BXOR, recovering_node, group->set_comm);
+
+               if(my_set_rank == recovering_node){
+                  //Remove the random data from the recovered data/parity
+                  void* toRemove = parity_buf;
+                  void* toFix = data_buf + offset;
+                  if(i == my_set_rank){
+                    toRemove = data_buf + offset;
+                    toFix = parity_buf;
+                  }
+
+                  MPI_Reduce_local(toRemove, toFix, parity_size + (i<remainder? 1:0),
+                      MPI_BYTE, MPI_BXOR);
+               }
+               
+               if(i != my_set_rank){
+                  offset += parity_size + (i<remainder? 1:0); 
+               }
+            }
+
+         }
+
+         retval = FENIX_SUCCESS;
+         recovery_locally_possible = 1;
+      } else if(!found_member){
+         debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at <%d> and is not recoverable from RAID-5 set\n",
+               member_id, group->base.current_rank);
+         
+         retval = FENIX_ERROR_INVALID_MEMBERID;
+         recovery_locally_possible = 0;      
+      } else {
+         retval = FENIX_SUCCESS;
+         recovery_locally_possible = 1;
+      }
+
+
+
    } else {
       debug_print("ERROR Fenix_Data_member_store: Raid mode <%d> is not supported yet!\n",
                 group->raid_mode);
-      retval = FENIX_ERROR_UNINITIALIZED;  
+      retval = FENIX_ERROR_UNINITIALIZED;
+      recovery_locally_possible = 0;
    }
    
+
+
+   //Now that we've ensured everyone has data, restore from it.
+   //Don't try to restore if we weren't able to get the relevant data.
+   if(recovery_locally_possible){
+      Fenix_Data_subset* data_region = (Fenix_Data_subset*)malloc(sizeof(Fenix_Data_subset));
+      __fenix_data_subset_init(1, data_region);
+      data_region->specifier = __FENIX_SUBSET_EMPTY;
+      
+      int oldest_snapshot;
+      for(oldest_snapshot = (mentry->current_head - 1); oldest_snapshot >= 0; oldest_snapshot--){
+         __fenix_data_subset_merge_inplace(data_region, mentry->data_regions + oldest_snapshot);
+ 
+         if(__fenix_data_subset_is_full(data_region, member_data.current_count)){
+            //The snapshots have formed a full set of data, not need to add older snapshots.
+            break;
+         }
+      }
+ 
+      //If there isn't a full set of data, don't try to pull from nonexistant snapshot.
+      if(oldest_snapshot == -1){ 
+         oldest_snapshot = 0;
+      }
+ 
+      for(int i = oldest_snapshot; i < mentry->current_head; i++){
+         __fenix_data_subset_copy_data(&mentry->data_regions[i], target_buffer,
+               mentry->data[i], member_data.datatype_size, member_data.current_count);
+      }
+ 
+      __fenix_data_subset_free(data_region);
+   }
+
+   //Dont forget to clear the commit buffer
+   mentry->data_regions[mentry->current_head].specifier = __FENIX_SUBSET_EMPTY;
+
+
    return retval;
 }
 
@@ -694,7 +925,19 @@ int __imr_member_get_attribute(fenix_group_t* group, fenix_member_t* member,
 int __imr_member_set_attribute(fenix_group_t* group, fenix_member_t* member, 
            int attributename, void* attributevalue, int* flag){return 0;}
 
-int __imr_reinit(fenix_group_t* group){return 0;}
+int __imr_reinit(fenix_group_t* g){
+  fenix_imr_group_t* group = (fenix_imr_group_t*)g;
+
+  if(group->raid_mode == 5){
+    //Rebuild the set comm to re-include the failed node(s).
+    MPI_Group comm_group, set_group;
+    MPI_Comm_group(g->comm, &comm_group);
+    MPI_Group_incl(comm_group, group->set_size, group->partners, &set_group);
+    MPI_Comm_create_group(g->comm, set_group, 0, &(group->set_comm));
+  }
+
+  return FENIX_SUCCESS;
+}
 
 int __imr_get_redundant_policy(fenix_group_t* group, int* policy_name, 
         void* policy_value, int* flag){
