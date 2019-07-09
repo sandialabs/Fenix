@@ -86,7 +86,8 @@ int __imr_commit(fenix_group_t* group);
 int __imr_snapshot_delete(fenix_group_t* group, int time_stamp);
 int __imr_barrier(fenix_group_t* group);
 int __imr_member_restore(fenix_group_t* group, int member_id,
-        void* target_buffer, int max_count, int time_stamp);
+        void* target_buffer, int max_count, int time_stamp,
+        Fenix_Data_subset* data_found);
 int __imr_member_restore_from_rank(fenix_group_t* group, int member_id,
         void* target_buffer, int max_count, int time_stamp, 
         int source_rank);
@@ -623,7 +624,7 @@ int __imr_get_snapshot_at_position(fenix_group_t* g, int position,
 
 
 int __imr_member_restore(fenix_group_t* g, int member_id,
-        void* target_buffer, int max_count, int time_stamp){ 
+        void* target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found){ 
    int retval = -1;
 
    fenix_imr_group_t* group = (fenix_imr_group_t*)g;
@@ -886,24 +887,32 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
 
 
    //Now that we've ensured everyone has data, restore from it.
+   
+   int return_found_data;
+   if(data_found == NULL){
+      data_found = (Fenix_Data_subset*) malloc(sizeof(Fenix_Data_subset));
+      return_found_data = 0;
+   } else {
+      return_found_data = 1;   
+   }
+   __fenix_data_subset_init(1, data_found);
+   
    //Don't try to restore if we weren't able to get the relevant data.
    if(recovery_locally_possible){
-      Fenix_Data_subset* data_region = (Fenix_Data_subset*)malloc(sizeof(Fenix_Data_subset));
-      __fenix_data_subset_init(1, data_region);
-      data_region->specifier = __FENIX_SUBSET_EMPTY;
+      data_found->specifier = __FENIX_SUBSET_EMPTY;
       
       int oldest_snapshot;
       for(oldest_snapshot = (mentry->current_head - 1); oldest_snapshot >= 0; oldest_snapshot--){
-         __fenix_data_subset_merge_inplace(data_region, mentry->data_regions + oldest_snapshot);
+         __fenix_data_subset_merge_inplace(data_found, mentry->data_regions + oldest_snapshot);
  
-         if(__fenix_data_subset_is_full(data_region, member_data.current_count)){
+         if(__fenix_data_subset_is_full(data_found, member_data.current_count)){
             //The snapshots have formed a full set of data, not need to add older snapshots.
             break;
          }
       }
  
-      //If there isn't a full set of data, don't try to pull from nonexistant snapshot.
-      if(oldest_snapshot == -1){ 
+      //If there isn't a full set of data, don't try to pull from nonexistent snapshot.
+      if(oldest_snapshot == -1){
          oldest_snapshot = 0;
       }
  
@@ -911,8 +920,19 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
          __fenix_data_subset_copy_data(&mentry->data_regions[i], target_buffer,
                mentry->data[i], member_data.datatype_size, member_data.current_count);
       }
- 
-      __fenix_data_subset_free(data_region);
+
+      if(__fenix_data_subset_is_full(data_found, member_data.current_count)){
+        retval = FENIX_SUCCESS;
+      } else {
+        retval = FENIX_WARNING_PARTIAL_RESTORE;
+      }
+   } else {
+      data_found->specifier = __FENIX_SUBSET_EMPTY;   
+   }
+
+   if(!return_found_data){
+      __fenix_data_subset_free(data_found);
+      free(data_found);
    }
 
    //Dont forget to clear the commit buffer

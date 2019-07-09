@@ -98,7 +98,8 @@ typedef struct __fenix_group_vtbl {
    int (*barrier)(fenix_group_t* group);
 
    int (*member_restore)(fenix_group_t* group, int member_id,
-           void* target_buffer, int max_count, int time_stamp);
+           void* target_buffer, int max_count, int time_stamp,
+           Fenix_Data_subset* data_found);
 
    int (*member_restore_from_rank)(fenix_group_t* group, int member_id,
            void* target_buffer, int max_count, int time_stamp, 

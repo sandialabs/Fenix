@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Michael Heroux, and Matthew Whitlock
+//        Michael Heroux, and Matthew Whitloc
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -606,7 +606,7 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
  * @param max_count
  * @param time_stamp
  */
-int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp) {
+int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp, Fenix_Data_subset* data_found) {
 
   int retval =  FENIX_SUCCESS;
   int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
@@ -627,7 +627,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.member_restore(group, memberid, data, maxcount, timestamp);
+    retval = group->vtbl.member_restore(group, memberid, data, maxcount, timestamp, data_found);
   }
   return retval;
 }
