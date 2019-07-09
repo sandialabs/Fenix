@@ -129,7 +129,7 @@ fprintf(stderr, "Started\n");
   } else {
     //We've had a failure! Time to recover data.
     fprintf(stderr, "Starting data recovery on node %d\n", rank);
-    Fenix_Data_member_restore(my_group, 777, subset, kCount, FENIX_TIME_STAMP_MAX);
+    Fenix_Data_member_restore(my_group, 777, subset, kCount, FENIX_TIME_STAMP_MAX, NULL);
 
     int out_flag;
     Fenix_Data_member_attr_set(my_group, 777, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
@@ -164,7 +164,7 @@ fprintf(stderr, "Started\n");
   if (rank == kKillID && recovered == 0) {
     fprintf(stderr, "Doing kill on node %d\n", rank);
     pid_t pid = getpid();
-    kill(pid, SIGKILL);
+    kill(pid, SIGTERM);
   }
 
   //Make sure we've let rank 2 fail before proceeding, so we're definitely checking 
@@ -197,6 +197,8 @@ fprintf(stderr, "Started\n");
   
   if(successful){
     printf("Rank %d successfully recovered\n", rank);
+  } else {
+    printf("FAILURE on rank %d\n", rank);
   }
 
 
@@ -205,5 +207,5 @@ fprintf(stderr, "Started\n");
 
   Fenix_Finalize();
   MPI_Finalize();
-  return 0;
+  return !successful; //return error status
 }

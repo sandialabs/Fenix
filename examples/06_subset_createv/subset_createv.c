@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     Fenix_Data_commit(my_group, NULL);
   } else {
     fprintf(stderr, "Doing restore on rank %d\n", rank);
-    Fenix_Data_member_restore(my_group, 777, subset, kCount, 1);
+    Fenix_Data_member_restore(my_group, 777, subset, kCount, 1, NULL);
     fprintf(stderr, "Finished restore on rank %d\n", rank);
     recovered = 1;
 
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
       if (rank == kKillID) {
         fprintf(stderr, "Doing kill on node %d\n", rank); 
         pid_t pid = getpid();
-        kill(pid, SIGKILL);
+        kill(pid, SIGTERM);
       }
   }
   
@@ -174,6 +174,8 @@ int main(int argc, char **argv) {
 
   if(successful){
     printf("Rank %d successfully recovered\n", rank);
+  } else {
+      printf("FAILURE on rank %d\n", rank);
   }
 
   Fenix_Data_subset_delete(&subset_specifier);
@@ -182,5 +184,5 @@ int main(int argc, char **argv) {
 
   Fenix_Finalize();
   MPI_Finalize();
-  return 0;
+  return !successful; //return error status
 }

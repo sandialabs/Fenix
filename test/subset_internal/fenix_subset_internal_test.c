@@ -67,7 +67,7 @@
 int _verify_subset( double *data, int num_blocks, int start_offset, int end_offset, int stride,
                     Fenix_Data_subset *subset_specifier );
 
-int _verify_subset( double *data, int num_blocks, int start_offset, int end_offset, int stride,
+int _verify_subset( double *data, int num_repeats, int start_offset, int end_offset, int stride,
                     Fenix_Data_subset *sp)
 {
    int i, j;
@@ -76,25 +76,33 @@ int _verify_subset( double *data, int num_blocks, int start_offset, int end_offs
    int flag = 0;
    double accumulator =0.0;
 
-   if( num_bloks != sp->num_blocks ) {
+   if( num_repeats != sp->num_repeats[0]+1 ) {
       flag = 1;
+      printf("num_repeats set incorrectly.");
    } 
    if( start_offset != sp->start_offsets[0] ) {
       flag = 2;
+      printf("start_offset set incorrectly\n");
    }
-   if( end_offset != sp->end_offsets[0];
+   if( end_offset != sp->end_offsets[0]){
       flag = 3;
+      printf("end_offset set incorrectly\n");
    }
    if( sp->specifier != __FENIX_SUBSET_CREATE ) {
       flag = 4;
+      printf("specifier set incorrectly\n");
+   }
+   if(stride != sp->stride){
+      flag = 5;
+      printf("stride set incorrectly\n");
    }
 
    /* Itertate over the loop to see if any memory error occurs*/
    idx = start_offset;
    block_size = end_offset - start_offset;
-   for ( i = 0; i < num_blocks; i++ ) {
+   for ( i = 0; i < num_repeats; i++ ) {
       for( j = 0; j < block_size; j++ ) {
-         accumulator +=  data[idx+j];
+         accumulator += data[idx+j];
       }
       idx += stride;
    }
@@ -130,16 +138,16 @@ int main(int argc, char **argv)
    }
    
    d_space = (double *)malloc(sizeof(double)*space_size);
-   // Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
-   data_subset_create( num_blocks, start_offset, end_offset, stride, &subset_specifier );
+   Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
+   //data_subset_create( num_blocks, start_offset, end_offset, stride, &subset_specifier );
    // Verification
-   err_code = _verify_subset( num_blocks, start_offset, end_offset, stride, &subset_specifier );
+   int err_code = _verify_subset( d_space, num_blocks, start_offset, end_offset, stride, &subset_specifier );
    // free_data_subset_fixed ( &subset_specifier);
    free(d_space);
    if( err_code == 0 ) {
-      printf("Passed\n);
+      printf("Passed\n");
    }
-   return 0;
+   return err_code;
 }
 
 

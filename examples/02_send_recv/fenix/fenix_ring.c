@@ -159,9 +159,9 @@ int main(int argc, char **argv) {
     int out_flag = 0;
     
     fprintf(stderr, "About to restore\n");
-    Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 2);
-    Fenix_Data_member_restore(my_group, 778, x, 4, 1);
-    Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1);
+    Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 2, NULL);
+    Fenix_Data_member_restore(my_group, 778, x, 4, 1, NULL);
+    Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1, NULL);
     fprintf(stderr, "Did restore on node %d\n", rank);
     
     Fenix_Data_member_attr_set(my_group, 777, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
 
   if (rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
-    kill(pid, SIGKILL);
+    kill(pid, SIGTERM);
   }
 
   for (i = 0; i < kNumIterations; i++) {
@@ -226,18 +226,19 @@ int main(int argc, char **argv) {
   Fenix_Data_member_store(my_group, 778,FENIX_DATA_SUBSET_FULL);
   Fenix_Data_member_store(my_group, 779,FENIX_DATA_SUBSET_FULL);
   Fenix_Data_commit(my_group, &my_timestamp);
- 
+
+  int sum;
   if (rank == 0 ) {
-    int sum = (num_ranks * (num_ranks + 1)) / 2;
+    sum = (num_ranks * (num_ranks + 1)) / 2;
     if( sum == checksum[0] ) {
-       printf("Test SUCCESS: num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
+       printf("SUCCESS: num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
     } else {
-       printf("Test FAILED:: num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
+       printf("FAILURE: num_ranks: %d; sum: %d; checksum: %d\n", num_ranks, sum, checksum[0]);
     }
     printf("End of the program %d\n", rank);
   }
 
   Fenix_Finalize();
   MPI_Finalize();
-  return 0;
+  return sum != checksum[0];
 }
