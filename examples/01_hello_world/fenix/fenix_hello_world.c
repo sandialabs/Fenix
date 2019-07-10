@@ -61,7 +61,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-const int kKillID = 3;
+const int kKillID = 1;
 
 int main(int argc, char **argv) {
 
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
 
   if (old_rank == kKillID &&  recovered == 0) {
     pid_t pid = getpid();
-    kill(pid, SIGKILL);
+    kill(pid, SIGTERM);
   }
 
   MPI_Barrier(new_comm);

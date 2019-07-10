@@ -92,9 +92,9 @@ int main(int argc, char **argv) {
   int *start_offsets = (int *) malloc(sizeof(int) * num_blocks); 
   int *end_offsets = (int *) malloc(sizeof(int) * num_blocks); 
   start_offsets[0] = 0;
-  end_offsets[0] = 1;
+    end_offsets[0] = 1;
   start_offsets[1] = 5;
-  end_offsets[1] = 10;
+    end_offsets[1] = 10;
   Fenix_Data_subset_createv(num_blocks, start_offsets, end_offsets, &subset_specifier);
 
   MPI_Init(&argc, &argv);
@@ -104,6 +104,11 @@ int main(int argc, char **argv) {
 
   MPI_Comm_size(new_comm, &num_ranks);
   MPI_Comm_rank(new_comm, &rank);
+
+  if(error){
+    fprintf(stderr, "FAILURE on Fenix Init. This code is not structured to handle this. Exiting.\n");
+    exit(1);
+  }
 
   Fenix_Data_group_create(my_group, new_comm, my_timestamp, my_depth, FENIX_DATA_POLICY_IN_MEMORY_RAID,
           (int[]){1, num_ranks/2}, &error);
@@ -141,7 +146,10 @@ int main(int argc, char **argv) {
 
       Fenix_Data_member_store(my_group, 777, subset_specifier);
       Fenix_Data_commit(my_group, NULL);
- 
+      
+      MPI_Barrier(new_comm); //Make sure everyone is done committing before we kill and restart everyone
+                             //else we may end up with only some nodes having the commit, and it being unusable
+
       if (rank == kKillID) {
         fprintf(stderr, "Doing kill on node %d\n", rank); 
         pid_t pid = getpid();
@@ -149,6 +157,7 @@ int main(int argc, char **argv) {
       }
   }
   
+  //make sure the kill and restart has happened before we test the recovery
   MPI_Barrier(new_comm);
 
 

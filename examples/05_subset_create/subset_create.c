@@ -106,7 +106,7 @@ fprintf(stderr, "Started\n");
   MPI_Comm_rank(new_comm, &rank);
   
   if(error){
-    fprintf(stderr, "Error on Fenix Init. This code is not structured to handle this. Exiting.\n");
+    fprintf(stderr, "FAILURE on Fenix Init. This code is not structured to handle this. Exiting.\n");
     exit(1);
   }
 
