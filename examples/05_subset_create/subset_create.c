@@ -106,7 +106,7 @@ fprintf(stderr, "Started\n");
   MPI_Comm_rank(new_comm, &rank);
   
   if(error){
-    fprintf(stderr, "FAILURE on Fenix Init. This code is not structured to handle this. Exiting.\n");
+    fprintf(stderr, "FAILURE on Fenix Init (%d). Exiting.\n", error);
     exit(1);
   }
 
@@ -156,6 +156,9 @@ fprintf(stderr, "Started\n");
       //subset was ever changed from the initialized value of -1
       Fenix_Data_member_store(my_group, 777, subset_specifier);
       Fenix_Data_commit_barrier(my_group, NULL);
+
+      MPI_Barrier(new_comm); //Make sure everyone is done committing before we kill and restart everyone
+                             //else we may end up with only some nodes having the commit, and it being unusable
 
   }
 

@@ -27,9 +27,7 @@ These instructions assume you are in your home directory.
       * For example: ` export PATH=~/install/mpi-ulfm/bin:$PATH `
 4. Run ` cmake <Fenix source directory> ` and ` make `
    * For example: ` cmake ~/Fenix && make `
-
-# TODO
-* Make install?
+5. For best compatibility with other cmake projects, run ` make install ` and add the install directory to your CMAKE\_PREFIX\_PATH
 
 
 <pre>

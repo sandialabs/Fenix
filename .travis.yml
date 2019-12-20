@@ -20,8 +20,8 @@ script:
    - cd ../
    - mkdir build
    - cd build
-   - cmake ../
-   - make -j4
+   - cmake ../ -DBUILD_TESTING=ON
+   - make -j4 VERBOSE=1
    - make test
    - cd ../ #Always end back at the root directory.
 after_failure:

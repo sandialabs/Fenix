@@ -9,5 +9,5 @@
 #
 
 add_executable(mpi_stencil_1D mpi_stencil_1D.c)
-target_link_libraries(mpi_stencil_1D ${MPI_C_LIBRARIES})
+linkMPI(mpi_stencil_1D)
 #test_against_reference(1d_heat_eqn 1d_heat_eqn 120)

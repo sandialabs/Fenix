@@ -54,7 +54,6 @@
 //@HEADER
 */
 
-#include <fenix.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -9,5 +9,5 @@
 #
 
 add_executable(mpi_hello_world mpi_hello_world.c)
-target_link_libraries(mpi_hello_world ${MPI_C_LIBRARIES})
+linkMPI(mpi_hello_world)
 #test_against_reference(1d_heat_eqn 1d_heat_eqn 120)
