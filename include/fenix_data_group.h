@@ -111,12 +111,12 @@ typedef struct __fenix_group_vtbl {
    int (*get_snapshot_at_position)(fenix_group_t* group, int position,
            int* time_stamp);
 
-   int (*reinit)(fenix_group_t* group);
+   int (*reinit)(fenix_group_t* group, int* flag);
 
-   int (*member_get_attribute)(fenix_group_t* group, fenix_member_t* member, 
+   int (*member_get_attribute)(fenix_group_t* group, fenix_member_entry_t* mentry, 
            int attributename, void* attributevalue, int* flag, int sourcerank);
    
-   int (*member_set_attribute)(fenix_group_t* group, fenix_member_t* member, 
+   int (*member_set_attribute)(fenix_group_t* group, fenix_member_entry_t* mentry, 
            int attributename, void* attributevalue, int* flag);
 
 } fenix_group_vtbl_t;

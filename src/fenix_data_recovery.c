@@ -155,7 +155,7 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
 
 
       //Reinit group metadata as needed w/ new communicator.
-      group->vtbl.reinit(group);
+      group->vtbl.reinit(group, flag);
     }
 
 
@@ -844,7 +844,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
     //Always pass attribute changes along to group - they might have unknown attributes
     //or side-effects to handle from changes. They get change info before
     //changes are made, in case they need prior state.
-    retval = group->vtbl.member_set_attribute(group, member, attributename,
+    retval = group->vtbl.member_set_attribute(group, mentry, attributename,
             attributevalue, flag);
     
     switch (attributename) {

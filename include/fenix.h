@@ -59,12 +59,12 @@
 
 #include <mpi.h>
 #include <setjmp.h>
-#include "fenix_data_subset.h"
-#include "fenix_process_recovery.h"
 
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
 #endif
+#include "fenix_data_subset.h"
+#include "fenix_process_recovery.h"
 
 #define FENIX_SUCCESS                         0
 #define FENIX_ERROR_UNINITIALIZED            -9
