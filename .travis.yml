@@ -1,0 +1,32 @@
+language: c
+addons:
+   apt:
+      packages:
+      - cmake
+      - autoconf
+      - automake
+      - libtool
+      - valgrind
+cache:
+   directories:
+      - .travis_helpers/ulfm-install
+before_install:
+   - cd .travis_helpers
+   - source ./fetchULFMmpi.sh
+   - cd ../ #Always end back at the root directory
+script:
+   - cd .travis_helpers
+   - source fetchULFMmpi.sh #Just updates path if ULFM was built properly in before_install
+   - cd ../
+   - mkdir build
+   - cd build
+   - cmake ../ -DBUILD_TESTING=ON
+   - make -j4 VERBOSE=1
+   - make test
+   - cd ../ #Always end back at the root directory.
+after_failure:
+   - echo "Failure occured, printing run logs:"
+   - pwd
+   - cat build/Testing/Temporary/LastTest.log
+   - echo "Printing ULFM build log tail. If no output, ULFM was built before this test run"
+   - tail -n100 .travis_helpers/build_output.txt

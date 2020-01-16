@@ -86,19 +86,20 @@ int __imr_commit(fenix_group_t* group);
 int __imr_snapshot_delete(fenix_group_t* group, int time_stamp);
 int __imr_barrier(fenix_group_t* group);
 int __imr_member_restore(fenix_group_t* group, int member_id,
-        void* target_buffer, int max_count, int time_stamp);
+        void* target_buffer, int max_count, int time_stamp,
+        Fenix_Data_subset* data_found);
 int __imr_member_restore_from_rank(fenix_group_t* group, int member_id,
         void* target_buffer, int max_count, int time_stamp, 
         int source_rank);
-int __imr_member_get_attribute(fenix_group_t* group, fenix_member_t* member, 
+int __imr_member_get_attribute(fenix_group_t* group, fenix_member_entry_t* member, 
         int attributename, void* attributevalue, int* flag, int sourcerank);
-int __imr_member_set_attribute(fenix_group_t* group, fenix_member_t* member, 
+int __imr_member_set_attribute(fenix_group_t* group, fenix_member_entry_t* member, 
            int attributename, void* attributevalue, int* flag);
 int __imr_get_number_of_snapshots(fenix_group_t* group, 
         int* number_of_snapshots);
 int __imr_get_snapshot_at_position(fenix_group_t* group, int position,
         int* time_stamp);
-int __imr_reinit(fenix_group_t* group);
+int __imr_reinit(fenix_group_t* group, int* flag);
 
 typedef struct __fenix_imr_mentry{
    void** data;
@@ -370,8 +371,8 @@ int __imr_member_store(fenix_group_t* g, int member_id,
    member_data = &(group->base.member->member_entry[member_data_index]);
    
    if(found_member != FENIX_SUCCESS){
-      debug_print("ERROR Fenix_Data_member_store: member_id <%d> does not exist!\n",
-                member_id);
+      debug_print("ERROR Fenix_Data_member_store: member_id <%d> does not exist on rank <%d>!\n",
+                member_id, g->current_rank);
       retval = FENIX_ERROR_INVALID_MEMBERID;
    } else {
       //Copy my own data, trade data with partner, update data region
@@ -410,7 +411,7 @@ int __imr_member_store(fenix_group_t* g, int member_id,
          //In order to do recovery on a given block of data, we need to be missing only 1 of:
          //    all of the data in the corresponding blocks and the parity for those blocks
          //Standard RAID does this by having one disk store parity for a given block instead of data, but this assumes
-         //    that there is no benefit to data locality - in our case we want each node to have a local copy of it's own 
+         //    that there is no benefit to data locality - in our case we want each node to have a local copy of its own 
          //    data, preferably in a single (virtually) continuous memory range for data movement optomization. So we'll
          //    store the local data, then put 1/N of the parity data at the bottom of the commit.
          //The weirdness comes from the fact that a given node CANNOT contribute to the data being checked for parity which
@@ -623,7 +624,7 @@ int __imr_get_snapshot_at_position(fenix_group_t* g, int position,
 
 
 int __imr_member_restore(fenix_group_t* g, int member_id,
-        void* target_buffer, int max_count, int time_stamp){ 
+        void* target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found){ 
    int retval = -1;
 
    fenix_imr_group_t* group = (fenix_imr_group_t*)g;
@@ -677,10 +678,18 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
             __fenix_data_subset_send(mentry->data_regions + snapshot, group->partners[0], 
                   __IMR_RECOVER_DATA_REGION_TAG ^ group->base.groupid, group->base.comm);
             
+            //send my data, to maintain resiliency on my data
             size_t size;
             void* toSend = __fenix_data_subset_serialize(mentry->data_regions+snapshot, 
                   mentry->data[snapshot], member_data.datatype_size, member_data.current_count, 
                   &size);
+            MPI_Send(toSend, member_data.datatype_size*size, MPI_BYTE, group->partners[0], 
+                  RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
+            
+            //send their data
+            toSend = __fenix_data_subset_serialize(mentry->data_regions+snapshot, 
+                  ((char*)mentry->data[snapshot]) + member_data.datatype_size*member_data.current_count,
+                  member_data.datatype_size, member_data.current_count, &size);
             MPI_Send(toSend, member_data.datatype_size*size, MPI_BYTE, group->partners[0], 
                   RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
             
@@ -721,16 +730,22 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
             
             if(recv_size > 0){
                void* recv_buf = malloc(member_data.datatype_size * recv_size);
+               //first recieve their data, so store in the resiliency section.
                MPI_Recv(recv_buf, recv_size*member_data.datatype_size, MPI_BYTE, group->partners[1],
                      RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
+               __fenix_data_subset_deserialize(mentry->data_regions + snapshot, recv_buf,
+                        ((char*)mentry->data[snapshot]) + member_data.current_count*member_data.datatype_size,
+                        member_data.current_count, member_data.datatype_size);
 
+               //first recieve their data, so store in the resiliency section.
+               MPI_Recv(recv_buf, recv_size*member_data.datatype_size, MPI_BYTE, group->partners[1],
+                     RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
                __fenix_data_subset_deserialize(mentry->data_regions + snapshot, recv_buf,
                         mentry->data[snapshot], member_data.current_count, member_data.datatype_size);
 
                free(recv_buf);
             }
          }
-
       }
 
 
@@ -886,24 +901,32 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
 
 
    //Now that we've ensured everyone has data, restore from it.
+   
+   int return_found_data;
+   if(data_found == NULL){
+      data_found = (Fenix_Data_subset*) malloc(sizeof(Fenix_Data_subset));
+      return_found_data = 0;
+   } else {
+      return_found_data = 1;   
+   }
+   __fenix_data_subset_init(1, data_found);
+   
    //Don't try to restore if we weren't able to get the relevant data.
    if(recovery_locally_possible){
-      Fenix_Data_subset* data_region = (Fenix_Data_subset*)malloc(sizeof(Fenix_Data_subset));
-      __fenix_data_subset_init(1, data_region);
-      data_region->specifier = __FENIX_SUBSET_EMPTY;
+      data_found->specifier = __FENIX_SUBSET_EMPTY;
       
       int oldest_snapshot;
       for(oldest_snapshot = (mentry->current_head - 1); oldest_snapshot >= 0; oldest_snapshot--){
-         __fenix_data_subset_merge_inplace(data_region, mentry->data_regions + oldest_snapshot);
+         __fenix_data_subset_merge_inplace(data_found, mentry->data_regions + oldest_snapshot);
  
-         if(__fenix_data_subset_is_full(data_region, member_data.current_count)){
+         if(__fenix_data_subset_is_full(data_found, member_data.current_count)){
             //The snapshots have formed a full set of data, not need to add older snapshots.
             break;
          }
       }
  
-      //If there isn't a full set of data, don't try to pull from nonexistant snapshot.
-      if(oldest_snapshot == -1){ 
+      //If there isn't a full set of data, don't try to pull from nonexistent snapshot.
+      if(oldest_snapshot == -1){
          oldest_snapshot = 0;
       }
  
@@ -911,8 +934,19 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
          __fenix_data_subset_copy_data(&mentry->data_regions[i], target_buffer,
                mentry->data[i], member_data.datatype_size, member_data.current_count);
       }
- 
-      __fenix_data_subset_free(data_region);
+
+      if(__fenix_data_subset_is_full(data_found, member_data.current_count)){
+        retval = FENIX_SUCCESS;
+      } else {
+        retval = FENIX_WARNING_PARTIAL_RESTORE;
+      }
+   } else {
+      data_found->specifier = __FENIX_SUBSET_EMPTY;   
+   }
+
+   if(!return_found_data){
+      __fenix_data_subset_free(data_found);
+      free(data_found);
    }
 
    //Dont forget to clear the commit buffer
@@ -928,12 +962,16 @@ int __imr_member_restore_from_rank(fenix_group_t* group, int member_id,
         int source_rank){return 0;}
 
 
-int __imr_member_get_attribute(fenix_group_t* group, fenix_member_t* member, 
+int __imr_member_get_attribute(fenix_group_t* group, fenix_member_entry_t* member, 
         int attributename, void* attributevalue, int* flag, int sourcerank){return 0;}
-int __imr_member_set_attribute(fenix_group_t* group, fenix_member_t* member, 
-           int attributename, void* attributevalue, int* flag){return 0;}
 
-int __imr_reinit(fenix_group_t* g){
+int __imr_member_set_attribute(fenix_group_t* g, fenix_member_entry_t* member, 
+           int attributename, void* attributevalue, int* flag){ 
+  //No mutable attributes (as of now) require any changes to this policy's info
+  return FENIX_SUCCESS;
+}
+
+int __imr_reinit(fenix_group_t* g, int* flag){
   fenix_imr_group_t* group = (fenix_imr_group_t*)g;
 
   if(group->raid_mode == 5){
@@ -943,6 +981,8 @@ int __imr_reinit(fenix_group_t* g){
     MPI_Group_incl(comm_group, group->set_size, group->partners, &set_group);
     MPI_Comm_create_group(g->comm, set_group, 0, &(group->set_comm));
   }
+
+  *flag = FENIX_SUCCESS;
 
   return FENIX_SUCCESS;
 }

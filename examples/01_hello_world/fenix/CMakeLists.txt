@@ -10,4 +10,11 @@
 
 add_executable(fenix_hello_world fenix_hello_world.c)
 target_link_libraries(fenix_hello_world fenix ${MPI_C_LIBRARIES})
-#test_against_reference(1d_heat_eqn 1d_heat_eqn 120)
+
+if(BUILD_TESTING)
+   set(CMAKE_BUILD_TYPE Debug)
+   add_executable(fenix_hello_world-debug fenix_hello_world.c)
+   target_link_libraries(fenix_hello_world-debug fenix ${MPI_C_LIBRARIES})
+   add_test(NAME hello_world 
+      COMMAND mpirun --oversubscribe -np 3 fenix_hello_world-debug "1")
+endif()

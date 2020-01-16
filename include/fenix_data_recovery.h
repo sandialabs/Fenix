@@ -121,7 +121,7 @@ int __fenix_member_istorev(int, int, Fenix_Data_subset, Fenix_Request *);
 int __fenix_data_commit(int, int *);
 int __fenix_data_commit_barrier(int, int *);
 int __fenix_data_barrier(int);
-int __fenix_member_restore(int, int, void *, int, int);
+int __fenix_member_restore(int, int, void *, int, int, Fenix_Data_subset*);
 int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
 int __fenix_get_number_of_members(int, int *);
 int __fenix_get_member_at_position(int, int *, int);

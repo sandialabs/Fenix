@@ -41,7 +41,7 @@ int test_subset_main(Fenix_Data_subset *ss, int num_blocks,
    return success;
 }
 
-void test_subset_create( Fenix_Data_subset *sub1, Fenix_Data_subset *sub2, 
+int test_subset_create( Fenix_Data_subset *sub1, Fenix_Data_subset *sub2, 
       Fenix_Data_subset *sub3, int num_blocks, int stride, 
       int *start_offsets, int *end_offsets, int *num_repeats){
    int success = 1;
@@ -64,9 +64,11 @@ void test_subset_create( Fenix_Data_subset *sub1, Fenix_Data_subset *sub2,
    __fenix_data_subset_free(sub1);
    __fenix_data_subset_free(sub2);
    __fenix_data_subset_free(sub3);
+   
+   return !success; //return failure status
 }
 
-void test_subset_createv( Fenix_Data_subset *sub1, Fenix_Data_subset *sub2, 
+int test_subset_createv( Fenix_Data_subset *sub1, Fenix_Data_subset *sub2, 
       Fenix_Data_subset *sub3, int num_blocks, 
       int *start_offsets, int *end_offsets){
    int success = 1;
@@ -90,6 +92,8 @@ void test_subset_createv( Fenix_Data_subset *sub1, Fenix_Data_subset *sub2,
    __fenix_data_subset_free(sub1);
    __fenix_data_subset_free(sub2);
    __fenix_data_subset_free(sub3);
+
+   return !success;
 }
 
 int main(int argc, char **argv) {
@@ -97,73 +101,76 @@ int main(int argc, char **argv) {
    Fenix_Data_subset sub2;
    Fenix_Data_subset sub3;
    
+   int failure = 0;
+
    printf("Testing equivalent create subsets of same size & location: ");
    Fenix_Data_subset_create(3, 2, 5, 5, &sub1);
    Fenix_Data_subset_create(3, 2, 5, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){2}, (int[]){5}, (int[]){2});
-         
+   failure += test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){2}, (int[]){5}, (int[]){2}); 
    
    printf("Testing equivalent create subsets, one within another: ");
    Fenix_Data_subset_create(1, 17, 20, 5, &sub1);
    Fenix_Data_subset_create(3, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){2});
+   failure += test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){2});
    
    printf("Testing equivalent create subsets in non-overlapping, continous regions: ");
    Fenix_Data_subset_create(1, 22, 25, 5, &sub1);
    Fenix_Data_subset_create(2, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){2});
+   failure += test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){2});
    
    printf("Testing equivalent create subsets in non-overlapping, non-continous regions: ");
    Fenix_Data_subset_create(1, 22, 25, 5, &sub1);
    Fenix_Data_subset_create(1, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_create(&sub1, &sub2, &sub3, 2, 5, (int[]){22, 12}, (int[]){25, 15}, (int[]){1,0});
+   failure += test_subset_create(&sub1, &sub2, &sub3, 2, 5, (int[]){22, 12}, (int[]){25, 15}, (int[]){1,0});
    
    printf("Testing create subsets of same location: ");
    Fenix_Data_subset_create(1, 13, 15, 5, &sub1);
    Fenix_Data_subset_create(1, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){0});
+   failure += test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){0});
    
    printf("Testing distinct create subsets with same stride: ");
    Fenix_Data_subset_create(1, 17, 19, 5, &sub1);
    Fenix_Data_subset_create(1, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_create(&sub1, &sub2, &sub3, 2, 5, (int[]){17, 12}, (int[]){19, 15}, (int[]){0, 0});
+   failure += test_subset_create(&sub1, &sub2, &sub3, 2, 5, (int[]){17, 12}, (int[]){19, 15}, (int[]){0, 0});
    
    printf("Testing distinct, overlapping create subsets with same stride: ");
    Fenix_Data_subset_create(1, 17, 19, 5, &sub1);
    Fenix_Data_subset_create(2, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){1});
+   failure += test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){1});
    
    printf("Testing distinct create subsets with unique stride: ");
    Fenix_Data_subset_create(1, 17, 19, 6, &sub1);
    Fenix_Data_subset_create(1, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_createv(&sub1, &sub2, &sub3, 2, (int[]){17, 12}, (int[]){19, 15});
+   failure += test_subset_createv(&sub1, &sub2, &sub3, 2, (int[]){17, 12}, (int[]){19, 15});
 
    printf("Testing distinct overlapping create subsets with unique stride: ");
    Fenix_Data_subset_create(1, 13, 16, 6, &sub1);
    Fenix_Data_subset_create(1, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_createv(&sub1, &sub2, &sub3, 1, (int[]){12}, (int[]){16});
+   failure += test_subset_createv(&sub1, &sub2, &sub3, 1, (int[]){12}, (int[]){16});
 
    printf("Testing complex createv subsets: ");
    Fenix_Data_subset_createv(4, (int[]){1, 4, 21, 23}, (int[]){2, 17, 25, 26}, &sub1);
    Fenix_Data_subset_createv(3, (int[]){0, 18, 30}, (int[]){1, 19, 30}, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_createv(&sub1, &sub2, &sub3, 4, (int[]){0, 4, 21, 30}, (int[]){2, 19, 26, 30});
+   failure += test_subset_createv(&sub1, &sub2, &sub3, 4, (int[]){0, 4, 21, 30}, (int[]){2, 19, 26, 30});
 
    printf("Testing complex create and createv together: ");
    Fenix_Data_subset_create(4, 11, 13, 10, &sub1);
    Fenix_Data_subset_createv(3, (int[]){0, 12, 31}, (int[]){1, 20, 31}, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
-   test_subset_createv(&sub1, &sub2, &sub3, 4, (int[]){11, 31, 41, 0}, (int[]){23, 33, 43, 1});
+   failure += test_subset_createv(&sub1, &sub2, &sub3, 4, (int[]){11, 31, 41, 0}, (int[]){23, 33, 43, 1});
 
 
    Fenix_Data_subset_delete(&sub1);
+
+   return failure;
 }

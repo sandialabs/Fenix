@@ -59,12 +59,12 @@
 
 #include <mpi.h>
 #include <setjmp.h>
-#include "fenix_data_subset.h"
-#include "fenix_process_recovery.h"
 
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
 #endif
+#include "fenix_data_subset.h"
+#include "fenix_process_recovery.h"
 
 #define FENIX_SUCCESS                         0
 #define FENIX_ERROR_UNINITIALIZED            -9
@@ -89,6 +89,7 @@ extern "C" {
 #define FENIX_ERROR_NODATA_FOUND            -30
 #define FENIX_ERROR_INTERN                  -40
 #define FENIX_WARNING_SPARE_RANKS_DEPLETED  100
+#define FENIX_WARNING_PARTIAL_RESTORE       101
 
 #define FENIX_DATA_GROUP_WORLD_ID            10
 #define FENIX_GROUP_ID_MAX                   11
@@ -177,7 +178,7 @@ int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
 int Fenix_Data_barrier(int group_id);
 
 int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer,
-                              int max_count, int time_stamp);
+                              int max_count, int time_stamp, Fenix_Data_subset* found_data);
 
 int Fenix_Data_member_restore_from_rank(int member_id, void *data, int max_count,
                                         int time_stamp, int group_id,

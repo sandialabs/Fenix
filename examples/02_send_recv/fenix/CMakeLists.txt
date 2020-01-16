@@ -10,5 +10,13 @@
 
 add_executable(fenix_ring fenix_ring.c)
 target_link_libraries(fenix_ring fenix ${MPI_C_LIBRARIES} m )
-#test_against_reference(1d_heat_eqn 1d_heat_eqn 120)
 
+if(BUILD_TESTING)
+   set(CMAKE_BUILD_TYPE Debug)
+   add_executable(fenix_ring-debug fenix_ring.c)
+   target_link_libraries(fenix_ring-debug fenix ${MPI_C_LIBRARIES})
+   add_test(NAME ring 
+      COMMAND mpirun --oversubscribe -np 5 fenix_ring-debug 1 2)
+   set_tests_properties(ring PROPERTIES
+      FAIL_REGULAR_EXPRESSION "FAILURE") 
+endif()

@@ -126,8 +126,8 @@ int Fenix_Data_barrier(int group_id) {
     return 0;
 }
 
-int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp) {
-    return __fenix_member_restore(group_id, member_id, target_buffer, max_count, time_stamp);
+int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found) {
+    return __fenix_member_restore(group_id, member_id, target_buffer, max_count, time_stamp, data_found);
 }
 
 int Fenix_Data_member_resore_from_rank(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, int source_rank) {
