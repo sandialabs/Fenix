@@ -16,7 +16,7 @@ set(FENIX_VERSION_MAJOR 1)
 set(FENIX_VERSION_MINOR 0)
 
 option(BUILD_EXAMPLES  "Builds example programs from the examples directory"   OFF)
-option(BUILD_TESTING   "Builds tests and test modes of files"                  OFF)
+option(BUILD_TESTING   "Builds tests and test modes of files"                  ON)
 
 
 # Set empty string for shared linking (we use static library only at this moment)
@@ -47,8 +47,13 @@ if(NOT "a$ENV{MPICC}" STREQUAL "a")
     
     message("[fenix] MPICC has been passed: $ENV{MPICC}")
 else()
-    find_library(MPI REQUIRED)
-    message("[fenix] Found MPICC: ${MPI_C_HEADER_DIR}")
+    message("[fenix] MPICC was not passed, searching for MPI")
+    find_package(MPI REQUIRED)
+    if(${MPI_C_FOUND})
+        message("[fenix] Found MPICC: ${MPI_C_COMPILER}")
+    else()
+        message( FATAL_ERROR "[fenix] MPI not found :( Aborting!")
+    endif()
 endif()
 
 #Helper function for linking with MPI only if needed
