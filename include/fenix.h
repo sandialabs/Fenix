@@ -216,6 +216,8 @@ int Fenix_Data_group_delete(int group_id);
 
 int Fenix_Data_member_delete(int group_id, int member_id);
 
+int Fenix_Process_fail_list(int** fail_list);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif
