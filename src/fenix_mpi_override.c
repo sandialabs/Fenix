@@ -274,13 +274,14 @@ int MPI_Wait(MPI_Request *fenix_request, MPI_Status *status)
 {
     int ret;
     MPI_Request request = MPI_REQUEST_NULL;
-    if(*fenix_request != MPI_REQUEST_NULL)
+    if(*fenix_request != MPI_REQUEST_NULL){
         __fenix_request_store_get(&fenix.request_store,
 				  *((int *) fenix_request),
 				  &request);
+    }
 
     ret = PMPI_Wait(&request, status);
-    if(ret == MPI_SUCCESS) {
+    if(ret == MPI_SUCCESS && (*fenix_request != MPI_REQUEST_NULL)) {
         __fenix_request_store_remove(&fenix.request_store,
 				     *((int *) fenix_request));
         assert(request == MPI_REQUEST_NULL);
@@ -297,11 +298,13 @@ int MPI_Waitall(int count, MPI_Request array_of_fenix_requests[],
 {
     // The list (array_of_requests) may contain null or inactive handles.
     int ret, i;
-    for(i=0 ; i<count ; i++)
-        if(array_of_fenix_requests[i] != MPI_REQUEST_NULL)
-	    __fenix_request_store_getremove(&fenix.request_store,
+    for(i=0 ; i<count ; i++){
+        if(array_of_fenix_requests[i] != MPI_REQUEST_NULL){
+             __fenix_request_store_getremove(&fenix.request_store,
 					    *((int *)&(array_of_fenix_requests[i])),
 					    &(array_of_fenix_requests[i]));
+        }
+    }
 
     ret = PMPI_Waitall(count, array_of_fenix_requests, array_of_statuses);
     __fenix_test_MPI_inline(ret, "MPI_Waitall");
@@ -333,8 +336,24 @@ int MPI_Waitall(int count, MPI_Request array_of_fenix_requests[],
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
 {
-#warning "TODO"
-  printf("Fenix: need to implement MPI_Test\n");
+    int ret;
+    MPI_Request real_req = MPI_REQUEST_NULL;
+    if(*request != MPI_REQUEST_NULL){
+        __fenix_request_store_get(&fenix.request_store, *((int*)request), &real_req);
+    } else {
+       fprintf(stderr, "Found null request!\n");
+    }
+    
+    ret = PMPI_Test(&real_req, flag, status);
+    __fenix_test_MPI_inline(ret, "MPI_Test");
+    
+    if(*flag && *request != MPI_REQUEST_NULL && ret == MPI_SUCCESS){
+       //This request is done, it can be removed from the store.
+       __fenix_request_store_remove(&fenix.request_store, *((int*)request));
+       *request = MPI_REQUEST_NULL;
+    }
+    
+    return ret;
 }
 
 int MPI_Cancel(MPI_Request *request)
