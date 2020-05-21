@@ -761,6 +761,7 @@ void __fenix_test_MPI(int ret, const char *msg)
         }
 
         __fenix_request_store_waitall_removeall(&fenix.request_store);
+        
 
         __fenix_comm_list_destroy();
 

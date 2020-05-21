@@ -88,6 +88,7 @@ extern "C" {
 #define FENIX_ERROR_SUBSET_STRIDE           -25
 #define FENIX_ERROR_NODATA_FOUND            -30
 #define FENIX_ERROR_INTERN                  -40
+#define FENIX_ERROR_CANCELLED               -50
 #define FENIX_WARNING_SPARE_RANKS_DEPLETED  100
 #define FENIX_WARNING_PARTIAL_RESTORE       101
 

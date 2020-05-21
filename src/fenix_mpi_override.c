@@ -337,23 +337,48 @@ int MPI_Waitall(int count, MPI_Request array_of_fenix_requests[],
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
 {
     int ret;
+    int is_cancelled = 0;
     MPI_Request real_req = MPI_REQUEST_NULL;
+    
     if(*request != MPI_REQUEST_NULL){
-        __fenix_request_store_get(&fenix.request_store, *((int*)request), &real_req);
+        if(*request == FENIX_REQUEST_CANCELLED){
+            is_cancelled = 1;
+        } else {
+            int retval = 
+               __fenix_request_store_get(&fenix.request_store, *((int*)request), &real_req);
+            
+            if(retval == FENIX_ERROR_CANCELLED) {
+               is_cancelled = 1;
+            }
+            
+            if(retval == FENIX_REQUEST_COMPLETED){
+               *flag = 1;
+               if(status != MPI_STATUS_IGNORE)
+                  __fenix_request_store_get_status(&fenix.request_store, *((int*)request), status);
+               *request = MPI_REQUEST_NULL;
+               return;
+            }
+        }
     } else {
        fprintf(stderr, "Found null request!\n");
     }
+
     
     ret = PMPI_Test(&real_req, flag, status);
     __fenix_test_MPI_inline(ret, "MPI_Test");
     
-    if(*flag && *request != MPI_REQUEST_NULL && ret == MPI_SUCCESS){
+    if(*flag && *request != MPI_REQUEST_NULL && *request != FENIX_REQUEST_CANCELLED && ret == MPI_SUCCESS){
        //This request is done, it can be removed from the store.
        __fenix_request_store_remove(&fenix.request_store, *((int*)request));
        *request = MPI_REQUEST_NULL;
     }
     
-    return ret;
+    if(is_cancelled){
+       *request = FENIX_REQUEST_CANCELLED;
+       return FENIX_ERROR_CANCELLED;
+    }
+
+    else return ret;
 }
 
 int MPI_Cancel(MPI_Request *request)

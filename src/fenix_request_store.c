@@ -56,23 +56,28 @@
 
 #include <assert.h>
 #include "fenix_request_store.h"
+#include "fenix_ext.h"
 
 void __fenix_request_store_waitall_removeall(fenix_request_store_t *s)
 {
     int i;
     for(i=0 ; i<s->first_unused_position ; i++) {
         __fenix_request_t *f = &(s->reqs.elements[i]);
-        if(f->valid) {
+        if(f->valid && !f->cancelled) {
 #warning "What to do with requests upon failure? Wait or Cancel?"
-            PMPI_Cancel(&(f->r));
-            if(i == MPI_REQUEST_NULL) // This may look ugly and
-                                      // produce a warning, but it is
-                                      // necessary to make sure an
-                                      // MPI_Request NULL does not
-                                      // collide in the request store
-                __fenix_request_store_remove(s, -123);
-            else
-                __fenix_request_store_remove(s, i);
+            int rank;
+            MPI_Comm_rank(*fenix.new_world, &rank);
+            int flag;
+            int ret = PMPI_Test(&(f->r), &flag, &(f->status));
+            
+            if(!flag || ret != MPI_SUCCESS){
+                //This request wasn't able to finish before the failure
+                //We cancel it, and notify the user that it was cancelled
+                //PMPI_Cancel(&(f->r));
+                f->cancelled = 1;
+            } else {
+                f->completed = 1;
+            }
         }
     }
 
