@@ -203,6 +203,36 @@ int __fenix_request_store_get(fenix_request_store_t *s,
     else return FENIX_SUCCESS;
 }
 
+static inline
+int __fenix_request_store_cancel(fenix_request_store_t *s, 
+                               int request_id)
+{
+    {
+        MPI_Request r_test;
+        *((int *)&r_test) = request_id;
+        assert(r_test != MPI_REQUEST_NULL);
+    }
+    if(request_id == -123) {
+        MPI_Request r_test = MPI_REQUEST_NULL;
+        request_id = *((int*) &r_test);
+    }
+    if(request_id == -124) {
+        MPI_Request r_test = FENIX_REQUEST_CANCELLED;
+        request_id = *((int*) &r_test);
+    }
+    MPI_Request r_test;
+    *((int *)&r_test) = request_id;
+    if(r_test == FENIX_REQUEST_CANCELLED){
+        return FENIX_ERROR_CANCELLED;
+    }
+    
+    __fenix_request_t *f = &(s->reqs.elements[request_id]);
+    assert(f->valid);
+    f->cancelled = 1;
+
+    return FENIX_SUCCESS;
+}
+
 static inline 
 void __fenix_request_store_get_status(fenix_request_store_t *s,
                                       int request_id,

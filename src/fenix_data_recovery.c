@@ -103,7 +103,7 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
     /* If so, recover the data and set the recovery         */
     /* for member recovery.                                 */
 
-    int i, group_position;
+    int i;
     int remote_need_recovery;
     fenix_group_t *group;
     MPI_Status status;
@@ -149,7 +149,7 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
 
     } else { /* Already created. Renew the MPI communicator  */
 
-      group = ( data_recovery->group[group_position] );
+      group = ( data_recovery->group[group_index] );
       group->comm = comm; /* Renew communicator */
       MPI_Comm_rank(comm, &(group->current_rank));
 

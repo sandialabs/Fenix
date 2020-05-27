@@ -238,7 +238,9 @@ int MPI_Sendrecv(MPI_CONST_TYPE void* sendbuf, int sendcount,
 static inline
 void __fenix_override_request(int ret, MPI_Request *request)
 {
-    if(ret != MPI_SUCCESS) return;
+    if(ret != MPI_SUCCESS) {
+       return;
+    }
 
     assert(*request != MPI_REQUEST_NULL);
 
@@ -365,6 +367,9 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
 
     
     ret = PMPI_Test(&real_req, flag, status);
+    if(ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED){
+      __fenix_request_store_cancel(&fenix.request_store, *((int*)request));
+    }
     __fenix_test_MPI_inline(ret, "MPI_Test");
     
     if(*flag && *request != MPI_REQUEST_NULL && *request != FENIX_REQUEST_CANCELLED && ret == MPI_SUCCESS){

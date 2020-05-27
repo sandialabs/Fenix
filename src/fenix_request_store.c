@@ -81,6 +81,5 @@ void __fenix_request_store_waitall_removeall(fenix_request_store_t *s)
         }
     }
 
-    s->first_unused_position = 0;
     __fenix_int_stack_clear(&(s->freed_list));
 }
