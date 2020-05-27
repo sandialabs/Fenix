@@ -205,7 +205,8 @@ int __fenix_request_store_get(fenix_request_store_t *s,
 
 static inline
 int __fenix_request_store_cancel(fenix_request_store_t *s, 
-                               int request_id)
+                               int request_id,
+                               MPI_Status status)
 {
     {
         MPI_Request r_test;
@@ -229,6 +230,7 @@ int __fenix_request_store_cancel(fenix_request_store_t *s,
     __fenix_request_t *f = &(s->reqs.elements[request_id]);
     assert(f->valid);
     f->cancelled = 1;
+    f->status = status;
 
     return FENIX_SUCCESS;
 }
