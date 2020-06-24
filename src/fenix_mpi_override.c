@@ -267,6 +267,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
     int ret;
     ret = PMPI_Irecv(buf, count, datatype, source, tag,
                      __fenix_replace_comm(comm), request);
+    
     __fenix_override_request(ret, request);
     __fenix_test_MPI_inline(ret, "MPI_Irecv");
     return ret;
@@ -392,7 +393,9 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
     ret = PMPI_Test(&real_req, flag, status);
     if(ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED){
       __fenix_request_store_cancel(&fenix.request_store, *((int*)request), status);
+       *request = FENIX_REQUEST_CANCELLED;
     }
+
     __fenix_test_MPI_inline(ret, "MPI_Test");
     
     if(*flag && *request != MPI_REQUEST_NULL && *request != FENIX_REQUEST_CANCELLED && ret == MPI_SUCCESS){

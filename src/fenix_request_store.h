@@ -122,7 +122,8 @@ void __fenix_request_store_destroy(fenix_request_store_t *s)
 {
     int valid_count = 0, i;
     for(i=0 ; i<s->first_unused_position ; i++)
-        if(s->reqs.elements[i].valid) valid_count++;
+        if(s->reqs.elements[i].valid && 
+            !(s->reqs.elements[i].completed || s->reqs.elements[i].cancelled) ) valid_count++;
     if(valid_count > 0)
         printf("[Fenix warning] __fenix_request_store_destroy. store contains valid elements (valid elems %d, first_unused_pos %d)\n", valid_count, s->first_unused_position);
     __fenix_req_dynamic_array_destroy(&(s->reqs));
