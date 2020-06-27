@@ -99,6 +99,8 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     fenix.fail_world_size = 0;
     fenix.resume_mode = __FENIX_RESUME_AT_INIT;
     fenix.repair_result = 0;
+    fenix.ret_role = role;
+    fenix.ret_error = error;
 
     fenix.options.verbose = -1;
     // __fenix_init_opt(*argc, *argv);
@@ -788,6 +790,19 @@ void __fenix_test_MPI(int ret, const char *msg)
     }
 
     fenix.role = FENIX_ROLE_SURVIVOR_RANK;
-    if(!fenix.finalized)
-        longjmp(*fenix.recover_environment, 1);
+    if(!fenix.finalized) {
+        switch(fenix.resume_mode) {
+            case __FENIX_RESUME_AT_INIT:
+                longjmp(*fenix.recover_environment, 1);
+                break;
+            case __FENIX_RESUME_NO_JUMP:
+                *(fenix.ret_role) = FENIX_ROLE_SURVIVOR_RANK;
+                __fenix_postinit(fenix.ret_error);
+                break;
+            default:
+                printf("Fenix detected error: Unknown resume mode\n");
+                assert(false);
+                break;
+        }
+    }
 }
