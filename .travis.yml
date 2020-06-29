@@ -44,8 +44,9 @@ before_install:
     
    - export MPICC="`which mpicc`"
    - export MPICXX="`which mpic++`"
-
-   # export OMPI_MCA_rmaps_base_oversubscribe=1
+   
+   #Allow oversubscription for tests, since we're potentially single core
+   - export OMPI_MCA_rmaps_base_oversubscribe=1
    - cd ../ #Always end back at root
 install:
    - mkdir build && cd build
@@ -59,4 +60,4 @@ after_failure:
    - pwd
    - cat build/Testing/Temporary/LastTest.log
    - echo "Printing ULFM build log tail. If no output, ULFM was built before this test run"
-   - tail -n100 .travis_helpers/build_output.txt
+   - tail -n100 /build_output.txt
