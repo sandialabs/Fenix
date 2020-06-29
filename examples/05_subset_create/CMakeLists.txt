@@ -16,7 +16,7 @@ if(BUILD_TESTING)
    add_executable(fenix_subset_create-debug subset_create.c)
    target_link_libraries(fenix_subset_create-debug fenix ${MPI_C_LIBRARIES})
    add_test(NAME subset_create 
-      COMMAND mpirun -np 5 --oversubscribe fenix_subset_create-debug 1)
+      COMMAND mpirun -mca mpi_ft_detector_timeout 1 -np 5 fenix_subset_create-debug 1)
    set_tests_properties(subset_create PROPERTIES
       FAIL_REGULAR_EXPRESSION "FAILURE") 
 endif()

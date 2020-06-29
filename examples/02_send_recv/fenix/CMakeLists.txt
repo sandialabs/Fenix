@@ -16,7 +16,7 @@ if(BUILD_TESTING)
    add_executable(fenix_ring-debug fenix_ring.c)
    target_link_libraries(fenix_ring-debug fenix ${MPI_C_LIBRARIES})
    add_test(NAME ring 
-      COMMAND mpirun -np 5 fenix_ring-debug 1 2)
+      COMMAND mpirun -mca mpi_ft_detector_timeout 1 -np 5 fenix_ring-debug 1 2)
    set_tests_properties(ring PROPERTIES
       FAIL_REGULAR_EXPRESSION "FAILURE") 
 endif()
