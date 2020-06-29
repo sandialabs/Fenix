@@ -22,7 +22,7 @@ before_install:
        echo " - Configuring and building ULFM.";
        cd ulfm-src;
        echo " - Running autogen.pl";
-       ./autogen.pl;
+       ./autogen.pl >./ulfm_build_output.txt 2>&1;
        echo " - Running configure";
        ./configure --prefix=$ROOT/ulfm-install >>./ulfm_build_output.txt 2>&1;
        echo " - Running make";
