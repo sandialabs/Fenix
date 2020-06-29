@@ -45,7 +45,7 @@ before_install:
    - export MPICXX="`which mpic++`"
    
    #Allow oversubscription for tests, since we're potentially single core
-   - export OMPI_MCA_rmaps_base_oversubscribe=1i
+   - export OMPI_MCA_rmaps_base_oversubscribe=1 
 
    - tail -n50 ./ulfm_build_output.txt
    - cd ../ #Always end back at root
