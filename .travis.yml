@@ -47,8 +47,8 @@ before_install:
    - export OMPI_MCA_rmaps_base_oversubscribe=1
    - cd ../ #Always end back at root
 install:
-   - mkdir build && cd build
-   - {cmake ../ -DBUILD_TESTING=ON && make -j4 VERBOSE=1} || 
+   - mkdir build
+   - cd build; {cmake ../ -DBUILD_TESTING=ON && make -j4 VERBOSE=1} || 
      {echo "Printing ULFM build log tail. If no output, ULFM was built before this test run."; tail -n100 ../build_output.txt}
    - cd ../ #Always end back at root
 script:
