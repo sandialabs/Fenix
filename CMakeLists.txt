@@ -25,8 +25,8 @@ set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-#set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O0 -ggdb")
 
 #ENABLE_TESTING
@@ -109,6 +109,4 @@ if(BUILD_TESTING)
     add_subdirectory(test/subset_internal)
     add_subdirectory(test/subset_merging)
     add_subdirectory(test/request_tracking)
-    add_subdirectory(test/request_cancelled)
-    add_subdirectory(test/no_jump)
 endif()

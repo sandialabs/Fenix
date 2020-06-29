@@ -238,9 +238,7 @@ int MPI_Sendrecv(MPI_CONST_TYPE void* sendbuf, int sendcount,
 static inline
 void __fenix_override_request(int ret, MPI_Request *request)
 {
-    if(ret != MPI_SUCCESS) {
-       return;
-    }
+    if(ret != MPI_SUCCESS) return;
 
     assert(*request != MPI_REQUEST_NULL);
 
@@ -267,7 +265,6 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
     int ret;
     ret = PMPI_Irecv(buf, count, datatype, source, tag,
                      __fenix_replace_comm(comm), request);
-    
     __fenix_override_request(ret, request);
     __fenix_test_MPI_inline(ret, "MPI_Irecv");
     return ret;
@@ -275,47 +272,21 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
 
 int MPI_Wait(MPI_Request *fenix_request, MPI_Status *status)
 {
-    int ret, is_cancelled = 1;
+    int ret;
     MPI_Request request = MPI_REQUEST_NULL;
-    if(*fenix_request != MPI_REQUEST_NULL){
-        if(*fenix_request == FENIX_REQUEST_CANCELLED){
-            is_cancelled = 1;
-        } else {
-            int retval = 
-               __fenix_request_store_get(&fenix.request_store, *((int*)fenix_request), &request);
-            
-            if(retval == FENIX_ERROR_CANCELLED) {
-               is_cancelled = 1;
-            }    
-            
-            if(retval == FENIX_REQUEST_COMPLETED){
-               if(status != MPI_STATUS_IGNORE)
-                  __fenix_request_store_get_status(&fenix.request_store, *((int*)fenix_request), status);
-               *fenix_request = MPI_REQUEST_NULL;
-               return;
-            }
-        }
-    }
+    if(*fenix_request != MPI_REQUEST_NULL)
+        __fenix_request_store_get(&fenix.request_store,
+				  *((int *) fenix_request),
+				  &request);
 
     ret = PMPI_Wait(&request, status);
-    
-    if(ret == MPI_SUCCESS && (*fenix_request != MPI_REQUEST_NULL) && (*fenix_request != FENIX_REQUEST_CANCELLED)) {
+    if(ret == MPI_SUCCESS) {
         __fenix_request_store_remove(&fenix.request_store,
 				     *((int *) fenix_request));
         assert(request == MPI_REQUEST_NULL);
-	     *fenix_request = MPI_REQUEST_NULL;
-    }
-    if(ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED){
-      __fenix_request_store_cancel(&fenix.request_store, *((int*)fenix_request), status);
-      *fenix_request = FENIX_REQUEST_CANCELLED;
+	*fenix_request = MPI_REQUEST_NULL;
     }
     __fenix_test_MPI_inline(ret, "MPI_Wait");
-    
-
-    if(is_cancelled){
-       *fenix_request = FENIX_REQUEST_CANCELLED;  
-       return FENIX_ERROR_CANCELLED;
-    }
     return ret;
 }
 
@@ -326,13 +297,11 @@ int MPI_Waitall(int count, MPI_Request array_of_fenix_requests[],
 {
     // The list (array_of_requests) may contain null or inactive handles.
     int ret, i;
-    for(i=0 ; i<count ; i++){
-        if(array_of_fenix_requests[i] != MPI_REQUEST_NULL){
-             __fenix_request_store_getremove(&fenix.request_store,
+    for(i=0 ; i<count ; i++)
+        if(array_of_fenix_requests[i] != MPI_REQUEST_NULL)
+	    __fenix_request_store_getremove(&fenix.request_store,
 					    *((int *)&(array_of_fenix_requests[i])),
 					    &(array_of_fenix_requests[i]));
-        }
-    }
 
     ret = PMPI_Waitall(count, array_of_fenix_requests, array_of_statuses);
     __fenix_test_MPI_inline(ret, "MPI_Waitall");
@@ -364,52 +333,8 @@ int MPI_Waitall(int count, MPI_Request array_of_fenix_requests[],
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
 {
-    int ret;
-    int is_cancelled = 0;
-    MPI_Request real_req = MPI_REQUEST_NULL;
-    
-    if(*request != MPI_REQUEST_NULL){
-        if(*request == FENIX_REQUEST_CANCELLED){
-            is_cancelled = 1;
-        } else {
-            int retval = 
-               __fenix_request_store_get(&fenix.request_store, *((int*)request), &real_req);
-            
-            if(retval == FENIX_ERROR_CANCELLED) {
-               is_cancelled = 1;
-            }
-            
-            if(retval == FENIX_REQUEST_COMPLETED){
-               *flag = 1;
-               if(status != MPI_STATUS_IGNORE)
-                  __fenix_request_store_get_status(&fenix.request_store, *((int*)request), status);
-               *request = MPI_REQUEST_NULL;
-               return;
-            }
-        }
-    }
-
-    
-    ret = PMPI_Test(&real_req, flag, status);
-    if(ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED){
-      __fenix_request_store_cancel(&fenix.request_store, *((int*)request), status);
-       *request = FENIX_REQUEST_CANCELLED;
-    }
-
-    __fenix_test_MPI_inline(ret, "MPI_Test");
-    
-    if(*flag && *request != MPI_REQUEST_NULL && *request != FENIX_REQUEST_CANCELLED && ret == MPI_SUCCESS){
-       //This request is done, it can be removed from the store.
-       __fenix_request_store_remove(&fenix.request_store, *((int*)request));
-       *request = MPI_REQUEST_NULL;
-    }
-    
-    if(is_cancelled){
-       *request = FENIX_REQUEST_CANCELLED;
-       return FENIX_ERROR_CANCELLED;
-    }
-
-    else return ret;
+#warning "TODO"
+  printf("Fenix: need to implement MPI_Test\n");
 }
 
 int MPI_Cancel(MPI_Request *request)

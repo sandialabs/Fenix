@@ -108,19 +108,6 @@ int main(int argc, char **argv) {
 
   printf("hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active ranks: %d, ranks before process failure: %d\n",
          processor_name, old_rank, new_rank, new_world_size, old_world_size);
-  
-  int *fails, num_fails;
-  num_fails = Fenix_Process_fail_list(&fails);
-  
-  char fails_str[100];
-  sprintf(fails_str, "Rank %d sees failed processes [", new_rank);
-  for(int i = 0; i < num_fails; i++){
-    sprintf(fails_str, "%s%s%d", fails_str, (i==0 ? "" : ", "), fails[i]);
-  }
-  sprintf(fails_str, "%s]\n", fails_str);
-  printf(fails_str);
-
-
 
   Fenix_Finalize();
   MPI_Finalize();
