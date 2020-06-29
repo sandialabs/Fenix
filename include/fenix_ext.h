@@ -81,13 +81,6 @@ typedef struct {
     int role;    // Role of rank: initial, survivor or repair
     int fenix_init_flag;
 
-    int fail_world_size;
-    int* fail_world;
-
-    //Save the pointer to role and error of Fenix_Init
-    int *ret_role;
-    int *ret_error;
-
     fenix_request_store_t request_store;
 
     fenix_callback_list_t* callback_list;  // singly linked list for user-defined Fenix callback functions

@@ -64,7 +64,6 @@
 #include <stdio.h>
 
 #include "fenix_stack.h"
-#include "fenix.h"
 
 /* 
 
@@ -85,17 +84,11 @@
 
  */
 
+
 typedef struct {
     char valid;
-    char cancelled;
-    char completed; //This should only be set if the request was completed
-                    //prior to a failure, before the user could MPI_Test the call
-    MPI_Status status;     //This is as "completed"
     MPI_Request r;
 } __fenix_request_t;
-
-#define FENIX_REQUEST_CANCELLED ((MPI_Request)((int)MPI_REQUEST_NULL+1))
-#define FENIX_REQUEST_COMPLETED 180
 
 #define __fenix_dynamic_array_type      __fenix_request_t
 #define __fenix_dynamic_array_typename  req
@@ -122,8 +115,7 @@ void __fenix_request_store_destroy(fenix_request_store_t *s)
 {
     int valid_count = 0, i;
     for(i=0 ; i<s->first_unused_position ; i++)
-        if(s->reqs.elements[i].valid && 
-            !(s->reqs.elements[i].completed || s->reqs.elements[i].cancelled) ) valid_count++;
+        if(s->reqs.elements[i].valid) valid_count++;
     if(valid_count > 0)
         printf("[Fenix warning] __fenix_request_store_destroy. store contains valid elements (valid elems %d, first_unused_pos %d)\n", valid_count, s->first_unused_position);
     __fenix_req_dynamic_array_destroy(&(s->reqs));
@@ -149,7 +141,6 @@ int __fenix_request_store_add(fenix_request_store_t *s,
     assert(!f->valid);
     memcpy(&(f->r), r, sizeof(MPI_Request));
     f->valid = 1;
-    f->cancelled = 0;
 
     // Cannot return a position that is equivalent to MPI_REQUEST_NULL
     MPI_Request r_test;
@@ -161,18 +152,11 @@ int __fenix_request_store_add(fenix_request_store_t *s,
 	    assert(r_test != MPI_REQUEST_NULL);
 	}
     }
-    if(r_test == FENIX_REQUEST_CANCELLED) {
-        position = -124;
-	{
-	    *((int *)&r_test) = position;
-	    assert(r_test != FENIX_REQUEST_CANCELLED);
-	}
-    }
     return position;
 }
 
 static inline
-int __fenix_request_store_get(fenix_request_store_t *s, 
+void __fenix_request_store_get(fenix_request_store_t *s, 
                                int request_id,
                                MPI_Request *r)
 {
@@ -185,78 +169,10 @@ int __fenix_request_store_get(fenix_request_store_t *s,
         MPI_Request r_test = MPI_REQUEST_NULL;
         request_id = *((int*) &r_test);
     }
-    if(request_id == -124) {
-        MPI_Request r_test = FENIX_REQUEST_CANCELLED;
-        request_id = *((int*) &r_test);
-    }
-    MPI_Request r_test;
-    *((int *)&r_test) = request_id;
-    if(r_test == FENIX_REQUEST_CANCELLED){
-        *r = MPI_REQUEST_NULL;
-        return FENIX_ERROR_CANCELLED;
-    }
     __fenix_request_t *f = &(s->reqs.elements[request_id]);
     assert(f->valid);
     memcpy(r, &(f->r), sizeof(MPI_Request));
-    
-    if(f->cancelled) return FENIX_ERROR_CANCELLED;
-    if(f->completed) return FENIX_REQUEST_COMPLETED;
-    else return FENIX_SUCCESS;
-}
-
-static inline
-int __fenix_request_store_cancel(fenix_request_store_t *s, 
-                               int request_id,
-                               MPI_Status *status)
-{
-    {
-        MPI_Request r_test;
-        *((int *)&r_test) = request_id;
-        assert(r_test != MPI_REQUEST_NULL);
-    }
-    if(request_id == -123) {
-        MPI_Request r_test = MPI_REQUEST_NULL;
-        request_id = *((int*) &r_test);
-    }
-    if(request_id == -124) {
-        MPI_Request r_test = FENIX_REQUEST_CANCELLED;
-        request_id = *((int*) &r_test);
-    }
-    MPI_Request r_test;
-    *((int *)&r_test) = request_id;
-    if(r_test == FENIX_REQUEST_CANCELLED){
-        return FENIX_ERROR_CANCELLED;
-    }
-    
-    __fenix_request_t *f = &(s->reqs.elements[request_id]);
-    assert(f->valid);
-    f->cancelled = 1;
-    if(status != NULL && status != MPI_STATUS_IGNORE) f->status = *status;
-
-    return FENIX_SUCCESS;
-}
-
-static inline 
-void __fenix_request_store_get_status(fenix_request_store_t *s,
-                                      int request_id,
-                                      MPI_Status *status){
-    {
-        MPI_Request r_test;
-        *((int *)&r_test) = request_id;
-        assert(r_test != MPI_REQUEST_NULL);
-    }
-    if(request_id == -123) {
-        MPI_Request r_test = MPI_REQUEST_NULL;
-        request_id = *((int*) &r_test);
-    }
-    if(request_id == -124) {
-        MPI_Request r_test = FENIX_REQUEST_CANCELLED;
-        request_id = *((int*) &r_test);
-    }
-    
-    __fenix_request_t *f = &(s->reqs.elements[request_id]);
-    assert(f->completed);
-    memcpy(status, &(f->status), sizeof(MPI_Status));
+    assert(*r != MPI_REQUEST_NULL);
 }
 
 static inline

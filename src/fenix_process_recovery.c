@@ -96,11 +96,8 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     fenix.spawn_policy = spawn;
     fenix.recover_environment = jump_environment;
     fenix.role = FENIX_ROLE_INITIAL_RANK;
-    fenix.fail_world_size = 0;
     fenix.resume_mode = __FENIX_RESUME_AT_INIT;
     fenix.repair_result = 0;
-    fenix.ret_role = role;
-    fenix.ret_error = error;
 
     fenix.options.verbose = -1;
     // __fenix_init_opt(*argc, *argv);
@@ -316,23 +313,23 @@ int __fenix_repair_ranks()
         current_rank = __fenix_get_current_rank(*fenix.world);
         survivor_world_size = __fenix_get_world_size(world_without_failures);
         world_size = __fenix_get_world_size(*fenix.world);
-        fenix.fail_world_size = world_size - survivor_world_size;
+        fail_world_size = world_size - survivor_world_size;
 
         if (fenix.options.verbose == 2) {
             verbose_print(
                 "current_rank: %d, role: %d, world_size: %d, fail_world_size: %d, survivor_world_size: %d\n",
                 __fenix_get_current_rank(*fenix.world), fenix.role, world_size,
-                fenix.fail_world_size, survivor_world_size);
+                fail_world_size, survivor_world_size);
         }
 
-        if (fenix.spare_ranks < fenix.fail_world_size) {
+        if (fenix.spare_ranks < fail_world_size) {
             /* Not enough spare ranks */
 
             if (fenix.options.verbose == 2) {
                 verbose_print(
                     "current_rank: %d, role: %d, spare_ranks: %d, fail_world_size: %d\n",
                     __fenix_get_current_rank(*fenix.world), fenix.role, fenix.spare_ranks,
-                    fenix.fail_world_size);
+                    fail_world_size);
             }
 
             if (fenix.spawn_policy == 1) {
@@ -396,25 +393,22 @@ int __fenix_repair_ranks()
                     fenix.num_inital_ranks = 0;
 
                     /* recovered ranks must be the number of spare ranks */
-                    fenix.num_recovered_ranks = fenix.fail_world_size;
+                    fenix.num_recovered_ranks = fail_world_size;
 
                     if (fenix.options.verbose == 2) {
                         verbose_print("current_rank: %d, role: %d, recovered_ranks: %d\n",
                                       __fenix_get_current_rank(*fenix.world), fenix.role,
                                       fenix.num_recovered_ranks);
                     }
-                    
-                    if(fenix.role != FENIX_ROLE_INITIAL_RANK){
-                        free(fenix.fail_world);
-                    }
-                    fenix.fail_world = (int *) s_malloc(fenix.fail_world_size * sizeof(int));
-                    fenix.fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size,
-                                                        fenix.fail_world_size);
+
+                    fail_world = (int *) s_malloc(fail_world_size * sizeof(int));
+                    fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size,
+                                                        fail_world_size);
 
                     if (fenix.options.verbose == 2) {
                         int index;
-                        for (index = 0; index < fenix.fail_world_size; index++) {
-                            verbose_print("fail_world[%d]: %d\n", index, fenix.fail_world[index]);
+                        for (index = 0; index < fail_world_size; index++) {
+                            verbose_print("fail_world[%d]: %d\n", index, fail_world[index]);
                         }
                     }
 
@@ -431,14 +425,16 @@ int __fenix_repair_ranks()
                     /* Assign new rank for reordering */
                     if (current_rank >= active_ranks) { // reorder ranks
                         int rank_offset = ((world_size - 1) - current_rank);
-                        if (rank_offset < fenix.fail_world_size) {
+                        if (rank_offset < fail_world_size) {
                             if (fenix.options.verbose == 11) {
                                 verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
-                                              current_rank, fenix.fail_world[rank_offset]);
+                                              current_rank, fail_world[rank_offset]);
                             }
-                            current_rank = fenix.fail_world[rank_offset];
+                            current_rank = fail_world[rank_offset];
                         }
                     }
+
+                    free(fail_world);
 
                     /************************************/
                     /* Update the number of spare ranks */
@@ -492,20 +488,16 @@ int __fenix_repair_ranks()
             }
 
             fenix.num_inital_ranks = 0;
-            fenix.num_recovered_ranks = fenix.fail_world_size;
-            
-            if(fenix.role != FENIX_ROLE_INITIAL_RANK){
-                free(fenix.fail_world);
-            }
+            fenix.num_recovered_ranks = fail_world_size;
 
-            fenix.fail_world = (int *) s_malloc(fenix.fail_world_size * sizeof(int));
-            fenix.fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size, fenix.fail_world_size);
+            fail_world = (int *) s_malloc(fail_world_size * sizeof(int));
+            fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size, fail_world_size);
             free(survivor_world);
 
             if (fenix.options.verbose == 2) {
                 int index;
-                for (index = 0; index < fenix.fail_world_size; index++) {
-                    verbose_print("fail_world[%d]: %d\n", index, fenix.fail_world[index]);
+                for (index = 0; index < fail_world_size; index++) {
+                    verbose_print("fail_world[%d]: %d\n", index, fail_world[index]);
                 }
             }
 
@@ -518,19 +510,21 @@ int __fenix_repair_ranks()
 
             if (current_rank >= active_ranks) { // reorder ranks
                 int rank_offset = ((world_size - 1) - current_rank);
-                if (rank_offset < fenix.fail_world_size) {
+                if (rank_offset < fail_world_size) {
                     if (fenix.options.verbose == 2) {
                         verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
-                                      current_rank, fenix.fail_world[rank_offset]);
+                                      current_rank, fail_world[rank_offset]);
                     }
-                    current_rank = fenix.fail_world[rank_offset];
+                    current_rank = fail_world[rank_offset];
                 }
             }
+
+            free(fail_world);
 
             /************************************/
             /* Update the number of spare ranks */
             /************************************/
-            fenix.spare_ranks = fenix.spare_ranks - fenix.fail_world_size;
+            fenix.spare_ranks = fenix.spare_ranks - fail_world_size;
             if (fenix.options.verbose == 2) {
                 verbose_print("current_rank: %d, role: %d, spare_ranks: %d\n",
                               __fenix_get_current_rank(*fenix.world), fenix.role,
@@ -701,10 +695,6 @@ void __fenix_finalize()
     free( fenix.world );
     free( fenix.new_world );
 
-    if(fenix.role != FENIX_ROLE_INITIAL_RANK){
-        free(fenix.fail_world);
-    }
-
     /* Free Callbacks */
     __fenix_callback_destroy( fenix.callback_list );
 
@@ -763,7 +753,6 @@ void __fenix_test_MPI(int ret, const char *msg)
         }
 
         __fenix_request_store_waitall_removeall(&fenix.request_store);
-        
 
         __fenix_comm_list_destroy();
 
@@ -790,19 +779,6 @@ void __fenix_test_MPI(int ret, const char *msg)
     }
 
     fenix.role = FENIX_ROLE_SURVIVOR_RANK;
-    if(!fenix.finalized) {
-        switch(fenix.resume_mode) {
-            case __FENIX_RESUME_AT_INIT:
-                longjmp(*fenix.recover_environment, 1);
-                break;
-            case __FENIX_RESUME_NO_JUMP:
-                *(fenix.ret_role) = FENIX_ROLE_SURVIVOR_RANK;
-                __fenix_postinit(fenix.ret_error);
-                break;
-            default:
-                printf("Fenix detected error: Unknown resume mode\n");
-                assert(false);
-                break;
-        }
-    }
+    if(!fenix.finalized)
+        longjmp(*fenix.recover_environment, 1);
 }
