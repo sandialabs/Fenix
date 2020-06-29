@@ -45,8 +45,8 @@ before_install:
    - export MPICC="`which mpicc`"
    - export MPICXX="`which mpic++`"
 
-   - export OMPI_MCA_rmaps_base_oversubscribe "1"
-    
+   - export OMPI_MCA_rmaps_base_oversubscribe=1
+
    #Assuming the install's home dir is one above current.
    - cd ../
 install:
