@@ -9,24 +9,54 @@ addons:
       - valgrind
 cache:
    directories:
-      - .travis_helpers/ulfm-install
+      - ulfm-install
 before_install:
-   - cd .travis_helpers
-   - source ./fetchULFMmpi.sh
-   - cd ../ #Always end back at the root directory
+   - echo "Configuring ULFM"
+   - if [ -f ulfm-install/lib/libmpi.so ]; then
+       echo "libmpi.so found -- nothing to build.";
+       cd ulfm-install;
+     else
+       ROOT=`pwd`;
+       mkdir ulfm-install;
+       echo "Downloading ULFM from repo";
+       git clone --recursive https://bitbucket.org/icldistcomp/ulfm2.git ulfm-src/;
+       echo " - Configuring and building ULFM.";
+       cd ulfm-src;
+       echo " - Running autogen.pl";
+       ./autogen.pl >../ulfm-install/ulfm_build_output.txt 2>&1;
+       echo " - Running configure";
+       ./configure --prefix=$ROOT/ulfm-install >>../ulfm-install/ulfm_build_output.txt 2>&1;
+       echo " - Running make";
+       make -j4 >>../ulfm-install/ulfm_build_output.txt 2>&1;
+       echo " - Running make install";
+       make install >>../ulfm-install/ulfm_build_output.txt 2>&1;
+       echo " - Finished installing ULFM";
+       cd ../ulfm-install/;
+     fi
+    
+   #Expect that any changes to the above still puts me in the install's home dir
+   - export MPI_HOME=`pwd`
+   - export PATH=$MPI_HOME/bin/:$PATH
+   - export LD_LIBRARY_PATH=$MPI_HOME/lib:$LD_LIBRARY_PATH
+   - export DYLD_LIBRARY_PATH=$MPI_HOME/lib:$DYLD_LIBRARY_PATH
+   - export MANPATH=$MPI_HOME/share/man:$MANPATH
+    
+   - export MPICC="`which mpicc`"
+   - export MPICXX="`which mpic++`"
+   
+   #Allow oversubscription for tests, since we're potentially single core
+   - export OMPI_MCA_rmaps_base_oversubscribe=1 
+
+   - tail -n50 ./ulfm_build_output.txt
+   - cd ../ #End back at root
+install:
+   - mkdir build && cd build
+   - cmake ../ -DBUILD_TESTING=ON && make -j4 VERBOSE=1
 script:
-   - cd .travis_helpers
-   - source fetchULFMmpi.sh #Just updates path if ULFM was built properly in before_install
-   - cd ../
-   - mkdir build
-   - cd build
-   - cmake ../ -DBUILD_TESTING=ON
-   - make -j4 VERBOSE=1
    - make test
-   - cd ../ #Always end back at the root directory.
+after_success:
+   - echo "Success, printing run logs:"
+   - cat Testing/Temporary/LastTest.log
 after_failure:
    - echo "Failure occured, printing run logs:"
-   - pwd
-   - cat build/Testing/Temporary/LastTest.log
-   - echo "Printing ULFM build log tail. If no output, ULFM was built before this test run"
-   - tail -n100 .travis_helpers/build_output.txt
+   - cat Testing/Temporary/LastTest.log

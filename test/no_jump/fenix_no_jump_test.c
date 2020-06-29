@@ -54,55 +54,86 @@
 //@HEADER
 */
 
-#ifndef __FENIX_EXT_H__
-#define __FENIX_EXT_H__
-
+#include <fenix.h>
 #include <mpi.h>
-#include "fenix.h"
-#include "fenix_opt.h"
-#include "fenix_data_group.h"
-#include "fenix_process_recovery.h"
-#include "fenix_request_store.h"
+#include <stdio.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <assert.h>
 
-typedef struct {
-    int num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
-    int num_survivor_ranks;   // Keeps the global information on the number of survived MPI ranks after failure
-    int num_recovered_ranks;  // Keeps the number of spare ranks brought into MPI communicator recovery
-    int resume_mode;          // Defines how program resumes after process recovery
-    int spawn_policy;         // Indicate dynamic process spawning
-    int spare_ranks;          // Spare ranks entered by user to repair failed ranks
-    int replace_comm_flag;    // Internal global variable to describe the status of MPI communicator
-    int repair_result;        // Internal global variable to store the result of MPI communicator repair
-    int finalized;
-    jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
+const int kKillID = 1;
 
+int main(int argc, char **argv) {
 
-    //enum FenixRankRole role;    // Role of rank: initial, survivor or repair
-    int role;    // Role of rank: initial, survivor or repair
-    int fenix_init_flag;
+#warning "It's a good idea to complain when not enough parameters! Should add this code to other examples too."
+  if (argc < 2) {
+      printf("Usage: %s <# spare ranks> \n", *argv);
+      exit(0);
+  }
 
-    int fail_world_size;
-    int* fail_world;
+  int old_world_size, new_world_size = - 1;
+  int old_rank = 1, new_rank = - 1;
+  int spare_ranks = atoi(argv[1]);
+  int buffer;
 
-    //Save the pointer to role and error of Fenix_Init
-    int *ret_role;
-    int *ret_error;
+  MPI_Init(&argc, &argv);
 
-    fenix_request_store_t request_store;
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Comm world_comm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
+  MPI_Comm_size(world_comm, &old_world_size);
+  MPI_Comm_rank(world_comm, &old_rank);
 
-    fenix_callback_list_t* callback_list;  // singly linked list for user-defined Fenix callback functions
-    //fenix_communicator_list_t* communicator_list;  // singly linked list for Fenix resilient communicators
-    fenix_debug_opt_t options;    // This is reserved to store the user options
+  MPI_Info info;
+  MPI_Info_create(&info);
+  MPI_Info_set(info, "FENIX_RESUME_MODE", "NO_JUMP");
 
-    MPI_Comm *world;                // Duplicate of the MPI communicator provided by user
-    MPI_Comm *new_world;            // Global MPI communicator identical to g_world but without spare ranks
-    MPI_Comm *user_world;           // MPI communicator with repaired ranks
-    MPI_Comm original_comm;         // Keep the information of the original global MPI Communicator (this will be umodified until Fenix_finalize)
-    MPI_Op   agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
+  int fenix_status;
+  int recovered = 0;
+  MPI_Comm new_comm;
+  int error;
+  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, info, &error);
 
-    fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
-} fenix_t;
+  MPI_Comm_size(new_comm, &new_world_size);
+  MPI_Comm_rank(new_comm, &new_rank);
 
-extern fenix_t fenix;
-#endif // __FENIX_EXT_H__
+  if (old_rank == kKillID) {
+    assert(fenix_status == FENIX_ROLE_INITIAL_RANK);
+    pid_t pid = getpid();
+    kill(pid, SIGTERM);
+  }
+
+  if(new_rank == kKillID) {
+      assert(fenix_status == FENIX_ROLE_RECOVERED_RANK);
+      int sval = 33;
+      MPI_Send(&sval, 1, MPI_INT, kKillID-1, 1, new_comm);
+  }
+  else if(new_rank == kKillID-1) {
+      assert(fenix_status == FENIX_ROLE_INITIAL_RANK);
+      int rval = 44;
+      MPI_Status status;
+      MPI_Recv(&rval, 1, MPI_INT, kKillID, 1, new_comm, &status);
+
+      assert(fenix_status == FENIX_ROLE_SURVIVOR_RANK);
+      assert(rval == 44);
+      printf("Rank %d did not receive new value. old value is %d\n", new_rank, rval);
+
+      MPI_Recv(&rval, 1, MPI_INT, kKillID, 1, new_comm, &status);
+      assert(rval == 33);
+      printf("Rank %d received new value %d\n", new_rank, rval);
+  }
+  else {
+      assert(fenix_status == FENIX_ROLE_INITIAL_RANK);
+      MPI_Barrier(new_comm);
+      assert(fenix_status == FENIX_ROLE_SURVIVOR_RANK);
+  }
+
+  MPI_Barrier(new_comm);
+
+  Fenix_Finalize();
+  MPI_Finalize();
+
+  return 0;
+}
 

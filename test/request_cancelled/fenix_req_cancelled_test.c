@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
   int old_world_size, new_world_size = - 1;
   int old_rank = 1, new_rank = - 1;
   int spare_ranks = atoi(argv[1]);
+  int buffer;
 
   MPI_Init(&argc, &argv);
 
@@ -87,40 +88,48 @@ int main(int argc, char **argv) {
   int recovered = 0;
   MPI_Comm new_comm;
   int error;
+  MPI_Request req = MPI_REQUEST_NULL;
   Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+    
+  MPI_Comm_size(new_comm, &new_world_size);
+  MPI_Comm_rank(new_comm, &new_rank);
 
   if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
-    MPI_Comm_size(new_comm, &new_world_size);
-    MPI_Comm_rank(new_comm, &new_rank);
     recovered = 1;
+  } else {
+    MPI_Irecv(&buffer, 1, MPI_INT, (new_rank+1)%new_world_size, 1, new_comm, &req);
+    //Kill rank dies before being able to send
+    if(new_rank == 0 || new_rank == 2) MPI_Send(&buffer, 1, MPI_INT, old_rank==0 ? new_world_size-1 : new_rank-1, 1, new_comm);
+    MPI_Barrier(new_comm);
   }
+  
 
   if (old_rank == kKillID &&  recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGTERM);
   }
-
+  
+  
   MPI_Barrier(new_comm);
 
-  char processor_name[MPI_MAX_PROCESSOR_NAME];
-  int name_len;
-  MPI_Get_processor_name(processor_name, &name_len);
+  //After recovery, the slow ranks send
+  if(new_rank == 1 || new_rank == 3 ) MPI_Send(&buffer, 1, MPI_INT, new_rank==0 ? new_world_size-1 : new_rank-1, 1, new_comm);
+  
+  MPI_Barrier(new_comm); //Lots of barriers to demonstrate a specific ordering of events.
 
-  printf("hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active ranks: %d, ranks before process failure: %d\n",
-         processor_name, old_rank, new_rank, new_world_size, old_world_size);
-  
-  int *fails, num_fails;
-  num_fails = Fenix_Process_fail_list(&fails);
-  
-  char fails_str[100];
-  sprintf(fails_str, "Rank %d sees failed processes [", new_rank);
-  for(int i = 0; i < num_fails; i++){
-    sprintf(fails_str, "%s%s%d", fails_str, (i==0 ? "" : ", "), fails[i]);
+  //Check result of old requests - cannot wait, must MPI_Test only on old pre-failure requests for now
+  if(new_rank != kKillID){
+    int flag;
+    int ret = MPI_Test(&req, &flag, MPI_STATUS_IGNORE);
+    if(!flag || ret == FENIX_ERROR_CANCELLED){
+      printf("Rank %d's request was NOT satisfied before the failure\n", new_rank);
+      MPI_Irecv(&buffer, 1, MPI_INT, (new_rank+1)%new_world_size, 1, new_comm, &req); //We can re-launch the IRecv if we know the
+                                                                                      //other ranks are going to send now
+    } else {
+      printf("Rank %d's request was satisfied before the failure\n", new_rank);
+    }
+    
   }
-  sprintf(fails_str, "%s]\n", fails_str);
-  printf(fails_str);
-
-
 
   Fenix_Finalize();
   MPI_Finalize();

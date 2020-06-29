@@ -181,3 +181,8 @@ int Fenix_Data_group_delete(int group_id) {
 int Fenix_Data_member_delete(int group_id, int member_id) {
     return __fenix_member_delete(group_id, member_id);
 }
+
+int Fenix_Process_fail_list(int** fail_list){
+  *fail_list = fenix.fail_world;
+  return fenix.fail_world_size;
+}
