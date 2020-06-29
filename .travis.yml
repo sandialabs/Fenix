@@ -10,7 +10,7 @@ addons:
 cache:
    directories:
       - ./ulfm-install
-setup_ulfm:
+before_install:
    - echo "Configuring ULFM"
    - if [ -f ulfm-install/lib/libmpi.so ]; then
        echo "libmpich.so found -- nothing to build.";
