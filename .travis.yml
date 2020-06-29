@@ -18,9 +18,7 @@ before_install:
      else
        ROOT=`pwd`;
        echo "Downloading ULFM from repo";
-       wget https://bitbucket.org/icldistcomp/ulfm2/get/ulfm2.0rc.tar.bz2;
-       tar -xjf ulfm2.0rc.tar.bz2;
-       mv icldist* ulfm-src/;
+       git clone https://bitbucket.org/icldistcomp/ulfm2.git ulfm-src/;
        echo " - Configuring and building ULFM.";
        cd ulfm-src;
        echo " - Running autogen.pl";
