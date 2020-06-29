@@ -48,8 +48,8 @@ before_install:
    - cd ../ #Always end back at root
 install:
    - mkdir build
-   - cd build; {cmake ../ -DBUILD_TESTING=ON && make -j4 VERBOSE=1;} || 
-     {echo "Printing ULFM build log tail. If no output, ULFM was built before this test run."; tail -n100 ../build_output.txt;}
+   - cd build; { cmake ../ -DBUILD_TESTING=ON && make -j4 VERBOSE=1; } || 
+     { echo "Printing ULFM build log tail. If no output, ULFM was built before this test run."; tail -n100 ../build_output.txt; }
    - cd ../ #Always end back at root
 script:
    - cd build && make test
