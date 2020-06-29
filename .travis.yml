@@ -55,9 +55,11 @@ install:
 script:
    - cd build && make test
    - cd ../ #Always end back at root
+after_success:
+   - echo "Success, printing run logs:"
+   - cat build/Testing/Temporary/LastTest.log
 after_failure:
    - echo "Failure occured, printing run logs:"
-   - pwd
    - cat build/Testing/Temporary/LastTest.log
    - echo "Printing ULFM build log tail. If no output, ULFM was built before this test run"
    - tail -n100 /build_output.txt
