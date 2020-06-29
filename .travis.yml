@@ -48,17 +48,15 @@ before_install:
    - export OMPI_MCA_rmaps_base_oversubscribe=1 
 
    - tail -n50 ./ulfm_build_output.txt
-   - cd ../ #Always end back at root
+   - cd ../ #End back at root
 install:
    - mkdir build && cd build
    - cmake ../ -DBUILD_TESTING=ON && make -j4 VERBOSE=1
-   - cd ../ #Always end back at root
 script:
-   - cd build && make test
-   - cd ../ #Always end back at root
+   - make test
 after_success:
    - echo "Success, printing run logs:"
-   - cat build/Testing/Temporary/LastTest.log
+   - cat Testing/Temporary/LastTest.log
 after_failure:
    - echo "Failure occured, printing run logs:"
-   - cat build/Testing/Temporary/LastTest.log
+   - cat Testing/Temporary/LastTest.log
