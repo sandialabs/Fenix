@@ -17,18 +17,19 @@ before_install:
        cd ulfm-install;
      else
        ROOT=`pwd`;
+       mkdir ulfm-install;
        echo "Downloading ULFM from repo";
        git clone --recursive https://bitbucket.org/icldistcomp/ulfm2.git ulfm-src/;
        echo " - Configuring and building ULFM.";
        cd ulfm-src;
        echo " - Running autogen.pl";
-       ./autogen.pl >./ulfm_build_output.txt 2>&1;
+       ./autogen.pl >../ulfm-install/ulfm_build_output.txt 2>&1;
        echo " - Running configure";
-       ./configure --prefix=$ROOT/ulfm-install >>./ulfm_build_output.txt 2>&1;
+       ./configure --prefix=$ROOT/ulfm-install >>../ulfm-install/ulfm_build_output.txt 2>&1;
        echo " - Running make";
-       make -j4 >>./ulfm_build_output.txt 2>&1;
+       make -j4 >>../ulfm-install/ulfm_build_output.txt 2>&1;
        echo " - Running make install";
-       make install >>./ulfm_build_output.txt 2>&1;
+       make install >>../ulfm-install/ulfm_build_output.txt 2>&1;
        echo " - Finished installing ULFM";
        cd ../ulfm-install/;
      fi
@@ -46,7 +47,7 @@ before_install:
    #Allow oversubscription for tests, since we're potentially single core
    - export OMPI_MCA_rmaps_base_oversubscribe=1i
 
-   - tail -n100 ./ulfm_build_output.txt
+   - tail -n50 ./ulfm_build_output.txt
    - cd ../ #Always end back at root
 install:
    - mkdir build && cd build
