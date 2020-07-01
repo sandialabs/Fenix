@@ -112,9 +112,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         MPI_Abort(comm, -1);
     }
 
-    // Initialize request store
-    __fenix_request_store_init(&fenix.request_store);
-
 
     MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &fenix.agree_op);
 
@@ -711,9 +708,6 @@ void __fenix_finalize()
     /* Free data recovery interface */
     __fenix_data_recovery_destroy( fenix.data_recovery );
 
-    /* Free the request store */
-    __fenix_request_store_destroy(&fenix.request_store);
-
     fenix.fenix_init_flag = 0;
 }
 
@@ -762,16 +756,12 @@ void __fenix_test_MPI(int ret, const char *msg)
             MPIX_Comm_revoke(*fenix.user_world);
         }
 
-        __fenix_request_store_waitall_removeall(&fenix.request_store);
-        
 
         __fenix_comm_list_destroy();
 
         fenix.repair_result = __fenix_repair_ranks();
         break;
     case MPI_ERR_REVOKED:
-        __fenix_request_store_waitall_removeall(&fenix.request_store);
-
         __fenix_comm_list_destroy();
 
         fenix.repair_result = __fenix_repair_ranks();

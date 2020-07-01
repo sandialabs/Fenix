@@ -34,7 +34,6 @@ fenix_data_member.c
 fenix_data_subset.c
 fenix_comm_list.c
 fenix_callbacks.c
-fenix_request_store.c
 globals.c
 )
 

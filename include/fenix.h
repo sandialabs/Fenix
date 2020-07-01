@@ -219,6 +219,8 @@ int Fenix_Data_member_delete(int group_id, int member_id);
 
 int Fenix_Process_fail_list(int** fail_list);
 
+int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

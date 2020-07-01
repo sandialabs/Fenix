@@ -65,7 +65,7 @@ const int kKillID = 1;
 
 int main(int argc, char **argv) {
 
-#warning "It's a good idea to complain when not enough parameters! Should add this code to other examples too."
+  fprintf(stderr, "This is actually running\n");
   if (argc < 2) {
       printf("Usage: %s <# spare ranks> \n", *argv);
       exit(0);
@@ -89,7 +89,9 @@ int main(int argc, char **argv) {
   MPI_Comm new_comm;
   int error;
   MPI_Request req = MPI_REQUEST_NULL;
+  fprintf(stderr, "Before Fenix init\n");
   Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+  fprintf(stderr, "After Fenix init\n");
     
   MPI_Comm_size(new_comm, &new_world_size);
   MPI_Comm_rank(new_comm, &new_rank);
@@ -105,6 +107,7 @@ int main(int argc, char **argv) {
   
 
   if (old_rank == kKillID &&  recovered == 0) {
+    fprintf(stderr, "Before kill\n");
     pid_t pid = getpid();
     kill(pid, SIGTERM);
   }
@@ -120,8 +123,8 @@ int main(int argc, char **argv) {
   //Check result of old requests - cannot wait, must MPI_Test only on old pre-failure requests for now
   if(new_rank != kKillID){
     int flag;
-    int ret = MPI_Test(&req, &flag, MPI_STATUS_IGNORE);
-    if(!flag || ret == FENIX_ERROR_CANCELLED){
+    int cancelled = Fenix_check_cancelled(&req, MPI_STATUS_IGNORE);
+    if(cancelled){
       printf("Rank %d's request was NOT satisfied before the failure\n", new_rank);
       MPI_Irecv(&buffer, 1, MPI_INT, (new_rank+1)%new_world_size, 1, new_comm, &req); //We can re-launch the IRecv if we know the
                                                                                       //other ranks are going to send now
