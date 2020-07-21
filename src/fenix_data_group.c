@@ -77,7 +77,7 @@ fenix_data_recovery_t * __fenix_data_recovery_init() {
 
   if (fenix.options.verbose == 41) {
     verbose_print("c-rank: %d, role: %d, g-count: %zu, g-size: %zu\n",
-                    __fenix_get_current_rank(*fenix.world), fenix.role, data_recovery->count,
+                    __fenix_get_current_rank(fenix.world), fenix.role, data_recovery->count,
                   data_recovery->total_size);
   }
 
@@ -94,7 +94,7 @@ int __fenix_member_delete(int groupid, int memberid) {
 
   if (fenix.options.verbose == 38) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(*fenix.new_world), fenix.role, group_index,
+                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
                   member_index);
   }
 
@@ -124,7 +124,7 @@ int __fenix_member_delete(int groupid, int memberid) {
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
       
       verbose_print("c-rank: %d, role: %d, m-count: %zu, m-state: %d",
-                      __fenix_get_current_rank(*fenix.new_world), fenix.role,
+                      __fenix_get_current_rank(fenix.new_world), fenix.role,
                     member->count, mentry->state);
     }
 
@@ -172,7 +172,7 @@ int __fenix_group_delete(int groupid) {
 
   if (fenix.options.verbose == 37) {
     verbose_print("c-rank: %d, group_index: %d\n",
-                    __fenix_get_current_rank(*fenix.new_world), group_index);
+                    __fenix_get_current_rank(fenix.new_world), group_index);
   }
 
   if (group_index == -1) {
@@ -221,7 +221,7 @@ void __fenix_data_recovery_reinit(fenix_data_recovery_t *data_recovery,
 
   if (fenix.options.verbose == 48) {
     verbose_print("c-rank: %d, role: %d, g-size: %zu\n",
-                    __fenix_get_current_rank(*fenix.new_world), fenix.role, 
+                    __fenix_get_current_rank(fenix.new_world), fenix.role, 
                     data_recovery->total_size);
   }
 }
