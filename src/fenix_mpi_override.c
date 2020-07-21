@@ -62,21 +62,15 @@
 static inline 
 int __fenix_notify_newcomm(int ret, MPI_Comm *newcomm)
 {
-    if (ret != MPI_SUCCESS || 
-        !fenix.fenix_init_flag ||
-        *newcomm == MPI_COMM_NULL) return ret;
-    ret = PMPI_Comm_set_errhandler(*newcomm, fenix.mpi_errhandler);
-    if (ret != MPI_SUCCESS) {
-        fprintf(stderr, "[fenix error] Did not manage to set error handler\n");
-        PMPI_Comm_free(newcomm);
-        ret = MPI_ERR_INTERN;
-    } else {
-#warning "Calling fenix comm push and fenix init may not have been called... check other places in this function"
-        if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
-            fprintf(stderr, "[fenix error] Did not manage to push communicator\n");
-            PMPI_Comm_free(newcomm);
-            ret = MPI_ERR_INTERN;
-        }
-    }
-    return ret;
+   if (ret != MPI_SUCCESS || 
+         !fenix.fenix_init_flag ||
+         *newcomm == MPI_COMM_NULL) return ret;
+        
+   if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
+      fprintf(stderr, "[fenix error] Did not manage to push communicator\n");
+      PMPI_Comm_free(newcomm);
+      ret = MPI_ERR_INTERN;
+   }
+
+   return ret;
 }

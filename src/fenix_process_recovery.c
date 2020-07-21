@@ -81,8 +81,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
     MPI_Comm_create_errhandler(__fenix_test_MPI, &fenix.mpi_errhandler);
 
-#warning "I think that by setting this errhandler, all other derived comms inherit it! no need for the gazillion set_errhandler calls in this file!"
-#warning "When was the last time I tried to set an actual errhndlr? Maybe it works, now"    
     MPI_Comm_dup(comm, &fenix.world);
     PMPI_Comm_set_errhandler(fenix.world, fenix.mpi_errhandler);
 
@@ -233,7 +231,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 int __fenix_create_new_world()
 {
     int ret;
-    ret = PMPI_Comm_set_errhandler(fenix.world, fenix.mpi_errhandler);
 
     if ( __fenix_spare_rank() == 1) {
         int current_rank = __fenix_get_current_rank(fenix.world);
@@ -264,7 +261,6 @@ int __fenix_create_new_world()
 
         ret = PMPI_Comm_split(fenix.world, 0, current_rank, &fenix.new_world);
         if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_split: %d\n", ret); }
-        MPI_Comm_set_errhandler(fenix.new_world, fenix.mpi_errhandler);
 
     }
     return ret;
@@ -297,13 +293,6 @@ int __fenix_repair_ranks()
         //if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_shrink. repair_ranks\n"); }
         if (ret != MPI_SUCCESS) {
             repair_success = 0;
-            goto END_LOOP;
-        }
-
-        ret = MPI_Comm_set_errhandler(world_without_failures, fenix.mpi_errhandler);
-        if (ret != MPI_SUCCESS) {
-            repair_success = 0;
-            MPI_Comm_free(&world_without_failures);
             goto END_LOOP;
         }
 
@@ -637,7 +626,6 @@ void __fenix_postinit(int *error)
     PMPI_Barrier(fenix.new_world);
 
     PMPI_Comm_dup(fenix.new_world, fenix.user_world);
-    PMPI_Comm_set_errhandler(*fenix.user_world, fenix.mpi_errhandler);
 
     if (fenix.repair_result != 0) {
         *error = fenix.repair_result;
@@ -667,8 +655,8 @@ void __fenix_finalize()
     // after recovery.
     fenix.finalized = 1;
     
-    //We don't want to handle failures in here as normal failures, we just want to continue trying to finalize.
-    MPI_Comm_set_errhandler(fenix.new_world, MPI_ERRORS_RETURN);
+    //We don't want to handle failures in here as normally, we just want to continue trying to finalize.
+    fenix.ignore_errs = 1;
 
     int ret = MPI_Barrier( fenix.new_world );
     if (ret != MPI_SUCCESS) {
