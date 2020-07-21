@@ -793,8 +793,9 @@ int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
     fenix_member_t *member = group->member;
+    fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
 
-    int retval = group->vtbl.member_get_attribute(group, member, attributename,
+    int retval = group->vtbl.member_get_attribute(group, mentry, attributename,
             attributevalue, flag, sourcerank);
 
   }
