@@ -58,7 +58,8 @@
 #include <stdio.h>
 #include <fenix.h>
 #include <fenix_process_recovery.h>
- 
+#include <mpi-ext.h>
+
 fenix_comm_list_t my_list = {NULL, NULL};
 
 int __fenix_comm_push(MPI_Comm *comm) {

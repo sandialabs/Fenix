@@ -70,7 +70,6 @@ typedef struct {
     int resume_mode;          // Defines how program resumes after process recovery
     int spawn_policy;         // Indicate dynamic process spawning
     int spare_ranks;          // Spare ranks entered by user to repair failed ranks
-    int replace_comm_flag;    // Internal global variable to describe the status of MPI communicator
     int repair_result;        // Internal global variable to store the result of MPI communicator repair
     int finalized;
     jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
@@ -96,6 +95,13 @@ typedef struct {
     MPI_Comm *user_world;           // MPI communicator with repaired ranks
     MPI_Comm original_comm;         // Keep the information of the original global MPI Communicator (this will be umodified until Fenix_finalize)
     MPI_Op   agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
+    
+    
+    MPI_Errhandler mpi_errhandler;  // This stores callback info for our custom error handler
+    int ignore_errs;                // Set this to return errors instead of using the error handler normally. (Don't forget to unset!)
+    int print_unhandled;            // Set this to print the error string for MPI errors of an unhandled return type.
+
+
 
     fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;

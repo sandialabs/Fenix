@@ -120,6 +120,6 @@ void __fenix_finalize();
 
 void __fenix_finalize_spare();
 
-void __fenix_test_MPI(int, const char *);
+void __fenix_test_MPI(MPI_Comm*, int*, ...);
 
 #endif
