@@ -119,6 +119,11 @@ int main(int argc, char **argv)
    int space_size;
    double *d_space;
 
+  if (argc < 6) {
+      printf("Usage: %s <array size> <# blocks> <start offset> <end offset> <stride> \n", *argv);
+      exit(0);
+  }
+
    space_size   = atoi(argv[1]);
    num_blocks   = atoi(argv[2]);
    start_offset = atoi(argv[3]);

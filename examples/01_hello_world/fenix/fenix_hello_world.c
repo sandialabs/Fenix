@@ -65,7 +65,6 @@ const int kKillID = 1;
 
 int main(int argc, char **argv) {
 
-#warning "It's a good idea to complain when not enough parameters! Should add this code to other examples too."
   if (argc < 2) {
       printf("Usage: %s <# spare ranks> \n", *argv);
       exit(0);
