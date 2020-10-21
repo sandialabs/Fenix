@@ -66,7 +66,7 @@ These instructions assume you are in your home directory.
 // WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
 // OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
+// Authors Marc Gamell, Matthew Whitlock, Eric Valenzuela, Keita Teranishi, Manish Parashar
 //        and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
