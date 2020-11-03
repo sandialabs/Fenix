@@ -73,6 +73,11 @@ fprintf(stderr, "Started\n");
   int subset[500];
   MPI_Status status;
 
+  if (argc < 2) {
+      printf("Usage: %s <# spare ranks> \n", *argv);
+      exit(0);
+  }
+
   int fenix_role;
   MPI_Comm world_comm;
   MPI_Comm new_comm;

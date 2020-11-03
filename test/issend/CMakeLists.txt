@@ -8,9 +8,8 @@
 #  directory.
 #
 
-set (CMAKE_BUILD_TYPE Debug)
-add_executable(fenix_request_tracking_test fenix_request_tracking_test.c)
-target_link_libraries(fenix_request_tracking_test fenix ${MPI_C_LIBRARIES})
+set(CMAKE_BUILD_TYPE Debug)
+add_executable(fenix_issend_test fenix_issend_test.c)
+target_link_libraries(fenix_issend_test fenix ${MPI_C_LIBRARIES})
 
-add_test(NAME request_tracking 
-   COMMAND mpirun -np 3 fenix_request_tracking_test)
+add_test(NAME issend COMMAND mpirun -mca mpi_ft_detector_timeout 1 -np 5 fenix_issend_test "1")

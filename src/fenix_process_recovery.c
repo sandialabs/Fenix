@@ -77,27 +77,24 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     *role = fenix.role;
     *error = 0;
 
-    if (new_comm != NULL) {
-        fenix.user_world = new_comm;
-        fenix.replace_comm_flag = 0;
-    } else {
-        fenix.replace_comm_flag = 1;
-    }
+    fenix.user_world = new_comm;
 
-#warning "I think that by setting this errhandler, all other derived comms inherit it! no need for the gazillion set_errhandler calls in this file!"
-#warning "When was the last time I tried to set an actual errhndlr? Maybe it works, now"
-    PMPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
+    MPI_Comm_create_errhandler(__fenix_test_MPI, &fenix.mpi_errhandler);
 
-    fenix.original_comm = comm;
-    assert(fenix.original_comm == comm);
+    MPI_Comm_dup(comm, &fenix.world);
+    PMPI_Comm_set_errhandler(fenix.world, fenix.mpi_errhandler);
 
     fenix.finalized = 0;
     fenix.spare_ranks = spare_ranks;
     fenix.spawn_policy = spawn;
     fenix.recover_environment = jump_environment;
     fenix.role = FENIX_ROLE_INITIAL_RANK;
+    fenix.fail_world_size = 0;
+    fenix.ignore_errs = 0;
     fenix.resume_mode = __FENIX_RESUME_AT_INIT;
     fenix.repair_result = 0;
+    fenix.ret_role = role;
+    fenix.ret_error = error;
 
     fenix.options.verbose = -1;
     // __fenix_init_opt(*argc, *argv);
@@ -109,9 +106,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         MPI_Abort(comm, -1);
     }
 
-    // Initialize request store
-    __fenix_request_store_init(&fenix.request_store);
-
 
     MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &fenix.agree_op);
 
@@ -120,25 +114,47 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         char value[MPI_MAX_INFO_VAL + 1];
         int vallen = MPI_MAX_INFO_VAL;
         int flag;
-        MPI_Info_get(info, "FENIX_RESUME_MODE", vallen, value, &flag);
 
+        MPI_Info_get(info, "FENIX_RESUME_MODE", vallen, value, &flag);
         if (flag == 1) {
             if (strcmp(value, "Fenix_init") == 0) {
                 fenix.resume_mode = __FENIX_RESUME_AT_INIT;
                 if (fenix.options.verbose == 0) {
                     verbose_print("rank: %d, role: %d, value: %s\n",
-                                  __fenix_get_current_rank(*fenix.world), fenix.role, value);
+                                  __fenix_get_current_rank(fenix.world), fenix.role, value);
                 }
             } else if (strcmp(value, "NO_JUMP") == 0) {
                 fenix.resume_mode = __FENIX_RESUME_NO_JUMP;
                 if (fenix.options.verbose == 0) {
                     verbose_print("rank: %d, role: %d, value: %s\n",
-                                  __fenix_get_current_rank(*fenix.world), fenix.role, value);
+                                  __fenix_get_current_rank(fenix.world), fenix.role, value);
                 }
 
             } else {
                 /* No support. Setting it to Fenix_init */
                 fenix.resume_mode = __FENIX_RESUME_AT_INIT;
+            }
+        }
+        
+        
+        MPI_Info_get(info, "FENIX_UNHANDLED_MODE", vallen, value, &flag);
+        if (flag == 1) {
+            if (strcmp(value, "SILENT") == 0) {
+                fenix.print_unhandled = 0;
+                if (fenix.options.verbose == 0) {
+                    verbose_print("rank: %d, role: %d, UNHANDLED_MODE: %s\n",
+                                  __fenix_get_current_rank(fenix.world), fenix.role, value);
+                }
+            } else if (strcmp(value, "NO_JUMP") == 0) {
+                fenix.print_unhandled = 1;
+                if (fenix.options.verbose == 0) {
+                    verbose_print("rank: %d, role: %d, UNHANDLED_MODE: %s\n",
+                                  __fenix_get_current_rank(fenix.world), fenix.role, value);
+                }
+
+            } else {
+                /* No support. Setting it to silent */
+                fenix.print_unhandled = 0;
             }
         }
     }
@@ -148,14 +164,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
                     fenix.spare_ranks);
     }
 
-#warning "There is no reason why fenix.world (and other) need to be malloced..."
-    fenix.world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
-
-    MPI_Comm_dup(comm, fenix.world);
-
     fenix.data_recovery = __fenix_data_recovery_init();
-
-    fenix.new_world = (MPI_Comm *) s_malloc(sizeof(MPI_Comm));
 
     /*****************************************************/
     /* Note: fenix.new_world is only valid for the   */
@@ -174,10 +183,10 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     }
 
     if ( __fenix_spare_rank() != 1) {
-        fenix.num_inital_ranks = __fenix_get_world_size(*fenix.new_world);
+        fenix.num_inital_ranks = __fenix_get_world_size(fenix.new_world);
         if (fenix.options.verbose == 0) {
             verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
-                          __fenix_get_current_rank(*fenix.world), fenix.role,
+                          __fenix_get_current_rank(fenix.world), fenix.role,
                           fenix.num_inital_ranks);   
         }
 
@@ -186,7 +195,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
         if (fenix.options.verbose == 0) {
             verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
-                          __fenix_get_current_rank(*fenix.world), fenix.role,
+                          __fenix_get_current_rank(fenix.world), fenix.role,
                           fenix.num_inital_ranks);   
         }
     }
@@ -198,19 +207,19 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         int a;
         int myrank;
         MPI_Status mpi_status;
-        ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, *fenix.world,
+        ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, fenix.world,
                         &mpi_status); // listen for a failure
         if (ret == MPI_SUCCESS) {
             if (fenix.options.verbose == 0) {
                 verbose_print("Finalize the program; rank: %d, role: %d\n",
-                              __fenix_get_current_rank(*fenix.world), fenix.role);
+                              __fenix_get_current_rank(fenix.world), fenix.role);
             }
             __fenix_finalize_spare();
         } else {
             fenix.repair_result = __fenix_repair_ranks();
             if (fenix.options.verbose == 0) {
                 verbose_print("spare rank exiting from MPI_Recv - repair ranks; rank: %d, role: %d\n",
-                              __fenix_get_current_rank(*fenix.world), fenix.role);
+                              __fenix_get_current_rank(fenix.world), fenix.role);
             }
         }
         fenix.role = FENIX_ROLE_RECOVERED_RANK;
@@ -222,10 +231,9 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 int __fenix_create_new_world()
 {
     int ret;
-    ret = PMPI_Comm_set_errhandler(*fenix.world, MPI_ERRORS_RETURN);
 
     if ( __fenix_spare_rank() == 1) {
-        int current_rank = __fenix_get_current_rank(*fenix.world);
+        int current_rank = __fenix_get_current_rank(fenix.world);
 
         /*************************************************************************/
         /** MPI_UNDEFINED makes the new communicator "undefined" at spare ranks **/
@@ -234,26 +242,25 @@ int __fenix_create_new_world()
         /*************************************************************************/
 
         if (fenix.options.verbose == 1) {
-            verbose_print("rank: %d, role: %d\n", __fenix_get_current_rank(*fenix.world),
+            verbose_print("rank: %d, role: %d\n", __fenix_get_current_rank(fenix.world),
                           fenix.role);
         }
 
-        ret = PMPI_Comm_split(*fenix.world, MPI_UNDEFINED, current_rank,
-                              fenix.new_world);
+        ret = PMPI_Comm_split(fenix.world, MPI_UNDEFINED, current_rank,
+                              &fenix.new_world);
         if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_split: %d\n", ret); }
 
     } else {
 
-        int current_rank = __fenix_get_current_rank(*fenix.world);
+        int current_rank = __fenix_get_current_rank(fenix.world);
 
         if (fenix.options.verbose == 1) {
-            verbose_print("rank: %d, role: %d\n", __fenix_get_current_rank(*fenix.world),
+            verbose_print("rank: %d, role: %d\n", __fenix_get_current_rank(fenix.world),
                           fenix.role);
         }
 
-        ret = PMPI_Comm_split(*fenix.world, 0, current_rank, fenix.new_world);
+        ret = PMPI_Comm_split(fenix.world, 0, current_rank, &fenix.new_world);
         if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_split: %d\n", ret); }
-        MPI_Comm_set_errhandler(*fenix.new_world, MPI_ERRORS_RETURN);
 
     }
     return ret;
@@ -282,17 +289,10 @@ int __fenix_repair_ranks()
 
     while (!repair_success) {
         repair_success = 1;
-        ret = MPIX_Comm_shrink(*fenix.world, &world_without_failures);
-        /* if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_shrink. repair_ranks\n"); } */
+        ret = MPIX_Comm_shrink(fenix.world, &world_without_failures);
+        //if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_shrink. repair_ranks\n"); }
         if (ret != MPI_SUCCESS) {
             repair_success = 0;
-            goto END_LOOP;
-        }
-
-        ret = MPI_Comm_set_errhandler(world_without_failures, MPI_ERRORS_RETURN);
-        if (ret != MPI_SUCCESS) {
-            repair_success = 0;
-            MPI_Comm_free(&world_without_failures);
             goto END_LOOP;
         }
 
@@ -300,36 +300,34 @@ int __fenix_repair_ranks()
         /* Free up the storage for active process communicator   */
         /*********************************************************/
         if ( __fenix_spare_rank() != 1) {
-            PMPI_Comm_free(fenix.new_world);
-            if ( fenix.replace_comm_flag == 0) {
-                PMPI_Comm_free(fenix.user_world);
-            }
+            PMPI_Comm_free(&fenix.new_world);
+            PMPI_Comm_free(fenix.user_world);
         }
         /*********************************************************/
         /* Need closer look above                                */
         /*********************************************************/
 
         /* current_rank means the global MPI rank before failure */
-        current_rank = __fenix_get_current_rank(*fenix.world);
+        current_rank = __fenix_get_current_rank(fenix.world);
         survivor_world_size = __fenix_get_world_size(world_without_failures);
-        world_size = __fenix_get_world_size(*fenix.world);
-        fail_world_size = world_size - survivor_world_size;
+        world_size = __fenix_get_world_size(fenix.world);
+        fenix.fail_world_size = world_size - survivor_world_size;
 
         if (fenix.options.verbose == 2) {
             verbose_print(
                 "current_rank: %d, role: %d, world_size: %d, fail_world_size: %d, survivor_world_size: %d\n",
-                __fenix_get_current_rank(*fenix.world), fenix.role, world_size,
-                fail_world_size, survivor_world_size);
+                __fenix_get_current_rank(fenix.world), fenix.role, world_size,
+                fenix.fail_world_size, survivor_world_size);
         }
 
-        if (fenix.spare_ranks < fail_world_size) {
+        if (fenix.spare_ranks < fenix.fail_world_size) {
             /* Not enough spare ranks */
 
             if (fenix.options.verbose == 2) {
                 verbose_print(
                     "current_rank: %d, role: %d, spare_ranks: %d, fail_world_size: %d\n",
-                    __fenix_get_current_rank(*fenix.world), fenix.role, fenix.spare_ranks,
-                    fail_world_size);
+                    __fenix_get_current_rank(fenix.world), fenix.role, fenix.spare_ranks,
+                    fenix.fail_world_size);
             }
 
             if (fenix.spawn_policy == 1) {
@@ -355,12 +353,12 @@ int __fenix_repair_ranks()
                         int index;
                         for (index = 0; index < survivor_world_size; index++) {
                             verbose_print("current_rank: %d, role: %d, survivor_world[%d]: %d\n",
-                                          __fenix_get_current_rank(*fenix.world), fenix.role, index,
+                                          __fenix_get_current_rank(fenix.world), fenix.role, index,
                                           survivor_world[index]);
                         }
                     }
 
-                    /* if (ret != MPI_SUCCESS) { debug_print("MPI_Allgather. repair_ranks\n"); } */
+                     //if (ret != MPI_SUCCESS) { debug_print("MPI_Allgather. repair_ranks\n"); }
                     if (ret != MPI_SUCCESS) {
                         repair_success = 0;
                         if (ret == MPI_ERR_PROC_FAILED) {
@@ -379,7 +377,7 @@ int __fenix_repair_ranks()
                     ret = PMPI_Allreduce(&survived_flag, &fenix.num_survivor_ranks, 1,
                                          MPI_INT, MPI_SUM, world_without_failures);
 
-                    /* if (ret != MPI_SUCCESS) { debug_print("MPI_Allreduce. repair_ranks\n"); } */
+                    //if (ret != MPI_SUCCESS) { debug_print("MPI_Allreduce. repair_ranks\n"); }
                     if (ret != MPI_SUCCESS) {
                         repair_success = 0;
                         if (ret == MPI_ERR_PROC_FAILED) {
@@ -393,22 +391,25 @@ int __fenix_repair_ranks()
                     fenix.num_inital_ranks = 0;
 
                     /* recovered ranks must be the number of spare ranks */
-                    fenix.num_recovered_ranks = fail_world_size;
+                    fenix.num_recovered_ranks = fenix.fail_world_size;
 
                     if (fenix.options.verbose == 2) {
                         verbose_print("current_rank: %d, role: %d, recovered_ranks: %d\n",
-                                      __fenix_get_current_rank(*fenix.world), fenix.role,
+                                      __fenix_get_current_rank(fenix.world), fenix.role,
                                       fenix.num_recovered_ranks);
                     }
-
-                    fail_world = (int *) s_malloc(fail_world_size * sizeof(int));
-                    fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size,
-                                                        fail_world_size);
+                    
+                    if(fenix.role != FENIX_ROLE_INITIAL_RANK){
+                        free(fenix.fail_world);
+                    }
+                    fenix.fail_world = (int *) s_malloc(fenix.fail_world_size * sizeof(int));
+                    fenix.fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size,
+                                                        fenix.fail_world_size);
 
                     if (fenix.options.verbose == 2) {
                         int index;
-                        for (index = 0; index < fail_world_size; index++) {
-                            verbose_print("fail_world[%d]: %d\n", index, fail_world[index]);
+                        for (index = 0; index < fenix.fail_world_size; index++) {
+                            verbose_print("fail_world[%d]: %d\n", index, fenix.fail_world[index]);
                         }
                     }
 
@@ -418,30 +419,28 @@ int __fenix_repair_ranks()
 
                     if (fenix.options.verbose == 2) {
                         verbose_print("current_rank: %d, role: %d, active_ranks: %d\n",
-                                      __fenix_get_current_rank(*fenix.world), fenix.role,
+                                      __fenix_get_current_rank(fenix.world), fenix.role,
                                       active_ranks);
                     }
 
                     /* Assign new rank for reordering */
                     if (current_rank >= active_ranks) { // reorder ranks
                         int rank_offset = ((world_size - 1) - current_rank);
-                        if (rank_offset < fail_world_size) {
+                        if (rank_offset < fenix.fail_world_size) {
                             if (fenix.options.verbose == 11) {
                                 verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
-                                              current_rank, fail_world[rank_offset]);
+                                              current_rank, fenix.fail_world[rank_offset]);
                             }
-                            current_rank = fail_world[rank_offset];
+                            current_rank = fenix.fail_world[rank_offset];
                         }
                     }
-
-                    free(fail_world);
 
                     /************************************/
                     /* Update the number of spare ranks */
                     /************************************/
                     fenix.spare_ranks = 0;
 
-                    /* debug_print("not enough spare ranks to repair rank failures. repair_ranks\n"); */
+                    //debug_print("not enough spare ranks to repair rank failures. repair_ranks\n");
                 }
 
                 /****************************************************************/
@@ -458,7 +457,7 @@ int __fenix_repair_ranks()
 
             ret = PMPI_Allgather(&current_rank, 1, MPI_INT, survivor_world, 1, MPI_INT,
                                  world_without_failures);
-            /* if (ret != MPI_SUCCESS) { debug_print("MPI_Allgather. repair_ranks\n"); } */
+            //if (ret != MPI_SUCCESS) { debug_print("MPI_Allgather. repair_ranks\n"); }
             if (ret != MPI_SUCCESS) {
                 repair_success = 0;
                 if (ret == MPI_ERR_PROC_FAILED) {
@@ -476,7 +475,7 @@ int __fenix_repair_ranks()
 
             ret = PMPI_Allreduce(&survived_flag, &fenix.num_survivor_ranks, 1,
                                  MPI_INT, MPI_SUM, world_without_failures);
-            /*  if (ret != MPI_SUCCESS) { debug_print("MPI_Allreduce. repair_ranks\n"); } */
+            //if (ret != MPI_SUCCESS) { debug_print("MPI_Allreduce. repair_ranks\n"); }
             if (ret != MPI_SUCCESS) {
                 repair_success = 0;
                 if (ret != MPI_ERR_PROC_FAILED) {
@@ -488,16 +487,20 @@ int __fenix_repair_ranks()
             }
 
             fenix.num_inital_ranks = 0;
-            fenix.num_recovered_ranks = fail_world_size;
+            fenix.num_recovered_ranks = fenix.fail_world_size;
+            
+            if(fenix.role != FENIX_ROLE_INITIAL_RANK){
+                free(fenix.fail_world);
+            }
 
-            fail_world = (int *) s_malloc(fail_world_size * sizeof(int));
-            fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size, fail_world_size);
+            fenix.fail_world = (int *) s_malloc(fenix.fail_world_size * sizeof(int));
+            fenix.fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size, fenix.fail_world_size);
             free(survivor_world);
 
             if (fenix.options.verbose == 2) {
                 int index;
-                for (index = 0; index < fail_world_size; index++) {
-                    verbose_print("fail_world[%d]: %d\n", index, fail_world[index]);
+                for (index = 0; index < fenix.fail_world_size; index++) {
+                    verbose_print("fail_world[%d]: %d\n", index, fenix.fail_world[index]);
                 }
             }
 
@@ -505,29 +508,27 @@ int __fenix_repair_ranks()
 
             if (fenix.options.verbose == 2) {
                 verbose_print("current_rank: %d, role: %d, active_ranks: %d\n",
-                              __fenix_get_current_rank(*fenix.world), fenix.role, active_ranks);
+                              __fenix_get_current_rank(fenix.world), fenix.role, active_ranks);
             }
 
             if (current_rank >= active_ranks) { // reorder ranks
                 int rank_offset = ((world_size - 1) - current_rank);
-                if (rank_offset < fail_world_size) {
+                if (rank_offset < fenix.fail_world_size) {
                     if (fenix.options.verbose == 2) {
                         verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
-                                      current_rank, fail_world[rank_offset]);
+                                      current_rank, fenix.fail_world[rank_offset]);
                     }
-                    current_rank = fail_world[rank_offset];
+                    current_rank = fenix.fail_world[rank_offset];
                 }
             }
-
-            free(fail_world);
 
             /************************************/
             /* Update the number of spare ranks */
             /************************************/
-            fenix.spare_ranks = fenix.spare_ranks - fail_world_size;
+            fenix.spare_ranks = fenix.spare_ranks - fenix.fail_world_size;
             if (fenix.options.verbose == 2) {
                 verbose_print("current_rank: %d, role: %d, spare_ranks: %d\n",
-                              __fenix_get_current_rank(*fenix.world), fenix.role,
+                              __fenix_get_current_rank(fenix.world), fenix.role,
                               fenix.spare_ranks);
             }
         }
@@ -537,10 +538,10 @@ int __fenix_repair_ranks()
         /*********************************************************/
 
         if (!flag_g_world_freed) {
-            ret = PMPI_Comm_free(fenix.world);
+            ret = PMPI_Comm_free(&fenix.world);
             if (ret != MPI_SUCCESS) { flag_g_world_freed = 1; }
         }
-        ret = PMPI_Comm_split(world_without_failures, 0, current_rank, fenix.world);
+        ret = PMPI_Comm_split(world_without_failures, 0, current_rank, &fenix.world);
 
         /* if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_split. repair_ranks\n"); } */
         if (ret != MPI_SUCCESS) {
@@ -557,12 +558,12 @@ int __fenix_repair_ranks()
         /* Need special treatment for error handling */
         __fenix_create_new_world();
 
-        ret = PMPI_Barrier(*fenix.world);
+        ret = PMPI_Barrier(fenix.world);
         /* if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier. repair_ranks\n"); } */
         if (ret != MPI_SUCCESS) {
             repair_success = 0;
             if (ret != MPI_ERR_PROC_FAILED) {
-                MPIX_Comm_revoke(*fenix.world);
+                MPIX_Comm_revoke(fenix.world);
             }
         }
 
@@ -574,7 +575,7 @@ int __fenix_repair_ranks()
         /*******************************************************/
 
 /*
-  if (__fenix_get_current_rank(*fenix.world) == FENIX_ROOT) {
+  if (__fenix_get_current_rank(fenix.world) == FENIX_ROOT) {
   LDEBUG("Fenix: communicators repaired\n");
   }
 */
@@ -603,8 +604,8 @@ int* __fenix_get_fail_ranks(int *survivor_world, int survivor_world_size, int fa
 int __fenix_spare_rank()
 {
     int result = -1;
-    int current_rank = __fenix_get_current_rank(*fenix.world);
-    int new_world_size = __fenix_get_world_size(*fenix.world) - fenix.spare_ranks;
+    int current_rank = __fenix_get_current_rank(fenix.world);
+    int new_world_size = __fenix_get_world_size(fenix.world) - fenix.spare_ranks;
     if (current_rank >= new_world_size) {
         if (fenix.options.verbose == 6) {
             verbose_print("current_rank: %d, new_world_size: %d\n", current_rank, new_world_size);
@@ -618,19 +619,13 @@ void __fenix_postinit(int *error)
 {
 
     //if (fenix.options.verbose == 9) {
-    //      verbose_print(" postinit: current_rank: %d, role: %d\n", __fenix_get_current_rank(*fenix.new_world),
+    //      verbose_print(" postinit: current_rank: %d, role: %d\n", __fenix_get_current_rank(fenix.new_world),
     //                fenix.role);
         //}
 
-    PMPI_Barrier(*fenix.new_world);
+    PMPI_Barrier(fenix.new_world);
 
-
-    if (fenix.replace_comm_flag == 0) {
-        PMPI_Comm_dup(*fenix.new_world, fenix.user_world);
-        PMPI_Comm_set_errhandler(*fenix.user_world, MPI_ERRORS_RETURN);
-    } else {
-        PMPI_Comm_set_errhandler(*fenix.new_world, MPI_ERRORS_RETURN);
-    }
+    PMPI_Comm_dup(fenix.new_world, fenix.user_world);
 
     if (fenix.repair_result != 0) {
         *error = fenix.repair_result;
@@ -647,7 +642,7 @@ void __fenix_postinit(int *error)
         __fenix_callback_invoke_all(*error);
     }
     if (fenix.options.verbose == 9) {
-        verbose_print("After barrier. current_rank: %d, role: %d\n", __fenix_get_current_rank(*fenix.new_world),
+        verbose_print("After barrier. current_rank: %d, role: %d\n", __fenix_get_current_rank(fenix.new_world),
                       fenix.role);
     }
 }
@@ -659,21 +654,24 @@ void __fenix_finalize()
     // By setting fenix.finalized to 1 we are skipping the longjump
     // after recovery.
     fenix.finalized = 1;
+    
+    //We don't want to handle failures in here as normally, we just want to continue trying to finalize.
+    fenix.ignore_errs = 1;
 
-    int ret = MPI_Barrier( *fenix.new_world );
+    int ret = MPI_Barrier( fenix.new_world );
     if (ret != MPI_SUCCESS) {
         __fenix_finalize();
         return;
     }
 
-    if (__fenix_get_current_rank(*fenix.world) == 0) {
+    if (__fenix_get_current_rank(fenix.world) == 0) {
         int spare_rank;
-        MPI_Comm_size(*fenix.world, &spare_rank);
+        MPI_Comm_size(fenix.world, &spare_rank);
         spare_rank--;
         int a;
         int i;
         for (i = 0; i < fenix.spare_ranks; i++) {
-            int ret = MPI_Send(&a, 1, MPI_INT, spare_rank, 1, *fenix.world);
+            int ret = MPI_Send(&a, 1, MPI_INT, spare_rank, 1, fenix.world);
             if (ret != MPI_SUCCESS) {
                 __fenix_finalize();
                 return;
@@ -682,18 +680,20 @@ void __fenix_finalize()
         }
     }
 
-    ret = MPI_Barrier(*fenix.world);
+    ret = MPI_Barrier(fenix.world);
     if (ret != MPI_SUCCESS) {
         __fenix_finalize();
         return;
     }
     
     MPI_Op_free( &fenix.agree_op );
-    MPI_Comm_set_errhandler( *fenix.world, MPI_ERRORS_ARE_FATAL );
-    MPI_Comm_free( fenix.world );
-    MPI_Comm_free( fenix.new_world );
-    free( fenix.world );
-    free( fenix.new_world );
+    MPI_Comm_set_errhandler( fenix.world, MPI_ERRORS_ARE_FATAL );
+    MPI_Comm_free( &fenix.world );
+    MPI_Comm_free( &fenix.new_world );
+
+    if(fenix.role != FENIX_ROLE_INITIAL_RANK){
+        free(fenix.fail_world);
+    }
 
     /* Free Callbacks */
     __fenix_callback_destroy( fenix.callback_list );
@@ -701,26 +701,18 @@ void __fenix_finalize()
     /* Free data recovery interface */
     __fenix_data_recovery_destroy( fenix.data_recovery );
 
-    /* Free the request store */
-    __fenix_request_store_destroy(&fenix.request_store);
-
     fenix.fenix_init_flag = 0;
 }
 
 void __fenix_finalize_spare()
 {
     fenix.fenix_init_flag = 0;
-    int ret = PMPI_Barrier(*fenix.world);
+    int ret = PMPI_Barrier(fenix.world);
     if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
  
     MPI_Op_free(&fenix.agree_op);
-    MPI_Comm_set_errhandler(*fenix.world, MPI_ERRORS_ARE_FATAL);
-    MPI_Comm_free(fenix.world);
-
-    /* This communicator is invalid for spare processes */
-    /* MPI_Comm_free(fenix.new_world); */ 
-    free(fenix.world);
-    free(fenix.new_world);
+    MPI_Comm_set_errhandler(fenix.world, MPI_ERRORS_ARE_FATAL);
+    MPI_Comm_free(&fenix.world);
 
     /* Free callbacks */
     __fenix_callback_destroy( fenix.callback_list );
@@ -735,50 +727,66 @@ void __fenix_finalize_spare()
     exit(0);
 }
 
-void __fenix_test_MPI(int ret, const char *msg)
+void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 {
+
     int ret_repair;
     int index;
-    if(!fenix.fenix_init_flag || ret == MPI_SUCCESS || __fenix_spare_rank() == 1) {
+    int ret = *pret;
+    if(!fenix.fenix_init_flag || __fenix_spare_rank() == 1 || fenix.ignore_errs) {
         return;
     }
 
     switch (ret) {
     case MPI_ERR_PROC_FAILED:
-        MPIX_Comm_revoke(*fenix.world);
-        MPIX_Comm_revoke(*fenix.new_world);
+        MPIX_Comm_revoke(fenix.world);
+        MPIX_Comm_revoke(fenix.new_world);
 
-        if (fenix.replace_comm_flag == 0) {
-            MPIX_Comm_revoke(*fenix.user_world);
-        }
+        MPIX_Comm_revoke(*fenix.user_world);
 
-        __fenix_request_store_waitall_removeall(&fenix.request_store);
 
         __fenix_comm_list_destroy();
 
         fenix.repair_result = __fenix_repair_ranks();
         break;
     case MPI_ERR_REVOKED:
-        __fenix_request_store_waitall_removeall(&fenix.request_store);
-
         __fenix_comm_list_destroy();
 
         fenix.repair_result = __fenix_repair_ranks();
         break;
     case MPI_ERR_INTERN:
         printf("Fenix detected error: MPI_ERR_INTERN\n");
-    default: 
+    default:
+        if(fenix.print_unhandled){
+            int len;
+            char errstr[MPI_MAX_ERROR_STRING];
+            MPI_Error_string(ret, errstr, &len);
+            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+        }
         return;
         break;
 #ifdef MPICH
-        MPIX_Comm_revoke(*fenix.world);
-        MPIX_Comm_revoke(*fenix.new_world);
+        MPIX_Comm_revoke(fenix.world);
+        MPIX_Comm_revoke(fenix.new_world);
         //MPIX_Comm_revoke(*fenix.user_world);
         fenix.repair_result = __fenix_repair_ranks();
 #endif
     }
 
     fenix.role = FENIX_ROLE_SURVIVOR_RANK;
-    if(!fenix.finalized)
-        longjmp(*fenix.recover_environment, 1);
+    if(!fenix.finalized) {
+        switch(fenix.resume_mode) {
+            case __FENIX_RESUME_AT_INIT:
+                longjmp(*fenix.recover_environment, 1);
+                break;
+            case __FENIX_RESUME_NO_JUMP:
+                *(fenix.ret_role) = FENIX_ROLE_SURVIVOR_RANK;
+                __fenix_postinit(fenix.ret_error);
+                break;
+            default:
+                printf("Fenix detected error: Unknown resume mode\n");
+                assert(false);
+                break;
+        }
+    }
 }

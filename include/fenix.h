@@ -88,6 +88,7 @@ extern "C" {
 #define FENIX_ERROR_SUBSET_STRIDE           -25
 #define FENIX_ERROR_NODATA_FOUND            -30
 #define FENIX_ERROR_INTERN                  -40
+#define FENIX_ERROR_CANCELLED               -50
 #define FENIX_WARNING_SPARE_RANKS_DEPLETED  100
 #define FENIX_WARNING_PARTIAL_RESTORE       101
 
@@ -215,6 +216,10 @@ int Fenix_Data_snapshot_delete(int group_id, int time_stamp);
 int Fenix_Data_group_delete(int group_id);
 
 int Fenix_Data_member_delete(int group_id, int member_id);
+
+int Fenix_Process_fail_list(int** fail_list);
+
+int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }
