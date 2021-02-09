@@ -912,7 +912,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
    __fenix_data_subset_init(1, data_found);
    
    //Don't try to restore if we weren't able to get the relevant data.
-   if(recovery_locally_possible){
+   if(recovery_locally_possible && target_buffer != NULL){
       data_found->specifier = __FENIX_SUBSET_EMPTY;
       
       int oldest_snapshot;
