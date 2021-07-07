@@ -75,7 +75,7 @@
 #include <signal.h>
 #include <libgen.h>
 
-char *logname;
+extern char *logname;
 
 #define LDEBUG(f...)  {LLIND("debug",f);}
 #define LLIND(t,f...) {fprintf(stderr,"%s - %s (%i): %s: \n",logname,__PRETTY_FUNCTION__,getpid(),t); fprintf(stderr,f);}

@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Michael Heroux, and Matthew Whitloc
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -657,6 +657,40 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
     retval = group->vtbl.member_restore(group, memberid, data, maxcount, timestamp, data_found);
+  }
+  return retval;
+}
+
+/**
+ * @brief
+ * @param group_id
+ * @param member_id
+ * @param data
+ * @param max_count
+ * @param time_stamp
+ */
+int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, Fenix_Data_subset* data_found) {
+
+  int retval =  FENIX_SUCCESS;
+  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
+  int member_index = -1;
+
+  if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+
+
+  if (fenix.options.verbose == 25) {
+    verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
+                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                  member_index);
+  }
+
+  if (group_index == -1) {
+    debug_print("ERROR Fenix_Data_member_lrestore: group_id <%d> does not exist\n",
+                groupid);
+    retval = FENIX_ERROR_INVALID_GROUPID;
+  } else {
+    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    retval = group->vtbl.member_lrestore(group, memberid, data, maxcount, timestamp, data_found);
   }
   return retval;
 }

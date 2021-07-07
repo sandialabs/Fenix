@@ -16,7 +16,7 @@ if(BUILD_TESTING)
    add_executable(fenix_subset_createv-debug subset_createv.c)
    target_link_libraries(fenix_subset_createv-debug fenix ${MPI_C_LIBRARIES})
    add_test(NAME subset_createv 
-      COMMAND mpirun -mca mpi_ft_detector_timeout 1 -np 5 fenix_subset_createv-debug 1)
+      COMMAND mpirun --enable-recovery --omca mpi_ft_enable true -np 5 fenix_subset_createv-debug 1)
    set_tests_properties(subset_createv PROPERTIES
       FAIL_REGULAR_EXPRESSION "FAILURE") 
 endif()
