@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Rob Van der Wijngaart, and Michael Heroux
+//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -66,6 +66,8 @@
 #include "fenix_util.h"
 #include <mpi.h>
 #include <mpi-ext.h>
+
+#include <sys/time.h>
 
 int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***argv,
                     int spare_ranks,
@@ -153,8 +155,8 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
                 }
 
             } else {
-                /* No support. Setting it to silent */
-                fenix.print_unhandled = 0;
+                /* No support. Setting it to print errs */
+                fenix.print_unhandled = 1;
             }
         }
     }
@@ -260,7 +262,12 @@ int __fenix_create_new_world()
         }
 
         ret = PMPI_Comm_split(fenix.world, 0, current_rank, &fenix.new_world);
-        if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_split: %d\n", ret); }
+        if (ret != MPI_SUCCESS){
+            int len;
+            char errstr[MPI_MAX_ERROR_STRING];
+            MPI_Error_string(ret, errstr, &len);
+            debug_print("MPI_Comm_split: %s\n", errstr);
+            }
 
     }
     return ret;
@@ -402,7 +409,6 @@ int __fenix_repair_ranks()
                     if(fenix.role != FENIX_ROLE_INITIAL_RANK){
                         free(fenix.fail_world);
                     }
-                    fenix.fail_world = (int *) s_malloc(fenix.fail_world_size * sizeof(int));
                     fenix.fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size,
                                                         fenix.fail_world_size);
 
@@ -426,6 +432,11 @@ int __fenix_repair_ranks()
                     /* Assign new rank for reordering */
                     if (current_rank >= active_ranks) { // reorder ranks
                         int rank_offset = ((world_size - 1) - current_rank);
+                
+                        for(int fail_i = 0; fail_i < fenix.fail_world_size; fail_i++){
+                          if(fenix.fail_world[fail_i] > current_rank) rank_offset--;
+                        }
+
                         if (rank_offset < fenix.fail_world_size) {
                             if (fenix.options.verbose == 11) {
                                 verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
@@ -513,10 +524,15 @@ int __fenix_repair_ranks()
 
             if (current_rank >= active_ranks) { // reorder ranks
                 int rank_offset = ((world_size - 1) - current_rank);
+                
+                for(int fail_i = 0; fail_i < fenix.fail_world_size; fail_i++){
+                  if(fenix.fail_world[fail_i] > current_rank) rank_offset--;
+                }
+
                 if (rank_offset < fenix.fail_world_size) {
                     if (fenix.options.verbose == 2) {
-                        verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
-                                      current_rank, fenix.fail_world[rank_offset]);
+                        verbose_print("reorder ranks; current_rank: %d -> new_rank: %d (offset %d)\n",
+                                      current_rank, fenix.fail_world[rank_offset], rank_offset);
                     }
                     current_rank = fenix.fail_world[rank_offset];
                 }
@@ -587,9 +603,11 @@ int* __fenix_get_fail_ranks(int *survivor_world, int survivor_world_size, int fa
 {
     qsort(survivor_world, survivor_world_size, sizeof(int), __fenix_comparator);
     int failed_pos = 0;
+    
     int *fail_ranks = calloc(fail_world_size, sizeof(int));
+
     int i;
-    for (i = 0; i < survivor_world_size; i++) {
+    for (i = 0; i < survivor_world_size + fail_world_size; i++) {
         if (__fenix_binary_search(survivor_world, survivor_world_size, i) != 1) {
             if (fenix.options.verbose == 14) {
                 verbose_print("fail_rank: %d, fail_ranks[%d]: %d\n", i, failed_pos,
@@ -738,6 +756,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
     }
 
     switch (ret) {
+    case MPI_ERR_PROC_FAILED_PENDING:
     case MPI_ERR_PROC_FAILED:
         MPIX_Comm_revoke(fenix.world);
         MPIX_Comm_revoke(fenix.new_world);
@@ -772,6 +791,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
         fenix.repair_result = __fenix_repair_ranks();
 #endif
     }
+
 
     fenix.role = FENIX_ROLE_SURVIVOR_RANK;
     if(!fenix.finalized) {
