@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        Michael Heroux, and Matthew Whitlock
+//        and Michael Heroux
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)

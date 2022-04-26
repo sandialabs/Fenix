@@ -181,9 +181,6 @@ int Fenix_Data_barrier(int group_id);
 int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer,
                               int max_count, int time_stamp, Fenix_Data_subset* found_data);
 
-int Fenix_Data_member_lrestore(int group_id, int member_id, void *target_buffer,
-                              int max_count, int time_stamp, Fenix_Data_subset* found_data);
-
 int Fenix_Data_member_restore_from_rank(int member_id, void *data, int max_count,
                                         int time_stamp, int group_id,
                                         int source_rank);
