@@ -155,8 +155,8 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
                 }
 
             } else {
-                /* No support. Setting it to print errs */
-                fenix.print_unhandled = 1;
+                /* No support. Setting it to silent */
+                fenix.print_unhandled = 0;
             }
         }
     }
@@ -267,7 +267,7 @@ int __fenix_create_new_world()
             char errstr[MPI_MAX_ERROR_STRING];
             MPI_Error_string(ret, errstr, &len);
             debug_print("MPI_Comm_split: %s\n", errstr);
-            }
+        }
 
     }
     return ret;
@@ -432,7 +432,7 @@ int __fenix_repair_ranks()
                     /* Assign new rank for reordering */
                     if (current_rank >= active_ranks) { // reorder ranks
                         int rank_offset = ((world_size - 1) - current_rank);
-                
+                      
                         for(int fail_i = 0; fail_i < fenix.fail_world_size; fail_i++){
                           if(fenix.fail_world[fail_i] > current_rank) rank_offset--;
                         }
@@ -524,7 +524,7 @@ int __fenix_repair_ranks()
 
             if (current_rank >= active_ranks) { // reorder ranks
                 int rank_offset = ((world_size - 1) - current_rank);
-                
+
                 for(int fail_i = 0; fail_i < fenix.fail_world_size; fail_i++){
                   if(fenix.fail_world[fail_i] > current_rank) rank_offset--;
                 }
