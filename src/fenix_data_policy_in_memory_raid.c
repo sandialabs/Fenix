@@ -88,9 +88,6 @@ int __imr_barrier(fenix_group_t* group);
 int __imr_member_restore(fenix_group_t* group, int member_id,
         void* target_buffer, int max_count, int time_stamp,
         Fenix_Data_subset* data_found);
-int __imr_member_lrestore(fenix_group_t* group, int member_id,
-        void* target_buffer, int max_count, int time_stamp,
-        Fenix_Data_subset* data_found);
 int __imr_member_restore_from_rank(fenix_group_t* group, int member_id,
         void* target_buffer, int max_count, int time_stamp, 
         int source_rank);
@@ -141,7 +138,6 @@ void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm com
    new_group->base.vtbl.snapshot_delete = *__imr_snapshot_delete;
    new_group->base.vtbl.barrier = *__imr_barrier;
    new_group->base.vtbl.member_restore = *__imr_member_restore;
-   new_group->base.vtbl.member_lrestore = *__imr_member_lrestore;
    new_group->base.vtbl.member_restore_from_rank = *__imr_member_restore_from_rank;
    new_group->base.vtbl.member_get_attribute = *__imr_member_get_attribute;
    new_group->base.vtbl.member_set_attribute = *__imr_member_set_attribute;
@@ -158,82 +154,16 @@ void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm com
    MPI_Comm_rank(comm, &my_rank);
 
    if(new_group->raid_mode == 1){
-      //Set up the person who's data I am storing as partner 0
-      //Set up the person who is storing my data as partner 1
       new_group->partners = (int*) malloc(sizeof(int) * 2);
-     
-      //odd-sized groups take some extra handling.
-      bool isOdd = ((comm_size%2) != 0);
       
-      int remaining_size = comm_size;
-      if(isOdd) remaining_size -= 3;
-      
-      //We want to form groups of rank_separation*2 to pair within
-      int n_full_groups = remaining_size / (new_group->rank_separation*2);
-     
-      //We don't always get what we want though, one group may need to be smaller.
-      int mini_group_size = (remaining_size - n_full_groups*new_group->rank_separation*2)/2;
-      
+      //Set up the person who's data I am storing
+      //We need to add comm size to the value since otherwise we might be modding a negative number,
+      //  which is implementation-dependent behavior.
+      new_group->partners[0] = (comm_size + my_rank - new_group->rank_separation)%comm_size;
 
-      int start_rank = mini_group_size + (isOdd?1:0);
-      int mid_rank = comm_size/2; //Only used when isOdd
-      
-      int end_mini_group_start = comm_size-mini_group_size-(isOdd?1:0);
-      int start_mini_group_start = (isOdd?1:0);
-      bool in_start_mini=false, in_end_mini=false;
-
-      if(my_rank >= start_mini_group_start && my_rank < start_mini_group_start+mini_group_size){
-         in_start_mini = true; 
-      } else if(my_rank >= end_mini_group_start && my_rank < comm_size-(isOdd?1:0)){
-          in_end_mini = true;
-      }
-
-      //Allocate the "normal" ranks
-      if(my_rank >= start_rank && my_rank < end_mini_group_start && (!isOdd || my_rank != mid_rank)){
-         //"effective" rank for determining which group I'm in and if I look forward or backward for a partner.
-         int e_rank = my_rank - start_rank;
-         if(isOdd && my_rank > mid_rank) --e_rank; //We skip the middle rank when isOdd
-
-         int my_partner;
-         if(((e_rank/new_group->rank_separation)%2) == 0){
-            //Look forward for partner.
-            my_partner = my_rank + new_group->rank_separation;
-            if(isOdd && my_rank < mid_rank && my_partner >= mid_rank) ++my_partner;
-         } else {
-            my_partner = my_rank - new_group->rank_separation;
-            if(isOdd && my_rank > mid_rank && my_partner <= mid_rank) --my_partner;
-         }
-
-         new_group->partners[0] = my_partner;
-         new_group->partners[1] = my_partner;
-      } else if(in_start_mini) {
-         int e_rank = my_rank - start_mini_group_start;
-         int partner = end_mini_group_start + e_rank;
-         new_group->partners[0] = partner;
-         new_group->partners[1] = partner;
-      } else if(in_end_mini) {
-         int e_rank = my_rank - end_mini_group_start;
-         int partner = start_mini_group_start + e_rank;
-         new_group->partners[0] = partner;
-         new_group->partners[1] = partner;
-      } else { //Only things left are the three ranks that must be paired to handle odd-sized comms
-         if(my_rank == 0){
-            new_group->partners[0] = comm_size-1;
-            new_group->partners[1] = mid_rank; 
-         } else if(my_rank == mid_rank){
-            new_group->partners[0] = 0;
-            new_group->partners[1] = comm_size-1; 
-         } else if(my_rank == comm_size-1){
-            new_group->partners[0] = mid_rank;
-            new_group->partners[1] = 0; 
-         } else {
-            fprintf(stderr, "FENIX_IMR Fatal error: Rank <%d> no partner assigned, this is a bug in IMR!\n", my_rank);
-            *flag = FENIX_ERROR_GROUP_CREATE;
-            return;
-         }
-      }
-
-
+      //Set up the person who is storing my data
+      new_group->partners[1] = (my_rank + new_group->rank_separation)%comm_size;
+   
    } else if(new_group->raid_mode == 5){
       new_group->set_size = policy_vals[2];
       new_group->partners = (int*) malloc(sizeof(int) * new_group->set_size);
@@ -712,7 +642,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
       int my_data_found, partner_data_found;
 
       //We need to know if both partners found their data.
-      //First send to partner 0 and recv from partner 1, then flip.
+      //First send to partner 1 and recv from partner 0, then flip.
       MPI_Sendrecv(&found_member, 1, MPI_INT, group->partners[0], PARTNER_STATUS_TAG,
             &my_data_found, 1, MPI_INT, group->partners[1], PARTNER_STATUS_TAG, 
             group->base.comm, NULL);
@@ -720,63 +650,53 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
             &partner_data_found, 1, MPI_INT, group->partners[0], PARTNER_STATUS_TAG, 
             group->base.comm, NULL);
       
-      if(found_member && partner_data_found && my_data_found){
+      if(found_member && partner_data_found){
          //I have my data, and the person who's data I am backing up has theirs. We're good to go.
          retval = FENIX_SUCCESS;
-      } else if (!found_member && (!my_data_found || !partner_data_found)){
-         //I lost my data, and my partner doesn't have a copy for me to restore from.
-         debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at <%d> or partner(s) <%d> <%d>\n",
-               member_id, group->base.current_rank, group->partners[0], group->partners[1]);
+      } else if (!found_member && !my_data_found) {
+         //I lost my data, and my partner 1 doesn't have a copy for me to restore from.
+         debug_print("ERROR Fenix_Data_member_restore: member_id <%d> does not exist at <%d> or partner <%d>\n",
+               member_id, group->base.current_rank, group->partners[0]);
          
          retval = FENIX_ERROR_INVALID_MEMBERID;
-      } else if(found_member){
-         //My partner(s) need info on this member. This policy does nothing special w/ extra input params, so
+      } else if(found_member && !partner_data_found){
+         //My partner needs info on this member. This policy does nothing special w/ extra input params, so
          //I can just send the basic member metadata.
-         if(!partner_data_found)
-             __fenix_data_member_send_metadata(group->base.groupid, member_id, group->partners[0]);
+         __fenix_data_member_send_metadata(group->base.groupid, member_id, group->partners[0]);
 
          //Now my partner will need all of the entries. First they'll need to know how many snapshots
          //to expect.
-         if(!partner_data_found)
-             MPI_Send((void*) &(group->num_snapshots), 1, MPI_INT, group->partners[0], 
-                   RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
+         MPI_Send((void*) &(group->num_snapshots), 1, MPI_INT, group->partners[0], 
+               RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
 
          //They also need the timestamps for each snapshot, as well as the value for the next.
-         if(!partner_data_found)
-             MPI_Send((void*)mentry->timestamp, group->num_snapshots+1, MPI_INT, group->partners[0],
-                   RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
+         MPI_Send((void*)mentry->timestamp, group->num_snapshots+1, MPI_INT, group->partners[0],
+               RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
 
          for(int snapshot = 0; snapshot < group->num_snapshots; snapshot++){
             //send data region info next
-            if(!partner_data_found)
-                __fenix_data_subset_send(mentry->data_regions + snapshot, group->partners[0], 
-                      __IMR_RECOVER_DATA_REGION_TAG ^ group->base.groupid, group->base.comm);
+            __fenix_data_subset_send(mentry->data_regions + snapshot, group->partners[0], 
+                  __IMR_RECOVER_DATA_REGION_TAG ^ group->base.groupid, group->base.comm);
             
-            size_t size;
-            void* toSend;
             //send my data, to maintain resiliency on my data
-            if(!my_data_found){
-                toSend = __fenix_data_subset_serialize(mentry->data_regions+snapshot, 
-                      mentry->data[snapshot], member_data.datatype_size, member_data.current_count, 
-                      &size);
-                MPI_Send(toSend, member_data.datatype_size*size, MPI_BYTE, group->partners[1], 
-                      RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
-                free(toSend);
-            }
+            size_t size;
+            void* toSend = __fenix_data_subset_serialize(mentry->data_regions+snapshot, 
+                  mentry->data[snapshot], member_data.datatype_size, member_data.current_count, 
+                  &size);
+            MPI_Send(toSend, member_data.datatype_size*size, MPI_BYTE, group->partners[0], 
+                  RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
             
             //send their data
-            if(!partner_data_found){
-                toSend = __fenix_data_subset_serialize(mentry->data_regions+snapshot, 
-                      ((char*)mentry->data[snapshot]) + member_data.datatype_size*member_data.current_count,
-                      member_data.datatype_size, member_data.current_count, &size);
-                MPI_Send(toSend, member_data.datatype_size*size, MPI_BYTE, group->partners[0], 
-                      RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
-                free(toSend);
-            }
+            toSend = __fenix_data_subset_serialize(mentry->data_regions+snapshot, 
+                  ((char*)mentry->data[snapshot]) + member_data.datatype_size*member_data.current_count,
+                  member_data.datatype_size, member_data.current_count, &size);
+            MPI_Send(toSend, member_data.datatype_size*size, MPI_BYTE, group->partners[0], 
+                  RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
             
+            free(toSend);
          }
 
-      } else if(!found_member) {
+      } else if(!found_member && partner_data_found) {
          //I need info on this member.
          fenix_member_entry_packet_t packet;
          __fenix_data_member_recv_metadata(group->base.groupid, group->partners[1], &packet);
@@ -811,13 +731,13 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
             if(recv_size > 0){
                void* recv_buf = malloc(member_data.datatype_size * recv_size);
                //first recieve their data, so store in the resiliency section.
-               MPI_Recv(recv_buf, recv_size*member_data.datatype_size, MPI_BYTE, group->partners[0],
+               MPI_Recv(recv_buf, recv_size*member_data.datatype_size, MPI_BYTE, group->partners[1],
                      RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
                __fenix_data_subset_deserialize(mentry->data_regions + snapshot, recv_buf,
                         ((char*)mentry->data[snapshot]) + member_data.current_count*member_data.datatype_size,
                         member_data.current_count, member_data.datatype_size);
 
-               //Now receive my data.
+               //first recieve their data, so store in the resiliency section.
                MPI_Recv(recv_buf, recv_size*member_data.datatype_size, MPI_BYTE, group->partners[1],
                      RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
                __fenix_data_subset_deserialize(mentry->data_regions + snapshot, recv_buf,
@@ -829,7 +749,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
       }
 
 
-      recovery_locally_possible = found_member || (my_data_found && partner_data_found);
+      recovery_locally_possible = found_member || my_data_found;
       
    } else if (group->raid_mode == 5){
       int* set_results = malloc(sizeof(int) * group->set_size);
@@ -992,7 +912,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
    __fenix_data_subset_init(1, data_found);
    
    //Don't try to restore if we weren't able to get the relevant data.
-   if(recovery_locally_possible && target_buffer != NULL){
+   if(recovery_locally_possible){
       data_found->specifier = __FENIX_SUBSET_EMPTY;
       
       int oldest_snapshot;
@@ -1034,70 +954,6 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
 
 
    return retval;
-}
-
-int __imr_member_lrestore(fenix_group_t* g, int member_id,
-        void* target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found){ 
-   int retval = -1;
-
-   fenix_imr_group_t* group = (fenix_imr_group_t*)g;
-   
-   fenix_imr_mentry_t* mentry;
-   //find_mentry returns the error status. We found the member (and corresponding data) if there are no errors.
-   int found_member = !(__imr_find_mentry(group, member_id, &mentry));
-   
-   if(!found_member){
-      return FENIX_ERROR_INVALID_MEMBERID;
-   }
-
-   int member_data_index = __fenix_search_memberid(group->base.member, member_id);
-   fenix_member_entry_t member_data = group->base.member->member_entry[member_data_index];
-  
-
-
-   int return_found_data;
-   if(data_found == NULL){
-      data_found = (Fenix_Data_subset*) malloc(sizeof(Fenix_Data_subset));
-      return_found_data = 0;
-   } else {
-      return_found_data = 1;   
-   }
-   __fenix_data_subset_init(1, data_found);
-
-   data_found->specifier = __FENIX_SUBSET_EMPTY;
-
-      
-   int oldest_snapshot;
-   for(oldest_snapshot = (mentry->current_head - 1); oldest_snapshot >= 0; oldest_snapshot--){
-      __fenix_data_subset_merge_inplace(data_found, mentry->data_regions + oldest_snapshot);
- 
-      if(__fenix_data_subset_is_full(data_found, member_data.current_count)){
-         //The snapshots have formed a full set of data, not need to add older snapshots.
-         break;
-      }
-   }
- 
-   //If there isn't a full set of data, don't try to pull from nonexistent snapshot.
-   if(oldest_snapshot == -1){
-      oldest_snapshot = 0;
-   }
- 
-   for(int i = oldest_snapshot; i < mentry->current_head; i++){
-      __fenix_data_subset_copy_data(&mentry->data_regions[i], target_buffer,
-            mentry->data[i], member_data.datatype_size, member_data.current_count);
-   }
- 
-   if(__fenix_data_subset_is_full(data_found, member_data.current_count)){
-     retval = FENIX_SUCCESS;
-   } else {
-     retval = FENIX_WARNING_PARTIAL_RESTORE;
-   }
-
-   //Dont forget to clear the commit buffer
-   mentry->data_regions[mentry->current_head].specifier = __FENIX_SUBSET_EMPTY;
-
-   return retval;
-
 }
 
 
