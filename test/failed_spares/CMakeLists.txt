@@ -12,4 +12,4 @@
 add_executable(fenix_failed_spares fenix_failed_spares.c)
 target_link_libraries(fenix_failed_spares fenix ${MPI_C_LIBRARIES})
 add_test(NAME failed_spares 
-  COMMAND mpirun --enable-recovery --omca mpi_ft_enable true -n 6 fenix_failed_spares 3 1 3 4 )
+  COMMAND mpirun --with-ft mpi -n 6 fenix_failed_spares 3 1 3 4 )

@@ -12,4 +12,4 @@ set(CMAKE_BUILD_TYPE Debug)
 add_executable(fenix_issend_test fenix_issend_test.c)
 target_link_libraries(fenix_issend_test fenix ${MPI_C_LIBRARIES})
 
-add_test(NAME issend COMMAND mpirun --enable-recovery --omca mpi_ft_enable true -np 5 fenix_issend_test "1")
+add_test(NAME issend COMMAND mpirun --with-ft mpi -np 5 fenix_issend_test "1")

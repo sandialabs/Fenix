@@ -16,5 +16,5 @@ if(BUILD_TESTING)
    add_executable(fenix_hello_world-debug fenix_hello_world.c)
    target_link_libraries(fenix_hello_world-debug fenix ${MPI_C_LIBRARIES})
    add_test(NAME hello_world 
-      COMMAND mpirun --enable-recovery --omca mpi_ft_enable true -n 3 fenix_hello_world-debug "1")
+      COMMAND mpirun --with-ft mpi -n 3 fenix_hello_world-debug "1")
 endif()
