@@ -8,8 +8,8 @@
 #  directory.
 #
 
-set(CMAKE_BUILD_TYPE Debug)
-add_executable(fenix_issend_test fenix_issend_test.c)
-target_link_libraries(fenix_issend_test fenix ${MPI_C_LIBRARIES})
-
-add_test(NAME issend COMMAND mpirun --enable-recovery --omca mpi_ft_enable true -np 5 fenix_issend_test "1")
+#set(CMAKE_BUILD_TYPE Debug)
+add_executable(fenix_failed_spares fenix_failed_spares.c)
+target_link_libraries(fenix_failed_spares fenix ${MPI_C_LIBRARIES})
+add_test(NAME failed_spares 
+  COMMAND mpirun --enable-recovery --omca mpi_ft_enable true -n 6 fenix_failed_spares 3 1 3 4 )

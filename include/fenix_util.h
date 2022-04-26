@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        and Michael Heroux
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -75,7 +75,7 @@
 #include <signal.h>
 #include <libgen.h>
 
-char *logname;
+extern char *logname;
 
 #define LDEBUG(f...)  {LLIND("debug",f);}
 #define LLIND(t,f...) {fprintf(stderr,"%s - %s (%i): %s: \n",logname,__PRETTY_FUNCTION__,getpid(),t); fprintf(stderr,f);}

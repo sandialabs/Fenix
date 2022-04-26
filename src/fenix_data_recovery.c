@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Michael Heroux, and Matthew Whitloc
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -63,6 +63,7 @@
 #include "fenix_util.h"
 #include "fenix_ext.h"
 
+#include <mpi-ext.h>
 
 /**
  * @brief           create new group or recover group data for lost processes
@@ -583,12 +584,41 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    
-    retval = group->vtbl.commit(group);
-    
-    int min_timestamp;
-    MPI_Allreduce( &(group->timestamp), &min_timestamp, 1, MPI_INT, MPI_MIN,  group->comm );
+   
 
+    //We want to make sure there aren't any revocations and also do a barrier.
+    //Start by disabling Fenix error handling so we don't generate any new revokations here.
+    int old_failure_handling = fenix.ignore_errs;
+    fenix.ignore_errs = 1;
+
+    //We'll use comm_agree as a resilient barrier, which should also give time for
+    //any revocations to propogate
+    int tmp_throwaway = 1;
+    MPIX_Comm_agree(group->comm, &tmp_throwaway);
+    //Now use iprobe to check for revocations.
+    MPI_Status status;
+    int ret = MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, group->comm, 
+                         &tmp_throwaway, &status);
+
+    fenix.ignore_errs = old_failure_handling;
+
+
+    if(ret != MPI_ERR_REVOKED){
+        retval = group->vtbl.commit(group);
+    }
+    
+
+    //Now that we've (hopefully) commited, we want to handle any errors we've
+    //learned about w.r.t failures or revocations. No reason to put handling those off.
+    if(ret != MPI_SUCCESS){
+        retval = ret;
+        //Just re-calling should have Fenix handle things according to whatever method
+        //has been assigned.
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, group->comm, 
+                   &tmp_throwaway, &status);
+    }
+    
+    
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
     }
@@ -627,6 +657,40 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
     retval = group->vtbl.member_restore(group, memberid, data, maxcount, timestamp, data_found);
+  }
+  return retval;
+}
+
+/**
+ * @brief
+ * @param group_id
+ * @param member_id
+ * @param data
+ * @param max_count
+ * @param time_stamp
+ */
+int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, Fenix_Data_subset* data_found) {
+
+  int retval =  FENIX_SUCCESS;
+  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
+  int member_index = -1;
+
+  if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+
+
+  if (fenix.options.verbose == 25) {
+    verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
+                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                  member_index);
+  }
+
+  if (group_index == -1) {
+    debug_print("ERROR Fenix_Data_member_lrestore: group_id <%d> does not exist\n",
+                groupid);
+    retval = FENIX_ERROR_INVALID_GROUPID;
+  } else {
+    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    retval = group->vtbl.member_lrestore(group, memberid, data, maxcount, timestamp, data_found);
   }
   return retval;
 }

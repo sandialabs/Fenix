@@ -44,7 +44,7 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
 //        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
@@ -53,21 +53,95 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_PACKET_H__
-#define __FENIX_DATA_PACKET_H__
+
+#include <fenix.h>
 #include <mpi.h>
+#include <stdio.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <pthread.h>
 
-typedef struct __two_container_packet {
-    size_t count;
-    size_t total_size;
-} fenix_two_container_packet_t;
+const int kKillID = 1;
 
-typedef struct __container_packet {
-    size_t count;
-    size_t total_size;
-    size_t position;
-    size_t num_copies;
-} fenix_container_packet_t;
+void* exitThread(void* should_exit){
+    sleep(1);
+    if( ((int)should_exit) == 1){
+        pid_t pid = getpid();
+        kill(pid, SIGTERM);
+    }
+    return NULL;
+}
+
+int main(int argc, char **argv) {
+
+  if (argc < 3) {
+      printf("Usage: %s <# spare ranks> <fail_rank 1> <fail_rank 2> ... <fail_rank n>\n", *argv);
+      exit(0);
+  }
+
+  int old_world_size, new_world_size = - 1;
+  int old_rank = 1, new_rank = - 1;
+  int spare_ranks = atoi(argv[1]);
+
+  MPI_Init(&argc, &argv);
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Comm world_comm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
+  MPI_Comm_size(world_comm, &old_world_size);
+  MPI_Comm_rank(world_comm, &old_rank);
+ 
+  int should_cancel = 0;
+  for(int i = 2; i < argc; i++){
+    if(atoi(argv[i]) == old_rank) should_cancel = 1;
+  }
+  pthread_t thread_id;
+  pthread_create(&thread_id, NULL, exitThread, (void*)should_cancel);
+
+  int fenix_status;
+  int recovered = 0;
+  MPI_Comm new_comm;
+  int error;
+  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+
+  if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
+    MPI_Comm_size(new_comm, &new_world_size);
+    MPI_Comm_rank(new_comm, &new_rank);
+    recovered = 1;
+  }
+
+  if (recovered == 0) {
+    //Give time for exit thread to work (which needed to give time for fenix init)
+    sleep(2);
+  }
+
+  MPI_Barrier(new_comm);
+
+  char processor_name[MPI_MAX_PROCESSOR_NAME];
+  int name_len;
+  MPI_Get_processor_name(processor_name, &name_len);
+
+  printf("hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active ranks: %d, ranks before process failure: %d\n",
+         processor_name, old_rank, new_rank, new_world_size, old_world_size);
+  
+  int *fails, num_fails;
+  num_fails = Fenix_Process_fail_list(&fails);
+  
+  char fails_str[100];
+  sprintf(fails_str, "Rank %d sees failed processes [", new_rank);
+  for(int i = 0; i < num_fails; i++){
+    sprintf(fails_str, "%s%s%d", fails_str, (i==0 ? "" : ", "), fails[i]);
+  }
+  sprintf(fails_str, "%s]\n", fails_str);
+  printf(fails_str);
 
 
-#endif // FENIX_DATA_PACKET_H
+
+  Fenix_Finalize();
+  pthread_join(thread_id, NULL);
+
+  MPI_Finalize();
+
+  return 0;
+}
