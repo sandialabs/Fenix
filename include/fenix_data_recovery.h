@@ -107,6 +107,8 @@ typedef struct __data_entry_packet {
 } fenix_data_entry_packet_t;
 
 
+int store_counter;
+
 int __fenix_group_create(int, MPI_Comm, int, int, int, void*, int*);
 int __fenix_group_get_redundancy_policy(int, int*, int*, int*);
 int __fenix_member_create(int, int, void *, int, MPI_Datatype);
@@ -120,7 +122,6 @@ int __fenix_data_commit(int, int *);
 int __fenix_data_commit_barrier(int, int *);
 int __fenix_data_barrier(int);
 int __fenix_member_restore(int, int, void *, int, int, Fenix_Data_subset*);
-int __fenix_member_lrestore(int, int, void *, int, int, Fenix_Data_subset*);
 int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
 int __fenix_get_number_of_members(int, int *);
 int __fenix_get_member_at_position(int, int *, int);
