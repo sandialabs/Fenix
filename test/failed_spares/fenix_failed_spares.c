@@ -60,21 +60,29 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <assert.h>
+#include <pthread.h>
 
 const int kKillID = 1;
 
+void* exitThread(void* should_exit){
+    sleep(1);
+    if( ((int)should_exit) == 1){
+        pid_t pid = getpid();
+        kill(pid, SIGTERM);
+    }
+    return NULL;
+}
+
 int main(int argc, char **argv) {
 
-  if (argc < 2) {
-      printf("Usage: %s <# spare ranks> \n", *argv);
+  if (argc < 3) {
+      printf("Usage: %s <# spare ranks> <fail_rank 1> <fail_rank 2> ... <fail_rank n>\n", *argv);
       exit(0);
   }
 
   int old_world_size, new_world_size = - 1;
   int old_rank = 1, new_rank = - 1;
   int spare_ranks = atoi(argv[1]);
-  int buffer;
 
   MPI_Init(&argc, &argv);
 
@@ -83,56 +91,57 @@ int main(int argc, char **argv) {
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   MPI_Comm_size(world_comm, &old_world_size);
   MPI_Comm_rank(world_comm, &old_rank);
-
-  MPI_Info info;
-  MPI_Info_create(&info);
-  MPI_Info_set(info, "FENIX_RESUME_MODE", "NO_JUMP");
+ 
+  int should_cancel = 0;
+  for(int i = 2; i < argc; i++){
+    if(atoi(argv[i]) == old_rank) should_cancel = 1;
+  }
+  pthread_t thread_id;
+  pthread_create(&thread_id, NULL, exitThread, (void*)should_cancel);
 
   int fenix_status;
   int recovered = 0;
   MPI_Comm new_comm;
   int error;
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, info, &error);
+  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
 
-  MPI_Comm_size(new_comm, &new_world_size);
-  MPI_Comm_rank(new_comm, &new_rank);
-
-  if (old_rank == kKillID) {
-    assert(fenix_status == FENIX_ROLE_INITIAL_RANK);
-    pid_t pid = getpid();
-    kill(pid, SIGTERM);
+  if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
+    MPI_Comm_size(new_comm, &new_world_size);
+    MPI_Comm_rank(new_comm, &new_rank);
+    recovered = 1;
   }
 
-  if(new_rank == kKillID) {
-      assert(fenix_status == FENIX_ROLE_RECOVERED_RANK);
-      int rval = 44;
-      MPI_Status status;
-      MPI_Recv(&rval, 1, MPI_INT, kKillID-1, 1, new_comm, &status);
-      assert(rval == 33);
-      printf("Rank %d received new value %d actual value was %d\n", new_rank, rval, 44);
-  }
-  else if(new_rank == kKillID-1) {
-      int sval = 33;
-      MPI_Request req;
-      MPI_Issend(&sval, 1, MPI_INT, kKillID, 1, new_comm, &req);
-      assert(fenix_status == FENIX_ROLE_INITIAL_RANK);
-      MPI_Wait(&req, MPI_STATUS_IGNORE);
-
-      assert(fenix_status == FENIX_ROLE_SURVIVOR_RANK);
-      MPI_Issend(&sval, 1, MPI_INT, kKillID, 1, new_comm, &req);
-      MPI_Wait(&req, MPI_STATUS_IGNORE);
-  }
-  else {
-      assert(fenix_status == FENIX_ROLE_INITIAL_RANK);
-      MPI_Barrier(new_comm);
-      assert(fenix_status == FENIX_ROLE_SURVIVOR_RANK);
+  if (recovered == 0) {
+    //Give time for exit thread to work (which needed to give time for fenix init)
+    sleep(2);
   }
 
   MPI_Barrier(new_comm);
 
+  char processor_name[MPI_MAX_PROCESSOR_NAME];
+  int name_len;
+  MPI_Get_processor_name(processor_name, &name_len);
+
+  printf("hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active ranks: %d, ranks before process failure: %d\n",
+         processor_name, old_rank, new_rank, new_world_size, old_world_size);
+  
+  int *fails, num_fails;
+  num_fails = Fenix_Process_fail_list(&fails);
+  
+  char fails_str[100];
+  sprintf(fails_str, "Rank %d sees failed processes [", new_rank);
+  for(int i = 0; i < num_fails; i++){
+    sprintf(fails_str, "%s%s%d", fails_str, (i==0 ? "" : ", "), fails[i]);
+  }
+  sprintf(fails_str, "%s]\n", fails_str);
+  printf(fails_str);
+
+
+
   Fenix_Finalize();
+  pthread_join(thread_id, NULL);
+
   MPI_Finalize();
 
   return 0;
 }
-

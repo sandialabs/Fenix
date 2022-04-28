@@ -8,8 +8,8 @@
 #  directory.
 #
 
-set(CMAKE_BUILD_TYPE Debug)
-add_executable(fenix_request_cancelled_test fenix_req_cancelled_test.c)
-target_link_libraries(fenix_request_cancelled_test fenix ${MPI_C_LIBRARIES})
-
-add_test(NAME request_cancelled COMMAND mpirun --with-ft mpi -np 5 fenix_request_cancelled_test "1")
+#set(CMAKE_BUILD_TYPE Debug)
+add_executable(fenix_failed_spares fenix_failed_spares.c)
+target_link_libraries(fenix_failed_spares fenix ${MPI_C_LIBRARIES})
+add_test(NAME failed_spares 
+  COMMAND mpirun --with-ft mpi -n 6 fenix_failed_spares 3 1 3 4 )
