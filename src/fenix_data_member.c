@@ -75,7 +75,7 @@ fenix_member_t *__fenix_data_member_init() {
 
   if (fenix.options.verbose == 42) {
     verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
-                    __fenix_get_current_rank(fenix.world), fenix.role, member->count,
+                    __fenix_get_current_rank(fenix.new_world), fenix.role, member->count,
                   member->total_size);
   }
 
@@ -88,7 +88,7 @@ fenix_member_t *__fenix_data_member_init() {
 
     if (fenix.options.verbose == 42) {
       verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                      __fenix_get_current_rank(fenix.world), fenix.role,
+                      __fenix_get_current_rank(fenix.new_world), fenix.role,
                     mentry->memberid, mentry->state);
     }
   }

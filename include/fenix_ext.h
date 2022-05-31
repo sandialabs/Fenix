@@ -90,9 +90,13 @@ typedef struct {
     //fenix_communicator_list_t* communicator_list;  // singly linked list for Fenix resilient communicators
     fenix_debug_opt_t options;    // This is reserved to store the user options
 
-    MPI_Comm world;                 // Duplicate of the MPI communicator provided by user
+    MPI_Comm *world;                 // Duplicate of the MPI communicator provided by user
     MPI_Comm new_world;            // Global MPI communicator identical to g_world but without spare ranks
     MPI_Comm *user_world;           // MPI communicator with repaired ranks
+    //Manage state of the comms. Necessary when failures happen rapidly, mussing up state
+    int new_world_exists, user_world_exists;
+    
+    
     MPI_Op   agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
     
     
