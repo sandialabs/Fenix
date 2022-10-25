@@ -326,8 +326,19 @@ int __fenix_repair_ranks()
     /* current_rank means the global MPI rank before failure */
     current_rank = __fenix_get_current_rank(*fenix.world);
     world_size = __fenix_get_world_size(*fenix.world);
+
+    //Double check that every process is here, not in some local error handling elsewhere.
+    //Assume that other locations will converge here.
+    if(__fenix_spare_rank() != 1){
+    	int location = FENIX_ERRHANDLER_LOC;
+    	do {
+	    location = FENIX_ERRHANDLER_LOC;
+	    MPIX_Comm_agree(*fenix.user_world, &location);
+        } while(location != FENIX_ERRHANDLER_LOC);
+    }
     
     while (!repair_success) {
+	
         repair_success = 1;
         ret = MPIX_Comm_shrink(*fenix.world, &world_without_failures);
         //if (ret != MPI_SUCCESS) { debug_print("MPI_Comm_shrink. repair_ranks\n"); }
@@ -772,13 +783,12 @@ void __fenix_finalize_spare()
     fenix.fenix_init_flag = 0;
 
     /* Future version do not close MPI. Jump to where Fenix_Finalize is called. */
-    //MPI_Finalize();
+    MPI_Finalize();
     exit(0);
 }
 
 void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 {
-
     int ret_repair;
     int index;
     int ret = *pret;

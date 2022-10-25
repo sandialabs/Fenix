@@ -586,39 +586,33 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
    
 
-    //We want to make sure there aren't any revocations and also do a barrier.
-    //Start by disabling Fenix error handling so we don't generate any new revokations here.
+    //We want to make sure there aren't any failed MPI operations (IE unfinished stores)
+    //But we don't want to fail to commit if a failure has happened since a successful store.
     int old_failure_handling = fenix.ignore_errs;
     fenix.ignore_errs = 1;
 
-    //We'll use comm_agree as a resilient barrier, which should also give time for
-    //any revocations to propogate
-    int tmp_throwaway = 1;
-    MPIX_Comm_agree(group->comm, &tmp_throwaway);
-    //Now use iprobe to check for revocations.
-    MPI_Status status;
-    int ret = MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, group->comm, 
-                         &tmp_throwaway, &status);
+    int can_commit = 0;
+
+    //We'll use comm_agree as a resilient barrier
+    //Our error handler also enters an agree, with a unique location bit set.
+    //So if we aren't all here, we've hit an error already.
+
+    int location = FENIX_DATA_COMMIT_BARRIER_LOC;
+    int ret = MPIX_Comm_agree(*fenix.user_world, &location);
+    if(location == FENIX_DATA_COMMIT_BARRIER_LOC) can_commit = 1;
 
     fenix.ignore_errs = old_failure_handling;
 
-
-    if(ret != MPI_ERR_REVOKED){
+    if(can_commit == 1){
         retval = group->vtbl.commit(group);
     }
-    
 
-    //Now that we've (hopefully) commited, we want to handle any errors we've
-    //learned about w.r.t failures or revocations. No reason to put handling those off.
-    if(ret != MPI_SUCCESS){
-        retval = ret;
-        //Just re-calling should have Fenix handle things according to whatever method
-        //has been assigned.
-        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, group->comm, 
-                   &tmp_throwaway, &status);
+    if(can_commit != 1 || ret != MPI_SUCCESS) {
+	//A rank failure has happened, lets trigger error handling if enabled.
+	int throwaway = 1;
+	MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix.user_world);
     }
-    
-    
+
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
     }
