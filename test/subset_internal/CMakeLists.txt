@@ -7,7 +7,6 @@
 #  For more information, see the LICENSE file in the top Fenix
 #  directory.
 #
-set (CMAKE_BUILD_TYPE Debug)
 add_executable(fenix_subset_internal_test fenix_subset_internal_test.c)
 target_link_libraries(fenix_subset_internal_test fenix)
 

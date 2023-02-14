@@ -1,0 +1,6 @@
+add_subdirectory(subset_internal)
+add_subdirectory(subset_merging)
+add_subdirectory(request_tracking)
+add_subdirectory(request_cancelled)
+add_subdirectory(no_jump)
+add_subdirectory(issend)
