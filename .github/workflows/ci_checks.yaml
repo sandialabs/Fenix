@@ -20,9 +20,6 @@ jobs:
           files: |
             .github/docker-compose.yml
           load: true
-      - name: Test open-mpi v5.0.0rc10
-        if: success() || failure()
-        run: docker run fenix:ompi_5rc10
       - name: Test open-mpi v5.0.x
         if: success() || failure()
         run: docker run fenix:ompi_5

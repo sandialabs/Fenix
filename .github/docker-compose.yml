@@ -16,16 +16,16 @@ x-fenix: &fenix
         - type=gha,scope=default,mode=max
 
 services:
-  fenix_ompi_5rc10:
-    <<: *fenix
-    image: "fenix:ompi_5rc10"
-    build: 
-      <<: *fenix-build
-      x-bake:
-        cache-from:
-          - type=gha,scope=ompi_5rc10
-        cache-to:
-          - type=gha,scope=ompi_5rc10,mode=max
+  #fenix_ompi_5rc10:
+  # <<: *fenix
+  # image: "fenix:ompi_5rc10"
+  # build: 
+  #   <<: *fenix-build
+  #   x-bake:
+  #     cache-from:
+  #       - type=gha,scope=ompi_5rc10
+  #     cache-to:
+  #       - type=gha,scope=ompi_5rc10,mode=max
 
   fenix_ompi_5:
     <<: *fenix

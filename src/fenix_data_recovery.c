@@ -190,8 +190,7 @@ int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* poli
  * @param count
  * @param data_type
  */
-int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_Datatype datatype ) {
-
+int __fenix_member_create(int groupid, int memberid, void *data, int count, int datatype_size ) {
   int retval = -1;
   int group_index = __fenix_search_groupid( groupid, fenix.data_recovery );
   int member_index = -1;
@@ -219,9 +218,8 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, MPI_
 
     //First, we'll make a fenix-core member entry, then pass that info to
     //the specific data policy.
-    int member_index = __fenix_find_next_member_position(member);
     fenix_member_entry_t* mentry;
-    mentry = __fenix_data_member_add_entry(member, memberid, data, count, datatype);
+    mentry = __fenix_data_member_add_entry(member, memberid, data, count, datatype_size);
 
     //Pass the info along to the policy
     retval = group->vtbl.member_create(group, mentry);
@@ -924,7 +922,6 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
           retval = FENIX_ERROR_INVALID_ATTRIBUTE_NAME;
         }
 
-        mentry->current_datatype = *((MPI_Datatype *)(attributevalue));
         mentry->datatype_size = my_datatype_size;
         retval = FENIX_SUCCESS;
         break;

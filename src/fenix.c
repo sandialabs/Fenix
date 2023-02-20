@@ -83,7 +83,7 @@ int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, 
 }
 
 int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int count, MPI_Datatype datatype ) {
-    return __fenix_member_create(group_id, member_id, buffer, count, datatype);
+    return __fenix_member_create(group_id, member_id, buffer, count, __fenix_get_size(datatype));
 }
 
 int Fenix_Data_group_get_redundancy_policy( int group_id, int* policy_name, void *policy_value, int *flag ) {
