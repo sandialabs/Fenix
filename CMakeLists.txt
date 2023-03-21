@@ -15,17 +15,44 @@ project(Fenix C)
 set(FENIX_VERSION_MAJOR 1)
 set(FENIX_VERSION_MINOR 0)
 
-option(BUILD_EXAMPLES  "Builds example programs from the examples directory"   OFF)
-option(BUILD_TESTING   "Builds tests and test modes of files"                  OFF)
+option(BUILD_EXAMPLES  "Builds example programs from the examples directory" OFF)
+option(BUILD_TESTING   "Builds tests and test modes of files"                OFF)
 
 #Solves an issue with some system environments putting their MPI headers before
-#the headers CMake includes.
-option(CRAYPE_INC_FIX  "Adds detected MPI headers directly to this project"    ON)
+#the headers CMake includes. Forces non-system MPI headers when incorrect headers
+#detected in include path.
+option(SYSTEM_INC_FIX  "Attempts to force overriding any system MPI headers" ON)
+
 
 find_package(MPI REQUIRED)
 
-add_subdirectory(src)
+if(${SYSTEM_INC_FIX})
+  include(CheckIncludeFile)
+  set(CMAKE_REQUIRED_QUIET ON)
+  check_include_file("mpi.h" MPI_HEADER_CRASH)
+  set(CMAKE_REQUIRED_QUIET OFF)
 
+  if(${MPI_HEADER_CRASH})
+    message(WARNING "Detected system MPI headers, attempting to force use of ${MPI_C_INCLUDE_DIRS}. Set SYSTEM_INC_FIX=OFF to stop this behavior.")
+
+    if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.25")
+      set_target_properties(MPI::MPI_C PROPERTIES SYSTEM "FALSE")
+    else()
+      foreach(MPI_DIR ${MPI_C_INCLUDE_DIRS})
+        if(NOT ("${CMAKE_C_FLAGS}" MATCHES ".* -I${MPI_DIR}.*"))
+          message(STATUS ${MPI_DIR})
+          set(CMAKE_C_FLAGS " -I${MPI_DIR} ${CMAKE_C_FLAGS}" CACHE INTERNAL "Flags to append to build commands for C.")
+        endif()
+      endforeach()
+      set_target_properties(MPI::MPI_C PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "")
+    endif()
+  endif()
+
+endif()
+
+
+
+add_subdirectory(src)
 
 include(CTest)
 list(APPEND MPIEXEC_PREFLAGS "--with-ft;mpi")
@@ -37,6 +64,7 @@ endif()
 if(BUILD_TESTING)
     add_subdirectory(test)
 endif()
+
 
 
 configure_file(
