@@ -286,10 +286,6 @@ int __fenix_create_new_world_from(MPI_Comm from_comm)
         ret = PMPI_Comm_split(from_comm, 0, current_rank, &fenix.new_world);
         fenix.new_world_exists = 1;
         if (ret != MPI_SUCCESS){
-            //int len;
-            //char errstr[MPI_MAX_ERROR_STRING];
-            //MPI_Error_string(ret, errstr, &len);
-            //debug_print("MPI_Comm_split err %d: %s\n", ret, errstr);
             fenix.new_world_exists = 0;
         }
 

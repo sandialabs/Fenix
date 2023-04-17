@@ -17,9 +17,8 @@
 These instructions assume you are in your home directory.
 
 1. Checkout Fenix sources
-   * For example: ` git clone <address of this repo> && cd fenix`
+   * For example: ` git clone <address of this repo> && cd Fenix`
 2. Create a build directory.
-   * For example: ` mkdir build && cd build `
 3. Specify the MPI C compiler to use. [Open MPI 5+](https://github.com/open-mpi/ompi/tree/v5.0.x) is the required version.
    * Check out the CMake documentation for the best information on how to do this, but in general:
       * Set the CC environment variable to the correct `mpicc`,

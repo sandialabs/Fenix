@@ -583,7 +583,6 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
    
-
     //We want to make sure there aren't any failed MPI operations (IE unfinished stores)
     //But we don't want to fail to commit if a failure has happened since a successful store.
     int old_failure_handling = fenix.ignore_errs;
@@ -611,6 +610,7 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
 	MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix.user_world);
     }
 
+    
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
     }
