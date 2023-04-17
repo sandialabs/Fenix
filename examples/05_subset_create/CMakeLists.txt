@@ -11,7 +11,7 @@
 add_executable(subset_create subset_create.c)
 target_link_libraries(subset_create fenix ${MPI_C_LIBRARIES})
 
-if(BUILD_TESTING) 
+if(FENIX_TESTS) 
    add_test(NAME subset_create 
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} subset_create ${MPIEXEC_POSTFLAGS} 1)
    set_tests_properties(subset_create PROPERTIES

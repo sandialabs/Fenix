@@ -11,7 +11,7 @@
 add_executable(fenix_ring fenix_ring.c)
 target_link_libraries(fenix_ring fenix ${MPI_C_LIBRARIES} m )
 
-if(BUILD_TESTING)
+if(FENIX_TESTS)
    add_test(NAME ring 
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} fenix_ring ${MPIEXEC_POSTFLAGS} 1 2)
    set_tests_properties(ring PROPERTIES

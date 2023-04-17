@@ -25,5 +25,5 @@ COPY . ./fenix_src
 COPY --from=0 ompi_install/ /ompi_install/
 ENV PATH="$PATH:/ompi_install/bin"
 RUN mkdir fenix_build fenix_install && cd fenix_build && cmake ../fenix_src -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=/ompi_install/bin/mpicc \
-    -DBUILD_EXAMPLES=ON -DBUILD_TESTING=ON -DCMAKE_INSTALL_PREFIX=../fenix_install -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:OVERSUBSCRIBE" && make install -j8
+    -DFENIX_EXAMPLES=ON -DFENIX_TESTS=ON -DCMAKE_INSTALL_PREFIX=../fenix_install -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:OVERSUBSCRIBE" && make install -j8
 CMD ["sh", "-c", "cd fenix_build && ctest --verbose --timeout 60"]
