@@ -17,17 +17,17 @@
 These instructions assume you are in your home directory.
 
 1. Checkout Fenix sources
-   * For example: ` git clone <address of this repo> `
+   * For example: ` git clone <address of this repo> && cd fenix`
 2. Create a build directory.
-   * For example: ` mkdir -p ~/build/fenix/ && cd ~/build/fenix/ `
+   * For example: ` mkdir build && cd build `
 3. Specify the MPI C compiler to use. [Open MPI 5+](https://github.com/open-mpi/ompi/tree/v5.0.x) is the required version.
-   * To manually indicate which compiler `cmake` should use, set the `MPICC` variable to point to it.
-      * For example: ` export MPICC=~/install/mpi-ulfm/bin/mpicc `
-   * If the `MPICC` environment variable is not there, `cmake` will try to guess where the MPI implementation is. To help, make sure you include the installation directory of MPI in your `PATH`.
-      * For example: ` export PATH=~/install/mpi-ulfm/bin:$PATH `
-4. Run ` cmake <Fenix source directory> ` and ` make `
-   * For example: ` cmake ~/Fenix && make `
-5. For best compatibility with other cmake projects, run ` make install ` and add the install directory to your CMAKE\_PREFIX\_PATH
+   * Check out the CMake documentation for the best information on how to do this, but in general:
+      * Set the CC environment variable to the correct `mpicc`,
+      * Invoke cmake with `-DCMAKE_C_COMPILER=mpicc`,
+      * Add the mpi install directory to CMAKE_PREFIX_PATH (see CMakeLists.txt FENIX_SYSTEM_INC_FIX option).
+   * If you experience segmentation faults during simple MPI function calls, it is likely you have mixed up 
+4. Run ` cmake ../ -DCMAKE_INSTALL_PREFIX=... && make install`
+5. Optionally, add the install prefix to your CMAKE\_PREFIX\_PATHS environment variable, to enable `find_package(fenix)` in your other projects.
 
 
 <pre>

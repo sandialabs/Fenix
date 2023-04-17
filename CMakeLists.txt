@@ -21,17 +21,17 @@ option(FENIX_TESTS       "Builds tests and test modes of files"                O
 #Solves an issue with some system environments putting their MPI headers before
 #the headers CMake includes. Forces non-system MPI headers when incorrect headers
 #detected in include path.
-option(SYSTEM_INC_FIX  "Attempts to force overriding any system MPI headers" ON)
+option(FENIX_SYSTEM_INC_FIX  "Attempts to force overriding any system MPI headers" ON)
 
 
 find_package(MPI REQUIRED)
 
 #If we're using mpicc, we don't need to worry about the includes.
 if("${CMAKE_C_COMPILER}" MATCHES ".*/?mpicc")
-  set(SYSTEM_INC_FIX OFF)
+  set(FENIX_SYSTEM_INC_FIX OFF)
 endif()
 
-if(${SYSTEM_INC_FIX})
+if(${FENIX_SYSTEM_INC_FIX})
   include(CheckIncludeFile)
   set(CMAKE_REQUIRED_QUIET ON)
   check_include_file("mpi.h" MPI_HEADER_CRASH)
