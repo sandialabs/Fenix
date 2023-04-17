@@ -36,7 +36,7 @@ if(${SYSTEM_INC_FIX})
   set(CMAKE_REQUIRED_QUIET ON)
   check_include_file("mpi.h" MPI_HEADER_CRASH)
   set(CMAKE_REQUIRED_QUIET OFF)
-  
+
   if(${MPI_HEADER_CRASH})
     message(WARNING "Detected system MPI headers, attempting to force use of ${MPI_C_INCLUDE_DIRS}. Set SYSTEM_INC_FIX=OFF to stop this behavior.")
 
@@ -54,7 +54,6 @@ if(${SYSTEM_INC_FIX})
   endif()
 
 endif() #SYSTEM_INC_FIX
-
 
 
 add_subdirectory(src)
