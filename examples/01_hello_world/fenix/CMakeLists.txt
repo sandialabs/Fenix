@@ -11,7 +11,7 @@
 add_executable(fenix_hello_world fenix_hello_world.c)
 target_link_libraries(fenix_hello_world fenix ${MPI_C_LIBRARIES})
 
-if(FENIX_TESTS)
+if(BUILD_TESTING)
    add_test(NAME hello_world 
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 3 ${MPIEXEC_PREFLAGS} fenix_hello_world ${MPIEXEC_POSTFLAGS} "1")
 endif()

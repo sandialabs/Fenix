@@ -33,7 +33,7 @@ globals.c
 
 add_library( fenix STATIC ${Fenix_SOURCES})
 
-target_link_libraries(fenix MPI::MPI_C)
+target_link_libraries(fenix PUBLIC MPI::MPI_C)
 
 target_include_directories(fenix 
     PUBLIC  

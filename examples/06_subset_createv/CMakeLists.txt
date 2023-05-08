@@ -11,7 +11,7 @@
 add_executable(subset_createv subset_createv.c)
 target_link_libraries(subset_createv fenix ${MPI_C_LIBRARIES})
 
-if(FENIX_TESTS) 
+if(BUILD_TESTING) 
    add_test(NAME subset_createv 
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} subset_createv ${MPIEXEC_POSTFLAGS} 1)
    set_tests_properties(subset_createv PROPERTIES
