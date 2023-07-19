@@ -707,18 +707,14 @@ void __fenix_postinit(int *error)
 
 void __fenix_finalize()
 {
+    MPI_Barrier(*fenix.user_world);
+
     // Any MPI communication call needs to be protected in case they
     // fail. In that case, we need to recursively call fenix_finalize.
     // By setting fenix.finalized to 1 we are skipping the longjump
     // after recovery.
     fenix.finalized = 1;
     
-    int ret = MPI_Barrier( fenix.new_world );
-    if (ret != MPI_SUCCESS) {
-        __fenix_finalize();
-        return;
-    }
-
     if (__fenix_get_current_rank(*fenix.world) == 0) {
         int spare_rank;
         MPI_Comm_size(*fenix.world, &spare_rank);
@@ -735,7 +731,7 @@ void __fenix_finalize()
         }
     }
 
-    ret = MPI_Barrier(*fenix.world);
+    int ret = MPI_Barrier(*fenix.world);
     if (ret != MPI_SUCCESS) {
         __fenix_finalize();
         return;
