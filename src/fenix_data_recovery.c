@@ -551,10 +551,10 @@ int __fenix_data_commit(int groupid, int *timestamp) {
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
     
-    group->vtbl.commit(group);
-
-    if (group->timestamp +1 -1) group->timestamp++;
+    if (group->timestamp != -1) group->timestamp++;
     else group->timestamp = group->timestart;
+    
+    group->vtbl.commit(group);
     
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
