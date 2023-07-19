@@ -69,7 +69,7 @@ extern "C" {
 #define FENIX_SUCCESS                         0
 #define FENIX_ERROR_UNINITIALIZED            -9
 #define FENIX_ERROR_NOCATEGORY              -10
-#define FENIX_ERROR_CALLBACK_NOT_REGISTERD  -11
+#define FENIX_ERROR_CALLBACK_NOT_REGISTERED -11
 #define FENIX_ERROR_GROUP_CREATE            -12
 #define FENIX_ERROR_MEMBER_CREATE           -13
 #define FENIX_ERROR_COMMIT_BARRIER         -133
@@ -141,6 +141,8 @@ int Fenix_Initialized(int *);
 
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *),
                             void *callback_data);
+
+int Fenix_Callback_pop();
 
 int Fenix_get_number_of_ranks_with_role(int, int *);
 
