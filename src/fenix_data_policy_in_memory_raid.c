@@ -56,6 +56,7 @@
 
 #include <mpi.h>
 #include "fenix.h"
+#include "fenix_ext.h"
 #include "fenix_opt.h"
 #include "fenix_data_subset.h"
 #include "fenix_data_recovery.h"
@@ -123,7 +124,24 @@ typedef struct __fenix_imr_group{
    int entries_count;
    fenix_imr_mentry_t* entries;
    int num_snapshots;
+   int* timestamps;
 } fenix_imr_group_t;
+
+typedef struct __fenix_imr_undo_log{
+  int groupid, memberid;
+} fenix_imr_undo_log_t;
+
+void __imr_sync_timestamps(fenix_imr_group_t* group);
+
+void __imr_undo_restore(MPI_Comm comm, int err, void* data){
+  fenix_imr_undo_log_t* undo_log = (fenix_imr_undo_log_t*)data;
+
+  Fenix_Data_member_delete(undo_log->groupid, undo_log->memberid);
+  
+  free(data);
+  Fenix_Callback_pop(); //Should be this callback itself.
+}
+
 
 void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm comm, 
       int timestart, int depth, void* policy_value, int* flag){
@@ -257,8 +275,11 @@ void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm com
    new_group->entries = 
       (fenix_imr_mentry_t*) malloc(sizeof(fenix_imr_mentry_t) * __FENIX_IMR_DEFAULT_MENTRY_NUM);
    new_group->num_snapshots = 0;
-
-
+   new_group->timestamps = (int*)malloc(sizeof(int)*depth);
+ 
+   new_group->base.comm = comm;
+   new_group->base.current_rank = my_rank;
+   __imr_sync_timestamps(new_group);
    *flag = FENIX_SUCCESS;
 }
 
@@ -370,12 +391,7 @@ int __imr_member_create(fenix_group_t* g, fenix_member_entry_t* mentry){
          //Initialize to smallest # blocks allowed.
          __fenix_data_subset_init(1, new_imr_mentry->data_regions + i);
          new_imr_mentry->data_regions[i].specifier = __FENIX_SUBSET_EMPTY;
-
-        //-1 is not a valid timestamp, use as an indicator that the data isn't valid.
-        new_imr_mentry->timestamp[i] = -1;
       }
-      //The first commit's timestamp is the group's timestart.
-      new_imr_mentry->timestamp[0] = group->base.timestart;
 
       group->entries_count++;
 
@@ -398,7 +414,7 @@ void __imr_member_free(fenix_imr_mentry_t* mentry, int depth){
 }
 
 int __imr_member_delete(fenix_group_t* g, int member_id){
-   int retval = -1;
+   int retval = FENIX_SUCCESS;
    fenix_imr_group_t* group = (fenix_imr_group_t*)g;
    //Find the member first
    fenix_imr_mentry_t *mentry;
@@ -460,9 +476,10 @@ int __imr_member_store(fenix_group_t* g, int member_id,
          void* recv_buf = malloc(serialized_size * member_data->datatype_size);
 
          MPI_Sendrecv(serialized, serialized_size * member_data->datatype_size, MPI_BYTE,
-               group->partners[1], group->base.groupid ^ STORE_PAYLOAD_TAG, recv_buf, 
-               serialized_size * member_data->datatype_size, MPI_BYTE, group->partners[0], 
-               group->base.groupid ^ STORE_PAYLOAD_TAG, group->base.comm, NULL); 
+                        group->partners[1], group->base.groupid ^ STORE_PAYLOAD_TAG, 
+                      recv_buf, serialized_size * member_data->datatype_size, MPI_BYTE, 
+                        group->partners[0], group->base.groupid ^ STORE_PAYLOAD_TAG, 
+                      group->base.comm, NULL); 
 
          //Expand the serialized data out and store into the partner's portion of this data entry.
          __fenix_data_subset_deserialize(&subset_specifier, recv_buf, 
@@ -575,13 +592,18 @@ int __imr_commit(fenix_group_t* g){
    
    fenix_imr_group_t *group = (fenix_imr_group_t*)g;
 
+   if(group->num_snapshots == group->base.depth+1){
+      //Full of timestamps, remove the oldest and proceed as normal.
+      memcpy(group->timestamps, group->timestamps+1, group->base.depth);
+      group->num_snapshots--;
+   }
+   group->timestamps[group->num_snapshots++] = group->base.timestamp;
+
+
    //For each entry id (eid)
    for(int eid = 0; eid < group->entries_count; eid++){ 
       fenix_imr_mentry_t *mentry = &group->entries[eid];
 
-      //Two cases for each member entry: 
-      //    (1) depth has been reached, shift out the oldest commit 
-      //    (2) depth has not been reached, just commit and start filling a new location.
       if(mentry->current_head == group->base.depth + 1){
          //The entry is full, one snapshot should be shifted out.
          
@@ -598,24 +620,11 @@ int __imr_commit(fenix_group_t* g){
 
          mentry->data[group->base.depth + 1] = first_data;
          mentry->data_regions[group->base.depth + 1].specifier = __FENIX_SUBSET_EMPTY;
-         mentry->timestamp[group->base.depth + 1] = mentry->timestamp[group->base.depth] + 1;
-      
-      } else {
-         //The entry is not full, just shift the current head.
-         mentry->current_head++;
-
-         //Everything is initialized to correct values, we just need to provide
-         //the correct timestamp for the next snapshot.
-         mentry->timestamp[mentry->current_head] = mentry->timestamp[mentry->current_head-1] + 1;
-          
-         if(eid == 0){
-            //Only do this once
-            group->num_snapshots++;
-         }
+         mentry->current_head--;
       }
-   }
 
-   group->base.timestamp = group->entries[0].timestamp[group->entries[0].current_head - 1];
+      mentry->timestamp[mentry->current_head++] = group->base.timestamp;
+   }
 
    return to_return;
 }
@@ -698,6 +707,9 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
    int retval = -1;
 
    fenix_imr_group_t* group = (fenix_imr_group_t*)g;
+   //One-time fix after a reinit.
+   if(group->base.timestamp == -1 && group->num_snapshots > 0)
+      group->base.timestamp = group->timestamps[group->num_snapshots-1];
    
    fenix_imr_mentry_t* mentry;
    //find_mentry returns the error status. We found the member (and corresponding data) if there are no errors.
@@ -711,6 +723,8 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
 
    int recovery_locally_possible;
 
+   fenix_imr_undo_log_t* undo_data; //Used for undoing partial restores interrupted by failures.
+
    if(group->raid_mode == 1){
       int my_data_found, partner_data_found;
 
@@ -722,6 +736,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
       MPI_Sendrecv(&found_member, 1, MPI_INT, group->partners[1], PARTNER_STATUS_TAG,
             &partner_data_found, 1, MPI_INT, group->partners[0], PARTNER_STATUS_TAG, 
             group->base.comm, NULL);
+     
       
       if(found_member && partner_data_found && my_data_found){
          //I have my data, and the person who's data I am backing up has theirs. We're good to go.
@@ -737,17 +752,6 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
          //I can just send the basic member metadata.
          if(!partner_data_found)
              __fenix_data_member_send_metadata(group->base.groupid, member_id, group->partners[0]);
-
-         //Now my partner will need all of the entries. First they'll need to know how many snapshots
-         //to expect.
-         if(!partner_data_found)
-             MPI_Send((void*) &(group->num_snapshots), 1, MPI_INT, group->partners[0], 
-                   RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
-
-         //They also need the timestamps for each snapshot, as well as the value for the next.
-         if(!partner_data_found)
-             MPI_Send((void*)mentry->timestamp, group->num_snapshots+1, MPI_INT, group->partners[0],
-                   RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm);
 
          for(int snapshot = 0; snapshot < group->num_snapshots; snapshot++){
             //send data region info next
@@ -788,21 +792,22 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
          __fenix_member_create(group->base.groupid, packet.memberid, NULL, packet.current_count,
                packet.datatype_size);
 
+         //Mark the member for deletion if another failure interrupts recovering fully.
+         undo_data = (fenix_imr_undo_log_t*)malloc(sizeof(fenix_imr_undo_log_t));
+         undo_data->groupid = group->base.groupid;
+         undo_data->memberid = member_id;
+         Fenix_Callback_register(__imr_undo_restore, (void*)undo_data);
+
          __imr_find_mentry(group, member_id, &mentry);
          int member_data_index = __fenix_search_memberid(group->base.member, member_id);
          member_data = group->base.member->member_entry[member_data_index];
-
-         MPI_Recv((void*)&(group->num_snapshots), 1, MPI_INT, group->partners[1],
-               RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
-
+         
          mentry->current_head = group->num_snapshots;
-
-         //We also need to explicitly ask for all timestamps, since user may have deleted some and caused mischief.
-         MPI_Recv((void*)(mentry->timestamp), group->num_snapshots + 1, MPI_INT, group->partners[1],
-               RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
 
          //now recover data.
          for(int snapshot = 0; snapshot < group->num_snapshots; snapshot++){
+            mentry->timestamp[snapshot] = group->timestamps[snapshot];
+
             __fenix_data_subset_free(mentry->data_regions+snapshot);
             __fenix_data_subset_recv(mentry->data_regions+snapshot, group->partners[1],
                   __IMR_RECOVER_DATA_REGION_TAG ^ group->base.groupid, group->base.comm);
@@ -828,11 +833,16 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
                free(recv_buf);
             }
          }
+         
+         //Member restored fully, so we don't need to mark it for undoing on failure.
+         Fenix_Callback_pop();
+         free(undo_data);
       }
 
 
       recovery_locally_possible = found_member || (my_data_found && partner_data_found);
-      
+      if(recovery_locally_possible) retval = FENIX_SUCCESS;
+
    } else if (group->raid_mode == 5){
       int* set_results = malloc(sizeof(int) * group->set_size);
       MPI_Allgather((void*)&found_member, 1, MPI_INT, (void*)set_results, 1, MPI_INT, 
@@ -889,6 +899,13 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
            //We remake the new member just like the user would.
            __fenix_member_create(group->base.groupid, packet.memberid, NULL, packet.current_count,
                  packet.datatype_size);
+
+           //Mark the member for deletion if another failure interrupts recovering fully.
+           undo_data = (fenix_imr_undo_log_t*)malloc(sizeof(fenix_imr_undo_log_t));
+           undo_data->groupid = group->base.groupid;
+           undo_data->memberid = member_id;
+           Fenix_Callback_register(__imr_undo_restore, (void*)undo_data);
+
 
            __imr_find_mentry(group, member_id, &mentry);
            int member_data_index = __fenix_search_memberid(group->base.member, member_id);
@@ -954,6 +971,12 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
                if(i != my_set_rank){
                   offset += parity_size + (i<remainder? 1:0); 
                }
+            }
+
+            if(!found_member){
+               //Member restored fully, so we don't need to mark it for undoing on failure.
+               Fenix_Callback_pop();
+               free(undo_data);
             }
 
          }
@@ -1032,7 +1055,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
    }
 
    //Dont forget to clear the commit buffer
-   mentry->data_regions[mentry->current_head].specifier = __FENIX_SUBSET_EMPTY;
+   if(recovery_locally_possible) mentry->data_regions[mentry->current_head].specifier = __FENIX_SUBSET_EMPTY;
 
 
    return retval;
@@ -1128,9 +1151,76 @@ int __imr_reinit(fenix_group_t* g, int* flag){
     MPI_Comm_create_group(g->comm, set_group, 0, &(group->set_comm));
   }
 
+  __imr_sync_timestamps(group);
+
   *flag = FENIX_SUCCESS;
 
   return FENIX_SUCCESS;
+}
+
+void __imr_sync_timestamps(fenix_imr_group_t* group){
+   int n_snapshots = group->num_snapshots;
+   
+   if(group->raid_mode == 1){
+      int partner_snapshots;
+      MPI_Sendrecv(&n_snapshots,       1, MPI_INT, group->partners[0], 34560,
+                   &partner_snapshots, 1, MPI_INT, group->partners[1], 34560,
+                   group->base.comm, MPI_STATUS_IGNORE);
+      n_snapshots = n_snapshots > partner_snapshots ? n_snapshots : partner_snapshots;
+
+      MPI_Sendrecv(&n_snapshots,       1, MPI_INT, group->partners[1], 34561,
+                   &partner_snapshots, 1, MPI_INT, group->partners[0], 34561,
+                   group->base.comm, MPI_STATUS_IGNORE);
+      n_snapshots = n_snapshots > partner_snapshots ? n_snapshots : partner_snapshots;
+   } else {
+      MPI_Allreduce(MPI_IN_PLACE, &n_snapshots, 1, MPI_INT, MPI_MAX, group->set_comm);
+   }
+
+   bool need_reset = group->num_snapshots != n_snapshots;
+   for(int i = group->num_snapshots; i < n_snapshots; i++) group->timestamps[i] = -1;
+
+   if(group->raid_mode == 1){
+      int* p0_stamps = (int*)malloc(sizeof(int)*n_snapshots);
+      int* p1_stamps = (int*)malloc(sizeof(int)*n_snapshots);
+      
+      MPI_Sendrecv(group->timestamps, n_snapshots, MPI_INT, group->partners[1], 34562,
+                   p0_stamps,         n_snapshots, MPI_INT, group->partners[0], 34562,
+                   group->base.comm, MPI_STATUS_IGNORE);
+      MPI_Sendrecv(group->timestamps, n_snapshots, MPI_INT, group->partners[0], 34563,
+                   p1_stamps,         n_snapshots, MPI_INT, group->partners[1], 34563,
+                   group->base.comm, MPI_STATUS_IGNORE);
+      
+      for(int i = 0; i < n_snapshots; i++){
+         int old_stamp = group->timestamps[i];
+         group->timestamps[i] = group->timestamps[i] > p0_stamps[i] ? group->timestamps[i] : p0_stamps[i];
+         group->timestamps[i] = group->timestamps[i] > p1_stamps[i] ? group->timestamps[i] : p1_stamps[i];
+
+         need_reset |= group->timestamps[i] != old_stamp;
+      }
+      
+      free(p0_stamps);
+      free(p1_stamps);
+   } else {
+      MPI_Allreduce(MPI_IN_PLACE, group->timestamps, n_snapshots, MPI_INT, MPI_MAX, group->set_comm);
+   }
+
+   group->num_snapshots = n_snapshots;
+   if(n_snapshots > 0) group->base.timestamp = group->timestamps[n_snapshots-1];
+   else group->base.timestamp = -1;
+
+   //Now fix members
+   if(need_reset && group->entries_count > 0) {
+      if(fenix.options.verbose == 1){
+         verbose_print("Outdated timestamps on rank %d. All members will require full recovery.\n", 
+                       group->base.current_rank);
+      }
+      //For now, just delete all members and assume partner(s) can 
+      //help me rebuild fully consistent state
+      for(int i = group->entries_count-1; i >= 0; i--){
+         int memberid = group->entries[i].memberid;
+         Fenix_Data_member_delete(group->base.groupid, memberid);
+      }
+   }
 }
 
 int __imr_get_redundant_policy(fenix_group_t* group, int* policy_name, 
