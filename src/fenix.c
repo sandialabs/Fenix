@@ -67,6 +67,10 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callba
     return __fenix_callback_register(recover, callback_data);
 }
 
+int Fenix_Callback_pop() {
+    return __fenix_callback_pop();
+}
+
 int Fenix_Initialized(int *flag) {
     *flag = (fenix.fenix_init_flag) ? 1 : 0;
     return FENIX_SUCCESS;

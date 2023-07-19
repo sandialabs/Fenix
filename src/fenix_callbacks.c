@@ -80,6 +80,19 @@ int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *call
     return error_code;
 }
 
+int __fenix_callback_pop(){
+   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+   if(fenix.callback_list == NULL) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
+   
+   fenix_callback_list_t* old_head = fenix.callback_list;
+   fenix.callback_list = old_head->next;
+
+   free(old_head->callback);
+   free(old_head);
+
+   return FENIX_SUCCESS;
+}
+
 void __fenix_callback_invoke_all(int error)
 {
     fenix_callback_list_t *current = fenix.callback_list;
