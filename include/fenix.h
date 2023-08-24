@@ -105,7 +105,8 @@ extern "C" {
 #define FENIX_DATA_SUBSET_CREATED             2
 
 #define FENIX_ERRHANDLER_LOC		      1
-#define FENIX_DATA_COMMIT_BARRIER_LOC	      2
+#define FENIX_FINALIZE_LOC		      2
+#define FENIX_DATA_COMMIT_BARRIER_LOC	      4
 
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
