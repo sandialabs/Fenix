@@ -209,3 +209,7 @@ int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
     //Request was (potentially) cancelled if ret is MPI_ERR_PROC_FAILED
     return ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED;
 }
+
+int Fenix_Process_detect_failures(int do_recovery){
+    return __fenix_detect_failures(do_recovery); 
+}

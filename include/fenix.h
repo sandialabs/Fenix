@@ -231,6 +231,8 @@ int Fenix_Process_fail_list(int** fail_list);
 
 int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
 
+int Fenix_Process_detect_failures(int do_recovery);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif
