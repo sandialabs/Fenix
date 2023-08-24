@@ -686,6 +686,11 @@ void __fenix_postinit(int *error)
     //                fenix.role);
         //}
 
+    if(fenix.new_world_exists){
+        //Set up dummy irecv to use for checking for failures.
+        MPI_Irecv(&fenix.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
+                  34095347, fenix.new_world, &fenix.check_failures_req);
+    }
 
     if (fenix.repair_result != 0) {
         *error = fenix.repair_result;
@@ -705,6 +710,21 @@ void __fenix_postinit(int *error)
         verbose_print("After barrier. current_rank: %d, role: %d\n", __fenix_get_current_rank(fenix.new_world),
                       fenix.role);
     }
+}
+
+int __fenix_detect_failures(int do_recovery){
+    if(!fenix.new_world_exists) return FENIX_ERROR_UNINITIALIZED;
+
+    int old_ignore_errs = fenix.ignore_errs;
+    fenix.ignore_errs = !do_recovery;
+
+    int req_completed;
+    int ret = MPI_Test(&fenix.check_failures_req, &req_completed, MPI_STATUS_IGNORE);
+
+    if(req_completed) ret = FENIX_ERROR_INTERN;
+    
+    fenix.ignore_errs = old_ignore_errs;
+    return ret;
 }
 
 void __fenix_finalize()
