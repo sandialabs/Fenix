@@ -601,6 +601,8 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     fenix.ignore_errs = old_failure_handling;
 
     if(can_commit == 1){
+        if (group->timestamp != -1) group->timestamp++;
+        else group->timestamp = group->timestart;
         retval = group->vtbl.commit(group);
     }
 
