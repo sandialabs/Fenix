@@ -118,6 +118,8 @@ void __fenix_set_rank_role(int FenixRankRole);
 
 void __fenix_postinit(int *);
 
+int __fenix_detect_failures(int do_recovery);
+
 void __fenix_finalize();
 
 void __fenix_finalize_spare();
