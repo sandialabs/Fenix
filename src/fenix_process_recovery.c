@@ -220,12 +220,14 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
                               __fenix_get_current_rank(*fenix.world), fenix.role);
             }
             __fenix_finalize_spare();
-        } else {
+        } else if(ret == MPI_ERR_REVOKED){
             fenix.repair_result = __fenix_repair_ranks();
             if (fenix.options.verbose == 0) {
                 verbose_print("spare rank exiting from MPI_Recv - repair ranks; rank: %d, role: %d\n",
                               __fenix_get_current_rank(*fenix.world), fenix.role);
             }
+        } else {
+            MPIX_Comm_ack_failed(*fenix.world, __fenix_get_world_size(*fenix.world), &a);
         }
         fenix.role = FENIX_ROLE_RECOVERED_RANK;
     }
@@ -707,35 +709,53 @@ void __fenix_postinit(int *error)
 
 void __fenix_finalize()
 {
-    MPI_Barrier(*fenix.user_world);
+    int location = FENIX_FINALIZE_LOC;
+    MPIX_Comm_agree(*fenix.user_world, &location);
+    if(location != FENIX_FINALIZE_LOC){
+        //Some ranks are in error recovery, so trigger error handling.
+        MPIX_Comm_revoke(*fenix.user_world);
+        MPI_Barrier(*fenix.user_world);
+        
+        //In case no-jump enabled after recovery
+        return __fenix_finalize();
+    }
 
-    // Any MPI communication call needs to be protected in case they
-    // fail. In that case, we need to recursively call fenix_finalize.
-    // By setting fenix.finalized to 1 we are skipping the longjump
-    // after recovery.
-    fenix.finalized = 1;
-    
-    if (__fenix_get_current_rank(*fenix.world) == 0) {
-        int spare_rank;
-        MPI_Comm_size(*fenix.world, &spare_rank);
-        spare_rank--;
-        int a;
-        int i;
-        for (i = 0; i < fenix.spare_ranks; i++) {
-            int ret = MPI_Send(&a, 1, MPI_INT, spare_rank, 1, *fenix.world);
-            if (ret != MPI_SUCCESS) {
-                __fenix_finalize();
-                return;
+    int first_spare_rank = __fenix_get_world_size(*fenix.user_world);
+    int last_spare_rank = __fenix_get_world_size(*fenix.world) - 1;
+
+    //If we've reached here, we will finalized regardless of further errors.
+    fenix.ignore_errs = 1;
+    while(!fenix.finalized){
+        int user_rank = __fenix_get_current_rank(*fenix.user_world);
+
+        if (user_rank == 0) {
+            for (int i = first_spare_rank; i <= last_spare_rank; i++) {
+                //We don't care if a spare failed, ignore return value
+                int unused;
+                MPI_Send(&unused, 1, MPI_INT, i, 1, *fenix.world);
             }
-            spare_rank--;
+        }
+
+        //We need to confirm that rank 0 didn't fail, since it could have
+        //failed before notifying some spares to leave.
+        int need_retry = user_rank == 0 ? 0 : 1;
+        MPIX_Comm_agree(*fenix.user_world, &need_retry);
+        if(need_retry == 1){
+            //Rank 0 didn't contribute, so we need to retry.
+            MPIX_Comm_shrink(*fenix.user_world, fenix.user_world);
+            continue;
+        } else {
+            //If rank 0 did contribute, we know sends made it, and regardless
+            //of any other failures we finalize.
+            fenix.finalized = 1;
         }
     }
 
-    int ret = MPI_Barrier(*fenix.world);
-    if (ret != MPI_SUCCESS) {
-        __fenix_finalize();
-        return;
-    }
+    //Now we do one last agree w/ the spares to let them know they can actually
+    //finalize
+    int unused;
+    MPIX_Comm_agree(*fenix.world, &unused);
+    
     
     MPI_Op_free( &fenix.agree_op );
     MPI_Comm_set_errhandler( *fenix.world, MPI_ERRORS_ARE_FATAL );
@@ -759,8 +779,27 @@ void __fenix_finalize()
 void __fenix_finalize_spare()
 {
     fenix.fenix_init_flag = 0;
-    int ret = PMPI_Barrier(*fenix.world);
-    if (ret != MPI_SUCCESS) { debug_print("MPI_Barrier: %d\n", ret); } 
+
+    int unused;
+    MPI_Request agree_req, recv_req = MPI_REQUEST_NULL;
+
+    MPIX_Comm_iagree(*fenix.world, &unused, &agree_req);
+    while(true){
+        int completed = 0;
+        MPI_Test(&agree_req, &completed, MPI_STATUS_IGNORE);
+        if(completed) break;
+
+        int ret = MPI_Test(&recv_req, &completed, MPI_STATUS_IGNORE);
+        if(completed){
+            //We may get duplicate messages informing us to exit
+            MPI_Irecv(&unused, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, *fenix.world, &recv_req);
+        }
+        if(ret != MPI_SUCCESS){
+            MPIX_Comm_ack_failed(*fenix.world, __fenix_get_world_size(*fenix.world), &unused);
+        }
+    }
+
+    MPI_Cancel(&recv_req);
  
     MPI_Op_free(&fenix.agree_op);
     MPI_Comm_set_errhandler(*fenix.world, MPI_ERRORS_ARE_FATAL);
