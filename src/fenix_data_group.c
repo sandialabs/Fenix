@@ -77,7 +77,7 @@ fenix_data_recovery_t * __fenix_data_recovery_init() {
 
   if (fenix.options.verbose == 41) {
     verbose_print("c-rank: %d, role: %d, g-count: %zu, g-size: %zu\n",
-                    __fenix_get_current_rank(fenix.world), fenix.role, data_recovery->count,
+                    __fenix_get_current_rank(fenix.new_world), fenix.role, data_recovery->count,
                   data_recovery->total_size);
   }
 

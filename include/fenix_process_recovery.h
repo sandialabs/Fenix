@@ -100,6 +100,8 @@ int __fenix_repair_ranks();
 
 int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
 
+int __fenix_callback_pop();
+
 void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
 
 void __fenix_callback_invoke_all(int error);
@@ -115,6 +117,8 @@ int __fenix_get_rank_role();
 void __fenix_set_rank_role(int FenixRankRole);
 
 void __fenix_postinit(int *);
+
+int __fenix_detect_failures(int do_recovery);
 
 void __fenix_finalize();
 
