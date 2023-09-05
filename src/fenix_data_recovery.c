@@ -610,11 +610,23 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     }
 
     if(can_commit != 1 || ret != MPI_SUCCESS) {
-	//A rank failure has happened, lets trigger error handling if enabled.
-	int throwaway = 1;
-	MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix.user_world);
+        //A rank failure has happened, lets trigger error handling if enabled.
+        int throwaway = 1;
+        MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix.user_world);
     }
 
+
+    //Now that we've (hopefully) commited, we want to handle any errors we've
+    //learned about w.r.t failures or revocations. No reason to put handling those off.
+    if(ret != MPI_SUCCESS){
+        retval = ret;
+        //Just re-calling should have Fenix handle things according to whatever method
+        //has been assigned.
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, group->comm, 
+                   &tmp_throwaway, &status);
+    }
+    
+    
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
     }
