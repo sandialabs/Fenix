@@ -23,8 +23,8 @@ These instructions assume you are in your home directory.
    * Check out the CMake documentation for the best information on how to do this, but in general:
       * Set the CC environment variable to the correct `mpicc`,
       * Invoke cmake with `-DCMAKE_C_COMPILER=mpicc`,
-      * Add the mpi install directory to CMAKE_PREFIX_PATH (see CMakeLists.txt FENIX_SYSTEM_INC_FIX option).
-   * If you experience segmentation faults during simple MPI function calls, it is likely you have mixed up 
+      * Add the mpi install directory to CMAKE_PREFIX_PATH.
+   * If you experience segmentation faults during simple MPI function calls, this is often caused by accidentally building against multiple versions of MPI. See the FENIX_SYSTEM_INC_FIX CMake option for a potential fix.
 4. Run ` cmake ../ -DCMAKE_INSTALL_PREFIX=... && make install`
 5. Optionally, add the install prefix to your CMAKE\_PREFIX\_PATHS environment variable, to enable `find_package(fenix)` in your other projects.
 
