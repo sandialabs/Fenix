@@ -303,7 +303,7 @@ void __imr_alloc_data_region(void** region, int raid_mode, int local_data_size, 
       *region = (void*) malloc(2*local_data_size);
    } else if(raid_mode == 5){
       //We need space for our own local data, as well as space for the parity data
-      //We add two just in case the data size isn't evenly divisble by set_size-1
+      //We add two just in case the data size isn't evenly divisible by set_size-1
       //  3 is needed because making the parity one larger on some nodes requires 
       //  extra bits of "data" on the other nodes
       *region = (void*) malloc(local_data_size + local_data_size/(set_size - 1) + 3);
@@ -482,14 +482,14 @@ int __imr_member_store(fenix_group_t* g, int member_id,
          //    all of the data in the corresponding blocks and the parity for those blocks
          //Standard RAID does this by having one disk store parity for a given block instead of data, but this assumes
          //    that there is no benefit to data locality - in our case we want each node to have a local copy of its own 
-         //    data, preferably in a single (virtually) continuous memory range for data movement optomization. So we'll
+         //    data, preferably in a single (virtually) continuous memory range for data movement optimization. So we'll
          //    store the local data, then put 1/N of the parity data at the bottom of the commit.
          //The weirdness comes from the fact that a given node CANNOT contribute to the data being checked for parity which
          //    will be stored on itself. IE, a node cannot save both a portion of the data and the parity for that data portion - 
          //    doing so would mean if that node fails it is as if we lost two nodes for recovery semantics, making every failure
          //    non-recoverable.
          //    This means we need to do an XOR reduction across every node but myself, then store the result on myself - this is 
-         //    a little awkward with MPI's reductions which require full comm participation and do not recieve any information about
+         //    a little awkward with MPI's reductions which require full comm participation and do not receive any information about
          //    the source of a given chunk of data (IE we can't exclude data from node X, as we want to).
          //This is easily doable using MPI send/recvs, but doing it that way neglects all of the data/comm size optimizations,
          //    as well as any block XOR optimizations from MPI's reduction operations.
@@ -683,7 +683,7 @@ int __imr_get_snapshot_at_position(fenix_group_t* g, int position,
       retval = FENIX_ERROR_INVALID_POSITION;
    } else {
       //Each member ought to have the same snapshots, in the same order.
-      //If this isn't true, some other bug has occured. Thus, we will just
+      //If this isn't true, some other bug has occurred. Thus, we will just
       //query the first member.
       *time_stamp = group->entries[0].timestamp[group->entries[0].current_head - 1 - position];
       retval = FENIX_SUCCESS;
@@ -810,7 +810,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
             
             if(recv_size > 0){
                void* recv_buf = malloc(member_data.datatype_size * recv_size);
-               //first recieve their data, so store in the resiliency section.
+               //first receive their data, so store in the resiliency section.
                MPI_Recv(recv_buf, recv_size*member_data.datatype_size, MPI_BYTE, group->partners[0],
                      RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
                __fenix_data_subset_deserialize(mentry->data_regions + snapshot, recv_buf,

@@ -115,13 +115,13 @@ int main(int argc, char **argv) {
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
    failure += test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){2});
    
-   printf("Testing equivalent create subsets in non-overlapping, continous regions: ");
+   printf("Testing equivalent create subsets in non-overlapping, continuous regions: ");
    Fenix_Data_subset_create(1, 22, 25, 5, &sub1);
    Fenix_Data_subset_create(2, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
    failure += test_subset_create(&sub1, &sub2, &sub3, 1, 5, (int[]){12}, (int[]){15}, (int[]){2});
    
-   printf("Testing equivalent create subsets in non-overlapping, non-continous regions: ");
+   printf("Testing equivalent create subsets in non-overlapping, non-continuous regions: ");
    Fenix_Data_subset_create(1, 22, 25, 5, &sub1);
    Fenix_Data_subset_create(1, 12, 15, 5, &sub2);
    __fenix_data_subset_merge(&sub1, &sub2, &sub3);
