@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
 
   /* This is called even for recovered/survived ranks */
   /* If called by SURVIVED ranks, make sure the group has been exist */
-  /* Recovered rank needs to initalize the data                      */
+  /* Recovered rank needs to initialize the data                      */
   Fenix_Data_group_create( my_group, new_comm, my_timestamp, my_depth, FENIX_DATA_POLICY_IN_MEMORY_RAID,
         (int[]){1, num_ranks/2}, &error);
 

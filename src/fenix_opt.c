@@ -74,7 +74,7 @@
 void __fenix_init_opt(int argc, char **argv) {
    int i;
 
-   /* Initalize the value */
+   /* Initialize the value */
 
    fenix.options.verbose = -1;
 

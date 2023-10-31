@@ -523,7 +523,7 @@ void __fenix_data_subset_merge(Fenix_Data_subset* first_subset, Fenix_Data_subse
 }
 
 //Merge second subset into first subset
-//This reasonably assumes both subsets are already intialized.
+//This reasonably assumes both subsets are already initialized.
 void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, Fenix_Data_subset* second_subset){
       
    //Simple cases first

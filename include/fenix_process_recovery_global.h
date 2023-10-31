@@ -70,6 +70,6 @@
 #include "fenix_data_group.h"
 
 
-/* This header file is intended to provide global variable defintiions for fenix_process_recovery.c only */
+/* This header file is intended to provide global variable definitions for fenix_process_recovery.c only */
 
 #endif // __FENIX_PROCES_RECOVERY_GLOBAL_H__

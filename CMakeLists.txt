@@ -58,7 +58,7 @@ endif()
 
 #Helper function for linking with MPI only if needed
 function(linkMPI TOLINK)
-    #We only want to try to find MPI outrselves if it wasn't provided in MPICC by user
+    #We only want to try to find MPI ourselves if it wasn't provided in MPICC by user
     if("a$ENV{MPICC}" STREQUAL "a")
            #find_package(MPI REQUIRED)
            target_link_libraries(${TOLINK} MPI::MPI_C)

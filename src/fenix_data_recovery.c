@@ -587,12 +587,12 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
    
 
     //We want to make sure there aren't any revocations and also do a barrier.
-    //Start by disabling Fenix error handling so we don't generate any new revokations here.
+    //Start by disabling Fenix error handling so we don't generate any new revocations here.
     int old_failure_handling = fenix.ignore_errs;
     fenix.ignore_errs = 1;
 
     //We'll use comm_agree as a resilient barrier, which should also give time for
-    //any revocations to propogate
+    //any revocations to propagate
     int tmp_throwaway = 1;
     MPIX_Comm_agree(group->comm, &tmp_throwaway);
     //Now use iprobe to check for revocations.
@@ -608,7 +608,7 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     }
     
 
-    //Now that we've (hopefully) commited, we want to handle any errors we've
+    //Now that we've (hopefully) committed, we want to handle any errors we've
     //learned about w.r.t failures or revocations. No reason to put handling those off.
     if(ret != MPI_SUCCESS){
         retval = ret;
