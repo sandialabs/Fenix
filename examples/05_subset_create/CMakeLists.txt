@@ -12,11 +12,8 @@ add_executable(subset_create subset_create.c)
 target_link_libraries(subset_create fenix ${MPI_C_LIBRARIES})
 
 if(BUILD_TESTING) 
-   set(CMAKE_BUILD_TYPE Debug)
-   add_executable(fenix_subset_create-debug subset_create.c)
-   target_link_libraries(fenix_subset_create-debug fenix ${MPI_C_LIBRARIES})
    add_test(NAME subset_create 
-      COMMAND mpirun --with-ft mpi -np 5 fenix_subset_create-debug 1)
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} subset_create ${MPIEXEC_POSTFLAGS} 1)
    set_tests_properties(subset_create PROPERTIES
       FAIL_REGULAR_EXPRESSION "FAILURE") 
 endif()

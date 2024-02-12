@@ -703,8 +703,11 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
    //find_mentry returns the error status. We found the member (and corresponding data) if there are no errors.
    int found_member = !(__imr_find_mentry(group, member_id, &mentry));
 
-   int member_data_index = __fenix_search_memberid(group->base.member, member_id);
-   fenix_member_entry_t member_data = group->base.member->member_entry[member_data_index];
+   fenix_member_entry_t member_data;
+   if(found_member){
+      int member_data_index = __fenix_search_memberid(group->base.member, member_id);
+      member_data = group->base.member->member_entry[member_data_index];
+   }
 
    int recovery_locally_possible;
 
@@ -783,12 +786,11 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
          
          //We remake the new member just like the user would.
          __fenix_member_create(group->base.groupid, packet.memberid, NULL, packet.current_count,
-               packet.current_datatype);
+               packet.datatype_size);
 
          __imr_find_mentry(group, member_id, &mentry);
          int member_data_index = __fenix_search_memberid(group->base.member, member_id);
          member_data = group->base.member->member_entry[member_data_index];
-        
 
          MPI_Recv((void*)&(group->num_snapshots), 1, MPI_INT, group->partners[1],
                RECOVER_MEMBER_ENTRY_TAG^group->base.groupid, group->base.comm, NULL);
@@ -886,7 +888,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
            
            //We remake the new member just like the user would.
            __fenix_member_create(group->base.groupid, packet.memberid, NULL, packet.current_count,
-                 packet.current_datatype);
+                 packet.datatype_size);
 
            __imr_find_mentry(group, member_id, &mentry);
            int member_data_index = __fenix_search_memberid(group->base.member, member_id);

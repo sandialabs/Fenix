@@ -39,6 +39,8 @@ examples/05_subset_create/subset_create
 examples/06_subset_createv/subset_createv
 test/request_tracking/fenix_request_tracking_test
 test/request_tracking/fenix_request_tracking_test_nofenix
+build/
+install/
 
 # Other
 *~

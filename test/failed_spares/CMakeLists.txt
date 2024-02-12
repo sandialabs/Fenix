@@ -8,8 +8,8 @@
 #  directory.
 #
 
-#set(CMAKE_BUILD_TYPE Debug)
 add_executable(fenix_failed_spares fenix_failed_spares.c)
-target_link_libraries(fenix_failed_spares fenix ${MPI_C_LIBRARIES})
+target_link_libraries(fenix_failed_spares fenix MPI::MPI_C)
+
 add_test(NAME failed_spares 
-  COMMAND mpirun --with-ft mpi -n 6 fenix_failed_spares 3 1 3 4 )
+  COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} fenix_failed_spares ${MPIEXEC_POSTFLAGS} 3 1 3 4 )

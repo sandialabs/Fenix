@@ -1,0 +1,31 @@
+name: Build & Test
+
+on:
+  push:
+  pull_request_target:
+    types:
+      - opened
+      - synchronized
+      - edited
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - name: Build
+        uses: docker/bake-action@master
+        with:
+          files: |
+            .github/docker-compose.yml
+          load: true
+      - name: Test open-mpi v5.0.x
+        if: success() || failure()
+        run: docker run fenix:ompi_5
+      - name: Test open-mpi main
+        if: success() || failure()
+        run: docker run fenix:ompi_main
+      - name: Test icldisco latest
+        if: success() || failure()
+        run: docker run fenix:icldisco_latest

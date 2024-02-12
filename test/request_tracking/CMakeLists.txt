@@ -8,9 +8,8 @@
 #  directory.
 #
 
-set (CMAKE_BUILD_TYPE Debug)
 add_executable(fenix_request_tracking_test fenix_request_tracking_test.c)
-target_link_libraries(fenix_request_tracking_test fenix ${MPI_C_LIBRARIES})
+target_link_libraries(fenix_request_tracking_test fenix MPI::MPI_C)
 
 add_test(NAME request_tracking 
-   COMMAND mpirun -np 3 fenix_request_tracking_test)
+   COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 3 ${MPIEXEC_PREFLAGS} fenix_request_tracking_test ${MPIEXEC_POSTFLAGS})

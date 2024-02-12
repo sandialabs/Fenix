@@ -101,7 +101,6 @@
 
 
 typedef struct __data_entry_packet {
-    MPI_Datatype datatype;
     int count;
     int datatype_size;
 } fenix_data_entry_packet_t;
@@ -109,7 +108,7 @@ typedef struct __data_entry_packet {
 
 int __fenix_group_create(int, MPI_Comm, int, int, int, void*, int*);
 int __fenix_group_get_redundancy_policy(int, int*, int*, int*);
-int __fenix_member_create(int, int, void *, int, MPI_Datatype);
+int __fenix_member_create(int, int, void *, int, int);
 int __fenix_data_wait(Fenix_Request);
 int __fenix_data_test(Fenix_Request, int *);
 int __fenix_member_store(int, int, Fenix_Data_subset);
