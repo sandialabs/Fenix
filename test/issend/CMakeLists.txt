@@ -9,6 +9,6 @@
 #
 
 add_executable(fenix_issend_test fenix_issend_test.c)
-target_link_libraries(fenix_issend_test fenix MPI::MPI_C)
+target_link_libraries(fenix_issend_test fenix MPI::MPI_CXX)
 
 add_test(NAME issend COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} fenix_issend_test ${MPIEXEC_POSTFLAGS} "1")

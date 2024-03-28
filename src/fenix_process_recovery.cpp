@@ -83,7 +83,7 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
     MPI_Comm_create_errhandler(__fenix_test_MPI, &fenix.mpi_errhandler);
     
-    fenix.world = malloc(sizeof(MPI_Comm));
+    fenix.world = (MPI_Comm *)malloc(sizeof(MPI_Comm));
     MPI_Comm_dup(comm, fenix.world);
     PMPI_Comm_set_errhandler(*fenix.world, fenix.mpi_errhandler);
 
@@ -659,7 +659,7 @@ int* __fenix_get_fail_ranks(int *survivor_world, int survivor_world_size, int fa
     qsort(survivor_world, survivor_world_size, sizeof(int), __fenix_comparator);
     int failed_pos = 0;
     
-    int *fail_ranks = calloc(fail_world_size, sizeof(int));
+    int *fail_ranks = (int *)calloc(fail_world_size, sizeof(int));
 
     int i;
     for (i = 0; i < survivor_world_size + fail_world_size; i++) {
