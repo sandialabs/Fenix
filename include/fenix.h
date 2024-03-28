@@ -61,6 +61,8 @@
 #include <setjmp.h>
 
 #if defined(c_plusplus) || defined(__cplusplus)
+#include "fenix_exception.hpp"
+
 extern "C" {
 #endif
 #include "fenix_data_subset.h"
