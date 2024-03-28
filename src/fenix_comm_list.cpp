@@ -54,83 +54,85 @@
 //@HEADER
 */
 
-#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <fenix.h>
+#include <fenix_process_recovery.h>
+#include <mpi-ext.h>
 
-#include "fenix_comm_list.h"
-#include "fenix_ext.h"
-#include "fenix_process_recovery.h"
-#include "fenix_data_group.h"
-#include "fenix_data_recovery.h"
-#include "fenix_opt.h"
-#include "fenix_util.h"
-#include <mpi.h>
+fenix_comm_list_t my_list = {NULL, NULL};
 
+int __fenix_comm_push(MPI_Comm *comm) {
+  fenix_comm_list_elm_t *current = (fenix_comm_list_elm_t *) malloc(sizeof(fenix_comm_list_elm_t));
+  if (!current) return 0;
+  current->next = NULL;
+  current->comm = comm;
+  if (!my_list.tail) {
+    /* if list was empty, initialize head and tail                             */
+    current->prev = NULL;
+    my_list.head = my_list.tail = current;
+  }
+  else {
+    /* if list was not empty, add element to the head of the list              */
+    current->prev = my_list.head;
+    my_list.head->next = current;
+    my_list.head = current;
+  }
+  return FENIX_SUCCESS;
+}
 
-int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data)
-{
-    int error_code = FENIX_SUCCESS;
-    if (fenix.fenix_init_flag) {
-        fenix_callback_func *fp = s_malloc(sizeof(fenix_callback_func));
-        fp->x = recover;
-        fp->y = callback_data;
-        __fenix_callback_push( &fenix.callback_list, fp);
-    } else {
-        error_code = FENIX_ERROR_UNINITIALIZED;
+int __fenix_comm_delete(MPI_Comm *comm) {
+
+  fenix_comm_list_elm_t *current = my_list.tail;
+  while (current) {
+    if (*(current->comm) == *comm) {
+      if (current != my_list.head && current != my_list.tail) {
+	current->prev->next = current->next;
+        current->next->prev = current->prev;
+      }
+      else if (current == my_list.tail) {
+        if (current->next) {
+          current->next->prev = NULL;
+          my_list.tail = current->next;
+	}
+        else my_list.tail = my_list.head = NULL;
+      }
+      else {
+        if (current->prev) {
+          current->prev->next = NULL;
+          my_list.head = current->prev;
+	}
+        else my_list.tail = my_list.head = NULL;
+      }
+      MPIX_Comm_revoke(*comm);
+      PMPI_Comm_free(comm);
+      free(current);
+      return 1;
     }
-    return error_code;
+    else current = current->next;
+  }
+  /* if we end up here, the requested communicator has not been found */
+  return 0;
 }
+  
 
-int __fenix_callback_pop(){
-   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(fenix.callback_list == NULL) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
-   
-   fenix_callback_list_t* old_head = fenix.callback_list;
-   fenix.callback_list = old_head->next;
-
-   free(old_head->callback);
-   free(old_head);
-
-   return FENIX_SUCCESS;
-}
-
-void __fenix_callback_invoke_all(int error)
-{
-    fenix_callback_list_t *current = fenix.callback_list;
-    while (current != NULL) {
-        (current->callback->x)((MPI_Comm) fenix.new_world, error,
-                               (void *) current->callback->y);
-        current = current->next;
+void __fenix_comm_list_destroy(void) {
+  if (my_list.tail == NULL) {
+    return;
+  }
+  else {
+    fenix_comm_list_elm_t *current = my_list.tail;
+    while (current->next) {
+      fenix_comm_list_elm_t *next = current->next;
+      MPIX_Comm_revoke(*current->comm);
+      PMPI_Comm_free(current->comm);
+      free(current);
+      current = next;
     }
-}
-
-void __fenix_callback_push(fenix_callback_list_t **head, fenix_callback_func *fp)
-{
-    fenix_callback_list_t *callback = malloc(sizeof(fenix_callback_list_t));
-    callback->callback = fp;
-    callback->next = *head;
-    *head = callback;
-}
-
-int __fenix_callback_destroy(fenix_callback_list_t *callback_list)
-{
-    int error_code = FENIX_SUCCESS;
-
-    if ( fenix.fenix_init_flag ) {
-
-        fenix_callback_list_t *current = callback_list;
-
-        while (current != NULL) {
-            fenix_callback_list_t *old;
-            old = current;
-            current = current->next;
-            free( old->callback );
-            free( old );
-        }
-
-    } else {
-        error_code = FENIX_ERROR_UNINITIALIZED;
-    }
-
-    return error_code;
+    MPIX_Comm_revoke(*current->comm);
+    PMPI_Comm_free(current->comm);
+    free(current);
+  }
+  my_list.tail = my_list.head = NULL;
 }
 

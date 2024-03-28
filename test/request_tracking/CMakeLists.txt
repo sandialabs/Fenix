@@ -9,7 +9,7 @@
 #
 
 add_executable(fenix_request_tracking_test fenix_request_tracking_test.c)
-target_link_libraries(fenix_request_tracking_test fenix MPI::MPI_C)
+target_link_libraries(fenix_request_tracking_test fenix MPI::MPI_CXX)
 
 add_test(NAME request_tracking 
    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 3 ${MPIEXEC_PREFLAGS} fenix_request_tracking_test ${MPIEXEC_POSTFLAGS})

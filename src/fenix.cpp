@@ -91,7 +91,7 @@ int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int cou
 }
 
 int Fenix_Data_group_get_redundancy_policy( int group_id, int* policy_name, void *policy_value, int *flag ) {
-    return __fenix_group_get_redundancy_policy( group_id, policy_name, policy_value, flag );
+    return __fenix_group_get_redundancy_policy( group_id, policy_name, (int*)policy_value, flag );
 }
 
 int Fenix_Data_wait(Fenix_Request request) {
