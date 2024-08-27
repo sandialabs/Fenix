@@ -91,13 +91,13 @@ int main(int argc, char **argv) {
     int msg;
     MPI_Status status;
     MPI_Recv(&msg, kCount, MPI_INT, (num_ranks - 1), kTag, MPI_COMM_WORLD, &status); // recv from last rank #
-    printf("Process %d recieved msg %d from process %d\n", rank, msg, num_ranks-1);
+    printf("Process %d received msg %d from process %d\n", rank, msg, num_ranks-1);
   } else {
     int msg;
     MPI_Status status;
     MPI_Recv(&msg, kCount, MPI_INT, rank - 1, kTag, MPI_COMM_WORLD, &status); // recv from prev rank
     MPI_Send(&msg, kCount, MPI_INT, ((rank + 1) % num_ranks), kTag, MPI_COMM_WORLD); // send to next rank
-    printf("Process %d recieved msg %d from process %d\n", rank, msg, rank+1);
+    printf("Process %d received msg %d from process %d\n", rank, msg, rank+1);
   }
 
   MPI_Finalize();

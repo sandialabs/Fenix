@@ -97,7 +97,7 @@ int _verify_subset( double *data, int num_repeats, int start_offset, int end_off
       printf("stride set incorrectly\n");
    }
 
-   /* Itertate over the loop to see if any memory error occurs*/
+   /* Iterate over the loop to see if any memory error occurs*/
    idx = start_offset;
    block_size = end_offset - start_offset;
    for ( i = 0; i < num_repeats; i++ ) {

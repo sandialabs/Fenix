@@ -604,10 +604,11 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
         retval = group->vtbl.commit(group);
     }
 
+
     if(can_commit != 1 || ret != MPI_SUCCESS) {
-	//A rank failure has happened, lets trigger error handling if enabled.
-	int throwaway = 1;
-	MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix.user_world);
+        //A rank failure has happened, lets trigger error handling if enabled.
+        int throwaway = 1;
+        MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix.user_world);
     }
 
     
