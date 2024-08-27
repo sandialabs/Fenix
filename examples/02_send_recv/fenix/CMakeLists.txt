@@ -12,11 +12,8 @@ add_executable(fenix_ring fenix_ring.c)
 target_link_libraries(fenix_ring fenix ${MPI_C_LIBRARIES} m )
 
 if(BUILD_TESTING)
-   set(CMAKE_BUILD_TYPE Debug)
-   add_executable(fenix_ring-debug fenix_ring.c)
-   target_link_libraries(fenix_ring-debug fenix ${MPI_C_LIBRARIES})
    add_test(NAME ring 
-      COMMAND mpirun --with-ft mpi -np 5 fenix_ring-debug 1 2)
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} fenix_ring ${MPIEXEC_POSTFLAGS} 1 2)
    set_tests_properties(ring PROPERTIES
       FAIL_REGULAR_EXPRESSION "FAILURE") 
 endif()

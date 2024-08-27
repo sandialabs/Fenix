@@ -75,7 +75,7 @@ fenix_member_t *__fenix_data_member_init() {
 
   if (fenix.options.verbose == 42) {
     verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
-                    __fenix_get_current_rank(fenix.world), fenix.role, member->count,
+                    __fenix_get_current_rank(fenix.new_world), fenix.role, member->count,
                   member->total_size);
   }
 
@@ -88,7 +88,7 @@ fenix_member_t *__fenix_data_member_init() {
 
     if (fenix.options.verbose == 42) {
       verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                      __fenix_get_current_rank(fenix.world), fenix.role,
+                      __fenix_get_current_rank(fenix.new_world), fenix.role,
                     mentry->memberid, mentry->state);
     }
   }
@@ -141,7 +141,7 @@ int __fenix_find_next_member_position(fenix_member_t *member) {
 }
 
 fenix_member_entry_t* __fenix_data_member_add_entry(fenix_member_t* member, 
-        int memberid, void* data, int count, MPI_Datatype datatype){
+        int memberid, void* data, int count, int datatype_size){
     
     int member_index = __fenix_find_next_member_position(member);
     fenix_member_entry_t* mentry = member->member_entry + member_index;
@@ -150,11 +150,7 @@ fenix_member_entry_t* __fenix_data_member_add_entry(fenix_member_t* member,
     mentry->state = OCCUPIED;
     mentry->user_data = data;
     mentry->current_count = count;
-    mentry->current_datatype = datatype;
-    
-    int dsize;
-    MPI_Type_size(datatype, &dsize);
-    mentry->datatype_size = dsize;
+    mentry->datatype_size = datatype_size;
 
     member->count++;
 
@@ -222,7 +218,6 @@ int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank){
         
         fenix_member_entry_packet_t packet;
         packet.memberid = mentry.memberid;
-        packet.current_datatype = mentry.current_datatype;
         packet.datatype_size = mentry.datatype_size;
         packet.current_count = mentry.current_count;
 

@@ -1,0 +1,6 @@
+add_subdirectory(01_hello_world/fenix)
+add_subdirectory(02_send_recv/fenix)
+add_subdirectory(03_reduce/fenix)
+add_subdirectory(04_Isend_Irecv/fenix)
+add_subdirectory(05_subset_create)
+add_subdirectory(06_subset_createv)

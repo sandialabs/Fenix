@@ -67,7 +67,6 @@ typedef struct __fenix_member_entry {
     int memberid;
     enum states state;
     void *user_data;
-    MPI_Datatype current_datatype;
     int datatype_size;
     int current_count;
 } fenix_member_entry_t;
@@ -80,7 +79,6 @@ typedef struct __fenix_member {
 
 typedef struct __member_entry_packet {
     int memberid;
-    MPI_Datatype current_datatype;
     int datatype_size;
     int current_count;
 } fenix_member_entry_packet_t;
@@ -92,7 +90,7 @@ void __fenix_ensure_member_capacity( fenix_member_t *m );
 void __fenix_ensure_version_capacity_from_member( fenix_member_t *m );
 
 fenix_member_entry_t* __fenix_data_member_add_entry(fenix_member_t* member, 
-        int memberid, void* data, int count, MPI_Datatype datatype);
+        int memberid, void* data, int count, int datatype_size);
 
 int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank);
 int __fenix_data_member_recv_metadata(int groupid, int src_rank, 

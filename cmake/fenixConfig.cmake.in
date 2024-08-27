@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+include("${CMAKE_CURRENT_LIST_DIR}/fenixTargets.cmake")
+
+set(FENIX_SYSTEM_INC_FIX @FENIX_SYSTEM_INC_FIX@)
+if(${FENIX_SYSTEM_INC_FIX})
+  option(FENIX_PROPAGATE_INC_FIX "Attempt overriding system MPI headers in linking projects" @FENIX_PROPAGATE_INC_FIX@)
+  if(${FENIX_PROPAGATE_INC_FIX})
+    include("${CMAKE_CURRENT_LIST_DIR}/systemMPIOverride.cmake")
+  endif()
+endif()

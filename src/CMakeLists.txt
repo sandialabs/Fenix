@@ -11,12 +11,6 @@
 configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
   "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
 
-#configure_file(${CMAKE_SOURCE_DIR}/include/fenix.h
-#  "${CMAKE_BINARY_DIR}/include/fenix.h" COPYONLY)
-
-#configure_file(${CMAKE_SOURCE_DIR}/include/fenix_process_recovery.h
-#  "${CMAKE_BINARY_DIR}/include/fenix_process_recovery.h" COPYONLY)
-
 #include_directories(${CMAKE_CURRENT_BINARY_DIR})
 FILE(GLOB Fenix_HEADERS ${CMAKE_SOURCE_DIR}/include/*.h)
 
@@ -39,25 +33,7 @@ globals.c
 
 add_library( fenix STATIC ${Fenix_SOURCES})
 
-#if("a$ENV{MPICC}" STREQUAL "a")
-#       message("[fenix] MPICC (MPI compiler) environment variable is not defined. Trying to find MPI compiler...")
-#       find_package(MPI REQUIRED)
-#       target_link_libraries(fenix MPI::MPI_C)
-#else()
-#       message("[fenix] MPICC has been passed: $ENV{MPICC}")
-#       set(MPI_C_COMPILER $ENV{MPICC})
-#       SET(CMAKE_C_COMPILER ${MPI_C_COMPILER})
-#endif()
-
-linkMPI(fenix)
-
-target_link_libraries(fenix ${MPI_C_LIBRARIES})
-if(MPI_COMPILE_FLAGS)
-    set_target_properties(fenix PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-endif()
-if(MPI_LINK_FLAGS)
-    set_target_properties(fenix PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-endif()
+target_link_libraries(fenix PUBLIC MPI::MPI_C)
 
 target_include_directories(fenix 
     PUBLIC  
@@ -76,5 +52,3 @@ install(EXPORT fenix
     FILE fenixTargets.cmake
     DESTINATION cmake)
 install(FILES ${Fenix_HEADERS} DESTINATION include)
-
-#target_link_libraries( mpi  )
