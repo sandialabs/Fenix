@@ -69,7 +69,7 @@ extern "C" {
 #define FENIX_SUCCESS                         0
 #define FENIX_ERROR_UNINITIALIZED            -9
 #define FENIX_ERROR_NOCATEGORY              -10
-#define FENIX_ERROR_CALLBACK_NOT_REGISTERD  -11
+#define FENIX_ERROR_CALLBACK_NOT_REGISTERED -11
 #define FENIX_ERROR_GROUP_CREATE            -12
 #define FENIX_ERROR_MEMBER_CREATE           -13
 #define FENIX_ERROR_COMMIT_BARRIER         -133
@@ -105,7 +105,8 @@ extern "C" {
 #define FENIX_DATA_SUBSET_CREATED             2
 
 #define FENIX_ERRHANDLER_LOC		      1
-#define FENIX_DATA_COMMIT_BARRIER_LOC	      2
+#define FENIX_FINALIZE_LOC		      2
+#define FENIX_DATA_COMMIT_BARRIER_LOC	      4
 
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
@@ -141,6 +142,8 @@ int Fenix_Initialized(int *);
 
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *),
                             void *callback_data);
+
+int Fenix_Callback_pop();
 
 int Fenix_get_number_of_ranks_with_role(int, int *);
 
@@ -227,6 +230,8 @@ int Fenix_Data_member_delete(int group_id, int member_id);
 int Fenix_Process_fail_list(int** fail_list);
 
 int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
+
+int Fenix_Process_detect_failures(int do_recovery);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

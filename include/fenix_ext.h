@@ -96,6 +96,9 @@ typedef struct {
     //Manage state of the comms. Necessary when failures happen rapidly, mussing up state
     int new_world_exists, user_world_exists;
     
+    int dummy_recv_buffer;
+    MPI_Request check_failures_req;
+    
     
     MPI_Op   agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
     

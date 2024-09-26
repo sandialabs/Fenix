@@ -67,6 +67,10 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callba
     return __fenix_callback_register(recover, callback_data);
 }
 
+int Fenix_Callback_pop() {
+    return __fenix_callback_pop();
+}
+
 int Fenix_Initialized(int *flag) {
     *flag = (fenix.fenix_init_flag) ? 1 : 0;
     return FENIX_SUCCESS;
@@ -204,4 +208,8 @@ int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
     
     //Request was (potentially) cancelled if ret is MPI_ERR_PROC_FAILED
     return ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED;
+}
+
+int Fenix_Process_detect_failures(int do_recovery){
+    return __fenix_detect_failures(do_recovery); 
 }
