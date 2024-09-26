@@ -483,7 +483,7 @@ int __imr_member_store(fenix_group_t* g, int member_id,
 
          //Expand the serialized data out and store into the partner's portion of this data entry.
          __fenix_data_subset_deserialize(&subset_specifier, recv_buf, 
-               mentry->data[mentry->current_head] + member_data->datatype_size*member_data->current_count,
+               ((uint8_t*)mentry->data[mentry->current_head]) + member_data->datatype_size*member_data->current_count,
                member_data->current_count, member_data->datatype_size);
 
          free(recv_buf);
@@ -537,7 +537,7 @@ int __imr_member_store(fenix_group_t* g, int member_id,
               offset = 0;
             }
 
-            MPI_Reduce((void*)((char*)data_buf) + offset, parity_buf, parity_size + (i < remainder ? 1 : 0), MPI_BYTE,
+            MPI_Reduce((char*)data_buf + offset, parity_buf, parity_size + (i < remainder ? 1 : 0), MPI_BYTE,
                 MPI_BXOR, i, group->set_comm);
             if(i != my_set_rank){
                offset += parity_size + (i < remainder ? 1 : 0);
