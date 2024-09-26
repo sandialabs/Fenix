@@ -66,7 +66,7 @@ const int kKillID = 1;
 
 void* exitThread(void* should_exit){
     sleep(1);
-    if( ((int)should_exit) == 1){
+    if( ((intptr_t)should_exit) == 1){
         pid_t pid = getpid();
         kill(pid, SIGTERM);
     }
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
   MPI_Comm_size(world_comm, &old_world_size);
   MPI_Comm_rank(world_comm, &old_rank);
  
-  int should_cancel = 0;
+  intptr_t should_cancel = 0;
   for(int i = 2; i < argc; i++){
     if(atoi(argv[i]) == old_rank) should_cancel = 1;
   }
