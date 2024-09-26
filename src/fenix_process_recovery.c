@@ -819,7 +819,7 @@ void __fenix_finalize_spare()
         }
     }
 
-    MPI_Cancel(&recv_req);
+    if(recv_req != MPI_REQUEST_NULL) MPI_Cancel(&recv_req);
  
     MPI_Op_free(&fenix.agree_op);
     MPI_Comm_set_errhandler(*fenix.world, MPI_ERRORS_ARE_FATAL);
