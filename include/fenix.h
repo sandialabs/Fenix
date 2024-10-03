@@ -258,6 +258,15 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *),
  */
 int Fenix_Callback_pop();
 
+/**
+ * @brief Check for any failed ranks
+ *
+ * @param[in] do_recovery If true, Fenix will attempt to recover from any detected failures.
+ *   Else, it will ignore any failures and simply return the MPI return code.
+ * @return MPI_SUCCESS if no failures were detected, else the MPI return code.
+ */
+int Fenix_Process_detect_failures(int do_recovery);
+
 //!@unimplemented Returns the number of ranks with a given #Fenix_Rank_role
 int Fenix_get_number_of_ranks_with_role(int, int *);
 
@@ -681,8 +690,6 @@ int Fenix_Data_group_delete(int group_id);
  */
 int Fenix_Data_member_delete(int group_id, int member_id);
 /**@}*/
-
-int Fenix_Process_detect_failures(int do_recovery);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }
