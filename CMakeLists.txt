@@ -17,7 +17,8 @@ set(FENIX_VERSION_MINOR 0)
 
 option(BUILD_EXAMPLES    "Builds example programs from the examples directory" OFF)
 option(BUILD_TESTING     "Builds tests and test modes of files" ON)
-
+option(BUILD_DOCS      "Builds documentation if is doxygen found"              ON)
+option(DOCS_ONLY       "Only build documentation"                              OFF)
 
 #Solves an issue with some system environments putting their MPI headers before
 #the headers CMake includes. Forces non-system MPI headers when incorrect headers
@@ -25,26 +26,68 @@ option(BUILD_TESTING     "Builds tests and test modes of files" ON)
 option(FENIX_SYSTEM_INC_FIX    "Attempts to force overriding any system MPI headers" ON)
 option(FENIX_PROPAGATE_INC_FIX "Attempt overriding system MPI headers in linking projects" ON)
 
-find_package(MPI REQUIRED)
 
-if(${FENIX_SYSTEM_INC_FIX})
-  include(cmake/systemMPIOverride.cmake)
+if(NOT DOCS_ONLY)
+    find_package(MPI REQUIRED)
+
+    if(${FENIX_SYSTEM_INC_FIX})
+      include(cmake/systemMPIOverride.cmake)
+    endif()
+
+    add_subdirectory(src)
+
+    include(CTest)
+    list(APPEND MPIEXEC_PREFLAGS "--with-ft;mpi")
+
+    if(BUILD_EXAMPLES)
+        add_subdirectory(examples)
+    endif()
+
+    if(BUILD_TESTING)
+        add_subdirectory(test)
+    endif()
+
 endif()
 
+if(BUILD_DOCS)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        list(APPEND DOXYGEN_EXAMPLE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/examples)
+        list(APPEND DOXYGEN_EXAMPLE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/doc/examples)
+        list(APPEND DOXYGEN_IMAGE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/doc/img)
+        set(DOXYGEN_USE_MDFILE_AS_MAINPAGE doc/Introduction.md)
+        set(DOXYGEN_TOC_INCLUDE_HEADINGS 0)
+        set(DOXYGEN_DISABLE_INDEX YES)
+        set(DOXYGEN_GENERATE_TREEVIEW YES)
+        set(DOXYGEN_FULL_SIDEBAR NO)
+        set(DOXYGEN_HTML_EXTRA_STYLESHEET ${CMAKE_CURRENT_SOURCE_DIR}/doc/DoxygenStyle.css)
+        set(DOXYGEN_LAYOUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/doc/DoxygenLayout.xml)
+        set(DOXYGEN_OUTPUT_DIRECTORY doc)
 
-add_subdirectory(src)
+        set(DOXYGEN_GENERATE_MAN YES)
+        set(DOXYGEN_GENERATE_HTML YES)
+        set(DOXYGEN_GENERATE_LATEX YES)
 
+        set(DOXYGEN_QUIET YES)
+        set(DOXYGEN_WARN_IF_UNDOCUMENTED NO)
+        set(DOXYGEN_WARN_IF_DOC_ERROR YES)
+        set(DOXYGEN_WARN_NO_PARAMDOC YES)
+        set(DOXYGEN_SHOW_INCLUDE_FILES NO)
+        set(DOXYGEN_WARN_IF_UNDOC_ENUM_VAL NO)
+        list(APPEND DOXYGEN_ALIASES "returnstatus=@return FENIX_SUCCESS if successful, any [return code](@ref ReturnCodes) otherwise.")
+        list(APPEND DOXYGEN_ALIASES "unimplemented=@qualifier UNIMPLEMENTED @brief @htmlonly <span class=\\\"mlabel\\\"> @endhtmlonly UNIMPLEMENTED @htmlonly </span> @endhtmlonly")
 
-include(CTest)
-list(APPEND MPIEXEC_PREFLAGS "--with-ft;mpi")
+        doxygen_add_docs(doc 
+            doc/Introduction.md doc/fake_init.h include src
+            ALL
+            COMMENT "Generate Fenix documentation")
+        message(STATUS "Run `make doc` to build documentation")
+        
+        install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc DESTINATION ${CMAKE_INSTALL_PREFIX})
 
-if(BUILD_EXAMPLES)
-    add_subdirectory(examples)
-endif()
-
-
-if(BUILD_TESTING)
-    add_subdirectory(test)
+    else()
+        message(STATUS "Doxygen not found, `make docs` disabled")
+    endif()
 endif()
 
 

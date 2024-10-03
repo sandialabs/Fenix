@@ -1,0 +1,41 @@
+/*Move qualifiers (e.g. collective, unimplemented) to being above function name instead of bottom right*/
+/*  It's too easy to miss as-is, especially the unimplemented tag.*/
+table.mlabels {
+  direction: rtl;
+  writing-mode: vertical-rl;
+}
+/*Undo the weird writing-mode changes at each mlabels table member*/
+table.mlabels td.mlabels-right {
+  writing-mode: horizontal-tb;
+  text-align: left;
+  width: auto;
+}
+table.mlabels td.mlabels-left {
+  writing-mode: horizontal-tb;
+  text-align: left;
+  width: auto;
+}
+/*Undo the table direction change in the subtable of function parameters*/
+table.mlabels table.memname {
+  float: left;
+  direction: ltr;
+}
+
+/*Make the qualifier labels slightly larger, and bold.*/
+table.mlabels td.mlabels-right span.mlabel {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+
+/*
+ * Hide the "UNIMPLEMENTED" tag within the function's detailed description
+ * It's visible already.
+*/
+div.memdoc span.mlabel {
+  display: none;
+}
+
+table.params {
+  word-wrap: break-all;
+}
