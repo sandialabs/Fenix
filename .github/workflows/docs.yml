@@ -1,0 +1,40 @@
+name: Publish GH Pages
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - doxygen # TODO: Remove after testing
+
+#Only one of this workflow runs at a time
+concurrency:
+  group: docs
+  cancel-in-progress: true
+
+jobs:
+  build-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Build pages
+        run: /bin/bash .github/scripts/build-gh-pages.sh
+
+      - name: Upload documentation artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.DOCS_DIR }}
+
+  deploy-docs:
+    needs: build-pages
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy documentation to GH Pages
+        uses: actions/deploy-pages@v4
+
