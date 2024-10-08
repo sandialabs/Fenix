@@ -1,0 +1,35 @@
+spack:
+  packages:
+    openmpi:
+      variants: +internal-hwloc +internal-libevent +internal-pmix
+  concretizer:
+    unify: true
+    reuse: true
+
+  container:
+    format: docker
+    strip: false
+    images:
+      os: ubuntu:22.04
+      spack: latest
+    os_packages:
+      build:
+        - build-essential
+        - autotools-dev
+        - libevent-dev
+        - pkg-config
+        - python3
+        - m4
+        - autoconf
+        - automake
+        - libtool
+        - flex
+        - git
+        - zlib1g-dev
+        - openssh-server
+        - libperl-dev
+        - pkg-config
+        - numactl
+      final:
+        - build-essential
+        - cmake

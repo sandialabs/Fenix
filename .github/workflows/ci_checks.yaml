@@ -12,20 +12,33 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - name: Build
-        uses: docker/bake-action@master
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Bootstrap the environment Dockerfile
+        uses: docker/bake-action@v5
         with:
-          files: |
-            .github/docker-compose.yml
+          files: .github/docker-compose.yml
           load: true
-      - name: Test open-mpi v5.0.x
-        if: success() || failure()
-        run: docker run fenix:ompi_5
-      - name: Test open-mpi main
-        if: success() || failure()
-        run: docker run fenix:ompi_main
-      - name: Test icldisco latest
-        if: success() || failure()
-        run: docker run fenix:icldisco_latest
+          target: bootstrap
+
+      - name: Build the environment
+        uses: docker/bake-action@v5
+        with:
+          files: .github/docker-compose.yml
+          load: true
+          target: env
+
+      - name: Build Fenix
+        uses: docker/bake-action@v5
+        with:
+          source: .
+          files: .github/docker-compose.yml
+          load: true
+          target: fenix
+
+      - name: Test Fenix
+        run: docker run local/fenix
