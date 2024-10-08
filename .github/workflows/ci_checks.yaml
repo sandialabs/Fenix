@@ -1,7 +1,6 @@
 name: Build & Test
 
 on:
-  push:
   pull_request_target:
     types:
       - opened
@@ -23,14 +22,14 @@ jobs:
         with:
           files: .github/docker-compose.yml
           load: true
-          target: bootstrap
+          targets: bootstrap
 
       - name: Build the environment
         uses: docker/bake-action@v5
         with:
           files: .github/docker-compose.yml
           load: true
-          target: env
+          targets: env
 
       - name: Build Fenix
         uses: docker/bake-action@v5
@@ -38,7 +37,7 @@ jobs:
           source: .
           files: .github/docker-compose.yml
           load: true
-          target: fenix
+          targets: fenix
 
       - name: Test Fenix
         run: docker run local/fenix
