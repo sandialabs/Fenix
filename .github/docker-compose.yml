@@ -7,7 +7,7 @@ services:
         VOLUME /configs
         ARG ompi_version
         ENV ompi_version=$$ompi_version
-        CMD cp /configs/spack.yaml . && \
+        CMD ls . && ls / && ls /configs && cp /configs/spack.yaml . && \
             spack -e . add openmpi@$${ompi_version} && \
             spack -e . containerize >/configs/spack.Dockerfile
       args:
