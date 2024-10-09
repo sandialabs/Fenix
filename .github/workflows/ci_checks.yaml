@@ -36,7 +36,7 @@ jobs:
           load: true
           targets: env
           workdir: .
-          set: env.image.name=local/env
+          set: env.tags=local/env:latest
 
       - name: Build Fenix
         uses: docker/bake-action@v5
