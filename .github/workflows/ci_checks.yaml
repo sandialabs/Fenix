@@ -27,7 +27,7 @@ jobs:
           workdir: .
       
       - name: Bootstrap the environment Dockerfile
-        run: docker run -v .github:/config local/bootstrap
+        run: docker run -v ${GITHUB_WORKSPACE}/.github:/config local/bootstrap
 
       - name: Build the environment
         uses: docker/bake-action@v5
