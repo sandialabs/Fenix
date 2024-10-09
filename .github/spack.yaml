@@ -27,6 +27,7 @@ spack:
         - git
         - zlib1g-dev
         - openssh-server
+        - openssl
         - libperl-dev
         - pkg-config
         - numactl
