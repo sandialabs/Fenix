@@ -18,13 +18,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Bootstrap the environment Dockerfile
+      - name: Bake the bootstrap docker image
         uses: docker/bake-action@v5
         with:
           files: .github/docker-compose.yml
           load: true
           targets: bootstrap
           workdir: .
+      
+      - name: Bootstrap the environment Dockerfile
+        run: docker run local/bootstrap
 
       - name: Build the environment
         uses: docker/bake-action@v5
