@@ -24,6 +24,7 @@ jobs:
           files: .github/docker-compose.yml
           load: true
           targets: bootstrap
+          workdir: .
 
       - name: Build the environment
         uses: docker/bake-action@v5
@@ -31,6 +32,7 @@ jobs:
           files: .github/docker-compose.yml
           load: true
           targets: env
+          workdir: .
 
       - name: Build Fenix
         uses: docker/bake-action@v5
@@ -39,6 +41,7 @@ jobs:
           files: .github/docker-compose.yml
           load: true
           targets: fenix
+          workdir: .
 
       - name: Test Fenix
         run: docker run local/fenix
