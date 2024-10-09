@@ -33,10 +33,9 @@ jobs:
         uses: docker/bake-action@v5
         with:
           files: .github/docker-compose.yml
-          load: true
           targets: env
           workdir: .
-          set: env.tags=local/env:latest
+          set: env.output=type=docker,name=<image>
 
       - name: Build Fenix
         uses: docker/bake-action@v5
