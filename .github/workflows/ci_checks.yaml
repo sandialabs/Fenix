@@ -25,9 +25,9 @@ jobs:
           targets: bootstrap
           workdir: .
           set: |
-            *.output=type=docker,name=<image>
-            *.cache-from=type=gha,scope=<image>
-            *.cache-to=type=gha,mode=max,scope=<image>
+            *.output=type=docker,name=local/bootstrap
+            *.cache-from=type=gha,scope=local/bootstrap
+            *.cache-to=type=gha,mode=max,scope=local/bootstrap
       
       - name: Bootstrap the environment Dockerfile
         run: docker run -v ${GITHUB_WORKSPACE}/.github:/configs local/bootstrap
@@ -39,9 +39,9 @@ jobs:
           targets: env
           workdir: .
           set: |
-            *.output=type=docker,name=<image>
-            *.cache-from=type=gha,scope=<image>
-            *.cache-to=type=gha,mode=max,scope=<image>
+            *.output=type=docker,name=local/env
+            *.cache-from=type=gha,scope=local/env
+            *.cache-to=type=gha,mode=max,scope=local/env
 
       - name: Build Fenix
         uses: docker/bake-action@v5
@@ -51,9 +51,8 @@ jobs:
           targets: fenix
           workdir: .
           set: |
-            *.output=type=docker,name=<image>
-            *.cache-from=type=gha,scope=<image>
-            *.cache-to=type=gha,mode=max,scope=<image>
+            *.output=type=docker,name=local/fenix
+            *.cache-from=type=gha,scope=local/env
 
       - name: Test Fenix
         run: docker run local/fenix
