@@ -7,9 +7,10 @@ services:
         VOLUME /configs
         ARG ompi_version
         ENV ompi_version=$$ompi_version
-        CMD ls . && ls / && ls /configs && cp /configs/spack.yaml . && \
+        CMD cp /configs/spack.yaml . && \
             spack -e . add openmpi@$${ompi_version} && \
-            spack -e . containerize >/configs/spack.Dockerfile
+            spack -e . containerize >/configs/spack.Dockerfile && \
+            sed -i -e 's/spack install/spack externals find --all \&\& spack install/;' /configs/spack.Dockerfile
       args:
         ompi_version: main
       no_cache: true
