@@ -3,7 +3,7 @@ services:
     image: "local/bootstrap"
     build:
       dockerfile_inline: |
-        FROM spack/ubuntu-focal:0.21.3
+        FROM spack/ubuntu-jammy:latest
         VOLUME /configs
         ARG ompi_version
         ENV ompi_version=$$ompi_version
