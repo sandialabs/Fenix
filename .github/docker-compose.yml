@@ -33,7 +33,6 @@ services:
         COPY . /fenix
         RUN . /opt/spack-environment/activate.sh && \
             mkdir -p /fenix/build && \
-            rm -r /fenix/build/* && \
             cd /fenix/build && \
             cmake /fenix \
                 -DCMAKE_BUILD_TYPE=Release \
