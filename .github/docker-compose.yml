@@ -3,14 +3,14 @@ services:
     image: "bootstrap"
     build:
       dockerfile_inline: |
-        FROM spack/ubuntu-jammy:latest
+        FROM spack/ubuntu-jammy:0.22.2
         VOLUME /configs
         ARG OMPI_VERSION
         ENV OMPI_VERSION=$${OMPI_VERSION}
         CMD cp /configs/spack.yaml . && \
             spack -e . add openmpi@$${OMPI_VERSION} && \
             spack -e . containerize >/configs/spack.Dockerfile && \
-            sed -i -e 's/spack install/spack external find --all --not-buildable \&\& spack install/;' /configs/spack.Dockerfile
+            sed -i -e 's/spack install/spack info openmpi \&\& spack -d install/;' /configs/spack.Dockerfile
       args:
         OMPI_VERSION: main
       no_cache: true
