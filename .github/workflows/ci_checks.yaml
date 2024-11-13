@@ -52,11 +52,10 @@ jobs:
           targets: env
           workdir: .
           pull: true
-          push: true
           set: |
             *.cache-from=type=gha,scope=env/${{ matrix.ompi_version }}
             *.cache-to=type=gha,mode=max,scope=env/${{ matrix.ompi_version }}
-            *.output=type=image,name=ghcr.io/sandialabs/fenix/env:${{ matrix.ompi_version }}
+            *.output=type=registry,name=ghcr.io/sandialabs/fenix/env:${{ matrix.ompi_version }}
 
       - name: Build Fenix
         uses: docker/bake-action@v5
