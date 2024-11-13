@@ -10,7 +10,7 @@ services:
         CMD cp /configs/spack.yaml . && \
             spack -e . add openmpi@$${OMPI_VERSION} && \
             spack -e . containerize >/configs/spack.Dockerfile && \
-            sed -i -e 's/spack install/spack info openmpi \&\& spack -d install/;' /configs/spack.Dockerfile
+            sed -i -e 's/spack install/spack external find --all \&\& spack -d install/;' /configs/spack.Dockerfile
       args:
         OMPI_VERSION: main
       no_cache: true
