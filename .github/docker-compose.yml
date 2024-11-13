@@ -44,7 +44,7 @@ services:
         
         WORKDIR /fenix/build
         ENTRYPOINT ["/entrypoint.sh"]
-        CMD ["ctest", "--output-on-failure"]
+        CMD ["ctest", "--output-on-failure", "--timeout", "60"]
       args:
         OMPI_VERSION: main
     pull_policy: build
