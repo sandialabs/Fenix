@@ -69,4 +69,4 @@ jobs:
             *.args.OMPI_VERSION=${{ matrix.ompi_version }}
 
       - name: Test Fenix
-        run: docker run local/fenix
+        run: docker run fenix
