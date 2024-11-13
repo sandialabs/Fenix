@@ -16,20 +16,15 @@ spack:
       build:
         - build-essential
         - autotools-dev
-        - libevent-dev
         - pkg-config
         - python3
         - m4
         - autoconf
         - automake
-        - libtool
         - flex
         - git
         - zlib1g-dev
-        - openssh-server
-        - openssl
         - libperl-dev
-        - pkg-config
         - numactl
       final:
         - build-essential
