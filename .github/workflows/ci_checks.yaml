@@ -16,7 +16,6 @@ jobs:
         ompi_version:
           - main
           - 5.0.3
-          - git.v5.0.x
 
     steps:
       - name: Checkout repository
