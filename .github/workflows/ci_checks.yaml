@@ -38,8 +38,8 @@ jobs:
           workdir: .
           set: |
             *.output=type=docker,name=bootstrap
-            *.cache-from=type=gha,scope=local/bootstrap/${{ matrix.ompi_version }}
-            *.cache-to=type=gha,mode=max,scope=local/bootstrap/${{ matrix.ompi_version }}
+            *.cache-from=type=gha,scope=bootstrap/${{ matrix.ompi_version }}
+            *.cache-to=type=gha,mode=max,scope=bootstrap/${{ matrix.ompi_version }}
             *.args.OMPI_VERSION=${{ matrix.ompi_version }}
       
       - name: Bootstrap the environment Dockerfile
@@ -66,6 +66,7 @@ jobs:
           targets: fenix
           workdir: .
           set: |
+            *.output=type=docker,name=fenix
             *.args.OMPI_VERSION=${{ matrix.ompi_version }}
 
       - name: Test Fenix
