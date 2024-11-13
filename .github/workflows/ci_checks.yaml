@@ -37,26 +37,26 @@ jobs:
           targets: bootstrap
           workdir: .
           set: |
-            *.output=type=docker,name=local/bootstrap/${{ matrix.ompi_version }}
+            *.output=type=docker,name=bootstrap
             *.cache-from=type=gha,scope=local/bootstrap/${{ matrix.ompi_version }}
-            *.cache-to=type=gha,mode=max,scope=local/bootstrap
+            *.cache-to=type=gha,mode=max,scope=local/bootstrap/${{ matrix.ompi_version }}
             *.args.OMPI_VERSION=${{ matrix.ompi_version }}
       
       - name: Bootstrap the environment Dockerfile
-        run: docker run -v ${GITHUB_WORKSPACE}/.github:/configs local/bootstrap
+        run: docker run -v ${GITHUB_WORKSPACE}/.github:/configs bootstrap
 
       - name: Build the environment
         uses: docker/bake-action@v5
         with:
           files: .github/docker-compose.yml
-          targets: sandialabs/fenix/env
+          targets: env
           workdir: .
           pull: true
           push: true
           set: |
-            *.cache-from=type=gha,scope=local/env/${{ matrix.ompi_version }}
-            *.cache-to=type=gha,mode=max,scope=local/env/${{ matrix.ompi_version }}
-            *.output=type=docker,name=ghcr.io/sandialabs/fenix/env:${{ matrix.ompi_version }}
+            *.cache-from=type=gha,scope=env/${{ matrix.ompi_version }}
+            *.cache-to=type=gha,mode=max,scope=env/${{ matrix.ompi_version }}
+            *.output=type=image,name=ghcr.io/sandialabs/fenix/env:${{ matrix.ompi_version }}
 
       - name: Build Fenix
         uses: docker/bake-action@v5
