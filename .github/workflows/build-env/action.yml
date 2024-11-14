@@ -1,0 +1,91 @@
+name: Build Environment Image
+description: Build the Open MPI environment image for Fenix
+
+inputs:
+  ompi_version:
+    description: "Open MPI version to build"
+    type: string
+    required: true
+  token:
+    description: "GitHub token for logging into GHCR"
+    type: string
+    required: true
+  max_age:
+    description: "Maximum image age before rebuild, in days"
+    type: number
+    required: false
+    default: 14
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check for valid image
+      shell: bash
+      run: |
+        set +e
+        IMG=ghcr.io/sandialabs/fenix/env:${{ inputs.ompi_version }}
+        echo "IMG=$IMG" >> $GITHUB_ENV
+
+        docker image rm -f $IMG 2>/dev/null
+        docker pull $IMG >/dev/null 2>&1
+        IMG_CREATED=$(docker inspect --type=image --format '{{.Created}}' $IMG 2>/dev/null)
+        if [ -z "$IMG_CREATED" ]; then
+          echo "Did not find image $IMG"
+          echo "found=false" >> $GITHUB_ENV
+          exit 0
+        fi
+
+        IMG_AGE=$(( ($(date +%s) - $(date -d "$IMG_CREATED" +%s)) / (60*60*24) ))
+        echo "Found image $IMG created $IMG_AGE days ago"
+        if [ "$IMG_AGE" -lt ${{ inputs.max_age }} ]; then
+          echo "Image is valid, skipping build"
+          echo "found=true" >> $GITHUB_ENV
+        else
+          echo "Image is too old, rebuilding"
+          echo "found=false" >> $GITHUB_ENV
+        fi
+    
+      #Remaining actions only run if we didn't find a valid image.
+    - name: Checkout repository
+      if: env.found != 'true'
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      if: env.found != 'true'
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to GHCR container registry
+      if: env.found != 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.token }}
+
+    - name: Bake the bootstrap docker image
+      if: env.found != 'true'
+      uses: docker/bake-action@v5
+      with:
+        files: .github/docker-compose.yml
+        targets: bootstrap
+        workdir: .
+        set: |
+          *.output=type=docker,name=bootstrap
+          *.args.OMPI_VERSION=${{ inputs.ompi_version }}
+    
+    - name: Bootstrap the environment Dockerfile
+      if: env.found != 'true'
+      shell: bash
+      run: docker run -v ${GITHUB_WORKSPACE}/.github:/configs bootstrap
+
+    - name: Build the environment
+      if: env.found != 'true'
+      uses: docker/bake-action@v5
+      with:
+        files: .github/docker-compose.yml
+        targets: env
+        workdir: .
+        pull: true
+        set: |
+          env.tags=ghcr.io/sandialabs/fenix/env:${{ inputs.ompi_version }}
+          env.output=type=registry,name=ghcr.io/sandialabs/fenix/env:${{ inputs.ompi_version }}
