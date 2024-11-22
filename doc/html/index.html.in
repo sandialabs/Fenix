@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<!-- This file just forwards to the default documentation version -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=@DOC_DEFAULT_VERSION@/index.html">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <p>If you are not redirected automatically, <a href="@DOC_DEFAULT_VERSION@/index.html">click here</a>.</p>
+</body>
+</html>
