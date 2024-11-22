@@ -26,8 +26,6 @@ if("html" IN_LIST DOC_VERSIONS)
     list(REMOVE_ITEM DOC_VERSIONS "html")
 endif()
 
-message(STATUS "Existing documentation versions: ${FENIX_DOC_VERSIONS}")
-
 list(APPEND DOC_VERSIONS ${DOXYGEN_HTML_OUTPUT})
 list(REMOVE_DUPLICATES DOC_VERSIONS)
 list(SORT DOC_VERSIONS)
@@ -35,6 +33,8 @@ if("main" IN_LIST DOC_VERSIONS)
     list(REMOVE_ITEM DOC_VERSIONS "main")
     list(PREPEND DOC_VERSIONS "main")
 endif()
+
+message(STATUS "Documentation versions: ${DOC_VERSIONS}")
 
 set(DOC_DEFAULT_VERSION "develop")
 if(NOT DOC_DEFAULT_VERSION IN_LIST DOC_VERSIONS)

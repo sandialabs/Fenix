@@ -5,7 +5,6 @@ on:
     branches:
       - master
       - develop
-      - doxygen # TODO: Remove after testing
 
 #Only one of this workflow runs at a time
 concurrency:
