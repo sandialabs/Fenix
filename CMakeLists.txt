@@ -16,8 +16,9 @@ set(FENIX_VERSION_MAJOR 1)
 set(FENIX_VERSION_MINOR 0)
 
 option(BUILD_EXAMPLES    "Builds example programs from the examples directory" OFF)
-option(BUILD_TESTING     "Builds tests and test modes of files" ON)
-
+option(BUILD_TESTING     "Builds tests and test modes of files"                ON)
+option(BUILD_DOCS        "Builds documentation if is doxygen found"            ON)
+option(DOCS_ONLY         "Only build documentation"                            OFF)
 
 #Solves an issue with some system environments putting their MPI headers before
 #the headers CMake includes. Forces non-system MPI headers when incorrect headers
@@ -25,28 +26,32 @@ option(BUILD_TESTING     "Builds tests and test modes of files" ON)
 option(FENIX_SYSTEM_INC_FIX    "Attempts to force overriding any system MPI headers" ON)
 option(FENIX_PROPAGATE_INC_FIX "Attempt overriding system MPI headers in linking projects" ON)
 
-find_package(MPI REQUIRED)
 
-if(${FENIX_SYSTEM_INC_FIX})
-  include(cmake/systemMPIOverride.cmake)
+if(NOT DOCS_ONLY)
+    find_package(MPI REQUIRED)
+
+    if(${FENIX_SYSTEM_INC_FIX})
+      include(cmake/systemMPIOverride.cmake)
+    endif()
+
+    add_subdirectory(src)
+
+    include(CTest)
+    list(APPEND MPIEXEC_PREFLAGS "--with-ft;mpi")
+
+    if(BUILD_EXAMPLES)
+        add_subdirectory(examples)
+    endif()
+
+    if(BUILD_TESTING)
+        add_subdirectory(test)
+    endif()
+
 endif()
 
-
-add_subdirectory(src)
-
-
-include(CTest)
-list(APPEND MPIEXEC_PREFLAGS "--with-ft;mpi")
-
-if(BUILD_EXAMPLES)
-    add_subdirectory(examples)
+if(BUILD_DOCS)
+    add_subdirectory(doc)
 endif()
-
-
-if(BUILD_TESTING)
-    add_subdirectory(test)
-endif()
-
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/fenix-config.h.in
