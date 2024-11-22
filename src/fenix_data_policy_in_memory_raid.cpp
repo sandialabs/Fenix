@@ -844,7 +844,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
       if(recovery_locally_possible) retval = FENIX_SUCCESS;
 
    } else if (group->raid_mode == 5){
-      int* set_results = malloc(sizeof(int) * group->set_size);
+      int* set_results = (int *) malloc(sizeof(int) * group->set_size);
       MPI_Allgather((void*)&found_member, 1, MPI_INT, (void*)set_results, 1, MPI_INT, 
           group->set_comm);
 
