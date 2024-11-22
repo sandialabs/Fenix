@@ -3,18 +3,24 @@
 
 set -e
 
+#Run with sudo if not root user
+SUDO=""
+if [ $(id -u) -ne 0 ]; then
+    SUDO="sudo"
+fi
+
 echo "Installing apt packages"
-sudo apt-get update >/dev/null
-sudo apt-get install -y wget git cmake graphviz >/dev/null
+$SUDO apt-get update >/dev/null
+$SUDO apt-get install -y wget git cmake graphviz >/dev/null
 
 echo "Installing Doxygen"
-wget https://www.doxygen.nl/files/doxygen-1.12.0.linux.bin.tar.gz >/dev/null
+wget -q https://www.doxygen.nl/files/doxygen-1.12.0.linux.bin.tar.gz
 tar -xzf doxygen-1.12.0.linux.bin.tar.gz >/dev/null
 export PATH="$PWD/doxygen-1.12.0/bin:$PATH"
 
 #List of branches to build docs for
 #TODO: Remove doxygen branch once tested
-BRANCHES="doxygen master develop"
+BRANCHES="master develop"
 
 build-docs() (
     git checkout $1
