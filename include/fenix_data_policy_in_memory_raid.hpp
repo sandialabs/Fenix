@@ -58,7 +58,7 @@
 #define __FENIX_DATA_POLICY_IN_MEMORY_RAID_H__
 
 #include <mpi.h>
-#include "fenix_data_group.h"
+#include "fenix_data_group.hpp"
 
 void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm comm, 
       int timestart, int depth, void* policy_value, int* flag);

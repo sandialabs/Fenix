@@ -12,11 +12,10 @@ configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
   "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
 
 #include_directories(${CMAKE_CURRENT_BINARY_DIR})
-FILE(GLOB Fenix_HEADERS ${CMAKE_SOURCE_DIR}/include/*.h)
+FILE(GLOB Fenix_HEADERS ${CMAKE_SOURCE_DIR}/include/*.h*)
 
 set (Fenix_SOURCES 
 fenix.cpp
-fenix_mpi_override.cpp
 fenix_opt.cpp
 fenix_process_recovery.cpp
 fenix_util.cpp
@@ -26,7 +25,6 @@ fenix_data_policy.cpp
 fenix_data_policy_in_memory_raid.cpp
 fenix_data_member.cpp
 fenix_data_subset.cpp
-fenix_comm_list.cpp
 fenix_callbacks.cpp
 globals.cpp
 )

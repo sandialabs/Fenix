@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -53,24 +53,15 @@
 // ************************************************************************
 //@HEADER
 */
-#include "fenix_process_recovery.h"
-#include "fenix_comm_list.h"
+
+#ifndef __FENIX_DATA_POLICY_H__
+#define __FENIX_DATA_POLICY_H__
+
 #include <mpi.h>
-#include <assert.h>
-#include "fenix_ext.h"
+#include "fenix.h"
+#include "fenix_data_group.hpp"
 
-static inline 
-int __fenix_notify_newcomm(int ret, MPI_Comm *newcomm)
-{
-   if (ret != MPI_SUCCESS || 
-         !fenix.fenix_init_flag ||
-         *newcomm == MPI_COMM_NULL) return ret;
-        
-   if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
-      fprintf(stderr, "[fenix error] Did not manage to push communicator\n");
-      PMPI_Comm_free(newcomm);
-      ret = MPI_ERR_INTERN;
-   }
+int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm, 
+      int timestart, int depth, int policy_name, void* policy_value, int* flag);
 
-   return ret;
-}
+#endif //__FENIX_DATA_POLICY_H__

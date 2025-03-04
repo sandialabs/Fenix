@@ -59,9 +59,9 @@
 
 #include <mpi.h>
 #include "fenix.h"
-#include "fenix_opt.h"
-#include "fenix_data_group.h"
-#include "fenix_process_recovery.h"
+#include "fenix_opt.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_process_recovery.hpp"
 
 typedef struct {
     int num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
@@ -87,7 +87,6 @@ typedef struct {
     int *ret_error;
 
     fenix_callback_list_t* callback_list;  // singly linked list for user-defined Fenix callback functions
-    //fenix_communicator_list_t* communicator_list;  // singly linked list for Fenix resilient communicators
     fenix_debug_opt_t options;    // This is reserved to store the user options
 
     MPI_Comm *world;                 // Duplicate of the MPI communicator provided by user
