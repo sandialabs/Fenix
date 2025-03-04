@@ -54,7 +54,7 @@
 //@HEADER
 */
 
-#include "fenix_ext.h"
+#include "fenix_ext.hpp"
 
 fenix_t fenix = {
     .fenix_init_flag = 0

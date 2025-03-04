@@ -56,13 +56,13 @@
 
 #include <mpi.h>
 #include "fenix.h"
-#include "fenix_ext.h"
-#include "fenix_opt.h"
+#include "fenix_ext.hpp"
+#include "fenix_opt.hpp"
 #include "fenix_data_subset.h"
-#include "fenix_data_recovery.h"
-#include "fenix_data_policy.h"
-#include "fenix_data_group.h"
-#include "fenix_data_member.h"
+#include "fenix_data_recovery.hpp"
+#include "fenix_data_policy.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_data_member.hpp"
 
 #define __FENIX_IMR_DEFAULT_MENTRY_NUM 10
 #define __FENIX_IMR_NO_MEMBERS 16000

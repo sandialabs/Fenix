@@ -58,10 +58,10 @@
 #define __FENIX_DATA_RECOVERY__
 
 
-#include "fenix_data_group.h"
-#include "fenix_data_member.h"
+#include "fenix_data_group.hpp"
+#include "fenix_data_member.hpp"
 #include "fenix_data_subset.h"
-#include "fenix_util.h"
+#include "fenix_util.hpp"
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -56,9 +56,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "fenix_opt.h"
-#include "fenix_util.h"
-#include "fenix_ext.h"
+#include "fenix_opt.hpp"
+#include "fenix_util.hpp"
+#include "fenix_ext.hpp"
 
 #define DEBUG 1
 

@@ -56,14 +56,12 @@
 
 #include <assert.h>
 
-#include "fenix_ext.h"
-#include "fenix_comm_list.h"
-#include "fenix_process_recovery_global.h"
-#include "fenix_process_recovery.h"
-#include "fenix_data_group.h"
-#include "fenix_data_recovery.h"
-#include "fenix_opt.h"
-#include "fenix_util.h"
+#include "fenix_ext.hpp"
+#include "fenix_process_recovery.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_data_recovery.hpp"
+#include "fenix_opt.hpp"
+#include "fenix_util.hpp"
 #include <mpi.h>
 #include <mpi-ext.h>
 
@@ -856,13 +854,9 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
         if(fenix.user_world_exists) MPIX_Comm_revoke(*fenix.user_world);
 
 
-        __fenix_comm_list_destroy();
-
         fenix.repair_result = __fenix_repair_ranks();
         break;
     case MPI_ERR_REVOKED:
-        __fenix_comm_list_destroy();
-
         fenix.repair_result = __fenix_repair_ranks();
         break;
     case MPI_ERR_INTERN:

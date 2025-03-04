@@ -55,11 +55,10 @@
 */
 
 #include <mpi.h>
-#include "fenix_data_policy_in_memory_raid.h"
-#include "fenix_data_policy.h"
-#include "fenix_data_group.h"
-#include "fenix_opt.h"
-#include "fenix_ext.h"
+#include "fenix_data_policy_in_memory_raid.hpp"
+#include "fenix_data_policy.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_opt.hpp"
 #include "fenix.h"
 
 /**

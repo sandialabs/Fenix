@@ -53,64 +53,52 @@
 // ************************************************************************
 //@HEADER
 */
+#ifndef __FENIX_DATA_MEMBER_H__
+#define __FENIX_DATA_MEMBER_H__
 
-#ifndef __FENIX_UTIL__
-#define __FENIX_UTIL__
-
-#include "fenix_process_recovery.h"
 #include <mpi.h>
-#include <syslog.h>
-#include <sys/types.h>
-#include <sys/times.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <sys/time.h>
-#include <signal.h>
-#include <libgen.h>
-
-extern char *logname;
-
-#define LDEBUG(f...)  {LLIND("debug",f);}
-#define LLIND(t,f...) {fprintf(stderr,"%s - %s (%i): %s: \n",logname,__PRETTY_FUNCTION__,getpid(),t); fprintf(stderr,f);}
-#define ERRHANDLE(f...){LFATAL(f);}
-#define LFATAL(f...)  {LLINF("fatal", f);}
-#define LLINF(t,f...) {fprintf(stderr,"(%i): %s: ", getpid(), t); fprintf(stderr, f);}
-
-enum states { EMPTY = 0, OCCUPIED = 1, DELETED = 2, NEEDFIX = 3 };
-
-void __fenix_ranks_agree(int *, int *, int *, MPI_Datatype *);
-
-int __fenix_binary_search(int *, int, int);
-
-int __fenix_comparator(const void *, const void *);
-
-int __fenix_get_size(MPI_Datatype);
-
-int __fenix_get_fenix_default_rank_separation();
-
-int __fenix_get_current_rank(MPI_Comm);
-
-int __fenix_get_partner_rank(int, MPI_Comm);
-
-int __fenix_get_world_size(MPI_Comm);
-
-int __fenix_mpi_wait(MPI_Request *);
-
-int __fenix_mpi_test(MPI_Request *);
+#include "fenix_data_packet.hpp"
+#include "fenix_util.hpp"
 
 
+#define __FENIX_DEFAULT_MEMBER_SIZE 512
 
-void *s_calloc(int count, size_t size);
+typedef struct __fenix_member_entry {
+    int memberid;
+    enum states state;
+    void *user_data;
+    int datatype_size;
+    int current_count;
+} fenix_member_entry_t;
 
-void *s_malloc(size_t size);
+typedef struct __fenix_member {
+    size_t count;
+    size_t total_size;
+    fenix_member_entry_t *member_entry;
+} fenix_member_t;
 
-void *s_realloc(void *mem, size_t size);
+typedef struct __member_entry_packet {
+    int memberid;
+    int datatype_size;
+    int current_count;
+} fenix_member_entry_packet_t;
 
-#endif
+fenix_member_t *__fenix_data_member_init( );
+void __fenix_data_member_destroy( fenix_member_t *member ) ;
+
+void __fenix_ensure_member_capacity( fenix_member_t *m );
+void __fenix_ensure_version_capacity_from_member( fenix_member_t *m );
+
+fenix_member_entry_t* __fenix_data_member_add_entry(fenix_member_t* member, 
+        int memberid, void* data, int count, int datatype_size);
+
+int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank);
+int __fenix_data_member_recv_metadata(int groupid, int src_rank, 
+        fenix_member_entry_packet_t* packet);
+
+int __fenix_search_memberid(fenix_member_t* member, int memberid);
+int __fenix_find_next_member_position(fenix_member_t *m);
+
+void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t packet,
+                   enum states mystatus);
+#endif // FENIX_DATA_MEMBER_H
