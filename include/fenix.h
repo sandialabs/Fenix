@@ -147,6 +147,30 @@ typedef enum {
 } Fenix_Rank_role;
 
 /**
+ * @brief Options for passing control back to application after recovery.
+ */
+typedef enum {
+    //!Return to Fenix_Init via longjmp (default)
+    JUMP,
+    //!Return the error code inline
+    RETURN,
+    //!Throw a Fenix::CommException
+    THROW
+} Fenix_Resume_mode;
+
+/**
+ * @brief Options for dealing with 'unhandled' errors, e.g. invalid rank IDs
+ */
+typedef enum {
+    //!Ignore unhandled errors
+    SILENT,
+    //!Print error and continue without handling
+    PRINT,
+    //!Print error and abort Fenix's world (default)
+    ABORT
+} Fenix_Unhandled_mode;
+
+/**
  * @fn void Fenix_Init(int* role, MPI_Comm comm, MPI_Comm* newcomm, int** argc, char*** argv, int spare_ranks, int spawn, MPI_Info info, int* error);
  * @brief Build a resilient communicator and set the restart point.
  *
@@ -197,14 +221,13 @@ typedef enum {
  * @param[in] spawn *Unimplemented*: Whether to enable spawning new ranks to replace
  *   failed ranks when spares are unavailable.
  * @param[in] info Fenix recovery configuration parameters, may be MPI_INFO_NULL
- *   Supports the "FENIX_RESUME_MODE" key, used to indicate where execution should resume upon 
+ *   "FENIX_RESUME_MODE" key is used to indicate where execution should resume upon 
  *   rank failure for all active (non-spare) ranks in any resilient communicators, not only for 
- *   those ranks in communicators that failed. The following values associated with the 
- *   "resume_mode" key are supported:
- *   - "Fenix_init" (default): execution resumes at logical exit of Fenix_Init.
- *   - "NO_JUMP":    execution continues from the failing MPI call. Errors are otherwise handled
- *   as normal, but return the error code as well. Applications should typically
- *   either check for return codes or assign an error callback through Fenix.
+ *   those ranks in communicators that failed. The value should be a string with the name of a
+ *   Fenix_Resume_mode enum value.
+ *   "FENIX_UNHANDLED_MODE" key is used to indicate how Fenix should handle error values
+ *   returned by MPI functions that are unrelated to failed processes. The value should be
+ *   a string with the name of a Fenix_Unhandled_mode enum value.
  * @param[out] error The return status of \c Fenix_Init<br>
  *   Used to signal that a non-fatal error or special condition was encountered in the execution of
  *   Fenix_Init, or FENIX_SUCCESS otherwise. It has the same value across all ranks released by 
@@ -221,10 +244,8 @@ typedef enum {
         *(_role) = __fenix_preinit(_role, _comm, _newcomm, _argc,       \
                                    _argv, _spare_ranks, _spawn, _info,  \
                                    _error, &bufjmp);                    \
-        if(setjmp(bufjmp)) {                                            \
-            *(_role) = FENIX_ROLE_SURVIVOR_RANK;                        \
-        }                                                               \
-        __fenix_postinit( _error );                                     \
+        setjmp(bufjmp);                                                 \
+        __fenix_postinit();                                             \
     }
 
 

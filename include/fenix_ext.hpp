@@ -66,49 +66,44 @@
 typedef struct __fenix_data_recovery fenix_data_recovery_t;
 
 typedef struct {
-    int num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init
-    int num_survivor_ranks;   // Keeps the global information on the number of survived MPI ranks after failure
-    int num_recovered_ranks;  // Keeps the number of spare ranks brought into MPI communicator recovery
-    int resume_mode;          // Defines how program resumes after process recovery
-    int spawn_policy;         // Indicate dynamic process spawning
-    int spare_ranks;          // Spare ranks entered by user to repair failed ranks
-    int repair_result;        // Internal global variable to store the result of MPI communicator repair
-    int finalized;
+    int num_inital_ranks;        // Keeps the global MPI rank ID at Fenix_init
+    int num_survivor_ranks = 0;  // Keeps the global information on the number of survived MPI ranks after failure
+    int num_recovered_ranks = 0; // Keeps the number of spare ranks brought into MPI communicator recovery
+    int spare_ranks;             // Spare ranks entered by user to repair failed ranks
+    
+    int resume_mode = Fenix_Resume_mode::JUMP;
+    int unhandled_mode = Fenix_Unhandled_mode::ABORT;
+    int ignore_errs = false;       // Temporarily ignore all errors & recovery
+    int spawn_policy;             // Indicate dynamic process spawning
     jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
 
+    int repair_result = FENIX_SUCCESS; // Internal variable to store the result of MPI comm repair
+    int role = FENIX_ROLE_INITIAL_RANK;
 
-    //enum FenixRankRole role;    // Role of rank: initial, survivor or repair
-    int role;    // Role of rank: initial, survivor or repair
-    int fenix_init_flag = 0;
+    int fenix_init_flag = false;
+    int finalized = false;
 
-    int fail_world_size;
-    int* fail_world;
+    int fail_world_size = 0;
+    int* fail_world = nullptr;
 
     //Save the pointer to role and error of Fenix_Init
-    int *ret_role;
-    int *ret_error;
+    int *ret_role = nullptr;
+    int *ret_error = nullptr;
 
     std::vector<fenix_callback_func> callbacks;
-    fenix_debug_opt_t options;    // This is reserved to store the user options
+    fenix_debug_opt_t options; // This is reserved to store the user options
 
-    MPI_Comm *world;                 // Duplicate of the MPI communicator provided by user
-    MPI_Comm new_world;            // Global MPI communicator identical to g_world but without spare ranks
-    MPI_Comm *user_world;           // MPI communicator with repaired ranks
-    //Manage state of the comms. Necessary when failures happen rapidly, mussing up state
-    int new_world_exists, user_world_exists;
-    
+    MPI_Comm *world;      // Duplicate of comm provided by user
+    MPI_Comm *user_world; // User-facing comm with repaired ranks and no spares
+    MPI_Comm new_world;   // Internal duplicate of user_world
+    int new_world_exists = false, user_world_exists = false;
+   
+    //Values used for Fenix_Process_detect_failures
     int dummy_recv_buffer;
     MPI_Request check_failures_req;
     
-    
-    MPI_Op   agree_op;              // This is reserved for the global agreement call for Fenix data recovery API
-    
-    
-    MPI_Errhandler mpi_errhandler;  // This stores callback info for our custom error handler
-    int ignore_errs;                // Set this to return errors instead of using the error handler normally. (Don't forget to unset!)
-    int print_unhandled;            // Set this to print the error string for MPI errors of an unhandled return type.
-
-
+    MPI_Op   agree_op;             // Global agreement call for Fenix data recovery API
+    MPI_Errhandler mpi_errhandler; // Our custom error handler
 
     fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;

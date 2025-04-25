@@ -72,11 +72,8 @@ int main(int argc, char **argv) {
   MPI_Comm res_comm;
   MPI_Info info;
   MPI_Info_create(&info);
-  MPI_Info_set(info, "FENIX_RESUME_MODE", "NO_JUMP");
-  MPI_Info_set(info, "FENIX_UNHANDLED_MODE", "NO_JUMP");
+  MPI_Info_set(info, "FENIX_RESUME_MODE", "THROW");
   Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, 0, info, &error);
-
-  Fenix::register_exception_callback();
 
   if(fenix_role == FENIX_ROLE_SURVIVOR_RANK){
     printf("FAILURE: longjmp instead of exception\n");

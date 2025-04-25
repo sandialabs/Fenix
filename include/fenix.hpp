@@ -72,14 +72,4 @@
  */
 int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
 
-/**
- * @brief Registers a callback that throws a CommException
- *
- * This means no longjmp will occur, and instead applications
- * will continue from their try-catch error handler.
- *
- * @returnstatus
- */
-int register_exception_callback();
-
 #endif
