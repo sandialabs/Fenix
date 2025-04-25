@@ -54,38 +54,21 @@
 //@HEADER
 */
 
-#include <assert.h>
 
-#include "fenix_ext.hpp"
-#include "fenix_process_recovery.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_recovery.hpp"
-#include "fenix_opt.hpp"
-#include "fenix_util.hpp"
+#ifndef __FENIX_HPP__
+#define __FENIX_HPP__
+
 #include <mpi.h>
+#include <functional>
+#include "fenix.h"
 
+/**
+ * @brief As the C-style callback, but accepts an std::function and does not use the void* pointer.
+ *
+ * @param[in] callback The function to register.
+ *
+ * @returnstatus
+ */
+int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
 
-int __fenix_callback_register(fenix_callback_func& recover)
-{
-    if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-
-    fenix.callbacks.push_back(recover);
-
-    return FENIX_SUCCESS;
-}
-
-int __fenix_callback_pop(){
-   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(fenix.callbacks.empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
-
-   fenix.callbacks.pop_back();
-
-   return FENIX_SUCCESS;
-}
-
-void __fenix_callback_invoke_all(int error)
-{
-    for(auto it = fenix.callbacks.rbegin(); it != fenix.callbacks.rend(); it++){
-        (*it)(*fenix.user_world, error);
-    }
-}
+#endif

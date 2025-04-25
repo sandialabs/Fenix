@@ -58,13 +58,19 @@
 #include "fenix_process_recovery.hpp"
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
-#include "fenix.h"
+#include "fenix.hpp"
 
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_FULL};
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_EMPTY};
 
+int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback){
+    return __fenix_callback_register(callback);
+}
+
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
-    return __fenix_callback_register(recover, callback_data);
+    return Fenix_Callback_register([recover, callback_data](MPI_Comm comm, int fenix_error){
+        recover(comm, fenix_error, callback_data);
+    });
 }
 
 int Fenix_Callback_pop() {
