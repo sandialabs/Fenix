@@ -67,21 +67,12 @@
 #include <signal.h>
 
 #include "fenix_init.h"
+#include <functional>
 
 #define __FENIX_RESUME_AT_INIT 0 
 #define __FENIX_RESUME_NO_JUMP 200
 
-typedef void (*recover)( MPI_Comm, int, void *);
-
-typedef struct fcouple {
-    recover x;
-    void *y;
-} fenix_callback_func;
-
-typedef struct __fenix_callback_list {
-    fenix_callback_func *callback;
-    struct __fenix_callback_list *next;
-} fenix_callback_list_t;
+using fenix_callback_func = std::function<void(MPI_Comm, int)>;
 
 typedef struct __fenix_comm_list_elm {
   struct __fenix_comm_list_elm *next;
@@ -98,15 +89,11 @@ int __fenix_create_new_world();
 
 int __fenix_repair_ranks();
 
-int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
+int __fenix_callback_register(fenix_callback_func& recover);
 
 int __fenix_callback_pop();
 
-void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
-
 void __fenix_callback_invoke_all(int error);
-
-int __fenix_callback_destroy(fenix_callback_list_t *callback_list);
 
 int* __fenix_get_fail_ranks(int *, int, int);
 

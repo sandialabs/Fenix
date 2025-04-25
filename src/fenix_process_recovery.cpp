@@ -785,13 +785,11 @@ void __fenix_finalize()
         free(fenix.fail_world);
     }
 
-    /* Free Callbacks */
-    __fenix_callback_destroy( fenix.callback_list );
-
     /* Free data recovery interface */
     __fenix_data_recovery_destroy( fenix.data_recovery );
 
-    fenix.fenix_init_flag = 0;
+    /* Free up any C++ data structures, reset default variables */
+    fenix = {};
 }
 
 void __fenix_finalize_spare()
@@ -823,13 +821,11 @@ void __fenix_finalize_spare()
     MPI_Comm_set_errhandler(*fenix.world, MPI_ERRORS_ARE_FATAL);
     MPI_Comm_free(fenix.world);
 
-    /* Free callbacks */
-    __fenix_callback_destroy( fenix.callback_list );
-
     /* Free data recovery interface */
     __fenix_data_recovery_destroy( fenix.data_recovery );
 
-    fenix.fenix_init_flag = 0;
+    /* Free up any C++ data structures, reset default variables */
+    fenix = {};
 
     /* Future version do not close MPI. Jump to where Fenix_Finalize is called. */
     MPI_Finalize();
