@@ -54,32 +54,21 @@
 //@HEADER
 */
 
-
-#ifndef __FENIX_HPP__
-#define __FENIX_HPP__
+#ifndef FENIX_EXCEPTION_HPP
+#define FENIX_EXCEPTION_HPP
 
 #include <mpi.h>
-#include <functional>
-#include "fenix.h"
-#include "fenix_exception.hpp"
+#include <exception>
 
-/**
- * @brief As the C-style callback, but accepts an std::function and does not use the void* pointer.
- *
- * @param[in] callback The function to register.
- *
- * @returnstatus
- */
-int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
+namespace Fenix {
 
-/**
- * @brief Registers a callback that throws a CommException
- *
- * This means no longjmp will occur, and instead applications
- * will continue from their try-catch error handler.
- *
- * @returnstatus
- */
-int register_exception_callback();
+struct CommException : public std::exception {
+    MPI_Comm repaired_comm;
+    const int fenix_err;
+    CommException(MPI_Comm comm, int err) :
+        repaired_comm(comm), fenix_err(err) { };
+};
+
+}
 
 #endif

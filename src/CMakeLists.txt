@@ -16,6 +16,7 @@ FILE(GLOB Fenix_HEADERS ${CMAKE_SOURCE_DIR}/include/*.h*)
 
 set (Fenix_SOURCES 
 fenix.cpp
+fenix_exception.cpp
 fenix_opt.cpp
 fenix_process_recovery.cpp
 fenix_util.cpp

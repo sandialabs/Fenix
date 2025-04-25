@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -54,32 +54,51 @@
 //@HEADER
 */
 
-
-#ifndef __FENIX_HPP__
-#define __FENIX_HPP__
-
 #include <mpi.h>
-#include <functional>
-#include "fenix.h"
-#include "fenix_exception.hpp"
 
-/**
- * @brief As the C-style callback, but accepts an std::function and does not use the void* pointer.
- *
- * @param[in] callback The function to register.
- *
- * @returnstatus
- */
-int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
+#include <fenix.h>
+#include <stdio.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <pthread.h>
 
-/**
- * @brief Registers a callback that throws a CommException
- *
- * This means no longjmp will occur, and instead applications
- * will continue from their try-catch error handler.
- *
- * @returnstatus
- */
-int register_exception_callback();
+int main(int argc, char **argv) {
+  volatile int status = 0;
 
-#endif
+  MPI_Init(&argc, &argv);
+
+  int fenix_role, error;
+  MPI_Comm res_comm;
+  MPI_Info info;
+  MPI_Info_create(&info);
+  MPI_Info_set(info, "FENIX_RESUME_MODE", "NO_JUMP");
+  MPI_Info_set(info, "FENIX_UNHANDLED_MODE", "NO_JUMP");
+  Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, 0, info, &error);
+
+  Fenix::register_exception_callback();
+
+  if(fenix_role == FENIX_ROLE_SURVIVOR_RANK){
+    printf("FAILURE: longjmp instead of exception\n");
+    status = 1;
+  }
+
+  if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
+    int rank;
+    MPI_Comm_rank(res_comm, &rank);
+    if(rank == 1) raise(SIGKILL);
+
+    try {
+      MPI_Barrier(res_comm);
+      printf("FAILURE: barrier finished without fault\n");
+      status = 1;
+    } catch (Fenix::CommException e){
+      printf("SUCCESS: caught CommException\n");
+    }
+  }
+
+  Fenix_Finalize();
+  MPI_Finalize();
+
+  return status;
+}
