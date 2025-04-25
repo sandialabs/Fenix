@@ -65,12 +65,10 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <signal.h>
+#include <string_view>
 
 #include "fenix_init.h"
 #include <functional>
-
-#define __FENIX_RESUME_AT_INIT 0 
-#define __FENIX_RESUME_NO_JUMP 200
 
 using fenix_callback_func = std::function<void(MPI_Comm, int)>;
 
@@ -84,6 +82,10 @@ typedef struct {
   fenix_comm_list_elm_t *head;
   fenix_comm_list_elm_t *tail;
 } fenix_comm_list_t;
+
+void __fenix_set_resume_mode(const std::string_view& name);
+
+void __fenix_set_unhandled_mode(const std::string_view& name);
 
 int __fenix_create_new_world();
 

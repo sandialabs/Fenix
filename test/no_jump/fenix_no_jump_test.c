@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 
   MPI_Info info;
   MPI_Info_create(&info);
-  MPI_Info_set(info, "FENIX_RESUME_MODE", "NO_JUMP");
+  MPI_Info_set(info, "FENIX_RESUME_MODE", "RETURN");
 
   int fenix_status;
   int recovered = 0;
