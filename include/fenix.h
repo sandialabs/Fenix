@@ -61,6 +61,8 @@
 #include <setjmp.h>
 
 #if defined(c_plusplus) || defined(__cplusplus)
+#include "fenix.hpp"
+
 extern "C" {
 #endif
 
