@@ -61,7 +61,35 @@
 #include "fenix_data_member.hpp"
 #include "fenix_data_packet.hpp"
 
+namespace Fenix::Data {
 
+group_iterator find_group(int id, fenix_data_recovery_t* dr){
+  int index = __fenix_search_groupid(id, dr);
+  if(index == -1){
+    debug_print("ERROR: group_id <%d> does not exist\n", id);
+    return {index, nullptr};
+  }
+  return {index, dr->group[index]};
+}
+
+} //end namespace Fenix::Data
+
+using namespace Fenix::Data;
+
+member_iterator fenix_group_t::search_member(int id){
+  for(int i = 0; i < members.size(); i++){
+    if(members[i].memberid == id){
+      return {i, &(members[i])};
+    }
+  }
+  return {-1, nullptr};
+}
+
+member_iterator fenix_group_t::find_member(int id){
+  auto it = search_member(id);
+  if(it.first == -1) debug_print("ERROR group <%d>: member_id <%d> does not exist\n", groupid, id);
+  return it;
+}
 
 /**
  * @brief
@@ -85,12 +113,11 @@ fenix_data_recovery_t * __fenix_data_recovery_init() {
 }
 
 int __fenix_member_delete(int groupid, int memberid) {
-  int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
-  int member_index = -1;
-  if(group_index !=-1){
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
-  }
+  auto [group_index, group] = find_group(groupid);
+  if(!group) return FENIX_ERROR_INVALID_GROUPID;
+
+  auto [member_index, mentry] = group->find_member(memberid);
+  if(!mentry) return FENIX_ERROR_INVALID_MEMBERID;
 
   if (fenix.options.verbose == 38) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
@@ -98,38 +125,18 @@ int __fenix_member_delete(int groupid, int memberid) {
                   member_index);
   }
 
-  if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_member_delete: group_id <%d> does not exist\n",
-                groupid);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else if (member_index == -1) {
-    debug_print("ERROR Fenix_Data_member_delete: memberid <%d> does not exist\n",
-                memberid);
-    retval = FENIX_ERROR_INVALID_MEMBERID;
-  } else {
-    fenix_data_recovery_t *data_recovery = fenix.data_recovery;
-    fenix_group_t *group = (data_recovery->group[group_index]);
-    
-    retval = group->vtbl.member_delete(group, memberid);
-    
-    if(retval == FENIX_SUCCESS){
-      fenix_member_t *member = group->member;
-      member->count--;
-      fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-      mentry->state = DELETED;
-    }
+  int retval = group->vtbl.member_delete(group, memberid);
 
-    if (fenix.options.verbose == 38) {
-      fenix_member_t *member = group->member;
-      fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
-      
-      verbose_print("c-rank: %d, role: %d, m-count: %zu, m-state: %d",
-                      __fenix_get_current_rank(fenix.new_world), fenix.role,
-                    member->count, mentry->state);
-    }
-
-    retval = FENIX_SUCCESS;
+  if(retval == FENIX_SUCCESS){
+    group->members.erase(group->members.begin()+member_index);
   }
+
+  if (fenix.options.verbose == 38) {
+    verbose_print("c-rank: %d, role: %d, m-count: %zu",
+                    __fenix_get_current_rank(fenix.new_world), fenix.role,
+                  group->members.size());
+  }
+
   return retval;
 }
 
@@ -150,8 +157,10 @@ int __fenix_group_delete_direct(fenix_group_t* group){
     return group->vtbl.group_delete(group);
 }
 
-int __fenix_data_recovery_remove_group(fenix_data_recovery_t* data_recovery, int group_index){
+int __fenix_data_recovery_remove_group(int group_index){
     int retval = !FENIX_SUCCESS;
+    auto data_recovery = fenix.data_recovery;
+
     if(group_index != -1){
         for(int index = group_index; index < data_recovery->count-1; index++){
             data_recovery->group[index] = data_recovery->group[index+1];
@@ -167,28 +176,21 @@ int __fenix_data_recovery_remove_group(fenix_data_recovery_t* data_recovery, int
  * @param group_id
  */
 int __fenix_group_delete(int groupid) {
-  int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
+  auto [group_index, group] = find_group(groupid);
+  if(!group) return FENIX_ERROR_INVALID_GROUPID;
 
   if (fenix.options.verbose == 37) {
     verbose_print("c-rank: %d, group_index: %d\n",
                     __fenix_get_current_rank(fenix.new_world), group_index);
   }
 
-  if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_group_delete: group_id <%d> does not exist\n", groupid);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else {
-    /* Delete Process */
-    fenix_data_recovery_t *data_recovery = fenix.data_recovery;
-    fenix_group_t *group = (data_recovery->group[group_index]);
-    retval = __fenix_group_delete_direct(group);
-    
-    if(retval == FENIX_SUCCESS){ 
-        retval = __fenix_data_recovery_remove_group(data_recovery, group_index);
-    }
+  /* Delete Process */
+  int retval = __fenix_group_delete_direct(group);
 
+  if(retval == FENIX_SUCCESS){
+      retval = __fenix_data_recovery_remove_group(group_index);
   }
+
   return retval;
 }
 

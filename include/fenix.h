@@ -610,10 +610,23 @@ int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets,
  */
 int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier);
 
-//!@unimplemented Get the number of members in a data group.
+/**
+ * @brief Get the number of members in a data group.
+ *
+ * @param[in] group_id The group to query
+ * @param[out] number_of_members Number of members in the group
+ */
 int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members);
 
-//!@unimplemented Get member ID based on member index
+/**
+ * @brief Get member ID based on member index
+ *
+ * See #Fenix_Data_group_get_number_of_members
+ *
+ * @param[in] group_id The group to query
+ * @param[out] member_id The member id at this index in the group
+ * @param[in] position The position to check, [0, number_of_members)
+ */
 int Fenix_Data_group_get_member_at_position(int group_id, int *member_id,
                                             int position);
 

@@ -60,6 +60,7 @@
 
 #include <mpi.h>
 #include "fenix.h"
+#include "fenix_ext.hpp"
 #include "fenix_data_member.hpp"
 #include "fenix_data_packet.hpp"
 #include "fenix_util.hpp"
@@ -69,6 +70,13 @@
 
 typedef struct __fenix_group_vtbl fenix_group_vtbl_t;
 typedef struct __fenix_group fenix_group_t;
+
+
+namespace Fenix::Data {
+
+using member_iterator = std::pair<int, fenix_member_entry_t*>;
+
+} //end namespace Fenix::Data
 
 
 //This defines the functions which must be implemented by the group
@@ -140,7 +148,12 @@ typedef struct __fenix_group {
     int timestamp;
     int depth;
     int policy_name;
-    fenix_member_t *member;
+    std::vector<fenix_member_entry_t> members;
+
+    //Search for id, returning {-1, nullptr} if not found.
+    Fenix::Data::member_iterator search_member(int id);
+    //As search_member, but print an error message is id not found.
+    Fenix::Data::member_iterator find_member(int id);
 } fenix_group_t;
 
 typedef struct __fenix_data_recovery {
@@ -171,5 +184,13 @@ void __fenix_ensure_data_recovery_capacity( fenix_data_recovery_t *dr);
 int __fenix_search_groupid( int key, fenix_data_recovery_t *dr);
 
 int __fenix_find_next_group_position( fenix_data_recovery_t *dr );
+
+namespace Fenix::Data {
+
+using group_iterator = std::pair<int, fenix_group_t*>;
+
+group_iterator find_group(int id, fenix_data_recovery_t *dr = fenix.data_recovery);
+
+} //end namespace Fenix::Data
 
 #endif // FENIX_DATA_GROUP_H

@@ -161,11 +161,11 @@ int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier) {
 }
 
 int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members) {
-    return 0;
+    return __fenix_get_number_of_members(group_id, number_of_members);
 }
 
 int Fenix_Data_group_get_member_at_position(int group_id, int *member_id, int position) {
-    return 0;
+    return __fenix_get_member_at_position(group_id, member_id, position);
 }
 
 int Fenix_Data_group_get_number_of_snapshots(int group_id, int *number_of_snapshots) {

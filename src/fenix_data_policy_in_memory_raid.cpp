@@ -145,7 +145,7 @@ void __imr_undo_restore(MPI_Comm comm, int err, void* data){
 
 void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm comm, 
       int timestart, int depth, void* policy_value, int* flag){
-   *group = (fenix_group_t *)malloc(sizeof(fenix_imr_group_t));
+   *group = (fenix_group_t *) new fenix_imr_group_t;
    fenix_imr_group_t *new_group = (fenix_imr_group_t *)(*group);
    new_group->base.vtbl.group_delete = *__imr_group_delete;
    new_group->base.vtbl.member_create = *__imr_member_create;
@@ -453,8 +453,8 @@ int __imr_member_store(fenix_group_t* g, int member_id,
    fenix_member_entry_t* member_data;
    //Shouldn't need to check for failure to find the member, that should be done before
    //calling
-   int member_data_index = __fenix_search_memberid(group->base.member, member_id);
-   member_data = &(group->base.member->member_entry[member_data_index]);
+   int member_data_index = __fenix_search_memberid(&group->base, member_id);
+   member_data = &(group->base.members[member_data_index]);
    
    if(found_member != FENIX_SUCCESS){
       debug_print("ERROR Fenix_Data_member_store: member_id <%d> does not exist on rank <%d>!\n",
@@ -719,8 +719,8 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
 
    fenix_member_entry_t member_data;
    if(found_member){
-      int member_data_index = __fenix_search_memberid(group->base.member, member_id);
-      member_data = group->base.member->member_entry[member_data_index];
+      int member_data_index = __fenix_search_memberid(&group->base, member_id);
+      member_data = group->base.members[member_data_index];
    }
 
    int recovery_locally_possible;
@@ -801,8 +801,8 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
          Fenix_Callback_register(__imr_undo_restore, (void*)undo_data);
 
          __imr_find_mentry(group, member_id, &mentry);
-         int member_data_index = __fenix_search_memberid(group->base.member, member_id);
-         member_data = group->base.member->member_entry[member_data_index];
+         int member_data_index = __fenix_search_memberid(&group->base, member_id);
+         member_data = group->base.members[member_data_index];
          
          mentry->current_head = group->num_snapshots;
 
@@ -899,7 +899,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
            __fenix_data_member_recv_metadata(group->base.groupid, group->partners[my_set_rank==0 ? 1 : 0], &packet);
            
            //We remake the new member just like the user would.
-           __fenix_member_create(group->base.groupid, packet.memberid, NULL, packet.current_count,
+           __fenix_member_create(group->base.groupid, member_id, NULL, packet.current_count,
                  packet.datatype_size);
 
            //Mark the member for deletion if another failure interrupts recovering fully.
@@ -910,8 +910,8 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
 
 
            __imr_find_mentry(group, member_id, &mentry);
-           int member_data_index = __fenix_search_memberid(group->base.member, member_id);
-           member_data = group->base.member->member_entry[member_data_index];
+           int member_data_index = __fenix_search_memberid(&group->base, member_id);
+           member_data = group->base.members[member_data_index];
           
 
            MPI_Recv((void*)&(group->num_snapshots), 1, MPI_INT, (my_set_rank==0 ? 1 : 0),
@@ -1077,8 +1077,8 @@ int __imr_member_lrestore(fenix_group_t* g, int member_id,
       return FENIX_ERROR_INVALID_MEMBERID;
    }
 
-   int member_data_index = __fenix_search_memberid(group->base.member, member_id);
-   fenix_member_entry_t member_data = group->base.member->member_entry[member_data_index];
+   int member_data_index = __fenix_search_memberid(&group->base, member_id);
+   fenix_member_entry_t member_data = group->base.members[member_data_index];
   
 
 
@@ -1236,21 +1236,18 @@ int __imr_get_redundant_policy(fenix_group_t* group, int* policy_name,
    policy_vals[1] = full_group->rank_separation;
 
    *flag = FENIX_SUCCESS;
-   return retval;   
+   return retval;
 }
 
 int __imr_group_delete(fenix_group_t* g){
    fenix_imr_group_t* group = (fenix_imr_group_t*) g;
 
-   for(int entry = 0; entry < group->base.member->count; entry++){
+   for(int entry = 0; entry < group->base.members.size(); entry++){
      __imr_member_free(group->entries+entry, g->depth); 
    }
    free(group->entries);
 
-   //We have the responsibility of destroying the member array in the base group struct.
-   __fenix_data_member_destroy(group->base.member);
-   
    free(group->partners);
-   free(group);
+   delete group;
    return FENIX_SUCCESS;
 }
