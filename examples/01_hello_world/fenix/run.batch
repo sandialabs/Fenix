@@ -1,9 +1,0 @@
-#!/bin/bash
-#SBATCH --job-name=fenix_hello_world                
-#SBATCH --output=fenix_hello_world.out
-#SBATCH --error=fenix_hello_world.err
-#SBATCH --nodes=2               
-#SBATCH --ntasks-per-node=4
-#SBATCH --time=00:20:00
-
-/home/knteran/mpi-ulfm-05022016/bin/mpirun --mca pml ob1 -am ft-enable-mpi --mca btl openib,sm,self --npernode 4 -n 8 ./fenix_hello_world 2
