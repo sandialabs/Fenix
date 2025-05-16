@@ -37,8 +37,8 @@ services:
             cmake /fenix \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_C_COMPILER=mpicc \
-                -DFENIX_EXAMPLES=ON \
-                -DFENIX_TESTS=ON \
+                -DBUILD_EXAMPLES=ON \
+                -DBUILD_TESTING=ON \
                 -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe" && \
             make -j
         
