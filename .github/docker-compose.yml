@@ -3,11 +3,12 @@ services:
     image: "bootstrap"
     build:
       dockerfile_inline: |
-        FROM spack/ubuntu-jammy:0.22.2
+        FROM spack/ubuntu-jammy:0.23
         VOLUME /configs
         ARG OMPI_VERSION
         ENV OMPI_VERSION=$${OMPI_VERSION}
         CMD cp /configs/spack.yaml . && \
+            export OMPI_VERSION=$( [[ "$${OMPI_VERSION}" == git.* ]] && echo "$${OMPI_VERSION}=main" || echo "$${OMPI_VERSION}" ) && \
             spack -e . add openmpi@$${OMPI_VERSION} && \
             spack -e . containerize >/configs/spack.Dockerfile
       args:
@@ -36,8 +37,8 @@ services:
             cmake /fenix \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_C_COMPILER=mpicc \
-                -DFENIX_EXAMPLES=ON \
-                -DFENIX_TESTS=ON \
+                -DBUILD_EXAMPLES=ON \
+                -DBUILD_TESTING=ON \
                 -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe" && \
             make -j
         

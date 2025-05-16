@@ -12,6 +12,9 @@ jobs:
         ompi_version:
           - main
           - 5.0.3
+          - git.v5.0.5
+          - git.v5.0.7
+          - git.v5.0.x
 
     steps:
       - name: Checkout
@@ -37,4 +40,4 @@ jobs:
             *.args.OMPI_VERSION=${{ matrix.ompi_version }}
 
       - name: Test Fenix
-        run: docker run fenix
+        run: docker run fenix ctest --output-on-failure --timeout 20 --repeat after-timeout:3
