@@ -61,10 +61,11 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
+#include "fenix_data_subset.hpp"
 
 #include <mpi-ext.h>
 
-using namespace Fenix::Data;
+namespace Fenix::Data {
 
 /**
  * @brief           create new group or recover group data for lost processes
@@ -155,7 +156,7 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
 
 
       //Reinit group metadata as needed w/ new communicator.
-      group->vtbl.reinit(group, flag);
+      group->reinit(flag);
     }
 
 
@@ -175,7 +176,7 @@ int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* poli
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t* group = fenix.data_recovery->group[group_index];
-    retval = group->vtbl.get_redundant_policy(group, policy_name, policy_value, flag);
+    retval = group->get_redundant_policy(policy_name, policy_value, flag);
   }
 
   return retval;
@@ -212,7 +213,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, int 
   mentry = __fenix_data_member_add_entry(group, memberid, data, count, datatype_size);
 
   //Pass the info along to the policy
-  return group->vtbl.member_create(group, mentry);
+  return group->member_create(mentry);
 }
 
 
@@ -269,35 +270,24 @@ int __fenix_data_test(Fenix_Request request, int *flag) {
  *
  */
 
-int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
-  int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
-  int member_index = -1;
-
-  /* Check if the member id already exists. If so, the index of the storage space is assigned */
-  if (group_index !=-1 && memberid != FENIX_DATA_MEMBER_ALL) {
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index], memberid );
+int __fenix_member_store(int groupid, int memberid, const DataSubset& specifier) {
+  auto [group_index, group] = find_group(groupid);
+  if(!group){
+    debug_print("ERROR Fenix_Data_member_store: group_id <%d> does not exist", groupid);
+    return FENIX_ERROR_INVALID_GROUPID;
   }
+  
+  return group->member_store(memberid, specifier);
+}
 
-  if (fenix.options.verbose == 18 && fenix.data_recovery->group[group_index]->current_rank== 0 ) {
-    verbose_print(
-            "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
-              __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
-            member_index, memberid);
+int __fenix_member_storev(int groupid, int memberid, const DataSubset& specifier) {
+  auto [group_index, group] = find_group(groupid);
+  if(!group){
+    debug_print("ERROR Fenix_Data_member_storev: group_id <%d> does not exist", groupid);
+    return FENIX_ERROR_INVALID_GROUPID;
   }
-
-  if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_member_store: group_id <%d> does not exist\n", groupid);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else if (member_index == -1) {
-    debug_print("ERROR Fenix_Data_member_store: member_id <%d> does not exist\n",
-                memberid);
-    retval = FENIX_ERROR_INVALID_MEMBERID;
-  } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.member_store(group, memberid, specifier);
-  }
-  return retval;
+  
+  return group->member_storev(memberid, specifier);
 }
 
 /**
@@ -307,39 +297,16 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
  * @param subset_specifier
  * @param request
  */
-int __fenix_member_istore(int groupid, int memberid, Fenix_Data_subset specifier,
+int __fenix_member_istore(int groupid, int memberid, const DataSubset& specifier,
                   Fenix_Request *request) {
-
-  int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
-  int member_index = -1;
-
-  /* Check if the member id already exists. If so, the index of the storage space is assigned */
-  if (group_index !=-1 && memberid != FENIX_DATA_MEMBER_ALL) {
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index], memberid );
+  auto [group_index, group] = find_group(groupid);
+  if(!group){
+    debug_print("ERROR Fenix_Data_member_istore: group_id <%d> does not exist", groupid);
+    return FENIX_ERROR_INVALID_GROUPID;
   }
-
-  if (fenix.options.verbose == 18 && fenix.data_recovery->group[group_index]->current_rank== 0 ) {
-    verbose_print(
-            "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
-              __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
-            member_index, memberid);
-  }
-
-  if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_member_store: group_id <%d> does not exist\n", groupid);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else if (member_index == -1) {
-    debug_print("ERROR Fenix_Data_member_store: member_id <%d> does not exist\n",
-                memberid);
-    retval = FENIX_ERROR_INVALID_MEMBERID;
-  } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.member_istore(group, memberid, specifier, request);
-  }
-  return retval;
+  
+  return group->member_istore(memberid, specifier, request);
 }
-
 
 
 /**
@@ -364,7 +331,7 @@ int __fenix_data_commit(int groupid, int *timestamp) {
     if (group->timestamp != -1) group->timestamp++;
     else group->timestamp = group->timestart;
     
-    group->vtbl.commit(group);
+    group->commit();
     
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
@@ -413,7 +380,7 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     if(can_commit == 1){
         if (group->timestamp != -1) group->timestamp++;
         else group->timestamp = group->timestart;
-        retval = group->vtbl.commit(group);
+        retval = group->commit();
     }
 
 
@@ -440,16 +407,13 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
  * @param max_count
  * @param time_stamp
  */
-int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp, Fenix_Data_subset* data_found) {
-
+int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
   int retval =  FENIX_SUCCESS;
   int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
-  int member_index = -1;
-
-  if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index], memberid);
-
 
   if (fenix.options.verbose == 25) {
+    int member_index = -1;
+    if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index], memberid);
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
                     __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
                   member_index);
@@ -461,7 +425,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.member_restore(group, memberid, data, maxcount, timestamp, data_found);
+    retval = group->member_restore(memberid, data, maxcount, timestamp, data_found);
   }
   return retval;
 }
@@ -474,7 +438,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
  * @param max_count
  * @param time_stamp
  */
-int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, Fenix_Data_subset* data_found) {
+int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
 
   int retval =  FENIX_SUCCESS;
   int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
@@ -495,7 +459,7 @@ int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount,
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.member_lrestore(group, memberid, data, maxcount, timestamp, data_found);
+    retval = group->member_lrestore(memberid, data, maxcount, timestamp, data_found);
   }
   return retval;
 }
@@ -529,7 +493,7 @@ int __fenix_member_restore_from_rank(int groupid, int memberid, void *target_buf
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.member_restore_from_rank(group, memberid, target_buffer, 
+    retval = group->member_restore_from_rank(memberid, target_buffer, 
             max_count, time_stamp, source_rank);
   }
   return retval;
@@ -560,14 +524,15 @@ int __fenix_get_member_at_position(int group_id, int *member_id, int position) {
   auto [group_index, group] = find_group(group_id);
   if(!group) return FENIX_ERROR_INVALID_GROUPID;
 
-  if(position < 0 || position > group->members.size()){
+  if(position < 0 || position >= group->members.size()){
     debug_print(
             "ERROR Fenix_Data_group_get_member_at_position: position <%d> must be a value between 0 and number_of_members-1 \n",
             position);
     return FENIX_ERROR_INVALID_POSITION;
   }
-
-  *member_id = group->members[position].memberid;
+  auto iter = group->members.begin();
+  std::advance(iter, position);
+  *member_id = iter->first;
   return FENIX_SUCCESS;
 }
 
@@ -584,7 +549,7 @@ int __fenix_get_number_of_snapshots(int group_id, int *num_snapshots) {
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.get_number_of_snapshots(group, num_snapshots);
+    retval = group->get_number_of_snapshots(num_snapshots);
   }
   return retval;
 }
@@ -635,7 +600,7 @@ int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
                   member_index);
   }
 
-  return group->vtbl.member_get_attribute(group, mentry, attributename,
+  return group->member_get_attribute(mentry, attributename,
           attributevalue, flag, sourcerank);
 }
 
@@ -667,12 +632,12 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
   //Always pass attribute changes along to group - they might have unknown attributes
   //or side-effects to handle from changes. They get change info before
   //changes are made, in case they need prior state.
-  int retval = group->vtbl.member_set_attribute(group, mentry, attributename,
+  int retval = group->member_set_attribute(mentry, attributename,
           attributevalue, flag);
 
   switch (attributename) {
     case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
-      mentry->user_data = attributevalue;
+      mentry->user_data = (char*)attributevalue;
       break;
     case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
       mentry->current_count = *((int *) (attributevalue));
@@ -725,7 +690,9 @@ int __fenix_snapshot_delete(int group_id, int time_stamp) {
     retval = FENIX_ERROR_INVALID_TIMESTAMP;
   } else {
     fenix_group_t *group = (fenix.data_recovery->group[group_index]);
-    retval = group->vtbl.snapshot_delete(group, time_stamp);
+    retval = group->snapshot_delete(time_stamp);
   }
   return retval;
 }
+
+} // namespace Fenix::Data

@@ -70,17 +70,66 @@
 #include <fcntl.h>
 #include <getopt.h>
 
-#define debug_print(fmt, ...) \
-        do { fprintf(stderr, "%s: %d: %s(): " fmt, __FILE__, \
-                                        __LINE__, __func__, __VA_ARGS__); } while (0)
+// FENIX_ABORT kills whole MPI job if MPI visible in current file, else just
+// aborts this process
+// Prefer fenix_assert or fatal_print instead of using this directly
+#ifdef MPI_VERSION
+    #define FENIX_ABORT() \
+        do { \
+            int mpi_is_init;                                                   \
+            MPI_Initialized(&mpi_is_init);                                     \
+            if(mpi_is_init) MPI_Abort(MPI_COMM_WORLD, 1);                      \
+            abort();                                                           \
+        } while(0)
+#else
+    #define FENIX_ABORT() abort()
+#endif
 
-#define verbose_print(fmt, ...) \
-        do { printf("%s(): " fmt, __func__, __VA_ARGS__); } while (0)
+// Helpers needing to support printing w/o any user-supplied format args
+// Supports up to 10 args
+// Functions should be named base_name_s for 1 args or base_name_a otherwise
+#define FN_SUFF_I(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, NAME, ...) NAME
+#define FN_SUFF(...) FN_SUFF_I(__VA_ARGS__,_a,_a,_a,_a,_a,_a,_a,_a,_a,_s)
+#define FN_SUFF_MERGE_IMPL(fn, suff) fn ## suff
+#define FN_SUFF_MERGE(fn, suff) FN_SUFF_MERGE_IMPL(fn, suff)
+#define FN_NAME(base_name, ...) FN_SUFF_MERGE(base_name, FN_SUFF(__VA_ARGS__))
+
+#define TRACE_PRINT_FMT "%s:%d %s(): "
+#define TRACE_PRINT_ARG __FILE__, __LINE__, __func__
+
+#define traced_print_s(file, fmt) \
+    fprintf(file, TRACE_PRINT_FMT fmt "\n", TRACE_PRINT_ARG)
+#define traced_print_a(file, fmt, ...) \
+    fprintf(file, TRACE_PRINT_FMT fmt "\n", TRACE_PRINT_ARG, __VA_ARGS__)
+#define traced_print(file, ...) FN_NAME(traced_print, __VA_ARGS__)(file, __VA_ARGS__)
+
+#define debug_print(...) traced_print(stderr, __VA_ARGS__)
+#define verbose_print(...) traced_print(stdout, __VA_ARGS__)
+
+//Multi-line macro functions wrapped in do-while to maintain correct behavior
+//regardless of what surrouding code is
+#define fatal_print(...) \
+    do {                                                                       \
+        traced_print(stderr, __VA_ARGS__);                                     \
+        traced_print(stderr, "Fenix aborting due to fatal error!");            \
+        FENIX_ABORT();                                                         \
+    } while(0)
+
+#define fenix_assert_a(predicate, ...) \
+    do{if( !(predicate) ){ fatal_print(__VA_ARGS__); }} while(0)
+#define fenix_assert_s(predicate) \
+    fenix_assert_a(predicate, "internal error, failed assertion (" #predicate ")" );
+
+#ifdef NDEBUG
+    //Disable assertions when NDEBUG
+    #define fenix_assert(...) do { } while(0)
+#else
+    #define fenix_assert(...) FN_NAME(fenix_assert, __VA_ARGS__)(__VA_ARGS__)
+#endif
 
 typedef struct __fenix_debug_opt_t {
     int verbose = -1;
 } fenix_debug_opt_t;
-
 
 void __fenix_init_opt(int argc, char **argv);
 

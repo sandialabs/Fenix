@@ -62,7 +62,16 @@
 #include "fenix_data_packet.hpp"
 
 
-using namespace Fenix::Data;
+namespace Fenix::Data {
+
+fenix_member_entry_packet_t
+fenix_member_entry_t::to_packet(){
+  fenix_member_entry_packet_t to_ret;
+  to_ret.memberid = memberid;
+  to_ret.datatype_size = datatype_size;
+  to_ret.current_count = current_count;
+  return to_ret;
+}
 
 /**
  * @brief
@@ -79,12 +88,12 @@ fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
     fenix_member_entry_t mentry;
     mentry.memberid = memberid;
     mentry.state = OCCUPIED;
-    mentry.user_data = data;
+    mentry.user_data = (char*)data;
     mentry.current_count = count;
     mentry.datatype_size = datatype_size;
-    group->members.push_back(mentry);
+    group->members[memberid] = mentry;
 
-    return &group->members.back();
+    return &group->members[memberid];
 }
 
 int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank){
@@ -124,5 +133,7 @@ int __fenix_data_member_recv_metadata(int groupid, int src_rank,
  */
 void __fenix_data_member_reinit(fenix_group_t *group, fenix_two_container_packet_t packet,
                    enum states mystatus) {
-  group->members.clear();
+    group->members.clear();
 }
+
+} //namespace Fenix::Data

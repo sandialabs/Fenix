@@ -74,11 +74,6 @@
 #define __NUM_MEMBER_ATTR_SIZE  3
 #define __GRP_MEMBER_LENTRY_ATTR_SIZE 11
 
-
-
-
-
-
 #define STORE_RANK_TAG  2000
 #define STORE_COUNT_TAG 2001
 #define STORE_SIZE_TAG  2002
@@ -95,10 +90,7 @@
 #define RECOVER_DATA_TAG         1907
 
 
-
-
-
-
+namespace Fenix::Data {
 
 typedef struct __data_entry_packet {
     int count;
@@ -111,15 +103,15 @@ int __fenix_group_get_redundancy_policy(int, int*, int*, int*);
 int __fenix_member_create(int, int, void *, int, int);
 int __fenix_data_wait(Fenix_Request);
 int __fenix_data_test(Fenix_Request, int *);
-int __fenix_member_store(int, int, Fenix_Data_subset);
-int __fenix_member_storev(int, int, Fenix_Data_subset);
-int __fenix_member_istore(int, int, Fenix_Data_subset, Fenix_Request *);
-int __fenix_member_istorev(int, int, Fenix_Data_subset, Fenix_Request *);
+int __fenix_member_store(int, int, const DataSubset&);
+int __fenix_member_storev(int, int, const DataSubset&);
+int __fenix_member_istore(int, int, const DataSubset&, Fenix_Request *);
+int __fenix_member_istorev(int, int, const DataSubset&, Fenix_Request *);
 int __fenix_data_commit(int, int *);
 int __fenix_data_commit_barrier(int, int *);
 int __fenix_data_barrier(int);
-int __fenix_member_restore(int, int, void *, int, int, Fenix_Data_subset*);
-int __fenix_member_lrestore(int, int, void *, int, int, Fenix_Data_subset*);
+int __fenix_member_restore(int, int, void *, int, int, DataSubset&);
+int __fenix_member_lrestore(int, int, void *, int, int, DataSubset&);
 int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
 int __fenix_get_number_of_members(int, int *);
 int __fenix_get_member_at_position(int, int *, int);
@@ -135,11 +127,6 @@ int __fenix_member_delete(int, int);
 void __fenix_init_data_recovery();
 void __fenix_init_partner_copy_recovery();
 
-
-void __fenix_dr_print_store();
-void __fenix_dr_print_restore();
-void __fenix_dr_print_datastructure();
-void __fenix_store_single();
-void __fenix_store_all();
+}
 
 #endif

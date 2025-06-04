@@ -10,6 +10,7 @@
 
 add_executable(fenix_hello_world fenix_hello_world.c)
 target_link_libraries(fenix_hello_world fenix ${MPI_C_LIBRARIES})
+set_target_properties(fenix_hello_world PROPERTIES LINKER_LANGUAGE C)
 
 if(BUILD_TESTING)
    add_test(NAME hello_world 

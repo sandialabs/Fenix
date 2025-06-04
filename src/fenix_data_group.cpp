@@ -54,6 +54,8 @@
 //@HEADER
 */
 
+#include <cassert>
+
 #include "mpi.h"
 #include "fenix-config.h"
 #include "fenix_ext.hpp"
@@ -62,6 +64,10 @@
 #include "fenix_data_packet.hpp"
 
 namespace Fenix::Data {
+
+group_iterator find_group(int id){
+  return find_group(id, fenix.data_recovery);
+}
 
 group_iterator find_group(int id, fenix_data_recovery_t* dr){
   int index = __fenix_search_groupid(id, dr);
@@ -72,17 +78,12 @@ group_iterator find_group(int id, fenix_data_recovery_t* dr){
   return {index, dr->group[index]};
 }
 
-} //end namespace Fenix::Data
-
-using namespace Fenix::Data;
 
 member_iterator fenix_group_t::search_member(int id){
-  for(int i = 0; i < members.size(); i++){
-    if(members[i].memberid == id){
-      return {i, &(members[i])};
-    }
-  }
-  return {-1, nullptr};
+  auto iter = members.find(id);
+  if(iter == members.end()) return {-1, nullptr};
+  assert(iter->first == iter->second.memberid);
+  return {std::distance(members.begin(), iter), &(iter->second)};
 }
 
 member_iterator fenix_group_t::find_member(int id){
@@ -91,9 +92,6 @@ member_iterator fenix_group_t::find_member(int id){
   return it;
 }
 
-/**
- * @brief
- */
 fenix_data_recovery_t * __fenix_data_recovery_init() {
   fenix_data_recovery_t *data_recovery = (fenix_data_recovery_t *)
           s_calloc(1, sizeof(fenix_data_recovery_t));
@@ -125,10 +123,10 @@ int __fenix_member_delete(int groupid, int memberid) {
                   member_index);
   }
 
-  int retval = group->vtbl.member_delete(group, memberid);
+  int retval = group->member_delete(memberid);
 
   if(retval == FENIX_SUCCESS){
-    group->members.erase(group->members.begin()+member_index);
+    group->members.erase(memberid);
   }
 
   if (fenix.options.verbose == 38) {
@@ -154,7 +152,7 @@ int __fenix_group_delete_direct(fenix_group_t* group){
     //knowing how many members there are during its own deletion
     //process.
     
-    return group->vtbl.group_delete(group);
+    return group->group_delete();
 }
 
 int __fenix_data_recovery_remove_group(int group_index){
@@ -273,3 +271,5 @@ int __fenix_find_next_group_position( fenix_data_recovery_t *data_recovery ) {
   __fenix_ensure_data_recovery_capacity(data_recovery);
   return data_recovery->count;
 }
+
+} //end namespace Fenix::Data

@@ -59,9 +59,18 @@
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
 #include "fenix.hpp"
+#include "fenix_data_subset.hpp"
 
-const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_FULL};
-const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = {0, NULL, NULL, NULL, 0, __FENIX_SUBSET_EMPTY};
+using namespace Fenix;
+using namespace Fenix::Data;
+
+namespace Fenix::Data {
+const DataSubset FENIX_SUBSET_FULL = {{0, Fenix::DataSubset::MAX}};
+const DataSubset FENIX_SUBSET_EMPTY = {};
+}
+
+const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = { new DataSubset(DataSubset::MAX) };
+const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = { new DataSubset() };
 
 int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback){
     return __fenix_callback_register(callback);
@@ -108,20 +117,20 @@ int Fenix_Data_test(Fenix_Request request, int *flag) {
     return __fenix_data_test(request, flag);
 }
 
-int Fenix_Data_member_store(int group_id, int member_id, Fenix_Data_subset subset_specifier) {
-    return __fenix_member_store(group_id, member_id, subset_specifier);
+int Fenix_Data_member_store(int group_id, int member_id, const Fenix_Data_subset subset) {
+    return member_store(group_id, member_id, *(DataSubset*)subset.impl);
 }
 
-int Fenix_Data_member_storev(int group_id, int member_id, Fenix_Data_subset subset_specifier) {
-    return 0;
+int Fenix_Data_member_storev(int group_id, int member_id, const Fenix_Data_subset subset) {
+    return member_storev(group_id, member_id, *(DataSubset*)subset.impl);
 }
 
-int Fenix_Data_member_istore(int group_id, int member_id, Fenix_Data_subset subset_specifier, Fenix_Request *request) {
-    return 0;
+int Fenix_Data_member_istore(int group_id, int member_id, const Fenix_Data_subset subset, Fenix_Request *request) {
+    return member_istore(group_id, member_id, *(DataSubset*)subset.impl, request);
 }
 
-int Fenix_Data_member_istorev(int group_id, int member_id, Fenix_Data_subset subset_specifier, Fenix_Request *request) {
-    return 0;
+int Fenix_Data_member_istorev(int group_id, int member_id, const Fenix_Data_subset subset, Fenix_Request *request) {
+    return member_istorev(group_id, member_id, *(DataSubset*)subset.impl, request);
 }
 
 int Fenix_Data_commit(int group_id, int *time_stamp) {
@@ -137,11 +146,29 @@ int Fenix_Data_barrier(int group_id) {
 }
 
 int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found) {
-    return __fenix_member_restore(group_id, member_id, target_buffer, max_count, time_stamp, data_found);
+    DataSubset* s = new DataSubset();
+    int ret = member_restore(
+        group_id, member_id, target_buffer, max_count, time_stamp, *s
+    );
+    if(data_found == nullptr){
+        delete s;
+    } else {
+        data_found->impl = s;
+    }
+    return ret;
 }
 
 int Fenix_Data_member_lrestore(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found) {
-    return __fenix_member_lrestore(group_id, member_id, target_buffer, max_count, time_stamp, data_found);
+    DataSubset* s = new DataSubset();
+    int ret = member_lrestore(
+        group_id, member_id, target_buffer, max_count, time_stamp, *s
+    );
+    if(data_found == nullptr){
+        delete s;
+    } else {
+        data_found->impl = s;
+    }
+    return ret;
 }
 
 int Fenix_Data_member_restore_from_rank(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found, int source_rank) {
@@ -219,3 +246,71 @@ int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
 int Fenix_Process_detect_failures(int do_recovery){
     return __fenix_detect_failures(do_recovery); 
 }
+
+Fenix_Rank_role Fenix_get_role(){
+    return (Fenix_Rank_role) fenix.role;
+}
+
+int Fenix_get_error(){
+    return fenix.repair_result;
+}
+
+namespace Fenix {
+
+void init(const Args::FenixInitArgs args){
+    fenix_assert(args.resume_mode != JUMP, "Must use Fenix_Init to use the JUMP resume mode");
+
+    fenix_preinit(args);
+    __fenix_postinit();
+}
+
+void throw_exception(){
+    throw CommException(*fenix.user_world, *fenix.ret_error);
+}
+
+} // namespace Fenix
+
+namespace Fenix::Data {
+
+int member_store(int group_id, int member_id, const DataSubset& subset){
+    return __fenix_member_store(group_id, member_id, subset);
+}
+
+int member_storev(int group_id, int member_id, const DataSubset& subset){
+    return __fenix_member_storev(group_id, member_id, subset);
+}
+
+int member_istore(
+    int group_id, int member_id, const DataSubset& subset,
+    Fenix_Request *request
+){
+    fatal_print("unimplemented");
+    return 0;
+}
+
+int member_istorev(
+    int group_id, int member_id, const DataSubset& subset,
+    Fenix_Request *request
+){
+    fatal_print("unimplemented");
+    return 0;
+}
+
+int member_restore(
+    int group_id, int member_id, void *target_buffer, int max_count,
+    int time_stamp, DataSubset& data_found
+) {
+    data_found = {};
+    return __fenix_member_restore(group_id, member_id, target_buffer, max_count, time_stamp, data_found);
+}
+
+int member_lrestore(
+    int group_id, int member_id, void *target_buffer, int max_count,
+    int time_stamp, DataSubset& data_found
+) {
+    data_found = {};
+    return __fenix_member_lrestore(group_id, member_id, target_buffer, max_count, time_stamp, data_found);
+}
+
+} // namespace Fenix::Data
+

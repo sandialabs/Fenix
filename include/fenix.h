@@ -61,13 +61,9 @@
 #include <setjmp.h>
 
 #if defined(c_plusplus) || defined(__cplusplus)
-#include "fenix.hpp"
-
 extern "C" {
 #endif
 
-
-#include "fenix_data_subset.h"
 #include "fenix_init.h"
 
 /**
@@ -115,8 +111,6 @@ extern "C" {
 #define FENIX_FINALIZE_LOC		      2
 //!@internal @brief Agreement code for data commit barrier
 #define FENIX_DATA_COMMIT_BARRIER_LOC	      4
-
-
 
 /**
  * @defgroup ProcessRecovery Process Recovery
@@ -298,7 +292,13 @@ int Fenix_Process_detect_failures(int do_recovery);
 int Fenix_get_number_of_ranks_with_role(int, int *);
 
 //!@unimplemented Returns the #Fenix_Rank_role for a given rank
-int Fenix_get_role(MPI_Comm comm, int rank, int *role);
+int Fenix_get_rank_role(MPI_Comm comm, int rank, int *role);
+
+//!@brief Returns this rank's #Fenix_Rank_role
+Fenix_Rank_role Fenix_get_role();
+
+//!@brief Returns the error value from Fenix_Init or the latest recovery
+int Fenix_get_error();
 
 /**
  * @brief Get the list of ranks that failed in the most recent failure.
@@ -357,9 +357,11 @@ int Fenix_Finalize();
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE     14
 #define FENIX_DATA_SNAPSHOT_LATEST           -1
 #define FENIX_DATA_SNAPSHOT_ALL              16
+#define FENIX_RESIZEABLE                      0
 #define FENIX_DATA_SUBSET_CREATED             2
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID     13
+#define FENIX_DATA_POLICY_IMR                FENIX_DATA_POLICY_IN_MEMORY_RAID
 
 /**
  * @unimplemented As MPI_Request, but for Fenix asynchronous data recovery calls
@@ -368,6 +370,22 @@ typedef struct {
     MPI_Request mpi_send_req;
     MPI_Request mpi_recv_req;
 } Fenix_Request;
+
+
+/**
+ * @brief Represents a data subset that can be stored/recovered
+ *
+ * Must be initialized (via #Fenix_Data_subset_create or
+ * #Fenix_Data_subset_createv) before using as an input parameter.
+ *
+ * Must be uninitialized or freed (#Fenix_Data_subset_free) before using as an
+ * output parameter to avoid data leaks.
+ */
+typedef struct {
+    //!@internal @brief pointer to a Fenix::DataSubset object
+    void* impl;
+} Fenix_Data_subset;
+
 
 //!@brief A standin for checkpointing/recovering all available data in a member.
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
@@ -428,7 +446,7 @@ int Fenix_Data_group_create(int group_id, MPI_Comm comm, int start_time_stamp,
  *        is critical for non-survivor ranks after a failure which will have an invalid address
  *        which was generated on the failed rank and must update.
  * @param count The maximum number of contiguous elements of type \c datatype of the data to be
- *        stored. Need not be the same in all calling ranks.
+ *        stored. A value of FENIX_RESIZEABLE allows this member to have a varying data size.
  * @param datatype The MPI_Datatype of the elements in \c source_buffer
  *
  * @return FENIX_SUCCESS, or an error value.
@@ -468,24 +486,25 @@ int Fenix_Data_test(Fenix_Request request, int *flag);
  * @param member_id All ranks must provide the same member_id
  * @param subset_specifier Which subset of the data to store. It is always valid for every rank to provide the same 
  *        subset_specifier; depending on the group's policy, varying combinations of specifiers may be possible.
+ *        If this member was created with size FENIX_RESIZEABLE, FENIX_DATA_SUBSET_ALL is an invalid input.
  * @return FENIX_SUCCESS, or an error value.
  */
 int Fenix_Data_member_store(int group_id, int member_id,
-                            Fenix_Data_subset subset_specifier);
+                            const Fenix_Data_subset subset_specifier);
 
 
 //!@unimplemented As [store](#Fenix_Data_member_store), but subsets may vary rank-to-rank.
 int Fenix_Data_member_storev(int group_id, int member_id,
-                             Fenix_Data_subset subset_specifier);
+                             const Fenix_Data_subset subset_specifier);
 
 //!@unimplemented As [store](#Fenix_Data_member_store), but asynchronous.
 int Fenix_Data_member_istore(int group_id, int member_id,
-                             Fenix_Data_subset subset_specifier,
+                             const Fenix_Data_subset subset_specifier,
                              Fenix_Request *request);
 
 //!@unimplemented As [istore](#Fenix_Data_member_istore), but asynchronous.
 int Fenix_Data_member_istorev(int group_id, int member_id,
-                              Fenix_Data_subset subset_specifier,
+                              const Fenix_Data_subset subset_specifier,
                               Fenix_Request *request);
 
 /**
@@ -733,6 +752,8 @@ int Fenix_Data_member_delete(int group_id, int member_id);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }
+
+#include "fenix.hpp"
 #endif
 
 #endif // __FENIX__

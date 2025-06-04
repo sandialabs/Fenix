@@ -63,95 +63,76 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-int _verify_subset( double *data, int num_blocks, int start_offset, int end_offset, int stride,
-                    Fenix_Data_subset *subset_specifier );
+#include <fenix_data_subset.hpp>
 
-int _verify_subset( double *data, int num_repeats, int start_offset, int end_offset, int stride,
-                    Fenix_Data_subset *sp)
-{
-   int i, j;
-   int idx;
-   int block_size;
-   int flag = 0;
-   double accumulator =0.0;
+#include "subset_common.hpp"
 
-   if( num_repeats != sp->num_repeats[0]+1 ) {
-      flag = 1;
-      printf("num_repeats set incorrectly.");
-   } 
-   if( start_offset != sp->start_offsets[0] ) {
-      flag = 2;
-      printf("start_offset set incorrectly\n");
-   }
-   if( end_offset != sp->end_offsets[0]){
-      flag = 3;
-      printf("end_offset set incorrectly\n");
-   }
-   if( sp->specifier != __FENIX_SUBSET_CREATE ) {
-      flag = 4;
-      printf("specifier set incorrectly\n");
-   }
-   if(stride != sp->stride){
-      flag = 5;
-      printf("stride set incorrectly\n");
+using namespace Fenix;
+
+bool test_addition(const DataSubset& a, const DataSubset& b){
+   printf("Testing subsets a=%s, b=%s\n", a.str().c_str(), b.str().c_str());
+
+   const DataSubset c = a + b;
+   const DataSubset d = b + a;
+
+   printf("c=a+b=%s\n", c.str().c_str());
+   printf("d=b+a=%s\n", d.str().c_str());
+
+   if(c != d){
+      printf("a+b != b+a\n");
+      return false;
    }
 
-   /* Iterate over the loop to see if any memory error occurs*/
-   idx = start_offset;
-   block_size = end_offset - start_offset;
-   for ( i = 0; i < num_repeats; i++ ) {
-      for( j = 0; j < block_size; j++ ) {
-         accumulator += data[idx+j];
+   size_t start = std::min(a.start(), b.start());
+   size_t end;
+   if(a.end() == -1 || b.end() == -1){
+      end = start+1000;
+   } else {
+      end = std::max(a.end(), b.end()) + 10;
+   }
+   
+   for(int i = start; i <= end; i++){
+      if(c.includes(i) != (a.includes(i) || b.includes(i))){
+         if(c.includes(i)){
+            printf("c=a+b incorrectly includes index %d not in a or b\n", i);
+            return false;
+         } else {
+            printf(
+               "c=a+b incorrectly excludes index %d in %s\n", i,
+               a.includes(i) ? b.includes(i) ? "both" : "a" : "b"
+            );
+            return false;
+         }
       }
-      idx += stride;
+      if(d.includes(i) != (a.includes(i) || b.includes(i))){
+         if(d.includes(i)){
+            printf("d=b+a incorrectly includes index %d not in a or b\n", i);
+            return false;
+         } else {
+            printf(
+               "d=b+a incorrectly excludes index %d in %s\n", i,
+               a.includes(i) ? b.includes(i) ? "both" : "a" : "b"
+            );
+            return false;
+         }
+      }
    }
 
-  return flag;
+   return true;
 }
-
 
 int main(int argc, char **argv)
 {
-   Fenix_Data_subset subset_specifier;
-   int num_blocks;
-   int start_offset, end_offset, stride;
-   int space_size;
-   double *d_space;
+   bool success = true;
 
-  if (argc < 6) {
-      printf("Usage: %s <array size> <# blocks> <start offset> <end offset> <stride> \n", *argv);
-      exit(0);
-  }
-
-   space_size   = atoi(argv[1]);
-   num_blocks   = atoi(argv[2]);
-   start_offset = atoi(argv[3]);
-   end_offset   = atoi(argv[4]);
-   stride       = atoi(argv[5]); 
-
-   if( space_size < (num_blocks * stride + start_offset) ) {
-      printf("Error: Array size is smaller than (the number of blocks x stride) + start_offset\n");
-      printf("Aborting\n");
-      exit(0);
+   auto subsets = get_subsets();
+   for(const auto& a : subsets){
+      for(const auto& b : subsets){
+         success &= test_addition(a, b);
+      }
    }
 
-   if( start_offset > end_offset ) {
-      printf("Error: Start offset must be less than end_offset\n");
-      printf("Aborting\n");
-      exit(0);
-   }
-   
-   d_space = (double *)malloc(sizeof(double)*space_size);
-   Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
-   //data_subset_create( num_blocks, start_offset, end_offset, stride, &subset_specifier );
-   // Verification
-   int err_code = _verify_subset( d_space, num_blocks, start_offset, end_offset, stride, &subset_specifier );
-   // free_data_subset_fixed ( &subset_specifier);
-   free(d_space);
-   if( err_code == 0 ) {
-      printf("Passed\n");
-   }
-   return err_code;
+   return success ? 0 : 1;
 }
 
 
