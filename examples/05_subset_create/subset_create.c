@@ -66,11 +66,12 @@
 int max_iter = 2;
 const int kCount = 100;
 const int kKillID = 2;
+const int my_group = 0;
+const int my_member = 0;
 
 int main(int argc, char **argv) {
-fprintf(stderr, "Started\n");
   int i;
-  int subset[500];
+  int subset[kCount];
   MPI_Status status;
 
   if (argc < 2) {
@@ -86,7 +87,6 @@ fprintf(stderr, "Started\n");
   int num_ranks;
   int rank;
   int error;
-  int my_group = 0;
   int my_timestamp = 0;
   int my_depth = 1;
   int recovered = 0;
@@ -120,24 +120,33 @@ fprintf(stderr, "Started\n");
 
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
     // init my subset data 
-    int index;
-    for (index = 0; index < kCount; index++) {
+    for (int index = 0; index < kCount; index++) {
         subset[index] = -1;
     }
 
-    Fenix_Data_member_create(my_group, 777, subset, kCount, MPI_INT);
+    Fenix_Data_member_create(my_group, my_member, subset, kCount, MPI_INT);
     
     //Store the entire data set for the initial commit. This is not a requirement.
-    Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
+    Fenix_Data_member_store(my_group, my_member, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_commit_barrier(my_group, NULL);
 
   } else {
     //We've had a failure! Time to recover data.
-    fprintf(stderr, "Starting data recovery on node %d\n", rank);
-    Fenix_Data_member_restore(my_group, 777, subset, kCount, FENIX_TIME_STAMP_MAX, NULL);
+    fprintf(stderr, "Starting data recovery on rank %d\n", rank);
+
+    //Set all data to a value that was never stored
+    for (int index = 0; index < kCount; index++) {
+        subset[index] = -2;
+    }
+
+    int restore_ret = Fenix_Data_member_restore(my_group, my_member, subset, kCount, FENIX_TIME_STAMP_MAX, NULL);
+
+    if(restore_ret != FENIX_SUCCESS){
+        fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, restore_ret);
+    }
 
     int out_flag;
-    Fenix_Data_member_attr_set(my_group, 777, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
+    Fenix_Data_member_attr_set(my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
         subset, &out_flag);
 
     
@@ -159,12 +168,11 @@ fprintf(stderr, "Started\n");
       //We'll store only the small subset that we specified, though.
       //This means that as far as Fenix is concerned only data within that
       //subset was ever changed from the initialized value of -1
-      Fenix_Data_member_store(my_group, 777, subset_specifier);
+      Fenix_Data_member_store(my_group, my_member, subset_specifier);
       Fenix_Data_commit_barrier(my_group, NULL);
 
       MPI_Barrier(new_comm); //Make sure everyone is done committing before we kill and restart everyone
                              //else we may end up with only some nodes having the commit, and it being unusable
-
   }
 
   
@@ -172,7 +180,7 @@ fprintf(stderr, "Started\n");
   if (rank == kKillID && recovered == 0) {
     fprintf(stderr, "Doing kill on node %d\n", rank);
     pid_t pid = getpid();
-    kill(pid, SIGTERM);
+    kill(pid, SIGKILL);
   }
 
   //Make sure we've let rank 2 fail before proceeding, so we're definitely checking 
@@ -214,6 +222,6 @@ fprintf(stderr, "Started\n");
 
 
   Fenix_Finalize();
-  MPI_Finalize();
+  //MPI_Finalize();
   return !successful; //return error status
 }

@@ -62,8 +62,7 @@
 #include "fenix.h"
 #include "fenix_opt.hpp"
 #include "fenix_process_recovery.hpp"
-
-typedef struct __fenix_data_recovery fenix_data_recovery_t;
+#include "fenix_data_group.hpp"
 
 typedef struct {
     int num_inital_ranks;        // Keeps the global MPI rank ID at Fenix_init
@@ -105,9 +104,8 @@ typedef struct {
     MPI_Op   agree_op;             // Global agreement call for Fenix data recovery API
     MPI_Errhandler mpi_errhandler; // Our custom error handler
 
-    fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
+    Fenix::Data::fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;
 
 extern fenix_t fenix;
 #endif // __FENIX_EXT_H__
-

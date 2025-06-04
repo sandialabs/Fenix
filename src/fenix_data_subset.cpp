@@ -59,752 +59,769 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 #include "fenix_data_subset.h"
+#include "fenix_data_subset.hpp"
 
+namespace Fenix {
+namespace Detail {
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset){
-   int retval = -1;
-   if(num_blocks <= 0){
-      debug_print("ERROR __fenix_data_subset_init: num_regions <%d> must be positive\n",
-                num_blocks);
-   } else {
-      subset->start_offsets = (int*) s_malloc(sizeof(int) * num_blocks);
-      subset->end_offsets = (int*) s_malloc(sizeof(int) * num_blocks);
-      subset->num_repeats = (int*) s_calloc(num_blocks, sizeof(int));
-      subset->num_blocks = num_blocks;
-      retval = FENIX_SUCCESS;
+std::pair<size_t, size_t> DataRegion::range() const {
+   return {start, reps == MAX ? MAX : end+stride*reps};
+}
+
+size_t DataRegion::count() const {
+   if(end == MAX || reps == MAX) return MAX;
+   return (end-start+1)*(reps+1);
+}
+
+bool DataRegion::operator==(const DataRegion& other) const {
+   return start == other.start && end == other.end && reps == other.reps &&
+      stride == other.stride;
+}
+
+bool DataRegion::operator&&(const DataRegion& b) const {
+   const auto& a = *this;
+
+   auto [astart, aend] = a.range();
+   auto [bstart, bend] = b.range();
+   if(astart > bend || bstart > aend) return false;
+   else if(!a.reps || !b.reps) return true;
+
+   //Both are strided. For now, only allow same-stride operations
+   fenix_assert(a.stride == b.stride);
+
+   //Get a big modularly idempotent number to avoid negatives
+   size_t idem = (std::max(aend, bend)/stride + 1)*stride;
+
+   //Start of possible overlap
+   size_t ostart = std::max(astart, bstart);
+   size_t arep = (ostart-astart)/stride;
+   size_t brep = (ostart-bstart)/stride;
+   DataRegion ablock = a.get_rep(arep);
+   DataRegion bblock = b.get_rep(brep);
+   
+   if(ablock && bblock) return true;
+   if(arep < a.reps && (bblock && a.get_rep(arep+1))) return true;
+   if(brep < b.reps && (ablock && b.get_rep(brep+1))) return true;
+   return false;
+}
+
+bool DataRegion::operator<(const DataRegion& other) const {
+   if(start != other.start) return start < other.start;
+   if(end != other.end) return end < other.end;
+   if(reps != other.reps) return reps < other.reps;
+   return stride < other.stride;
+}
+
+std::set<DataRegion> DataRegion::operator&(const DataRegion& b) const {
+   fenix_assert(!reps || !b.reps);
+   if(b.reps) return b & *this;
+
+   if(!(*this && b)){
+      return {};
+   } else if(!reps){
+      return {DataRegion({std::max(start, b.start), std::min(end, b.end)})};
    }
-   return retval;
-}
 
-/**
- * @brief
- * @param num_blocks
- * @param start_offset
- * @param end_offset
- * @param stride
- * @param subset_specifier
- *
- * This routine creates 
- */
-int __fenix_data_subset_create(int num_blocks, int start_offset, int end_offset, int stride,
-                       Fenix_Data_subset *subset_specifier) {
-  int retval = -1;
-  if (num_blocks <= 0) {
-    debug_print("ERROR Fenix_Data_subset_create: num_blocks <%d> must be positive\n",
-                num_blocks);
-    retval = FENIX_ERROR_SUBSET_NUM_BLOCKS;
-  } else if (start_offset < 0) {
-    debug_print("ERROR Fenix_Data_subset_create: start_offset <%d> must be positive\n",
-                start_offset);
-    retval = FENIX_ERROR_SUBSET_START_OFFSET;
-  } else if (end_offset < 0) {
-    debug_print("ERROR Fenix_Data_subset_create: end_offset <%d> must be positive\n",
-                end_offset);
-    retval = FENIX_ERROR_SUBSET_END_OFFSET;
-  } else if (stride <= 0) {
-    debug_print("ERROR Fenix_Data_subset_create: stride <%d> must be positive\n", stride);
-    retval = FENIX_ERROR_SUBSET_STRIDE;
-  } else {
-    //This is a simple subset with a single region descriptor that simply
-    //repeats num_blocks times.
-    __fenix_data_subset_init(1 /*Only 1 block, repeated*/, subset_specifier);
-
-    subset_specifier->start_offsets[0] = start_offset;
-    subset_specifier->end_offsets[0] = end_offset;
-    subset_specifier->num_repeats[0] = num_blocks-1;
-    subset_specifier->stride = stride;
-    subset_specifier->specifier = __FENIX_SUBSET_CREATE;
-    retval = FENIX_SUCCESS;
-  }
-  return retval;
-}
-
-/**
- * @brief
- * @param num_blocks
- * @param array_start_offsets
- * @param array_end_offsets
- * @param subset_specifier
- */
-int __fenix_data_subset_createv(int num_blocks, int *array_start_offsets, int *array_end_offsets,
-                        Fenix_Data_subset *subset_specifier) {
-
-  int retval = -1;
-  if (num_blocks <= 0) {
-    debug_print("ERROR Fenix_Data_subset_createv: num_blocks <%d> must be positive\n",
-                num_blocks);
-    retval = FENIX_ERROR_SUBSET_NUM_BLOCKS;
-  } else if (array_start_offsets == NULL) {
-    debug_print( "ERROR Fenix_Data_subset_createv: array_start_offsets %s must be at least of size 1\n", "");
-    retval = FENIX_ERROR_SUBSET_START_OFFSET;
-  } else if (array_end_offsets == NULL) {
-    debug_print( "ERROR Fenix_Data_subset_createv: array_end_offsets %s must at least of size 1\n", "");
-    retval = FENIX_ERROR_SUBSET_END_OFFSET;
-  } else {
-
-    // first check that the start offsets and end offsets are valid
-    int index;
-    int invalid_index = -1;
-    int found_invalid_index = 0;
-    for (index = 0; found_invalid_index != 1 && (index < num_blocks); index++) {
-      if (array_start_offsets[index] > array_end_offsets[index]) {
-        invalid_index = index;
-        found_invalid_index = 1;
+   std::set<DataRegion> ret;
+   
+   size_t start_rep = 0;
+   if(b.start > start){
+      start_rep = (b.start-start)/stride;
+      auto block = get_rep(start_rep);
+      auto valid = block & b;
+      if(!valid.count(block)){
+         ret.merge(valid);
+         if(start_rep == reps) return ret;
+         else start_rep++;
       }
+   }
+
+   size_t end_rep = reps;
+   if(b.end < range().second){
+      end_rep = (b.end-start)/stride;
+      if(end_rep < start_rep) return ret;
+
+      auto block = get_rep(end_rep);
+      auto valid = block & b;
+      if(!valid.count(block)){
+         ret.merge(valid);
+         if(end_rep == start_rep) return ret;
+         else end_rep--;
+      }
+   }
+
+   ret.insert(get_reps(start_rep, end_rep));
+   return ret;
+}
+
+DataRegion DataRegion::get_rep(size_t n) const {
+   fenix_assert(n <= reps);
+   return DataRegion({start+n*stride, end+n*stride});
+}
+
+DataRegion DataRegion::get_reps(size_t first, size_t last) const {
+   fenix_assert(first <= last);
+   fenix_assert(last <= reps);
+   return DataRegion(
+      {start+first*stride, end+first*stride}, last-first, stride
+   );
+}
+
+DataRegion DataRegion::inverted() const {
+   fenix_assert(reps);
+   return DataRegion({end+1, start+stride-1}, reps == MAX ? MAX : reps-1, stride);
+}
+
+std::optional<DataRegion> DataRegion::try_merge(const DataRegion& b) const {
+   if(b < *this){
+      return b.try_merge(*this);
+   } else if(range().second == MAX){
+      return {};
+   } else if(!reps && !b.reps){
+      if(end+1 == b.start) return DataRegion({start, b.end});
+      else return {};
+   } else {
+      size_t s = reps ? stride : b.stride;
+      if(start+s*(reps+1) == b.start && end+s*(reps+1) == b.end)
+         return DataRegion({start, end}, reps+b.reps+1, s);
+      else return {};
+   }
+}
+
+void merge_adjacent_sets(std::set<DataRegion>& a, std::set<DataRegion>& b){
+   if(a.empty()){
+      a = std::move(b);
+      b = {};
+   }
+   while(!b.empty()){
+      auto merged = (--a.end())->try_merge(*b.begin());
+      if(!merged){
+         a.merge(b);
+         b.clear();
+      } else {
+         a.erase(a.end()--);
+         b.erase(b.begin());
+         a.insert(*merged);
+      }
+   }
+   while(a.size() > 1){
+      auto merged = (----a.end())->try_merge(*(--a.end()));
+      if(!merged) break;
+      a.erase(a.end()--);
+      a.erase(a.end()--);
+      a.insert(*merged);
+   }
+}
+
+std::set<DataRegion> DataRegion::operator-(const DataRegion& b) const {
+   if(!(*this && b)) return {*this};
+   fenix_assert(!reps || !b.reps || stride == b.stride);
+
+   const auto [bstart, bend] = b.range();
+
+   std::set<DataRegion> ret;
+   if(bstart > 0) ret.merge(*this & DataRegion({0, bstart-1}));
+   if(b.reps){
+      std::set<DataRegion> mid;
+      auto inv = b.inverted();
+      
+      //Get just the portions of myself that could be overlapping
+      auto parts = *this & DataRegion({bstart, bend});
+
+      //Handle any non-strided portions individually
+      for(auto it = parts.begin(); it != parts.end();){
+         if(it->reps){
+            it++;
+            continue;
+         } else {
+            mid.merge(*it & inv);
+            it = parts.erase(it);
+         }
+      }
+
+      //Should have taken care of everything, or left only 1 strided region
+      if(!parts.empty()){
+         fenix_assert(parts.size() == 1);
+         auto a = *parts.begin();
+         //First, middle, and last repetitions may be effected differently
+         mid.merge(a.get_rep(0) & inv);
+         if(a.reps > 1){
+            size_t middle_reps = a.reps-2;
+            auto middle_valid = a.get_rep(1) & inv;
+            for(auto block : middle_valid){
+               fenix_assert(!block.reps);
+               mid.insert(DataRegion(
+                  {block.start, block.end}, a.reps-2, b.stride
+               ));
+            }
+         }
+         mid.merge(a.get_rep(a.reps) & inv);
+      }
+      merge_adjacent_sets(ret, mid);
+   }
+   if(bend != MAX){
+      auto post = *this & DataRegion({bend+1, MAX});
+      merge_adjacent_sets(ret, post);
+   }
+   return ret;
+}
+
+std::string DataRegion::str() const {
+   std::string ret = "[";
+
+   if(start == MAX) ret += "MAX";
+   else ret += std::to_string(start);
+
+   ret += ",";
+
+   if(end == MAX) ret += "MAX";
+   else ret += std::to_string(end);
+
+   ret += "]";
+
+   if(reps){
+      ret += "x" + std::to_string(reps+1) + "s" + std::to_string(stride);
+   }
+   return ret;
+}
+
+DataRegion full_region({0, DataRegion::MAX});
+
+struct BlockIter {
+   using set_t = std::set<DataRegion>;
+   using iter_t = typename set_t::iterator;
+
+   BlockIter(set_t&& m_regions) 
+      : region_holder(std::make_shared<set_t>(std::move(m_regions))),
+        regions(*region_holder), it(regions.begin()), rep(0) { }
+   BlockIter(std::shared_ptr<set_t> m_regions) 
+      : region_holder(m_regions),
+        regions(*region_holder), it(regions.begin()), rep(0) { }
+   BlockIter(const BlockIter& other)
+      : region_holder(other.region_holder), regions(other.regions), it(other.it), rep(other.rep) {
+      fenix_assert(rep <= it->reps);
+      ++*this;
+   }
+
+   DataRegion operator*(){
+      return it->get_rep(rep);
+   }
+
+   bool operator==(const BlockIter& other) const {
+      return it == other.it && rep == other.rep;
+   }
+   bool operator!=(const BlockIter& other) const {
+      return !(*this == other);
+   }
+
+   BlockIter begin(){
+      return BlockIter(region_holder);
+   }
+
+   BlockIter end(){
+      auto ret = begin();
+      ret.it = regions.end();
+      return ret;
+   }
+
+   BlockIter& operator++(){
+      if(rep == it->reps){
+         ++it;
+         rep = 0;
+      } else {
+         ++rep;
+      }
+      return *this;
+   }
+   
+   std::shared_ptr<set_t> region_holder;
+
+   const set_t& regions;
+   iter_t it;
+   size_t rep;
+
+};
+
+} // namespace Detail
+
+using namespace Detail;
+
+DataSubset::DataSubset(size_t end) : DataSubset({0, end}) { }
+
+DataSubset::DataSubset(std::pair<size_t, size_t> bounds)
+   : DataSubset(bounds, 1, DataRegion::MAX) { };
+
+DataSubset::DataSubset(
+   std::pair<size_t, size_t> bounds, size_t n, size_t stride
+) {
+   fenix_assert(bounds.first <= bounds.second,
+      "subset start (%lu) cannot be after end (%lu)",
+      bounds.first, bounds.second
+   );
+   fenix_assert(n > 0, "num_blocks (%lu) must be positive", n);
+   fenix_assert(n == 1 || bounds.first+stride > bounds.second,
+      "stride %lu too low for region [%lu, %lu]",
+      stride, bounds.first, bounds.second
+   );
+   
+   regions.emplace(bounds, n-1, stride);
+}
+
+DataSubset::DataSubset(std::vector<std::pair<size_t, size_t>> bounds){
+   for(const auto& b : bounds){
+      fenix_assert(b.first <= b.second,
+         "subset start (%lu) cannot be after end (%lu)", b.first, b.second
+      );
+      regions.emplace(b);
+   }
+
+   //Simplify regions
+   merge_regions();
+}
+
+DataSubset::DataSubset(const DataSubset& a, const DataSubset& b){
+   if(a.empty() || b.empty()){
+      *this = a.empty() ? b : a;
+      return;
+   }
+   if(a.regions.count(full_region) || b.regions.count(full_region)){
+      regions.insert(full_region);
+      return;
+   }
+
+   size_t a_stride = 0, b_stride = 0;
+   for(const auto& r : a.regions) if(r.reps) a_stride = r.stride;
+   for(const auto& r : b.regions) if(r.reps) b_stride = r.stride;
+
+   if(a_stride && b_stride && a_stride != b_stride){
+      //De-stride A's regions
+      for(const auto& r : a.regions){
+         fenix_assert(r.reps != MAX);
+         for(int i = 0; i <= r.reps; i++)
+            regions.insert(r.get_rep(i));
+      }
+   } else {
+      regions = a.regions;
+   }
+   
+   for(const auto& br : b.regions){
+      const auto [bstart, bend] = br.range();
+      std::set<DataRegion> adding = {br};
+      for(const auto& r : regions){
+         const auto [rstart, rend] = r.range();
+         if(rstart > bend) break;
+         if(rend < bstart) continue;
+         for(auto it = adding.begin(); it != adding.end();){
+            auto valid = *it - r;
+            if(valid.size() == 1 && valid.count(*it)){
+               it++;
+            } else {
+               it = adding.erase(it);
+               adding.merge(valid);
+            }
+         }
+      }
+      regions.merge(adding);
+   }
+   
+   //Final attempt to simplify all regions
+   merge_regions();
+}
+
+void DataSubset::merge_regions() {
+   auto check = regions.begin();
+   while(check != regions.end()){
+      auto crange = check->range();
+     
+      bool erase = false;
+      for(auto i = std::next(check); i != regions.end(); i++){
+         if(crange.second < i->start-1) break;
+
+         size_t merge_idx = -1;
+         size_t merge_reps = -1;
+
+         size_t matching_end = i->start-1;
+         size_t matching_start = i->end+1;
+         if((matching_end - check->end)%check->stride == 0){
+            merge_idx = (matching_end-check->end)/check->stride;
+            merge_reps = std::min(check->reps-merge_idx, i->reps);
+
+            //Add the merged region
+            regions.insert(DataRegion(
+               {check->start+merge_idx*check->stride, i->end},
+               merge_reps, check->stride
+            ));
+         } else if((matching_start - check->start)%check->stride == 0){
+            merge_idx = (matching_start-check->start)/check->stride;
+            merge_reps = std::min(check->reps-merge_idx, i->reps);
+
+            //Add the merged region
+            regions.insert(DataRegion(
+               {i->start, check->end+merge_idx*check->stride},
+               merge_reps, check->stride
+            ));
+         }
+
+         if(merge_idx != -1){
+            erase = true;
+
+            //Add any blocks before the merge
+            if(merge_idx > 0){
+               regions.insert(DataRegion(
+                  {check->start, check->end}, merge_idx-1, check->stride
+               ));
+            }
+            //Add any blocks after the merge
+            if(merge_idx+merge_reps < check->reps){
+               size_t n_pre = merge_idx+merge_reps+1;
+               size_t offset = n_pre*check->stride;
+               regions.insert(DataRegion(
+                  {check->start+offset, check->end+offset},
+                  check->reps-n_pre, check->stride
+               ));
+            } else if(merge_reps < i->reps){
+               size_t n_pre = merge_reps+1;
+               size_t offset = n_pre*i->stride;
+               regions.insert(DataRegion(
+                  {i->start+offset, i->end+offset},
+                  i->reps-n_pre, i->stride
+               ));
+            }
+            
+            regions.erase(i);
+            break;
+         }
+      }
+
+      auto it = check++;
+      if(erase){
+         regions.erase(it);
+      }
+   }
+}
+
+DataSubset::DataSubset(const DataBuffer& buf){
+   fenix_assert(buf.size()%sizeof(DataRegion) == 0);
+   
+   size_t n_regions = buf.size()/sizeof(DataRegion);
+   if(n_regions == 0) return;
+
+   DataRegion* r = (DataRegion*) buf.data();
+   for(int i = 0; i < n_regions; i++){
+      regions.insert(*(r++));
+   }
+}
+
+void DataSubset::serialize(DataBuffer& buf) const {
+   buf.reset(regions.size()*sizeof(DataRegion));
+   DataRegion* r = (DataRegion*) buf.data();
+   for(const auto& region : regions){
+      *(r++) = region;
+   }
+}
+
+DataSubset DataSubset::operator+(const DataSubset& other) const {
+   return DataSubset(*this, other);
+}
+
+DataSubset DataSubset::operator+(const Fenix_Data_subset& other) const {
+   return *this + *(DataSubset*)other.impl;
+}
+
+DataSubset& DataSubset::operator+=(const DataSubset& other) {
+   *this = *this + other;
+   return *this;
+}
+
+DataSubset& DataSubset::operator+=(const Fenix_Data_subset& other) {
+   return *this += *(DataSubset*)other.impl;
+}
+
+DataSubset DataSubset::operator-(const DataSubset& other) const {
+   if(empty() || other.empty()) return *this;
+
+   size_t a_stride = 0, b_stride = 0;
+   for(const auto& r :       regions) if(r.reps) a_stride = r.stride;
+   for(const auto& r : other.regions) if(r.reps) b_stride = r.stride;
+
+   fenix_assert(!(
+      a_stride && b_stride && a_stride != b_stride &&
+      end() == MAX && other.end() == MAX
+   ));
+
+   std::set<DataRegion> remaining;
+   if(a_stride && b_stride && a_stride != b_stride){
+      size_t b_end = other.end();
+
+      //Insert individual repetitions possibly overlapping regions
+      for(const auto& b : BlockIter(bounded_regions(0, b_end))){
+         remaining.insert(b);
+      }
+      if(b_end != MAX){
+         //Leave non-overlapping regions strided
+         auto br = bounded_regions(b_end+1, MAX);
+         for(const auto& b : br){
+            remaining.insert(b);
+         }
+      }
+   } else {
+      remaining = regions;
+   }
+
+   for(const auto& b_r : other.regions){
+      auto next = remaining.begin();
+      while(next != remaining.end()){
+         auto it = next++;
+
+         if(b_r.start > it->range().second) continue;
+         if(it->start > b_r.range().second) break;
+
+         auto r = *it;
+         remaining.erase(it);
+         remaining.merge(r - b_r);
+      }
+   }
+
+   DataSubset c;
+   c.regions = std::move(remaining);
+   c.merge_regions();
+   return c; 
+}
+
+bool DataSubset::operator==(const DataSubset& other) const {
+   //Making checks in approximate order of cost
+   if(start() != other.start()) return false;
+   if(regions.empty() != other.regions.empty()) return false;
+   if(regions == other.regions) return true;
+   if(end() != other.end()) return false;
+
+   size_t a_stride = 0, b_stride = 0;
+   for(const auto& r :       regions) if(r.reps) a_stride = r.stride;
+   for(const auto& r : other.regions) if(r.reps) b_stride = r.stride;
+
+   //We won't try comparing infinite regions of different strides.
+   if(a_stride && b_stride && a_stride != b_stride && end() == MAX)
+      return false;
+
+   return (*this - other).empty() && (other - *this).empty();
+}
+
+bool DataSubset::operator!=(const DataSubset& other) const {
+   return !(*this == other);
+}
+
+bool DataSubset::empty() const {
+   return regions.empty();
+}
+
+std::pair<size_t, size_t> DataSubset::range() const {
+   return {start(), end()};
+}
+
+size_t DataSubset::start() const {
+   if(regions.empty()) return -1;
+   return regions.begin()->start;
+}
+
+size_t DataSubset::end() const {
+   if(empty()) return -1;
+
+   size_t ret = 0;
+   for(const auto& r : regions){
+      ret = std::max(ret, r.range().second);
+   }
+   return ret;
+}
+
+std::set<DataRegion> DataSubset::bounded_regions(size_t max_idx) const {
+   return bounded_regions(0, max_idx);
+}
+
+std::set<DataRegion> DataSubset::bounded_regions(
+   size_t start, size_t end
+) const {
+   std::set<DataRegion> ret;
+   DataRegion bounds({start, end});
+   for(const auto& r : regions){
+      if(r.start > end) break;
+      if(r.range().second < start) continue;
+      ret.merge(r & bounds);
+   }
+   return ret;
+}
+
+size_t DataSubset::count(size_t max_index) const {
+   size_t ret = 0;
+   for(const auto& r : bounded_regions(max_index)){
+      size_t c = r.count();
+      if(c == MAX) return 0;
+      ret+= c;
+   }
+   return ret;
+}
+
+size_t DataSubset::max_count() const {
+   return end()+1;
+}
+
+void DataSubset::serialize_data(
+   size_t elm_size, const DataBuffer& src, DataBuffer& dst
+) const {
+   if(regions.empty()){
+      dst.resize(0);
+      return;
+   }
+   fenix_assert(src.size()%elm_size == 0);
+   const size_t max_elm = src.size()/elm_size-1;
+
+   dst.reset(count(max_elm) * elm_size);
+   char* ptr = dst.data();
+   
+   for(const auto b : BlockIter(bounded_regions(max_elm))){
+      size_t start = b.start*elm_size;
+      size_t len = (b.end-b.start+1)*elm_size;
+
+      fenix_assert((ptr+len)-dst.data() <= dst.size());
+      fenix_assert(start+len <= src.size());
+
+      memcpy(ptr, src.data()+start, len);
+      ptr += len;
+   }
+
+   fenix_assert(ptr == dst.data()+dst.size());
+}
+
+void DataSubset::deserialize_data(
+   size_t elm_size, const DataBuffer& src, DataBuffer& dst
+) const {
+   if(regions.empty()) return;
+   fenix_assert(dst.size()%elm_size==0);
+
+   size_t max_elm = dst.size()/elm_size - 1;
+   if(max_elm == 0){
+      max_elm = end();
+      fenix_assert(max_elm != MAX);
+      dst.resize((max_elm+1)*elm_size);
+   }
+
+   fenix_assert(src.size() == count(max_elm)*elm_size);
+   const char* ptr = src.data();
+
+   for(const auto& b : BlockIter(bounded_regions(max_elm))){
+      size_t start = b.start*elm_size;
+      size_t len = (b.end-b.start+1)*elm_size;
+
+      fenix_assert((ptr+len)-src.data() <= src.size());
+      fenix_assert(start+len <= dst.size());
+
+      memcpy(dst.data()+start, ptr, len);
+      ptr += len;
+   }
+
+   fenix_assert(ptr == src.data()+src.size());
+}
+
+void DataSubset::copy_data(
+   const size_t elm_size, const size_t src_len, const char* src, DataBuffer& dst
+) const {
+   if(regions.empty()) return;
+   fenix_assert(src_len != 0 || end() != MAX, 
+      "must specify either a maximum element count or provide a limited-bounds data subset");
+
+   size_t max_elm = src_len ? src_len-1 : end();
+   if(dst.size() < (max_elm+1)*elm_size) dst.resize((max_elm+1)*elm_size);
+
+   for(const auto& b : BlockIter(bounded_regions(max_elm))){
+      size_t start = b.start*elm_size;
+      size_t len = (b.end-b.start+1)*elm_size;
+
+      fenix_assert(src_len == 0 || (start+len)/elm_size <= src_len);
+      fenix_assert(start+len <= dst.size());
+
+      memcpy(dst.data()+start, src+start, len);
+   }
+}
+
+void DataSubset::copy_data(
+   const size_t elm_size, const DataBuffer& src, const size_t dst_len, char* dst
+) const {
+   if(regions.empty()) return;
+   fenix_assert(dst_len != 0 || end() != MAX, 
+      "must specify either a maximum element count or provide a limited-bounds data subset");
+
+   size_t max_elm = std::min(dst_len ? dst_len-1 : end(), src.size());
+
+   for(const auto& b : BlockIter(bounded_regions(max_elm))){
+      size_t start = b.start*elm_size;
+      size_t len = (b.end-b.start+1)*elm_size;
+
+      fenix_assert(dst_len == 0 || (start+len)/elm_size <= dst_len);
+      fenix_assert(start+len <= src.size());
+
+      memcpy(dst+start, src.data()+start, len);
+   }
+}
+
+bool DataSubset::includes(size_t idx) const {
+   return !bounded_regions(idx, idx).empty();
+}
+
+bool DataSubset::includes_all(size_t end) const {
+   std::set<DataRegion> remaining = {DataRegion({0, end})};
+
+   for(const auto& r : regions){
+      if(r.start > end) break;
+
+      auto next = remaining.begin();
+      while(next != remaining.end()){
+         auto it = next++;
+         auto rem = *it;
+
+         remaining.erase(it);
+         remaining.merge(rem - r);
+      }
+   }
+   
+   return remaining.empty();
+}
+
+std::string DataSubset::str() const {
+    std::string ret = "{";
+    for(const auto& r : regions) ret += r.str() + ", ";
+    if(!empty()){
+        ret.pop_back();
+        ret.pop_back();
     }
-
-    if (found_invalid_index != 1) { // if not true (!= 1)
-      __fenix_data_subset_init(num_blocks, subset_specifier);
-
-      memcpy(subset_specifier->start_offsets, array_start_offsets, ( num_blocks * sizeof(int))); // deep copy
-      memcpy(subset_specifier->end_offsets, array_end_offsets, ( num_blocks * sizeof(int))); // deep copy
-      
-      subset_specifier->specifier = __FENIX_SUBSET_CREATEV;
-      subset_specifier->stride = 0;
-      retval = FENIX_SUCCESS;
-    } else {
-      debug_print(
-              "ERROR Fenix_Data_subset_createv: array_end_offsets[%d] must be less than array_start_offsets[%d]\n",
-              invalid_index, invalid_index);
-      retval = FENIX_ERROR_SUBSET_END_OFFSET;
-    }
-  }
-  return retval;
+    ret += "}";
+    return ret;
 }
 
-//This should only be used to copy to a currently non-inited subset
-// If the destination already has memory allocated in the num_blocks/offsets regions
-// then this can lead to memory leaks.
-// For the sake of consistent memory management, this will always return a subset with 
-// a valid memory allocation for each pointer in the subset.
-void __fenix_data_subset_deep_copy(Fenix_Data_subset* from, Fenix_Data_subset* to){
-   if(from->specifier == __FENIX_SUBSET_FULL || from->specifier == __FENIX_SUBSET_EMPTY){
-      __fenix_data_subset_init(1, to); 
-      to->specifier = from->specifier;
-   } else {
-      __fenix_data_subset_init(from->num_blocks, to);
-      memcpy(to->num_repeats, from->num_repeats, to->num_blocks*sizeof(int));
-      memcpy(to->start_offsets, from->start_offsets, to->num_blocks*sizeof(int));
-      memcpy(to->end_offsets, from->end_offsets, to->num_blocks*sizeof(int));
-      to->specifier = from->specifier;
-      to->stride = from->stride;
-   }
-}
+} // namespace Fenix
 
-//This function checks for any overlapping regions and removes them.
-void __fenix_data_subset_simplify_regions(Fenix_Data_subset* ss){
-   int space_allocated = ss->num_blocks;
-  
-   if(ss->specifier == __FENIX_SUBSET_CREATE){
-      //We will handle this by viewing the data as regions of size stride.
-      //Each block will be broken into a value dictating which regions it is
-      //within, and what data within each region it is within.
-      //
-      //If two blocks do not overlap within regions, there is no overlap.
-      //If they overlap within regions, but the regions they touch do not overlap,
-      //there is no overlap. etc.
-      
-      for(int i = 0; i < ss->num_blocks-1; i++){
-         int did_merge = 0;
-         
-         for(int j = i+1; j < ss->num_blocks; j++){ 
-            //We will simplify the logic by switching from i and j referencing
-            //to viewing the two blocks in the order that they exist in the data.
-            int first_block; 
-            int second_block;
+using namespace Fenix;
 
-            if(ss->start_offsets[i] < ss->start_offsets[j]){
-               first_block = i;
-               second_block = j;
-            } else {
-               first_block = j;
-               second_block = i;
-            }
-
-            //Check for the case that the merged and unmerged regions are the same.
-            int merged_same_as_unmerged = ((ss->start_offsets[first_block]%ss->stride) == (ss->start_offsets[second_block]%ss->stride)
-                  && (ss->end_offsets[first_block]%ss->stride) == (ss->end_offsets[second_block]%ss->stride));
-            int merged_same_as_first = 0, merged_same_as_second = 0;
-
-            
-            // We want the smallest x | (first_block_end + stride * x >= second_block_start)
-            // As this gives us which repetition an overlap is first possible on.
-            // Simplify to x >= (second_block_start - first_block_end)/s
-            // We want the lowest, so swap >= with =, and since we need an integer we'll round up.
-            int first_intersecting_repetition, option2;
-            if(ss->start_offsets[second_block] - ss->end_offsets[first_block] > 0){
-               first_intersecting_repetition = (ss->start_offsets[second_block] - ss->end_offsets[first_block] - 1)/ss->stride + 1;
-               // = ceil( (ss->start_offsets[second_block] - ss->end_offsets[first_block]) / ss->stride)
-            } else {
-               first_intersecting_repetition = 0;
-            }
-            
-            // The above only accounts for one of two cases of intersection. There other is provided by option 2.
-            if(ss->end_offsets[second_block] - ss->end_offsets[first_block] > 0){
-               option2 = (ss->end_offsets[second_block] - ss->end_offsets[first_block] - 1)/ss->stride + 1;
-            } else {
-               option2 = 0;
-            }
-
-            if(merged_same_as_unmerged){
-               //If there's no difference in merged/unmerged, we can 'skip' a stride 
-               //and it'll al still be the same.
-               if(!( first_intersecting_repetition <= ss->num_repeats[first_block]+1 
-                        || option2 <= ss->num_repeats[first_block]+1 )){
-                  //Both still require too high a repetition than we have. No overlap.
-                  continue;
-               }
-            } else {
-               if(!( first_intersecting_repetition <= ss->num_repeats[first_block] 
-                        || option2 <= ss->num_repeats[first_block] )){
-                  //Both require too high a repetition than we have. No overlap.
-                  continue;
-               }
-            }
-
-            merged_same_as_first = ss->start_offsets[first_block] + ss->stride*first_intersecting_repetition <= ss->start_offsets[second_block]
-                  && ss->end_offsets[first_block] + ss->stride*first_intersecting_repetition >= ss->end_offsets[second_block];
-            merged_same_as_second = ss->start_offsets[second_block] + ss->stride*first_intersecting_repetition <= ss->start_offsets[first_block]
-                  && ss->end_offsets[second_block] + ss->stride*first_intersecting_repetition >= ss->end_offsets[first_block];
-            
-            //We have found the smallest overlap candidate, now we see if there is overlap there.
-            int blocks_overlap;
-            if(first_intersecting_repetition < option2){
-               blocks_overlap = ( (ss->stride * first_intersecting_repetition + ss->start_offsets[first_block]) <= ss->start_offsets[second_block]);
-            } else {
-               first_intersecting_repetition = option2;
-               blocks_overlap = ( (ss->stride * first_intersecting_repetition + ss->start_offsets[first_block]) <= ss->end_offsets[second_block]);
-            }
-
-            if(!blocks_overlap){
-               continue;
-            }
-
-            int length_first_only_start;
-            int length_first_only_end;
-            int length_both;
-            int length_second_only;
-            int merged_start;
-            int merged_end;
-            
-            
-            length_first_only_start = first_intersecting_repetition;
-            
-            length_first_only_start = length_first_only_start > (ss->num_repeats[i] + 1) ?
-                  (ss->num_repeats[i] + 1) : length_first_only_start;
-
-            int remaining_first_repetitions = ss->num_repeats[first_block] + 1 - length_first_only_start;
-            if(remaining_first_repetitions > ss->num_repeats[second_block]+1){
-               length_both = ss->num_repeats[second_block] + 1;
-               length_second_only = 0;
-               length_first_only_end = ss->num_repeats[first_block]+1 - length_first_only_start - length_both;
-            } else {
-               length_both = remaining_first_repetitions;
-               length_second_only = ss->num_repeats[second_block]+1 - remaining_first_repetitions;
-               length_first_only_end = 0;
-            } 
-            
-            if(merged_same_as_unmerged){
-               length_both = length_both + length_first_only_end + length_first_only_start + length_second_only;
-               length_first_only_start = length_first_only_end = length_second_only = 0;
-            } else if(merged_same_as_first){
-               length_both = length_both + length_first_only_end + length_first_only_start;
-
-               length_first_only_start = length_first_only_end = 0;
-            } else if(merged_same_as_second){
-               length_both = length_both + length_both;
-
-               length_both = 0;
-            }
-            
-            //Record info for merged region before we overwrite data we need.
-            merged_start = ss->stride*length_first_only_start + ss->start_offsets[first_block];
-            merged_start = merged_start < ss->start_offsets[second_block] ?
-                  merged_start : ss->start_offsets[second_block];
-            
-            merged_end = ss->stride*length_first_only_start + ss->end_offsets[first_block];
-            merged_end = merged_end < ss->end_offsets[second_block] ?
-                  merged_end : ss->end_offsets[second_block];            
-
-            //Now we know what the overlap is, so we make the changes to the data subset.
-            int store_index = 0;
-            int store_locations[3] = {first_block, second_block, ss->num_blocks};
-
-            if(length_first_only_start > 0){
-               ss->num_repeats[first_block] = length_first_only_start - 1;
-               store_index++;
-            }
-            if(length_first_only_end > 0){
-               ss->num_repeats[store_locations[store_index]] = length_first_only_end-1;
-               ss->start_offsets[store_locations[store_index]] = ss->stride*(length_first_only_start+length_both) + 
-                     ss->start_offsets[first_block];
-               ss->end_offsets[store_locations[store_index]] = ss->stride*(length_first_only_start+length_both) + 
-                     ss->end_offsets[first_block];
-               store_index++;
-            } else if(length_second_only > 0){
-               ss->num_repeats[store_locations[store_index]] = length_second_only-1;
-               ss->start_offsets[store_locations[store_index]] = ss->stride*(length_both) + 
-                     ss->start_offsets[second_block];
-               ss->end_offsets[store_locations[store_index]] = ss->stride*(length_both) + 
-                     ss->end_offsets[second_block];
-               store_index++; 
-            }
-
-            //There is always a merged region to add.
-            if(store_index == 2){
-               //We're adding a new block, so we need to make sure we have allocated
-               //enough memory space.
-               ss->num_blocks++;
-               if(ss->num_blocks > space_allocated){
-                  
-                  ss->end_offsets = (int*) s_realloc(ss->end_offsets,
-                                (space_allocated * 2) * sizeof(int));
-                  ss->start_offsets = (int*) s_realloc(ss->start_offsets,
-                                (space_allocated * 2) * sizeof(int));
-                  ss->num_repeats = (int*) s_realloc(ss->num_repeats,
-                                (space_allocated * 2) * sizeof(int));
-                  space_allocated *= 2;
-               }
-
-            }
-            ss->start_offsets[store_locations[store_index]] = merged_start;
-            ss->end_offsets[store_locations[store_index]] = merged_end;
-            ss->num_repeats[store_locations[store_index]] = length_both - 1;
-            store_index++;
- 
-
-            //Check if num_repeats[second_block] < 0, if so remove it.
-            //This could occur if both blocks can be perfectly minimized to a single block.
-            if(store_index == 1){
-               if(second_block == ss->num_blocks-1){
-                  //Don't need to move anything.
-                  ss->num_blocks--;
-               } else {
-                  //We need to move everything over by one.
-                  memmove(ss->num_repeats + second_block, ss->num_repeats + second_block + 1, 
-                        ss->num_blocks - second_block - 1);
-                  memmove(ss->start_offsets + second_block, ss->start_offsets + second_block + 1, 
-                        ss->num_blocks - second_block - 1);
-                  memmove(ss->end_offsets + second_block, ss->end_offsets + second_block + 1, 
-                        ss->num_blocks - second_block - 1);
-                  ss->num_blocks--;
-               }
-            } 
-            
-            did_merge = 1;
-         }
-
-         //If we merged w/ anything, recheck w/ new merged block.
-         if(did_merge) i--;
-      }
-   } else if(ss->specifier == __FENIX_SUBSET_CREATEV){
-      //This is much simpler than with CREATE type, since we don't have to
-      //worry about repetition.
-      for(int i = 0; i < ss->num_blocks-1; i++){
-         int did_merge = 0;
-         
-         for(int j = i+1; j < ss->num_blocks; j++){
-            if(   ss->start_offsets[i] <= ss->end_offsets[j]+1 &&
-                  ss->end_offsets[i] >= ss->start_offsets[j]-1){
-               did_merge = 1;
-
-               ss->start_offsets[i] = (ss->start_offsets[i] < ss->start_offsets[j]) ?
-                     ss->start_offsets[i] :
-                     ss->start_offsets[j];
-
-               ss->end_offsets[i] = (ss->end_offsets[i] > ss->end_offsets[j]) ?
-                     ss->end_offsets[i] :
-                     ss->end_offsets[j];
-               
-               //Move everything over to remove j
-               memmove(ss->start_offsets + j, ss->start_offsets + j + 1, 
-                     (ss->num_blocks - j - 1) * sizeof(int));
-               memmove(ss->end_offsets + j, ss->end_offsets + j + 1, 
-                     (ss->num_blocks - j - 1) * sizeof(int));
-               ss->num_blocks--;
-            }
-         }
-
-         if(did_merge) i--;
-      }
-   }
-
-   if(space_allocated > ss->num_blocks){
-      ss->end_offsets = (int*) s_realloc(ss->end_offsets,
-                    ss->num_blocks * sizeof(int));
-      ss->start_offsets = (int*) s_realloc(ss->start_offsets,
-                    ss->num_blocks * sizeof(int));
-      ss->num_repeats = (int*) s_realloc(ss->num_repeats,
-                    ss->num_blocks * sizeof(int));
-   }
-
-}
-
-//This should only be used to copy to a currently non-inited subset
-// If the destination already has memory allocated in the num_blocks/offsets regions
-// then this can lead to double-mallocs or memory leaks.
-void __fenix_data_subset_merge(Fenix_Data_subset* first_subset, Fenix_Data_subset* second_subset,
-      Fenix_Data_subset* output){
-      
-   //Simple cases first
-   if(first_subset->specifier == __FENIX_SUBSET_FULL || 
-         second_subset->specifier == __FENIX_SUBSET_FULL){
-      //We don't need to populate anything else.
-      output->specifier = __FENIX_SUBSET_FULL;
-      //We still have to init, else there will be a memory error when the user tries to free later.
-      __fenix_data_subset_init(1, output);
-   
-   } else if(first_subset->specifier == __FENIX_SUBSET_EMPTY){
-      __fenix_data_subset_deep_copy(second_subset, output);
-   
-   } else if(second_subset->specifier == __FENIX_SUBSET_EMPTY){
-      __fenix_data_subset_deep_copy(first_subset, output);
-
-   } else if(first_subset->specifier == __FENIX_SUBSET_CREATE &&
-         second_subset->specifier == __FENIX_SUBSET_CREATE &&
-         first_subset->stride == second_subset->stride){
-      //Output is just a CREATE type with combined descriptors. 
-      //Start by making a list of all descriptors, then merge any with overlaps.
-      output->stride = first_subset->stride;
-      output->num_blocks = first_subset->num_blocks 
-         + second_subset->num_blocks;
-      __fenix_data_subset_init(output->num_blocks, output);
-      output->specifier = __FENIX_SUBSET_CREATE;
-      
-      memcpy(output->num_repeats, first_subset->num_repeats, first_subset->num_blocks * sizeof(int));
-      memcpy(output->num_repeats+first_subset->num_blocks, second_subset->num_repeats, 
-            second_subset->num_blocks * sizeof(int));
-
-      memcpy(output->start_offsets, first_subset->start_offsets, first_subset->num_blocks * sizeof(int));
-      memcpy(output->start_offsets+first_subset->num_blocks, second_subset->start_offsets, 
-            second_subset->num_blocks * sizeof(int));
-      
-      memcpy(output->end_offsets, first_subset->end_offsets, first_subset->num_blocks * sizeof(int));
-      memcpy(output->end_offsets+first_subset->num_blocks, second_subset->end_offsets, 
-            second_subset->num_blocks * sizeof(int));
-   
-      //Now we have all of the regions, so we just need to simplify them.
-      __fenix_data_subset_simplify_regions(output); 
-   } else {
-      output->specifier = __FENIX_SUBSET_CREATEV;
-      
-      output->num_blocks = first_subset->num_blocks + second_subset->num_blocks;
-      if(first_subset->specifier == __FENIX_SUBSET_CREATE){
-         for(int i = 0; i < first_subset->num_blocks; i++){
-            output->num_blocks += first_subset->num_repeats[i];
-         }
-      }
-      if(second_subset->specifier == __FENIX_SUBSET_CREATE){
-         for(int i = 0; i < second_subset->num_blocks; i++){
-            output->num_blocks += second_subset->num_repeats[i];
-         }
-      }
-
-      __fenix_data_subset_init(output->num_blocks, output);
-
-      int index = 0;
-      for(int i = 0; i < first_subset->num_blocks; i++){
-         for(int j = 0; j <= first_subset->num_repeats[i]; j++){
-            output->start_offsets[index] = j*first_subset->stride + first_subset->start_offsets[i];
-            output->end_offsets[index] = j*first_subset->stride + first_subset->end_offsets[i];
-            index++;
-         }
-      }
-      for(int i = 0; i < second_subset->num_blocks; i++){
-         for(int j = 0; j <= second_subset->num_repeats[i]; j++){
-            output->start_offsets[index] = j*second_subset->stride + second_subset->start_offsets[i];
-            output->end_offsets[index] = j*second_subset->stride + second_subset->end_offsets[i];
-            index++;
-         }
-      }
-
-      //Now we have all of the regions, so we just need to simplify them.
-      __fenix_data_subset_simplify_regions(output);
-   }
-}
-
-//Merge second subset into first subset
-//This reasonably assumes both subsets are already initialized.
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, Fenix_Data_subset* second_subset){
-      
-   //Simple cases first
-   if(first_subset->specifier == __FENIX_SUBSET_FULL || 
-         second_subset->specifier == __FENIX_SUBSET_FULL){
-      //We don't need to populate anything else.
-      first_subset->specifier = __FENIX_SUBSET_FULL;
-
-   } else if(second_subset->specifier == __FENIX_SUBSET_EMPTY){
-      //Do nothing.
-      
-   } else if(first_subset->specifier  == __FENIX_SUBSET_EMPTY){
-      //Deep copy requires that the destination be non-initialized, so free sub1 first.
-      __fenix_data_subset_free(first_subset);
-      __fenix_data_subset_deep_copy(second_subset, first_subset);
-
-   } else if(first_subset->specifier == __FENIX_SUBSET_CREATE &&
-         second_subset->specifier == __FENIX_SUBSET_CREATE &&
-         first_subset->stride == second_subset->stride){
-      //Output is just a CREATE type with combined descriptors. 
-      //Start by making a list of all descriptors, then merge any with overlaps.
-      first_subset->num_repeats = (int*)s_realloc(first_subset->num_repeats, 
-            (first_subset->num_blocks + second_subset->num_blocks)*sizeof(int));
-      first_subset->start_offsets = (int*)s_realloc(first_subset->start_offsets, 
-            (first_subset->num_blocks + second_subset->num_blocks)*sizeof(int));
-      first_subset->end_offsets = (int*)s_realloc(first_subset->end_offsets, 
-            (first_subset->num_blocks + second_subset->num_blocks)*sizeof(int));
-
-      memcpy(first_subset->num_repeats+first_subset->num_blocks, second_subset->num_repeats, 
-            second_subset->num_blocks * sizeof(int));
-
-      memcpy(first_subset->start_offsets+first_subset->num_blocks, second_subset->start_offsets, 
-            second_subset->num_blocks * sizeof(int));
-      
-      memcpy(first_subset->end_offsets+first_subset->num_blocks, second_subset->end_offsets, 
-            second_subset->num_blocks * sizeof(int));
-      
-      first_subset->num_blocks = first_subset->num_blocks 
-         + second_subset->num_blocks;
-   
-      //Now we have all of the regions, so we just need to simplify them.
-      __fenix_data_subset_simplify_regions(first_subset); 
-   } else {
-      
-      int new_num_blocks = first_subset->num_blocks + second_subset->num_blocks;
-      if(first_subset->specifier == __FENIX_SUBSET_CREATE){
-         for(int i = 0; i < first_subset->num_blocks; i++){
-            new_num_blocks += first_subset->num_repeats[i];
-         }
-      }
-      if(second_subset->specifier == __FENIX_SUBSET_CREATE){
-         for(int i = 0; i < second_subset->num_blocks; i++){
-            new_num_blocks += second_subset->num_repeats[i];
-         }
-      }
-
-      first_subset->num_repeats = (int*)s_realloc(first_subset->num_repeats, new_num_blocks*sizeof(int));
-      first_subset->start_offsets = (int*)s_realloc(first_subset->start_offsets, new_num_blocks*sizeof(int));
-      first_subset->end_offsets = (int*)s_realloc(first_subset->end_offsets, new_num_blocks*sizeof(int));
-
-      //work backwards to prevent overwriting current data.
-
-      int index = new_num_blocks-1;
-      for(int i = second_subset->num_blocks-1; i >= 0; i--){
-         for(int j = 0; j <= second_subset->num_repeats[i]; j++){
-            first_subset->start_offsets[index] = j*second_subset->stride 
-               + second_subset->start_offsets[i];
-            first_subset->end_offsets[index] = j*second_subset->stride 
-               + second_subset->end_offsets[i];
-            first_subset->num_repeats[index] = 0;
-            index--;
-         }
-      }
-      for(int i = first_subset->num_blocks-1; i >= 0; i--){
-         for(int j = 0; j <= first_subset->num_repeats[i]; j++){
-            first_subset->start_offsets[index] = j*first_subset->stride 
-               + first_subset->start_offsets[i];
-            first_subset->end_offsets[index] = j*first_subset->stride 
-               + first_subset->end_offsets[i];
-            first_subset->num_repeats[index] = 0;
-            index--;
-         }
-      }
-      first_subset->specifier = __FENIX_SUBSET_CREATEV;
-      first_subset->num_blocks = new_num_blocks;
-
-      //Now we have all of the regions, so we just need to simplify them.
-      __fenix_data_subset_simplify_regions(first_subset);
-   }
-
-}
-
-
-void __fenix_data_subset_copy_data(Fenix_Data_subset* ss, void* dest, void* src, size_t data_type_size, size_t max_size){
-   if(ss->specifier == __FENIX_SUBSET_FULL){
-      memcpy(dest, src, max_size*data_type_size);  
-   } else if(ss->specifier != __FENIX_SUBSET_EMPTY){
-      for(int i = 0; i < ss->num_blocks; i++){
-         //Inclusive both directions, so add 1.
-         int length = ss->end_offsets[i]-ss->start_offsets[i] + 1;
-        
-         for(int j = 0; j <= ss->num_repeats[i]; j++){
-            int start = ss->start_offsets[i] + j*ss->stride;
-            memcpy( ((uint8_t*)dest) + start*data_type_size, ((uint8_t*)src) + start*data_type_size, length*data_type_size);
-         }
-      }
-   }
-}
-
-int __fenix_data_subset_data_size(Fenix_Data_subset* ss, size_t max_size){
-   int size;
-
-   if(ss->specifier == __FENIX_SUBSET_FULL){
-      size = max_size;
-   } else if( ss->specifier == __FENIX_SUBSET_EMPTY){
-      size = 0;
-   } else {
-      size = 0;
-      for(int i = 0; i < ss->num_blocks; i++){
-         size += (ss->end_offsets[i] - ss->start_offsets[i] + 1)*(ss->num_repeats[i]+1);
-      }
-   }
-
-   return size;
-}
-
-int __fenix_data_subset_is_full(Fenix_Data_subset *ss, size_t data_length){
-   //Assumes a "simplified" subset which has all mergeable regions merged.
-   return (ss->specifier == __FENIX_SUBSET_FULL) || 
-      ( (ss->start_offsets[0] == 0) && (ss->end_offsets[0] == data_length-1) );
-}
-
-//Makes an array with the in-order contents of subset ss of src.
-//size is updated to the size of the serialized array, which is returned as the function's return.
-//User's responsibility to free the returned array.
-void* __fenix_data_subset_serialize(Fenix_Data_subset* ss, void* src, size_t type_size, size_t max_size, size_t* size){
-   
-   void* dest;
-   
-   if(ss->specifier == __FENIX_SUBSET_FULL){
-      dest = malloc(type_size*max_size);
-
-      memcpy(dest, src, type_size*max_size);
-
-      *size = max_size;
-
-   } else if(ss->specifier == __FENIX_SUBSET_EMPTY) {
-
-      dest = NULL;
-      size = 0;
-
-   } else {
-      //First, count up the number of entries to find a size.
-      *size = __fenix_data_subset_data_size(ss, max_size);
-
-      dest = malloc(type_size * (*size));
-      
-      int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
-      //We need to be sure to go in the right order.
-      int stored = 0;
-      while(stored < *size){
-         int lowest_index = -1;
-         int lowest_block = -1;
-         for(int i = 0; i < ss->num_blocks; i++){
-            if(current_repetition[i] <= ss->num_repeats[i]){
-               if(lowest_index == -1 || 
-                     (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
-                  lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
-                  lowest_block = i;
-               }
-            }
-         }
-         
-         memcpy(((uint8_t*)dest)+stored*type_size, ((uint8_t*)src)+lowest_index*type_size, 
-               type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
-         stored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
-         current_repetition[lowest_block]++;
-      }
-
-      free(current_repetition);
-
-   }
-
-
-   return dest;
-}
-
-void __fenix_data_subset_deserialize(Fenix_Data_subset* ss, void* src, void* dest, size_t max_size, size_t type_size){
-   if(ss->specifier == __FENIX_SUBSET_FULL){
-      memcpy(dest, src, type_size*max_size);
-      
-   } else if(ss->specifier != __FENIX_SUBSET_EMPTY){
-      //First, count up the number of entries to find a size.
-      int size = __fenix_data_subset_data_size(ss, max_size);
-    
-      int* current_repetition = (int*) s_calloc(ss->num_blocks, sizeof(int));
-      //We need to be sure to go in the right order.
-      int restored = 0;
-      while(restored < size){
-         int lowest_index = -1;
-         int lowest_block = -1;
-         for(int i = 0; i < ss->num_blocks; i++){
-            if(current_repetition[i] <= ss->num_repeats[i]){
-               if(lowest_index == -1 || 
-                     (lowest_index > ss->start_offsets[i]+ss->stride*current_repetition[i])){
-                  lowest_index = ss->start_offsets[i] + ss->stride*current_repetition[i];
-                  lowest_block = i;
-               }
-            }
-         }
-         
-         memcpy(((uint8_t*)dest)+lowest_index*type_size, ((uint8_t*)src)+restored*type_size, 
-               type_size*(ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1) );
-         restored += ss->end_offsets[lowest_block]-ss->start_offsets[lowest_block]+1;
-         current_repetition[lowest_block]++;
-      }
-
-      free(current_repetition);
-   }
-
-}
-
-void __fenix_data_subset_send(Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm){
-   int* toSend = (int*)malloc(sizeof(int) * (3 + 3*ss->num_blocks));
-   toSend[0] = ss->num_blocks;
-   
-   for(int i = 0; i < ss->num_blocks; i++){
-      toSend[1+3*i] = ss->start_offsets[i];
-      toSend[2+3*i] = ss->end_offsets[i];
-      toSend[3+3*i] = ss->num_repeats[i];
-   }
-
-   toSend[1+3*ss->num_blocks] = ss->stride;
-   toSend[2+3*ss->num_blocks] = ss->specifier;
-
-   MPI_Send((void*)toSend, 3*ss->num_blocks + 3, MPI_INT, dest, tag, comm); 
-   free(toSend);
-}
-
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm){
-   MPI_Status status;
-   MPI_Probe(src, tag, comm, &status);
-
-   int size;
-   MPI_Get_count(&status, MPI_INT, &size);
-
-   int *recvd = (int*)malloc(sizeof(int) * size);
-   MPI_Recv((void*)recvd, size, MPI_INT, src, tag, comm, NULL);
-
-   __fenix_data_subset_init(recvd[0], ss);
-   for(int i = 0; i < ss->num_blocks; i++){
-      ss->start_offsets[i] = recvd[1+3*i];
-      ss->end_offsets[i] = recvd[2+3*i];
-      ss->num_repeats[i] = recvd[3+3*i];
-   }
-   ss->stride = recvd[1+3*ss->num_blocks];
-   ss->specifier = recvd[2+3*ss->num_blocks];
-
-   free(recvd);
-}
-
-
-int __fenix_data_subset_free( Fenix_Data_subset *subset_specifier ) {
-  int  retval = FENIX_SUCCESS;
-  if(subset_specifier->specifier == __FENIX_SUBSET_UNDEFINED){
-    fprintf(stderr, "Detected double free of subset!\n");
-  }
-  free( subset_specifier->num_repeats );
-  free( subset_specifier->start_offsets );
-  free( subset_specifier->end_offsets );
-  subset_specifier->specifier = __FENIX_SUBSET_UNDEFINED;
-  return retval;
-}
-
-/**
- * @brief
- * @param subset_specifier
- */
-int __fenix_data_subset_delete( Fenix_Data_subset *subset_specifier ) {
-  __fenix_data_subset_free(subset_specifier);
-  free(subset_specifier);
+int __fenix_data_subset_create(
+   int num_blocks, int start, int end, int stride, Fenix_Data_subset *subset
+) {
+  subset->impl = new DataSubset({start, end}, num_blocks, stride);
   return FENIX_SUCCESS;
+}
+
+int __fenix_data_subset_createv(
+   int num_blocks, int *starts, int *ends, Fenix_Data_subset *subset
+) {
+   fenix_assert(num_blocks > 0, "num_blocks (%d) must be positive", num_blocks);
+
+   std::vector<std::pair<size_t, size_t>> bounds;
+   bounds.reserve(num_blocks);
+   for(int i = 0; i < num_blocks; i++) bounds.push_back({starts[i], ends[i]});
+   
+   subset->impl = new DataSubset(bounds);
+
+   return FENIX_SUCCESS;
+}
+
+int __fenix_data_subset_free( Fenix_Data_subset *subset ) {
+   delete (DataSubset*) subset->impl;
+   return FENIX_SUCCESS;
 }

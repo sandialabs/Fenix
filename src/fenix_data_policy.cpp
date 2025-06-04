@@ -61,9 +61,8 @@
 #include "fenix_opt.hpp"
 #include "fenix.h"
 
-/**
- *@brief
- **/
+namespace Fenix::Data {
+
 int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
       int timestart, int depth, int policy_name, void* policy_value, 
       int* flag){
@@ -71,7 +70,7 @@ int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
    
    switch (policy_name){
       case FENIX_DATA_POLICY_IN_MEMORY_RAID:
-         __fenix_policy_in_memory_raid_get_group(group, comm, timestart, 
+         IMR::__fenix_policy_in_memory_raid_get_group(group, comm, timestart, 
                depth, policy_value, flag);
          retval = FENIX_SUCCESS;
          break;
@@ -82,4 +81,6 @@ int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
    }
 
    return retval;
+}
+
 }

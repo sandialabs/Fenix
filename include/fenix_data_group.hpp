@@ -56,90 +56,24 @@
 #ifndef __FENIX_DATA_GROUP_H__
 #define __FENIX_DATA_GROUP_H__
 
-#include <vector>
+#include <map>
 
 #include <mpi.h>
 #include "fenix.h"
-#include "fenix_ext.hpp"
 #include "fenix_data_member.hpp"
 #include "fenix_data_packet.hpp"
 #include "fenix_util.hpp"
-#include "fenix_data_subset.h"
+#include "fenix_data_subset.hpp"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
-
-typedef struct __fenix_group_vtbl fenix_group_vtbl_t;
-typedef struct __fenix_group fenix_group_t;
-
 
 namespace Fenix::Data {
 
 using member_iterator = std::pair<int, fenix_member_entry_t*>;
 
-} //end namespace Fenix::Data
-
-
-//This defines the functions which must be implemented by the group
-typedef struct __fenix_group_vtbl {
-   int (*group_delete)(fenix_group_t* group);
-   
-   int (*member_create)(fenix_group_t* group, fenix_member_entry_t* mentry);
-   
-   int (*member_delete)(fenix_group_t* group, int member_id);
-   
-   int (*get_redundant_policy)(fenix_group_t*, int* policy_name, 
-           void* policy_value, int* flag);
-
-   int (*member_store)(fenix_group_t* group, int member_id, 
-           Fenix_Data_subset subset_specifier);
-
-   int (*member_storev)(fenix_group_t* group, int member_id, 
-           Fenix_Data_subset subset_specifier);
-
-   int (*member_istore)(fenix_group_t* group, int member_id, 
-           Fenix_Data_subset subset_specifier, Fenix_Request *request);
-
-   int (*member_istorev)(fenix_group_t* group, int member_id, 
-           Fenix_Data_subset subset_specifier, Fenix_Request *request);
-
-   int (*commit)(fenix_group_t* group);
-
-   int (*snapshot_delete)(fenix_group_t* group, int time_stamp);
-
-   int (*barrier)(fenix_group_t* group);
-
-   int (*member_restore)(fenix_group_t* group, int member_id,
-           void* target_buffer, int max_count, int time_stamp,
-           Fenix_Data_subset* data_found);
-
-   int (*member_lrestore)(fenix_group_t* group, int member_id,
-           void* target_buffer, int max_count, int time_stamp,
-           Fenix_Data_subset* data_found);
-
-   int (*member_restore_from_rank)(fenix_group_t* group, int member_id,
-           void* target_buffer, int max_count, int time_stamp, 
-           int source_rank);
-
-   int (*get_number_of_snapshots)(fenix_group_t* group, 
-           int* number_of_snapshots);
-
-   int (*get_snapshot_at_position)(fenix_group_t* group, int position,
-           int* time_stamp);
-
-   int (*reinit)(fenix_group_t* group, int* flag);
-
-   int (*member_get_attribute)(fenix_group_t* group, fenix_member_entry_t* mentry, 
-           int attributename, void* attributevalue, int* flag, int sourcerank);
-   
-   int (*member_set_attribute)(fenix_group_t* group, fenix_member_entry_t* mentry, 
-           int attributename, void* attributevalue, int* flag);
-
-} fenix_group_vtbl_t;
-
 //We keep basic bookkeeping info here, policy specific
 //information is kept by the policy's data type.
-typedef struct __fenix_group {
-    fenix_group_vtbl_t vtbl;
+struct fenix_group_t {
     int groupid;
     MPI_Comm comm;
     int comm_size;
@@ -148,18 +82,38 @@ typedef struct __fenix_group {
     int timestamp;
     int depth;
     int policy_name;
-    std::vector<fenix_member_entry_t> members;
+    std::map<int, fenix_member_entry_t> members;
 
     //Search for id, returning {-1, nullptr} if not found.
     Fenix::Data::member_iterator search_member(int id);
-    //As search_member, but print an error message is id not found.
+    //As search_member, but print an error message if id not found.
     Fenix::Data::member_iterator find_member(int id);
-} fenix_group_t;
+    
+    virtual int group_delete() = 0;
+    virtual int member_create(fenix_member_entry_t* member) = 0;
+    virtual int member_delete(int memberid) = 0;
+    virtual int get_redundant_policy(int* name, void* value, int* flag) = 0;
+    virtual int member_store(int memberid, const DataSubset& subset) = 0;
+    virtual int member_storev(int memberid, const DataSubset& subset) = 0;
+    virtual int member_istore(int memberid, const DataSubset& subset, Fenix_Request* req) = 0;
+    virtual int member_istorev(int memberid, const DataSubset& subset, Fenix_Request* req) = 0;
+    virtual int commit() = 0;
+    virtual int snapshot_delete(int timestamp) = 0;
+    virtual int barrier() = 0;
+    virtual int member_restore(int member_id, void* target_bugger, int max, int timestamp, DataSubset& data_found) = 0;
+    virtual int member_lrestore(int member_id, void* target_bugger, int max, int timestamp, DataSubset& data_found) = 0;
+    virtual int member_restore_from_rank(int member_id, void* target_bugger, int max, int timestamp, int source_rank) = 0;
+    virtual int get_number_of_snapshots(int* num) = 0;
+    virtual int get_snapshot_at_position(int position, int* timestamp) = 0;
+    virtual int reinit(int* flag) = 0;
+    virtual int member_get_attribute(fenix_member_entry_t* mentry, int name, void* value, int* flag, int sourcerank) = 0;
+    virtual int member_set_attribute(fenix_member_entry_t* mentry, int name, void* value, int* flag) = 0;
+};
 
 typedef struct __fenix_data_recovery {
     size_t count;
     size_t total_size;
-    fenix_group_t **group;
+    Fenix::Data::fenix_group_t **group;
 } fenix_data_recovery_t;
 
 typedef struct __group_entry_packet {
@@ -185,11 +139,10 @@ int __fenix_search_groupid( int key, fenix_data_recovery_t *dr);
 
 int __fenix_find_next_group_position( fenix_data_recovery_t *dr );
 
-namespace Fenix::Data {
-
 using group_iterator = std::pair<int, fenix_group_t*>;
 
-group_iterator find_group(int id, fenix_data_recovery_t *dr = fenix.data_recovery);
+group_iterator find_group(int id);
+group_iterator find_group(int id, fenix_data_recovery_t *dr);
 
 } //end namespace Fenix::Data
 

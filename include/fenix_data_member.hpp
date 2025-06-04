@@ -62,22 +62,27 @@
 
 
 #define __FENIX_DEFAULT_MEMBER_SIZE 512
+namespace Fenix::Data {
 
-typedef struct __fenix_group fenix_group_t;
+struct fenix_group_t;
 
-typedef struct __fenix_member_entry {
-    int memberid = -1;
-    enum states state;
-    void *user_data = nullptr;
-    int datatype_size;
-    int current_count;
-} fenix_member_entry_t;
-
-typedef struct __member_entry_packet {
+struct fenix_member_entry_packet_t {
     int memberid;
     int datatype_size;
     int current_count;
-} fenix_member_entry_packet_t;
+};
+
+struct fenix_member_entry_t {
+    fenix_member_entry_t() = default;
+
+    fenix_member_entry_packet_t to_packet();
+
+    int memberid = -1;
+    enum states state;
+    char *user_data = nullptr;
+    int datatype_size;
+    int current_count;
+};
 
 fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
         int memberid, void* data, int count, int datatype_size);
@@ -91,4 +96,5 @@ int __fenix_search_memberid(fenix_group_t* group, int memberid);
 void __fenix_data_member_reinit(fenix_group_t *group, fenix_two_container_packet_t packet,
                    enum states mystatus);
 
+}
 #endif // FENIX_DATA_MEMBER_H

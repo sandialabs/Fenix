@@ -57,6 +57,7 @@
 #ifndef __FENIX_PROCESS_RECOVERY__
 #define __FENIX_PROCESS_RECOVERY__
 
+#include <fenix.h>
 #include <mpi.h>
 #include <setjmp.h>
 #include <stdio.h>
@@ -83,9 +84,11 @@ typedef struct {
   fenix_comm_list_elm_t *tail;
 } fenix_comm_list_t;
 
-void __fenix_set_resume_mode(const std::string_view& name);
+Fenix_Resume_mode get_resume_mode(const std::string_view& name);
 
-void __fenix_set_unhandled_mode(const std::string_view& name);
+Fenix_Unhandled_mode get_unhandled_mode(const std::string_view& name);
+
+int fenix_preinit(const Fenix::Args::FenixInitArgs& args, jmp_buf* jump_env = nullptr);
 
 int __fenix_create_new_world();
 

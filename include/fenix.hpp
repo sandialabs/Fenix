@@ -62,6 +62,7 @@
 #include <functional>
 #include "fenix.h"
 #include "fenix_exception.hpp"
+#include "fenix_data_subset.hpp"
 
 /**
  * @brief As the C-style callback, but accepts an std::function and does not use the void* pointer.
@@ -71,5 +72,66 @@
  * @returnstatus
  */
 int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
+
+namespace Fenix {
+
+namespace Args {
+struct FenixInitArgs {
+    int* role                           = nullptr;
+    MPI_Comm in_comm                    = MPI_COMM_WORLD;
+    MPI_Comm* out_comm                  = nullptr;
+    int* argc                           = nullptr;
+    char*** argv                        = nullptr;
+    int spares                          = 0;
+    int spawn                           = 0;
+    Fenix_Resume_mode resume_mode       = THROW;
+    Fenix_Unhandled_mode unhandled_mode = ABORT;
+    int* err                            = nullptr;
+};
+}
+
+void init(const Args::FenixInitArgs args);
+
+//!@brief Throw an exception for the most recent fault. Helpful for spares.
+void throw_exception();
+
+} // namespace Fenix
+
+namespace Fenix::Data {
+
+extern const DataSubset FENIX_SUBSET_FULL;
+extern const DataSubset FENIX_SUBSET_EMPTY;
+
+//!@brief Overload of #Fenix_Data_member_store
+int member_store(int group_id, int member_id, const DataSubset& subset);
+
+//!@brief Overload of #Fenix_Data_member_storev
+int member_storev(int group_id, int member_id, const DataSubset& subset);
+
+//!@brief Overload of #Fenix_Data_member_istore
+int member_istore(
+    int group_id, int member_id, const DataSubset& subset,
+    Fenix_Request *request
+);
+
+//!@brief Overload of #Fenix_Data_member_istorev
+int member_istorev(
+    int group_id, int member_id, const DataSubset& subset,
+    Fenix_Request *request
+);
+
+//!@brief Overload of #Fenix_Data_member_restore
+int member_restore(
+    int group_id, int member_id, void *target_buffer, int max_count,
+    int time_stamp, DataSubset& data_found
+);
+
+//!@brief Overload of #Fenix_Data_member_lrestore
+int member_lrestore(
+    int group_id, int member_id, void *target_buffer, int max_count,
+    int time_stamp, DataSubset& data_found
+);
+
+} // namespace Fenix::Data
 
 #endif
