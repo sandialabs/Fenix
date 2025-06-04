@@ -61,7 +61,11 @@
 #include "fenix.h"
 #include "fenix_data_group.hpp"
 
+namespace fenix::data {
+
 int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm, 
       int timestart, int depth, int policy_name, void* policy_value, int* flag);
+
+} // namespace fenix::data
 
 #endif //__FENIX_DATA_POLICY_H__

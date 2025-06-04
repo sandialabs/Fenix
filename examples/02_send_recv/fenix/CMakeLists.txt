@@ -9,11 +9,12 @@
 #
 
 add_executable(fenix_ring fenix_ring.c)
-target_link_libraries(fenix_ring fenix ${MPI_C_LIBRARIES} m )
+target_link_libraries(fenix_ring fenix ${MPI_C_LIBRARIES})
+set_target_properties(fenix_ring PROPERTIES LINKER_LANGUAGE C)
 
 if(BUILD_TESTING)
-   add_test(NAME ring 
+   add_test(NAME send_recv 
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} fenix_ring ${MPIEXEC_POSTFLAGS} 1 2)
-   set_tests_properties(ring PROPERTIES
+   set_tests_properties(send_recv PROPERTIES
       FAIL_REGULAR_EXPRESSION "FAILURE") 
 endif()
