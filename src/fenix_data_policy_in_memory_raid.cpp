@@ -630,7 +630,7 @@ Group::Group(
 
          //my_rank should be one of the inserted ranks, or something in the
          //logic here is broken.
-         assert(partner_set.size() == 3);
+         assert(partner_set.size() == 3 || (comm_size==1 && partner_set.size()==1));
       }
    } else if(mode == 5){
       set_size = policy_vals[2];
