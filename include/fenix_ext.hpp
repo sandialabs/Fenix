@@ -74,11 +74,13 @@ typedef struct {
     int spare_ranks;             // Spare ranks entered by user to repair failed ranks
     
     ResumeMode resume_mode = JUMP;
+    CallbackExceptionMode callback_exception_mode = RETHROW;
     UnhandledMode unhandled_mode = ABORT;
     int ignore_errs = false;       // Temporarily ignore all errors & recovery
     int spawn_policy;             // Indicate dynamic process spawning
     jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
 
+    int mpi_fail_code = MPI_SUCCESS;
     int repair_result = FENIX_SUCCESS; // Internal variable to store the result of MPI comm repair
     int role = FENIX_ROLE_INITIAL_RANK;
 

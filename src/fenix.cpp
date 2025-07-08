@@ -88,6 +88,10 @@ int Fenix_Callback_pop() {
     return __fenix_callback_pop();
 }
 
+void Fenix_Callback_invoke_all() {
+    __fenix_callback_invoke_all();
+}
+
 int Fenix_Initialized(int *flag) {
     *flag = (fenix.fenix_init_flag) ? 1 : 0;
     return FENIX_SUCCESS;
@@ -296,6 +300,10 @@ int callback_register(std::function<void(MPI_Comm, int)> callback){
 
 int callback_pop() {
     return __fenix_callback_pop();
+}
+
+void callback_invoke_all() {
+    __fenix_callback_invoke_all();
 }
 
 std::vector<int> fail_list(){
