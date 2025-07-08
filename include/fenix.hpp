@@ -75,18 +75,33 @@ int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
 
 namespace Fenix {
 
+using Role = Fenix_Rank_role;
+constexpr Role INITIAL_RANK   = FENIX_ROLE_INITIAL_RANK;
+constexpr Role RECOVERED_RANK = FENIX_ROLE_RECOVERED_RANK;
+constexpr Role SURVIVOR_RANK  = FENIX_ROLE_SURVIVOR_RANK;
+
+using ResumeMode = Fenix_Resume_mode;
+constexpr ResumeMode JUMP   = FENIX_RESUME_JUMP;
+constexpr ResumeMode RETURN = FENIX_RESUME_RETURN;
+constexpr ResumeMode THROW  = FENIX_RESUME_THROW;
+
+using UnhandledMode = Fenix_Unhandled_mode;
+constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
+constexpr UnhandledMode PRINT  = FENIX_UNHANDLED_PRINT;
+constexpr UnhandledMode ABORT  = FENIX_UNHANDLED_ABORT;
+
 namespace Args {
 struct FenixInitArgs {
-    int* role                           = nullptr;
-    MPI_Comm in_comm                    = MPI_COMM_WORLD;
-    MPI_Comm* out_comm                  = nullptr;
-    int* argc                           = nullptr;
-    char*** argv                        = nullptr;
-    int spares                          = 0;
-    int spawn                           = 0;
-    Fenix_Resume_mode resume_mode       = THROW;
-    Fenix_Unhandled_mode unhandled_mode = ABORT;
-    int* err                            = nullptr;
+    int* role                    = nullptr;
+    MPI_Comm in_comm             = MPI_COMM_WORLD;
+    MPI_Comm* out_comm           = nullptr;
+    int* argc                    = nullptr;
+    char*** argv                 = nullptr;
+    int spares                   = 0;
+    int spawn                    = 0;
+    ResumeMode resume_mode       = THROW;
+    UnhandledMode unhandled_mode = ABORT;
+    int* err                     = nullptr;
 };
 }
 
@@ -99,8 +114,9 @@ void throw_exception();
 
 namespace Fenix::Data {
 
-extern const DataSubset FENIX_SUBSET_FULL;
-extern const DataSubset FENIX_SUBSET_EMPTY;
+extern const DataSubset SUBSET_FULL;
+extern const DataSubset SUBSET_EMPTY;
+extern DataSubset SUBSET_IGNORE;
 
 //!@brief Overload of #Fenix_Data_member_store
 int member_store(int group_id, int member_id, const DataSubset& subset);
@@ -122,13 +138,13 @@ int member_istorev(
 
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
-    int group_id, int member_id, void *target_buffer, int max_count,
+    int group_id, int member_id, void *target_buffer, int max_length,
     int time_stamp, DataSubset& data_found
 );
 
 //!@brief Overload of #Fenix_Data_member_lrestore
 int member_lrestore(
-    int group_id, int member_id, void *target_buffer, int max_count,
+    int group_id, int member_id, void *target_buffer, int max_length,
     int time_stamp, DataSubset& data_found
 );
 

@@ -193,22 +193,22 @@ int fenix_preinit(const Args::FenixInitArgs& args, jmp_buf* jump_env){
 
 Fenix_Resume_mode get_resume_mode(const std::string_view& name){
     if (name == "JUMP") {
-        return Fenix_Resume_mode::JUMP;
+        return Fenix::JUMP;
     } else if (name == "RETURN") {
-        return Fenix_Resume_mode::RETURN;
+        return Fenix::RETURN;
     } else if (name == "THROW") {
-        return Fenix_Resume_mode::THROW;
+        return Fenix::THROW;
     }
     fatal_print("Unsupported FENIX_RESUME_MODE %s", name.data());
 }
 
 Fenix_Unhandled_mode get_unhandled_mode(const std::string_view& name){
     if (name == "SILENT") {
-        return Fenix_Unhandled_mode::SILENT;
+        return Fenix::SILENT;
     } else if (name == "PRINT") {
-        return Fenix_Unhandled_mode::PRINT;
+        return Fenix::PRINT;
     } else if (name == "ABORT") {
-        return Fenix_Unhandled_mode::ABORT;
+        return Fenix::ABORT;
     }
     fatal_print("Unsupported FENIX_UNHANDLED_MODE %s", name.data());
 }
