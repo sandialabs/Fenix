@@ -112,6 +112,7 @@ int fenix_preinit(const Args::FenixInitArgs& args, jmp_buf* jump_env){
     fenix.spawn_policy = args.spawn;
     fenix.recover_environment = jump_env;
     fenix.resume_mode = args.resume_mode;
+    fenix.callback_exception_mode = args.callback_exception_mode;
     fenix.unhandled_mode = args.unhandled_mode;
     fenix.ret_role = args.role ? args.role : &fenix.role;
     fenix.ret_error = args.err ? args.err : &fenix.repair_result;
@@ -663,9 +664,10 @@ void __fenix_postinit()
                   34095347, fenix.new_world, &fenix.check_failures_req);
     }
 
-    if (fenix.role == FENIX_ROLE_SURVIVOR_RANK) {
-        __fenix_callback_invoke_all(*fenix.ret_error);
+    if(fenix.role != FENIX_ROLE_INITIAL_RANK) {
+        __fenix_callback_invoke_all();
     }
+
     if (fenix.options.verbose == 9) {
         verbose_print("After barrier. current_rank: %d, role: %d\n", __fenix_get_current_rank(fenix.new_world),
                       fenix.role);
@@ -798,17 +800,17 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 {
     int ret_repair;
     int index;
-    int ret = *pret;
+    fenix.mpi_fail_code = *pret;
+
     if(!fenix.fenix_init_flag || __fenix_spare_rank() == 1 || fenix.ignore_errs) {
         return;
     }
 
-    switch (ret) {
+    switch (fenix.mpi_fail_code) {
         case MPI_ERR_PROC_FAILED_PENDING:
         case MPI_ERR_PROC_FAILED:
             MPIX_Comm_revoke(*fenix.world);
             MPIX_Comm_revoke(fenix.new_world);
-            
             if(fenix.user_world_exists) MPIX_Comm_revoke(*fenix.user_world);
 
             fenix.repair_result = __fenix_repair_ranks();
@@ -819,7 +821,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
         default:
             int len;
             char errstr[MPI_MAX_ERROR_STRING];
-            MPI_Error_string(ret, errstr, &len);
+            MPI_Error_string(fenix.mpi_fail_code, errstr, &len);
             switch (fenix.unhandled_mode) {
                 case ABORT:
                     fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);

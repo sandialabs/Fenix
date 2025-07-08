@@ -280,6 +280,11 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *),
 int Fenix_Callback_pop();
 
 /**
+ * @brief Invoke all callbacks with information from the last recovered fault
+ */
+void Fenix_Callback_invoke_all();
+
+/**
  * @brief Check for any failed ranks
  *
  * @param[in] do_recovery If true, Fenix will attempt to recover from any detected failures.

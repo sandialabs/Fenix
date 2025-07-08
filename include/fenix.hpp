@@ -87,6 +87,11 @@ constexpr ResumeMode JUMP   = FENIX_RESUME_JUMP;
 constexpr ResumeMode RETURN = FENIX_RESUME_RETURN;
 constexpr ResumeMode THROW  = FENIX_RESUME_THROW;
 
+enum CallbackExceptionMode {
+    RETHROW,
+    SQUASH
+};
+
 using UnhandledMode = Fenix_Unhandled_mode;
 constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
 constexpr UnhandledMode PRINT  = FENIX_UNHANDLED_PRINT;
@@ -94,16 +99,17 @@ constexpr UnhandledMode ABORT  = FENIX_UNHANDLED_ABORT;
 
 namespace Args {
 struct FenixInitArgs {
-    int* role                    = nullptr;
-    MPI_Comm in_comm             = MPI_COMM_WORLD;
-    MPI_Comm* out_comm           = nullptr;
-    int* argc                    = nullptr;
-    char*** argv                 = nullptr;
-    int spares                   = 0;
-    int spawn                    = 0;
-    ResumeMode resume_mode       = THROW;
-    UnhandledMode unhandled_mode = ABORT;
-    int* err                     = nullptr;
+    int* role                                       = nullptr;
+    MPI_Comm in_comm                                = MPI_COMM_WORLD;
+    MPI_Comm* out_comm                              = nullptr;
+    int* argc                                       = nullptr;
+    char*** argv                                    = nullptr;
+    int spares                                      = 0;
+    int spawn                                       = 0;
+    ResumeMode resume_mode                          = THROW;
+    CallbackExceptionMode callback_exception_mode   = RETHROW;
+    UnhandledMode unhandled_mode                    = ABORT;
+    int* err                                        = nullptr;
 };
 }
 
@@ -126,6 +132,9 @@ int callback_register(std::function<void(MPI_Comm, int)> callback);
 
 //@!brief Overload of #Fenix_Callback_pop
 int callback_pop();
+
+//@!brief Overload of #Fenix_Callback_invoke_all
+void callback_invoke_all();
 
 /**
  * @brief Get the failed ranks from the most recent recovery

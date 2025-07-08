@@ -98,7 +98,7 @@ int __fenix_callback_register(fenix_callback_func& recover);
 
 int __fenix_callback_pop();
 
-void __fenix_callback_invoke_all(int error);
+void __fenix_callback_invoke_all();
 
 int* __fenix_get_fail_ranks(int *, int, int);
 
