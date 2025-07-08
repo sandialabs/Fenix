@@ -60,6 +60,8 @@
 
 #include <mpi.h>
 #include <functional>
+#include <vector>
+#include <optional>
 #include "fenix.h"
 #include "fenix_exception.hpp"
 #include "fenix_data_subset.hpp"
@@ -116,11 +118,20 @@ Fenix_Rank_role role();
 //!@brief Overload of #Fenix_get_error
 int error();
 
+//!@brief Overload of #Fenix_get_nspare
+int nspare();
+
 //!@brief Overload of #Fenix_Callback_register
 int callback_register(std::function<void(MPI_Comm, int)> callback);
 
 //@!brief Overload of #Fenix_Callback_pop
 int callback_pop();
+
+/**
+ * @brief Get the failed ranks from the most recent recovery
+ * @return vector of failed ranks
+ */
+std::vector<int> fail_list();
 
 //!@brief Overload of #Fenix_Process_detect_failures
 int detect_failures(bool recover = true);
@@ -182,6 +193,18 @@ int commit(int group_id, int* time_stamp = nullptr);
 
 //@!brief overload of #Fenix_Data_commit
 int commit_barrier(int group_id, int* time_stamp = nullptr);
+
+/**
+ * @brief get the members of a group
+ * @return vector of member IDs of each member in group_id if group exists
+ */
+std::optional<std::vector<int>> group_members(int group_id);
+
+/**
+ * @brief get the snapshots of a group
+ * @return vector of timestamps of each snapshot in group_id if group exists
+ */
+std::optional<std::vector<int>> group_snapshots(int group_id);
 
 //@!brief Overload of #Fenix_Data_snapshot_delete
 int snapshot_delete(int group_id, int timestamp);

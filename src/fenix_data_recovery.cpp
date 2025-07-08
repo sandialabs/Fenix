@@ -556,6 +556,18 @@ int __fenix_get_member_at_position(int group_id, int *member_id, int position) {
   return FENIX_SUCCESS;
 }
 
+std::optional<std::vector<int>> group_members(int group_id){
+  auto [group_index, group] = find_group(group_id);
+  if(!group) return {};
+  return group->get_member_ids();
+}
+
+std::optional<std::vector<int>> group_snapshots(int group_id){
+  auto [group_index, group] = find_group(group_id);
+  if(!group) return {};
+  return group->get_snapshots();
+}
+
 /**
  * @brief
  * @param group_id
