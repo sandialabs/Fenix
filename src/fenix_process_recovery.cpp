@@ -359,121 +359,111 @@ int __fenix_repair_ranks()
 
                 rt_code = FENIX_WARNING_SPARE_RANKS_DEPLETED;
 
-                if (fenix.spare_ranks != 0) {
+                /***************************************/
+                /* Fill the ranks in increasing order  */
+                /***************************************/
 
-                    /***************************************/
-                    /* Fill the ranks in increasing order  */
-                    /***************************************/
+                int active_ranks;
 
-                    int active_ranks;
+                survivor_world = (int *) s_malloc(survivor_world_size * sizeof(int));
 
-                    survivor_world = (int *) s_malloc(survivor_world_size * sizeof(int));
+                ret = PMPI_Allgather(&current_rank, 1, MPI_INT, survivor_world, 1, MPI_INT,
+                                     world_without_failures);
 
-                    ret = PMPI_Allgather(&current_rank, 1, MPI_INT, survivor_world, 1, MPI_INT,
-                                         world_without_failures);
-
-                    if (fenix.options.verbose == 2) {
-                        int index;
-                        for (index = 0; index < survivor_world_size; index++) {
-                            verbose_print("current_rank: %d, role: %d, survivor_world[%d]: %d\n",
-                                          current_rank, fenix.role, index,
-                                          survivor_world[index]);
-                        }
+                if (fenix.options.verbose == 2) {
+                    int index;
+                    for (index = 0; index < survivor_world_size; index++) {
+                        verbose_print("current_rank: %d, role: %d, survivor_world[%d]: %d\n",
+                                      current_rank, fenix.role, index,
+                                      survivor_world[index]);
                     }
-
-                     //if (ret != MPI_SUCCESS) { debug_print("MPI_Allgather. repair_ranks\n"); }
-                    if (ret != MPI_SUCCESS) {
-                        repair_success = 0;
-                        if (ret == MPI_ERR_PROC_FAILED) {
-                            MPIX_Comm_revoke(world_without_failures);
-                        }
-                        MPI_Comm_free(&world_without_failures);
-                        free(survivor_world);
-                        goto END_LOOP;
-                    }
-
-                    survived_flag = 0;
-                    if (fenix.role == FENIX_ROLE_SURVIVOR_RANK) {
-                        survived_flag = 1;
-                    }
-
-                    ret = PMPI_Allreduce(&survived_flag, &fenix.num_survivor_ranks, 1,
-                                         MPI_INT, MPI_SUM, world_without_failures);
-
-                    //if (ret != MPI_SUCCESS) { debug_print("MPI_Allreduce. repair_ranks\n"); }
-                    if (ret != MPI_SUCCESS) {
-                        repair_success = 0;
-                        if (ret == MPI_ERR_PROC_FAILED) {
-                            MPIX_Comm_revoke(world_without_failures);
-                        }
-                        MPI_Comm_free(&world_without_failures);
-                        free(survivor_world);
-                        goto END_LOOP;
-                    }
-
-                    fenix.num_inital_ranks = 0;
-
-                    /* recovered ranks must be the number of spare ranks */
-                    fenix.num_recovered_ranks = fenix.fail_world_size;
-
-                    if (fenix.options.verbose == 2) {
-                        verbose_print("current_rank: %d, role: %d, recovered_ranks: %d\n",
-                                      current_rank, fenix.role,
-                                      fenix.num_recovered_ranks);
-                    }
-                    
-                    if(fenix.role != FENIX_ROLE_INITIAL_RANK){
-                        free(fenix.fail_world);
-                    }
-                    fenix.fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size,
-                                                        fenix.fail_world_size);
-
-                    if (fenix.options.verbose == 2) {
-                        int index;
-                        for (index = 0; index < fenix.fail_world_size; index++) {
-                            verbose_print("fail_world[%d]: %d\n", index, fenix.fail_world[index]);
-                        }
-                    }
-
-                    free(survivor_world);
-
-                    active_ranks = world_size - fenix.spare_ranks;
-
-                    if (fenix.options.verbose == 2) {
-                        verbose_print("current_rank: %d, role: %d, active_ranks: %d\n",
-                                      current_rank, fenix.role,
-                                      active_ranks);
-                    }
-
-                    /* Assign new rank for reordering */
-                    if (current_rank >= active_ranks) { // reorder ranks
-                        int rank_offset = ((world_size - 1) - current_rank);
-                      
-                        for(int fail_i = 0; fail_i < fenix.fail_world_size; fail_i++){
-                          if(fenix.fail_world[fail_i] > current_rank) rank_offset--;
-                        }
-
-                        if (rank_offset < fenix.fail_world_size) {
-                            if (fenix.options.verbose == 11) {
-                                verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
-                                              current_rank, fenix.fail_world[rank_offset]);
-                            }
-                            current_rank = fenix.fail_world[rank_offset];
-                        }
-                    }
-
-                    /************************************/
-                    /* Update the number of spare ranks */
-                    /************************************/
-                    fenix.spare_ranks = 0;
-
-                    //debug_print("not enough spare ranks to repair rank failures. repair_ranks\n");
                 }
 
-                /****************************************************************/
-                /* No rank reordering is required if no spare rank is available */
-                /****************************************************************/
+                 //if (ret != MPI_SUCCESS) { debug_print("MPI_Allgather. repair_ranks\n"); }
+                if (ret != MPI_SUCCESS) {
+                    repair_success = 0;
+                    if (ret == MPI_ERR_PROC_FAILED) {
+                        MPIX_Comm_revoke(world_without_failures);
+                    }
+                    MPI_Comm_free(&world_without_failures);
+                    free(survivor_world);
+                    goto END_LOOP;
+                }
 
+                survived_flag = 0;
+                if (fenix.role == FENIX_ROLE_SURVIVOR_RANK) {
+                    survived_flag = 1;
+                }
+
+                ret = PMPI_Allreduce(&survived_flag, &fenix.num_survivor_ranks, 1,
+                                     MPI_INT, MPI_SUM, world_without_failures);
+
+                //if (ret != MPI_SUCCESS) { debug_print("MPI_Allreduce. repair_ranks\n"); }
+                if (ret != MPI_SUCCESS) {
+                    repair_success = 0;
+                    if (ret == MPI_ERR_PROC_FAILED) {
+                        MPIX_Comm_revoke(world_without_failures);
+                    }
+                    MPI_Comm_free(&world_without_failures);
+                    free(survivor_world);
+                    goto END_LOOP;
+                }
+
+                fenix.num_inital_ranks = 0;
+
+                /* recovered ranks must be the number of spare ranks */
+                fenix.num_recovered_ranks = fenix.fail_world_size;
+
+                if (fenix.options.verbose == 2) {
+                    verbose_print("current_rank: %d, role: %d, recovered_ranks: %d\n",
+                                  current_rank, fenix.role,
+                                  fenix.num_recovered_ranks);
+                }
+
+                if(fenix.role != FENIX_ROLE_INITIAL_RANK){
+                    free(fenix.fail_world);
+                }
+                fenix.fail_world = __fenix_get_fail_ranks(survivor_world, survivor_world_size,
+                                                    fenix.fail_world_size);
+
+                if (fenix.options.verbose == 2) {
+                    int index;
+                    for (index = 0; index < fenix.fail_world_size; index++) {
+                        verbose_print("fail_world[%d]: %d\n", index, fenix.fail_world[index]);
+                    }
+                }
+
+                free(survivor_world);
+
+                active_ranks = world_size - fenix.spare_ranks;
+
+                if (fenix.options.verbose == 2) {
+                    verbose_print("current_rank: %d, role: %d, active_ranks: %d\n",
+                                  current_rank, fenix.role,
+                                  active_ranks);
+                }
+
+                /* Assign new rank for reordering */
+                if (current_rank >= active_ranks) { // reorder ranks
+                    int rank_offset = ((world_size - 1) - current_rank);
+
+                    for(int fail_i = 0; fail_i < fenix.fail_world_size; fail_i++){
+                      if(fenix.fail_world[fail_i] > current_rank) rank_offset--;
+                    }
+
+                    if (rank_offset < fenix.fail_world_size) {
+                        if (fenix.options.verbose == 11) {
+                            verbose_print("reorder ranks; current_rank: %d -> new_rank: %d\n",
+                                          current_rank, fenix.fail_world[rank_offset]);
+                        }
+                        current_rank = fenix.fail_world[rank_offset];
+                    }
+                }
+
+                /************************************/
+                /* Update the number of spare ranks */
+                /************************************/
+                fenix.spare_ranks = 0;
             }
         } else {
 
