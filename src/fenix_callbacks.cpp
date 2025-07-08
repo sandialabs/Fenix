@@ -62,8 +62,10 @@
 #include "fenix_data_recovery.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
+#include "fenix_exception.hpp"
 #include <mpi.h>
 
+using namespace fenix;
 
 int __fenix_callback_register(fenix_callback_func& recover)
 {
@@ -83,9 +85,28 @@ int __fenix_callback_pop(){
    return FENIX_SUCCESS;
 }
 
-void __fenix_callback_invoke_all(int error)
-{
-    for(auto it = fenix_rt.callbacks.rbegin(); it != fenix_rt.callbacks.rend(); it++){
-        (*it)(*fenix_rt.user_world, error);
+void __fenix_callback_invoke_all(){
+    //If callbacks are invoked in a nested manner due to caught exceptions
+    //within a callback, we want to only finish the most recent call. All prior
+    //calls should exit as soon as control returns.
+    static int callbacks_depth = 0;
+    int m_callbacks_layer = callbacks_depth++;
+
+    try {
+        for(auto& cb : fenix_rt.callbacks) {
+            if(callbacks_depth != m_callbacks_layer+1) break;
+            cb(*fenix_rt.user_world, fenix_rt.mpi_fail_code);
+        }
+    } catch (const CommException& e) {
+        switch(fenix_rt.callback_exception_mode){
+            case(RETHROW):
+                if(m_callbacks_layer == 0) callbacks_depth = 0;
+                throw;
+            case(SQUASH):
+                break;
+        }
     }
+
+    //Reset the callback depth when leaving the outermost call
+    if(m_callbacks_layer == 0) callbacks_depth = 0;
 }

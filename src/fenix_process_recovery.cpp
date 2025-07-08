@@ -113,6 +113,7 @@ int fenix_preinit(const args::FenixInitArgs& args, jmp_buf* jump_env){
     fenix_rt.recover_environment = jump_env;
     fenix_rt.resume_mode = args.resume_mode;
     fenix_rt.unhandled_mode = args.unhandled_mode;
+    fenix_rt.callback_exception_mode = args.callback_exception_mode;
     fenix_rt.ret_role = args.role ? args.role : &fenix_rt.role;
     fenix_rt.ret_error = args.err ? args.err : &fenix_rt.repair_result;
 
@@ -644,9 +645,10 @@ void __fenix_postinit()
                   34095347, fenix_rt.new_world, &fenix_rt.check_failures_req);
     }
 
-    if (fenix_rt.role == FENIX_ROLE_SURVIVOR_RANK) {
-        __fenix_callback_invoke_all(*fenix_rt.ret_error);
+    if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
+        __fenix_callback_invoke_all();
     }
+
     if (fenix_rt.options.verbose == 9) {
         verbose_print("After barrier. current_rank: %d, role: %d\n", __fenix_get_current_rank(fenix_rt.new_world),
                       fenix_rt.role);
@@ -779,17 +781,16 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 {
     int ret_repair;
     int index;
-    int ret = *pret;
+    fenix_rt.mpi_fail_code = *pret;
     if(!fenix_rt.fenix_init_flag || __fenix_spare_rank() == 1 || fenix_rt.ignore_errs) {
         return;
     }
 
-    switch (ret) {
+    switch (fenix_rt.mpi_fail_code) {
         case MPI_ERR_PROC_FAILED_PENDING:
         case MPI_ERR_PROC_FAILED:
             MPIX_Comm_revoke(*fenix_rt.world);
             MPIX_Comm_revoke(fenix_rt.new_world);
-            
             if(fenix_rt.user_world_exists) MPIX_Comm_revoke(*fenix_rt.user_world);
 
             fenix_rt.repair_result = __fenix_repair_ranks();
@@ -800,7 +801,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
         default:
             int len;
             char errstr[MPI_MAX_ERROR_STRING];
-            MPI_Error_string(ret, errstr, &len);
+            MPI_Error_string(fenix_rt.mpi_fail_code, errstr, &len);
             switch (fenix_rt.unhandled_mode) {
                 case ABORT:
                     fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
