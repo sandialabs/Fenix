@@ -12,7 +12,7 @@
 //
 //
 //
-// Copyright (C) 2018 Rutgers University and Sandia Corporation
+// Copyright (C) 2016 Rutgers University and Sandia Corporation
 //
 // Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 // the U.S. Government retains certain rights in this software.
@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        Michael Heroux, and Matthew Whitlock
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -56,6 +56,4 @@
 
 #include "fenix_ext.hpp"
 
-fenix_t fenix = {
-    .fenix_init_flag = 0
-};
+Fenix::fenix_t fenix;

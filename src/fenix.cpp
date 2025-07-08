@@ -65,12 +65,14 @@ using namespace Fenix;
 using namespace Fenix::Data;
 
 namespace Fenix::Data {
-const DataSubset FENIX_SUBSET_FULL = {{0, Fenix::DataSubset::MAX}};
-const DataSubset FENIX_SUBSET_EMPTY = {};
+const DataSubset SUBSET_FULL = {{0, Fenix::DataSubset::MAX}};
+const DataSubset SUBSET_EMPTY = {};
+DataSubset SUBSET_IGNORE = SUBSET_EMPTY;
 }
 
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = { new DataSubset(DataSubset::MAX) };
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = { new DataSubset() };
+Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE = NULL;
 
 int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback){
     return __fenix_callback_register(callback);

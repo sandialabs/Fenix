@@ -60,9 +60,12 @@
 #include <mpi.h>
 #include <vector>
 #include "fenix.h"
+#include "fenix.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_process_recovery.hpp"
 #include "fenix_data_group.hpp"
+
+namespace Fenix {
 
 typedef struct {
     int num_inital_ranks;        // Keeps the global MPI rank ID at Fenix_init
@@ -70,8 +73,8 @@ typedef struct {
     int num_recovered_ranks = 0; // Keeps the number of spare ranks brought into MPI communicator recovery
     int spare_ranks;             // Spare ranks entered by user to repair failed ranks
     
-    int resume_mode = Fenix_Resume_mode::JUMP;
-    int unhandled_mode = Fenix_Unhandled_mode::ABORT;
+    ResumeMode resume_mode = JUMP;
+    UnhandledMode unhandled_mode = ABORT;
     int ignore_errs = false;       // Temporarily ignore all errors & recovery
     int spawn_policy;             // Indicate dynamic process spawning
     jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
@@ -107,5 +110,7 @@ typedef struct {
     Fenix::Data::fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;
 
-extern fenix_t fenix;
+}
+
+extern Fenix::fenix_t fenix;
 #endif // __FENIX_EXT_H__

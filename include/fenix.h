@@ -145,11 +145,11 @@ typedef enum {
  */
 typedef enum {
     //!Return to Fenix_Init via longjmp (default)
-    JUMP,
+    FENIX_RESUME_JUMP,
     //!Return the error code inline
-    RETURN,
+    FENIX_RESUME_RETURN,
     //!Throw a Fenix::CommException
-    THROW
+    FENIX_RESUME_THROW
 } Fenix_Resume_mode;
 
 /**
@@ -157,11 +157,11 @@ typedef enum {
  */
 typedef enum {
     //!Ignore unhandled errors
-    SILENT,
+    FENIX_UNHANDLED_SILENT,
     //!Print error and continue without handling
-    PRINT,
+    FENIX_UNHANDLED_PRINT,
     //!Print error and abort Fenix's world (default)
-    ABORT
+    FENIX_UNHANDLED_ABORT
 } Fenix_Unhandled_mode;
 
 /**
@@ -363,6 +363,8 @@ int Fenix_Finalize();
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID     13
 #define FENIX_DATA_POLICY_IMR                FENIX_DATA_POLICY_IN_MEMORY_RAID
 
+#define FENIX_TIME_STAMP_IGNORE NULL
+
 /**
  * @unimplemented As MPI_Request, but for Fenix asynchronous data recovery calls
  */
@@ -393,6 +395,7 @@ extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 //!@brief A standin for checkpointing/recovering none of the available data in a member.
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
 
+extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
 
 /**
  * @brief Create a Data Group
