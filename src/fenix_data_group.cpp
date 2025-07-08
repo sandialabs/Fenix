@@ -110,7 +110,7 @@ fenix_data_recovery_t * __fenix_data_recovery_init() {
   return data_recovery;
 }
 
-int __fenix_member_delete(int groupid, int memberid) {
+int member_delete(int groupid, int memberid) {
   auto [group_index, group] = find_group(groupid);
   if(!group) return FENIX_ERROR_INVALID_GROUPID;
 
@@ -173,7 +173,7 @@ int __fenix_data_recovery_remove_group(int group_index){
  * @brief
  * @param group_id
  */
-int __fenix_group_delete(int groupid) {
+int group_delete(int groupid) {
   auto [group_index, group] = find_group(groupid);
   if(!group) return FENIX_ERROR_INVALID_GROUPID;
 

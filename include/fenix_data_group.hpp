@@ -125,10 +125,6 @@ typedef struct __group_entry_packet {
 
 fenix_data_recovery_t * __fenix_data_recovery_init();
 
-int __fenix_group_delete(int groupid);
-
-int __fenix_member_delete(int groupid, int memberid);
-
 void __fenix_data_recovery_destroy( fenix_data_recovery_t *fx_data_recovery );
 
 void __fenix_data_recovery_reinit( fenix_data_recovery_t *dr, fenix_two_container_packet_t packet);
