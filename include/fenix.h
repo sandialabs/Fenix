@@ -300,6 +300,9 @@ Fenix_Rank_role Fenix_get_role();
 //!@brief Returns the error value from Fenix_Init or the latest recovery
 int Fenix_get_error();
 
+//!@brief Returns the number of spare ranks currently available to Fenix
+int Fenix_get_nspare();
+
 /**
  * @brief Get the list of ranks that failed in the most recent failure.
  * @param[out] fail_list Set to a list of failed ranks.
