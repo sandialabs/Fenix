@@ -849,10 +849,10 @@ int Group::member_restore(
       );
 
       if(!found_members[set_rank]){
-         __fenix_member_create(
-            groupid, packet.memberid, target_buffer, packet.current_count,
+         this->member_create(__fenix_data_member_add_entry(
+            this, packet.memberid, target_buffer, packet.current_count,
             packet.datatype_size
-         );
+         ));
          member = find_member(member_id);
          assert(member);
       }

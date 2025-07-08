@@ -98,20 +98,10 @@ typedef struct __data_entry_packet {
 } fenix_data_entry_packet_t;
 
 
-int __fenix_group_create(int, MPI_Comm, int, int, int, void*, int*);
 int __fenix_group_get_redundancy_policy(int, int*, int*, int*);
-int __fenix_member_create(int, int, void *, int, int);
 int __fenix_data_wait(Fenix_Request);
 int __fenix_data_test(Fenix_Request, int *);
-int __fenix_member_store(int, int, const DataSubset&);
-int __fenix_member_storev(int, int, const DataSubset&);
-int __fenix_member_istore(int, int, const DataSubset&, Fenix_Request *);
-int __fenix_member_istorev(int, int, const DataSubset&, Fenix_Request *);
-int __fenix_data_commit(int, int *);
-int __fenix_data_commit_barrier(int, int *);
 int __fenix_data_barrier(int);
-int __fenix_member_restore(int, int, void *, int, int, DataSubset&);
-int __fenix_member_lrestore(int, int, void *, int, int, DataSubset&);
 int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
 int __fenix_get_number_of_members(int, int *);
 int __fenix_get_member_at_position(int, int *, int);
@@ -119,13 +109,6 @@ int __fenix_get_number_of_snapshots(int, int *);
 int __fenix_get_snapshot_at_position(int, int, int *);
 int __fenix_member_get_attribute(int, int, int, void *, int *, int);
 int __fenix_member_set_attribute(int, int, int, void *, int *);
-int __fenix_snapshot_delete(int groupid, int timestamp);
-
-int __fenix_group_delete(int);
-int __fenix_member_delete(int, int);
-
-void __fenix_init_data_recovery();
-void __fenix_init_partner_copy_recovery();
 
 }
 

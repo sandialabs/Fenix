@@ -56,6 +56,7 @@
 
 
 
+#include "fenix.hpp"
 #include "fenix_data_recovery.hpp"
 #include "fenix_data_policy.hpp"
 #include "fenix_opt.hpp"
@@ -74,7 +75,7 @@ namespace Fenix::Data {
  * @param time_start
  * @param depth
  */
-int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, int policy_name, 
+int group_create( int groupid, MPI_Comm comm, int timestart, int depth, int policy_name, 
         void* policy_value, int* flag) {
 
   int retval = -1;
@@ -191,7 +192,9 @@ int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* poli
  * @param count
  * @param data_type
  */
-int __fenix_member_create(int groupid, int memberid, void *data, int count, int datatype_size ) {
+int member_create(
+  int groupid, int memberid, void *data, int count, MPI_Datatype datatype
+) {
   auto [group_index, group] = find_group(groupid);
   if(!group) return FENIX_ERROR_INVALID_GROUPID;
 
@@ -210,7 +213,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, int 
 
   //First, we'll make a fenix-core member entry, then pass that info to
   //the specific data policy.
-  mentry = __fenix_data_member_add_entry(group, memberid, data, count, datatype_size);
+  mentry = __fenix_data_member_add_entry(group, memberid, data, count, __fenix_get_size(datatype));
 
   //Pass the info along to the policy
   return group->member_create(mentry);
@@ -270,7 +273,7 @@ int __fenix_data_test(Fenix_Request request, int *flag) {
  *
  */
 
-int __fenix_member_store(int groupid, int memberid, const DataSubset& specifier) {
+int member_store(int groupid, int memberid, const DataSubset& specifier) {
   auto [group_index, group] = find_group(groupid);
   if(!group){
     debug_print("ERROR Fenix_Data_member_store: group_id <%d> does not exist", groupid);
@@ -280,7 +283,7 @@ int __fenix_member_store(int groupid, int memberid, const DataSubset& specifier)
   return group->member_store(memberid, specifier);
 }
 
-int __fenix_member_storev(int groupid, int memberid, const DataSubset& specifier) {
+int member_storev(int groupid, int memberid, const DataSubset& specifier) {
   auto [group_index, group] = find_group(groupid);
   if(!group){
     debug_print("ERROR Fenix_Data_member_storev: group_id <%d> does not exist", groupid);
@@ -297,8 +300,22 @@ int __fenix_member_storev(int groupid, int memberid, const DataSubset& specifier
  * @param subset_specifier
  * @param request
  */
-int __fenix_member_istore(int groupid, int memberid, const DataSubset& specifier,
+int member_istore(int groupid, int memberid, const DataSubset& specifier,
                   Fenix_Request *request) {
+  fatal_print("unimplemented");
+  auto [group_index, group] = find_group(groupid);
+  if(!group){
+    debug_print("ERROR Fenix_Data_member_istore: group_id <%d> does not exist", groupid);
+    return FENIX_ERROR_INVALID_GROUPID;
+  }
+
+  return group->member_istore(memberid, specifier, request);
+}
+
+int member_istorev(
+  int groupid, int memberid, const DataSubset& specifier, Fenix_Request *request
+) {
+  fatal_print("unimplemented");
   auto [group_index, group] = find_group(groupid);
   if(!group){
     debug_print("ERROR Fenix_Data_member_istore: group_id <%d> does not exist", groupid);
@@ -314,7 +331,7 @@ int __fenix_member_istore(int groupid, int memberid, const DataSubset& specifier
  * @param group_id
  * @param time_stamp
  */
-int __fenix_data_commit(int groupid, int *timestamp) {
+int commit(int groupid, int *timestamp) {
   /* No communication is performed */
   /* Return the new timestamp      */
   int retval = -1;
@@ -347,7 +364,7 @@ int __fenix_data_commit(int groupid, int *timestamp) {
  * @param group_id
  * @param time_stamp
  */
-int __fenix_data_commit_barrier(int groupid, int *timestamp) {
+int commit_barrier(int groupid, int *timestamp) {
   int retval = -1;
   int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
   if (fenix.options.verbose == 23) {
@@ -407,8 +424,10 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
  * @param max_count
  * @param time_stamp
  */
-int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
+int member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
   int retval =  FENIX_SUCCESS;
+  data_found = {};
+
   int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
 
   if (fenix.options.verbose == 25) {
@@ -438,9 +457,10 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
  * @param max_count
  * @param time_stamp
  */
-int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
-
+int member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
   int retval =  FENIX_SUCCESS;
+  data_found = {};
+
   int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
   int member_index = -1;
 
@@ -676,7 +696,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
  * @param group_id
  * @param time_stamp
  */
-int __fenix_snapshot_delete(int group_id, int time_stamp) {
+int snapshot_delete(int group_id, int time_stamp) {
   int retval = -1;
   int group_index = __fenix_search_groupid(group_id, fenix.data_recovery );
   if (group_index == -1) {

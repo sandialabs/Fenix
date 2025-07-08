@@ -110,6 +110,24 @@ void init(const Args::FenixInitArgs args);
 //!@brief Throw an exception for the most recent fault. Helpful for spares.
 void throw_exception();
 
+//!@brief Overload of #Fenix_get_role
+Fenix_Rank_role role();
+
+//!@brief Overload of #Fenix_get_error
+int error();
+
+//!@brief Overload of #Fenix_Callback_register
+int callback_register(std::function<void(MPI_Comm, int)> callback);
+
+//@!brief Overload of #Fenix_Callback_pop
+int callback_pop();
+
+//!@brief Overload of #Fenix_Process_detect_failures
+int detect_failures(bool recover = true);
+
+//!@brief Overload of #Fenix_Initialized that directly returns true if initialized
+bool initialized();
+
 } // namespace Fenix
 
 namespace Fenix::Data {
@@ -117,6 +135,17 @@ namespace Fenix::Data {
 extern const DataSubset SUBSET_FULL;
 extern const DataSubset SUBSET_EMPTY;
 extern DataSubset SUBSET_IGNORE;
+
+//@!brief Overload of Fenix_Data_group_create
+int group_create(
+    int group_id, MPI_Comm comm, int start_time_stamp, int depth,
+    int policy_name, void* policy_value, int* flag
+);
+
+//@!brief Overload of Fenix_Data_member_create
+int member_create(
+    int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
 
 //!@brief Overload of #Fenix_Data_member_store
 int member_store(int group_id, int member_id, const DataSubset& subset);
@@ -147,6 +176,21 @@ int member_lrestore(
     int group_id, int member_id, void *target_buffer, int max_length,
     int time_stamp, DataSubset& data_found
 );
+
+//@!brief overload of #Fenix_Data_commit
+int commit(int group_id, int* time_stamp = nullptr);
+
+//@!brief overload of #Fenix_Data_commit
+int commit_barrier(int group_id, int* time_stamp = nullptr);
+
+//@!brief Overload of #Fenix_Data_snapshot_delete
+int snapshot_delete(int group_id, int timestamp);
+
+//@!brief overload of Fenix_Data_group_delete
+int group_delete(int group_id);
+
+//@!brief overload of Fenix_Data_member_delete
+int member_delete(int group_id, int member_id);
 
 } // namespace Fenix::Data
 

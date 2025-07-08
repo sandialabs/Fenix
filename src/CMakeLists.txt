@@ -26,7 +26,7 @@ set (Fenix_SOURCES
     fenix_data_member.cpp
     fenix_data_subset.cpp
     fenix_callbacks.cpp
-    globals.cpp
+    fenix_ext.cpp
 )
 
 add_library(fenix STATIC ${Fenix_SOURCES})
