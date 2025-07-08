@@ -876,12 +876,6 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
         }
         return;
         break;
-#ifdef MPICH
-        MPIX_Comm_revoke(*fenix.world);
-        MPIX_Comm_revoke(fenix.new_world);
-        //MPIX_Comm_revoke(*fenix.user_world);
-        fenix.repair_result = __fenix_repair_ranks();
-#endif
     }
 
 
