@@ -920,8 +920,8 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
 
         if( myerr ) {
           debug_print(
-                  "ERROR Fenix_Data_member_attr_get: Fenix currently does not support this MPI_DATATYPE; invalid attribute_value <%d>\n",
-                  attributevalue);
+                  "ERROR Fenix_Data_member_attr_get: Fenix currently does not support this MPI_DATATYPE; error %d\n", myerr
+          );
           retval = FENIX_ERROR_INVALID_ATTRIBUTE_NAME;
         }
 
