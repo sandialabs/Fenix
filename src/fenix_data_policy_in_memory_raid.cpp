@@ -530,7 +530,7 @@ int Member::lrestore(
 
    int begin = end > 0 ? end-1 : end;
    if(max_restore != 0){
-      for(int i = end-1; i >= 0 && !recovered.includes_all(max_restore) ; i--){
+      for(int i = end-1; i >= 0 && !recovered.includes_all(max_restore-1) ; i--){
          if(entries[i].timestamp < 0) break;
          begin = i;
          recovered += entries[i].region;
@@ -545,7 +545,7 @@ int Member::lrestore(
    }
 
    if(end <= 0) return FENIX_ERROR_NODATA_FOUND;
-   if(max_restore != 0 && !recovered.includes_all(max_restore))
+   if(max_restore != 0 && !recovered.includes_all(max_restore-1))
       return FENIX_WARNING_PARTIAL_RESTORE;
    return FENIX_SUCCESS;
 }
