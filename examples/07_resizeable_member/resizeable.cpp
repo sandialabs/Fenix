@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
       }
 
       //Resize data to fit all stored data
-      data.resize(stored_subset.end()+1);
+      data.resize(stored_subset.max_count());
 
       //Set all data to a value that was never stored, just for testing
       for(int& i : data) i = -2;
