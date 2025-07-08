@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Michael Heroux, and Matthew Whitlock
+//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -53,38 +53,7 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_SUBSET_H__
-#define __FENIX_DATA_SUBSET_H__
-#include <mpi.h>
 
-#include "fenix.h"
+#include "fenix_ext.hpp"
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
-int __fenix_data_subset_init_empty(Fenix_Data_subset* subset);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-void __fenix_data_subset_deep_copy(const Fenix_Data_subset* from, Fenix_Data_subset* to);
-void __fenix_data_subset_merge(const Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset);
-void __fenix_data_subset_copy_data(const Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size, size_t max_size);
-int __fenix_data_subset_storage_size(const Fenix_Data_subset* ss, size_t max_size);
-void __fenix_data_subset_serialize(const Fenix_Data_subset* ss, void* src,
-      void* dest, size_t type_size, size_t max_size, size_t output_size);
-void __fenix_data_subset_deserialize(const Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t max_size, size_t type_size);
-void __fenix_data_subset_send(const Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
-int __fenix_data_subset_is_full(const Fenix_Data_subset* ss, size_t data_length);
-int __fenix_data_subset_free(Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
-
-size_t __fenix_data_subset_count(const Fenix_Data_subset* ss, size_t max_idx);
-inline size_t __fenix_data_subset_data_size(
-    const Fenix_Data_subset* ss, size_t max_size
-){
-    return __fenix_data_subset_count(ss, max_size-1);
-}
-#endif // FENIX_DATA_SUBSET_H
+Fenix::fenix_t fenix;

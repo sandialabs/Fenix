@@ -53,38 +53,49 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_SUBSET_H__
-#define __FENIX_DATA_SUBSET_H__
+
 #include <mpi.h>
 
-#include "fenix.h"
+#include <fenix.h>
+#include <stdio.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <pthread.h>
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
-int __fenix_data_subset_init_empty(Fenix_Data_subset* subset);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-void __fenix_data_subset_deep_copy(const Fenix_Data_subset* from, Fenix_Data_subset* to);
-void __fenix_data_subset_merge(const Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset);
-void __fenix_data_subset_copy_data(const Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size, size_t max_size);
-int __fenix_data_subset_storage_size(const Fenix_Data_subset* ss, size_t max_size);
-void __fenix_data_subset_serialize(const Fenix_Data_subset* ss, void* src,
-      void* dest, size_t type_size, size_t max_size, size_t output_size);
-void __fenix_data_subset_deserialize(const Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t max_size, size_t type_size);
-void __fenix_data_subset_send(const Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
-int __fenix_data_subset_is_full(const Fenix_Data_subset* ss, size_t data_length);
-int __fenix_data_subset_free(Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
+int main(int argc, char **argv) {
+  volatile int status = 0;
 
-size_t __fenix_data_subset_count(const Fenix_Data_subset* ss, size_t max_idx);
-inline size_t __fenix_data_subset_data_size(
-    const Fenix_Data_subset* ss, size_t max_size
-){
-    return __fenix_data_subset_count(ss, max_size-1);
+  MPI_Init(&argc, &argv);
+
+  int fenix_role, error;
+  MPI_Comm res_comm;
+  MPI_Info info;
+  MPI_Info_create(&info);
+  MPI_Info_set(info, "FENIX_RESUME_MODE", "THROW");
+  Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, 0, info, &error);
+
+  if(fenix_role == FENIX_ROLE_SURVIVOR_RANK){
+    printf("FAILURE: longjmp instead of exception\n");
+    status = 1;
+  }
+
+  if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
+    int rank;
+    MPI_Comm_rank(res_comm, &rank);
+    if(rank == 1) raise(SIGKILL);
+
+    try {
+      MPI_Barrier(res_comm);
+      printf("FAILURE: barrier finished without fault\n");
+      status = 1;
+    } catch (Fenix::CommException e){
+      printf("SUCCESS: caught CommException\n");
+    }
+  }
+
+  Fenix_Finalize();
+  MPI_Finalize();
+
+  return status;
 }
-#endif // FENIX_DATA_SUBSET_H

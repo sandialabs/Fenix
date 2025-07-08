@@ -53,38 +53,72 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_SUBSET_H__
-#define __FENIX_DATA_SUBSET_H__
-#include <mpi.h>
 
-#include "fenix.h"
+#ifndef FENIX_DATA_BUFFER_HPP
+#define FENIX_DATA_BUFFER_HPP
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
-int __fenix_data_subset_init_empty(Fenix_Data_subset* subset);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-void __fenix_data_subset_deep_copy(const Fenix_Data_subset* from, Fenix_Data_subset* to);
-void __fenix_data_subset_merge(const Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset);
-void __fenix_data_subset_copy_data(const Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size, size_t max_size);
-int __fenix_data_subset_storage_size(const Fenix_Data_subset* ss, size_t max_size);
-void __fenix_data_subset_serialize(const Fenix_Data_subset* ss, void* src,
-      void* dest, size_t type_size, size_t max_size, size_t output_size);
-void __fenix_data_subset_deserialize(const Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t max_size, size_t type_size);
-void __fenix_data_subset_send(const Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
-int __fenix_data_subset_is_full(const Fenix_Data_subset* ss, size_t data_length);
-int __fenix_data_subset_free(Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
+#include <memory>
+#include <vector>
 
-size_t __fenix_data_subset_count(const Fenix_Data_subset* ss, size_t max_idx);
-inline size_t __fenix_data_subset_data_size(
-    const Fenix_Data_subset* ss, size_t max_size
-){
-    return __fenix_data_subset_count(ss, max_size-1);
+namespace Fenix {
+namespace Detail {
+
+template<typename T>
+struct UninitializedCharAllocator : public std::allocator<T>{
+    UninitializedCharAllocator() noexcept {};
+    template<typename U>
+    UninitializedCharAllocator(const U& other) noexcept {};
+
+    using value_type = T;
+    void construct(char*){ };
+
+    template<typename U>
+    struct rebind {
+        using other = UninitializedCharAllocator<U>;
+    };
+};
+
+using BufferVec = std::vector<char, UninitializedCharAllocator<char>>;
+
 }
-#endif // FENIX_DATA_SUBSET_H
+
+class DataBuffer : public Detail::BufferVec {
+  public:
+    using BufferVec = Detail::BufferVec;
+
+    void reset(size_t new_size = 0){
+        //Clear first, to be sure any re-allocations don't actually move data
+        clear();
+        resize(new_size);
+    }
+
+    int send(int dst, int tag, MPI_Comm comm){
+        return MPI_Send(data(), size(), MPI_BYTE, dst, tag, comm);
+    }
+
+    //Recv n bytes
+    int recv(
+        int n, int src, int tag, MPI_Comm comm,
+        MPI_Status* status = MPI_STATUS_IGNORE
+    ) {
+        reset(n);
+        return MPI_Recv(data(), n, MPI_BYTE, src, tag, comm, status);
+    }
+
+    //Recv an unknown amount of data and resize to fit
+    int recv_unknown(
+        int src, int tag, MPI_Comm comm, MPI_Status* status = MPI_STATUS_IGNORE
+    ) {
+        MPI_Status p_status;
+        MPI_Probe(src, tag, comm, &p_status);
+
+        int n;
+        MPI_Get_count(&p_status, MPI_BYTE, &n);
+        return recv(n, src, tag, comm);
+    }
+
+};
+
+}
+
+#endif //FENIX_DATA_BUFFER_HPP
