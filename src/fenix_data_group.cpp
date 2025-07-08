@@ -92,6 +92,15 @@ member_iterator fenix_group_t::find_member(int id){
   return it;
 }
 
+std::vector<int> fenix_group_t::get_member_ids(){
+  std::vector<int> ret;
+  ret.reserve(members.size());
+  for(const auto& [k, v] : members){
+    ret.push_back(k);
+  }
+  return ret;
+}
+
 fenix_data_recovery_t * __fenix_data_recovery_init() {
   fenix_data_recovery_t *data_recovery = (fenix_data_recovery_t *)
           s_calloc(1, sizeof(fenix_data_recovery_t));

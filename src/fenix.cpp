@@ -261,6 +261,10 @@ int Fenix_get_error(){
     return error();
 }
 
+int Fenix_get_nspare(){
+    return nspare();
+}
+
 namespace Fenix {
 
 void init(const Args::FenixInitArgs args){
@@ -282,12 +286,21 @@ int error(){
     return fenix.repair_result;
 }
 
+int nspare(){
+    return fenix.spare_ranks;
+}
+
 int callback_register(std::function<void(MPI_Comm, int)> callback){
     return __fenix_callback_register(callback);
 }
 
 int callback_pop() {
     return __fenix_callback_pop();
+}
+
+std::vector<int> fail_list(){
+    if(fenix.fail_world_size == 0) return {};
+    return {fenix.fail_world, fenix.fail_world+fenix.fail_world_size};
 }
 
 int detect_failures(bool recover){

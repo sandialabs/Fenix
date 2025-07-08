@@ -84,6 +84,7 @@ struct fenix_group_t {
     int policy_name;
     std::map<int, fenix_member_entry_t> members;
 
+    std::vector<int> get_member_ids();
     //Search for id, returning {-1, nullptr} if not found.
     Fenix::Data::member_iterator search_member(int id);
     //As search_member, but print an error message if id not found.
@@ -105,6 +106,7 @@ struct fenix_group_t {
     virtual int member_restore_from_rank(int member_id, void* target_bugger, int max, int timestamp, int source_rank) = 0;
     virtual int get_number_of_snapshots(int* num) = 0;
     virtual int get_snapshot_at_position(int position, int* timestamp) = 0;
+    virtual std::vector<int> get_snapshots() = 0;
     virtual int reinit(int* flag) = 0;
     virtual int member_get_attribute(fenix_member_entry_t* mentry, int name, void* value, int* flag, int sourcerank) = 0;
     virtual int member_set_attribute(fenix_member_entry_t* mentry, int name, void* value, int* flag) = 0;

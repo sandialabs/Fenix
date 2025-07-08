@@ -796,6 +796,10 @@ int Group::get_snapshot_at_position(int idx, int* snapshot){
    return FENIX_SUCCESS;
 }
 
+std::vector<int> Group::get_snapshots(){
+  return {timestamps.begin(), timestamps.end()};
+}
+
 int Group::member_restore(
    int member_id, void* target_buffer, int max_count, int ts,
    DataSubset& data_found
