@@ -546,8 +546,8 @@ int Fenix_Data_member_lrestore(int group_id, int member_id, void *target_buffer,
                               int max_count, int time_stamp, Fenix_Data_subset* found_data);
 
 //!@unimplemented As #Fenix_Data_member_restore, but restores from a specific rank's data.
-int Fenix_Data_member_restore_from_rank(int member_id, void *data, int max_count,
-                                        int time_stamp, int group_id,
+int Fenix_Data_member_restore_from_rank(int group_id, int member_id, void *data,
+                                        int max_count, int time_stamp, int group_id,
                                         int source_rank);
 
 /**
