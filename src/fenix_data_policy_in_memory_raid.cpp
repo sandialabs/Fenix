@@ -400,7 +400,9 @@ int BuddyMember::restore_impl(){
          //Fetch data
          int p_count = e->partner_region.count(e->elm_max_count-1);
          recv_buf.recv(p_count*e->elm_size, left, 0, group.set_comm);
-         e->region.deserialize_data(e->elm_size, recv_buf, e->partner_buf);
+         e->partner_region.deserialize_data(
+            e->elm_size, recv_buf, e->partner_buf
+         );
 
          //Only update timestamp after all other data updated, to indicate
          //recovery of this snapshot completed
