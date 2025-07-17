@@ -3,6 +3,8 @@ name: Build & Test
 on:
   pull_request:
 
+permissions: write-all
+
 jobs:
   test:
     runs-on: ubuntu-latest
