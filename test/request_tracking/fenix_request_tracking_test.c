@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <string.h> //for memcpy
+#include <unistd.h>
 
 #ifndef RTT_NO_FENIX
 #include <fenix.h>

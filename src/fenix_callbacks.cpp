@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Michael Heroux, and Matthew Whitlock
+//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -53,38 +53,60 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_SUBSET_H__
-#define __FENIX_DATA_SUBSET_H__
+
+#include <assert.h>
+
+#include "fenix_ext.hpp"
+#include "fenix_process_recovery.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_data_recovery.hpp"
+#include "fenix_opt.hpp"
+#include "fenix_util.hpp"
+#include "fenix_exception.hpp"
 #include <mpi.h>
 
-#include "fenix.h"
+using namespace Fenix;
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
-int __fenix_data_subset_init_empty(Fenix_Data_subset* subset);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-void __fenix_data_subset_deep_copy(const Fenix_Data_subset* from, Fenix_Data_subset* to);
-void __fenix_data_subset_merge(const Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset);
-void __fenix_data_subset_copy_data(const Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size, size_t max_size);
-int __fenix_data_subset_storage_size(const Fenix_Data_subset* ss, size_t max_size);
-void __fenix_data_subset_serialize(const Fenix_Data_subset* ss, void* src,
-      void* dest, size_t type_size, size_t max_size, size_t output_size);
-void __fenix_data_subset_deserialize(const Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t max_size, size_t type_size);
-void __fenix_data_subset_send(const Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
-int __fenix_data_subset_is_full(const Fenix_Data_subset* ss, size_t data_length);
-int __fenix_data_subset_free(Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
+int __fenix_callback_register(fenix_callback_func& recover)
+{
+    if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
 
-size_t __fenix_data_subset_count(const Fenix_Data_subset* ss, size_t max_idx);
-inline size_t __fenix_data_subset_data_size(
-    const Fenix_Data_subset* ss, size_t max_size
-){
-    return __fenix_data_subset_count(ss, max_size-1);
+    fenix.callbacks.push_back(recover);
+
+    return FENIX_SUCCESS;
 }
-#endif // FENIX_DATA_SUBSET_H
+
+int __fenix_callback_pop(){
+   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+   if(fenix.callbacks.empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
+
+   fenix.callbacks.pop_back();
+
+   return FENIX_SUCCESS;
+}
+
+void __fenix_callback_invoke_all(){
+    //If callbacks are invoked in a nested manner due to caught exceptions
+    //within a callback, we want to only finish the most recent call. All prior
+    //calls should exit as soon as control returns.
+    static int callbacks_depth = 0;
+    int m_callbacks_layer = callbacks_depth++;
+
+    try {
+        for(auto& cb : fenix.callbacks) {
+            if(callbacks_depth != m_callbacks_layer+1) break;
+            cb(*fenix.user_world, fenix.mpi_fail_code);
+        }
+    } catch (const CommException& e) {
+        switch(fenix.callback_exception_mode){
+            case(RETHROW):
+                if(m_callbacks_layer == 0) callbacks_depth = 0;
+                throw;
+            case(SQUASH):
+                break;
+        }
+    }
+
+    //Reset the callback depth when leaving the outermost call
+    if(m_callbacks_layer == 0) callbacks_depth = 0;
+}

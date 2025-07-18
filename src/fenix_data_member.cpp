@@ -53,38 +53,87 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_SUBSET_H__
-#define __FENIX_DATA_SUBSET_H__
-#include <mpi.h>
 
-#include "fenix.h"
+#include "mpi.h"
+#include "fenix-config.h"
+#include "fenix_ext.hpp"
+#include "fenix_data_recovery.hpp"
+#include "fenix_data_member.hpp"
+#include "fenix_data_packet.hpp"
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
-int __fenix_data_subset_init_empty(Fenix_Data_subset* subset);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-void __fenix_data_subset_deep_copy(const Fenix_Data_subset* from, Fenix_Data_subset* to);
-void __fenix_data_subset_merge(const Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset);
-void __fenix_data_subset_copy_data(const Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size, size_t max_size);
-int __fenix_data_subset_storage_size(const Fenix_Data_subset* ss, size_t max_size);
-void __fenix_data_subset_serialize(const Fenix_Data_subset* ss, void* src,
-      void* dest, size_t type_size, size_t max_size, size_t output_size);
-void __fenix_data_subset_deserialize(const Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t max_size, size_t type_size);
-void __fenix_data_subset_send(const Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
-int __fenix_data_subset_is_full(const Fenix_Data_subset* ss, size_t data_length);
-int __fenix_data_subset_free(Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
 
-size_t __fenix_data_subset_count(const Fenix_Data_subset* ss, size_t max_idx);
-inline size_t __fenix_data_subset_data_size(
-    const Fenix_Data_subset* ss, size_t max_size
-){
-    return __fenix_data_subset_count(ss, max_size-1);
+namespace Fenix::Data {
+
+fenix_member_entry_packet_t
+fenix_member_entry_t::to_packet(){
+  fenix_member_entry_packet_t to_ret;
+  to_ret.memberid = memberid;
+  to_ret.datatype_size = datatype_size;
+  to_ret.current_count = current_count;
+  return to_ret;
 }
-#endif // FENIX_DATA_SUBSET_H
+
+/**
+ * @brief
+ * @param
+ * @param
+ */
+int __fenix_search_memberid(fenix_group_t* group, int key) {
+  return group->search_member(key).first;
+}
+
+
+fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
+        int memberid, void* data, int count, int datatype_size){
+    fenix_member_entry_t mentry;
+    mentry.memberid = memberid;
+    mentry.state = OCCUPIED;
+    mentry.user_data = (char*)data;
+    mentry.current_count = count;
+    mentry.datatype_size = datatype_size;
+    group->members[memberid] = mentry;
+
+    return &group->members[memberid];
+}
+
+int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank){
+    auto [group_index, group] = find_group(groupid);
+    if(!group) return FENIX_ERROR_INVALID_GROUPID;
+
+    auto [member_index, member] = group->find_member(memberid);
+    if(!member) return FENIX_ERROR_INVALID_MEMBERID;
+
+    fenix_member_entry_packet_t packet;
+    packet.memberid = member->memberid;
+    packet.datatype_size = member->datatype_size;
+    packet.current_count = member->current_count;
+
+    MPI_Send(&packet, sizeof(packet), MPI_BYTE, dest_rank, RECOVER_MEMBER_ENTRY_TAG^groupid,
+            group->comm);
+
+    return FENIX_SUCCESS;
+}
+
+int __fenix_data_member_recv_metadata(int groupid, int src_rank, 
+        fenix_member_entry_packet_t* packet){
+    auto group = find_group(groupid).second;
+    if(!group) return FENIX_ERROR_INVALID_GROUPID;
+
+    MPI_Recv((void*)packet, sizeof(fenix_member_entry_packet_t), MPI_BYTE, src_rank,
+            RECOVER_MEMBER_ENTRY_TAG^groupid, group->comm, NULL);
+
+    return FENIX_SUCCESS;
+}
+
+
+/**
+ * @brief
+ * @param
+ * @param
+ */
+void __fenix_data_member_reinit(fenix_group_t *group, fenix_two_container_packet_t packet,
+                   enum states mystatus) {
+    group->members.clear();
+}
+
+} //namespace Fenix::Data

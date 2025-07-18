@@ -63,8 +63,8 @@
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
 #endif
-#include "fenix_data_subset.h"
-#include "fenix_process_recovery.h"
+
+#include "fenix_init.h"
 
 /**
  * @file
@@ -112,8 +112,6 @@ extern "C" {
 //!@internal @brief Agreement code for data commit barrier
 #define FENIX_DATA_COMMIT_BARRIER_LOC	      4
 
-
-
 /**
  * @defgroup ProcessRecovery Process Recovery
  * @brief Functions for managing process recovery in Fenix.
@@ -141,6 +139,30 @@ typedef enum {
     //!This rank was not a spare before the most recent failure
     FENIX_ROLE_SURVIVOR_RANK = 2
 } Fenix_Rank_role;
+
+/**
+ * @brief Options for passing control back to application after recovery.
+ */
+typedef enum {
+    //!Return to Fenix_Init via longjmp (default)
+    FENIX_RESUME_JUMP,
+    //!Return the error code inline
+    FENIX_RESUME_RETURN,
+    //!Throw a Fenix::CommException
+    FENIX_RESUME_THROW
+} Fenix_Resume_mode;
+
+/**
+ * @brief Options for dealing with 'unhandled' errors, e.g. invalid rank IDs
+ */
+typedef enum {
+    //!Ignore unhandled errors
+    FENIX_UNHANDLED_SILENT,
+    //!Print error and continue without handling
+    FENIX_UNHANDLED_PRINT,
+    //!Print error and abort Fenix's world (default)
+    FENIX_UNHANDLED_ABORT
+} Fenix_Unhandled_mode;
 
 /**
  * @fn void Fenix_Init(int* role, MPI_Comm comm, MPI_Comm* newcomm, int** argc, char*** argv, int spare_ranks, int spawn, MPI_Info info, int* error);
@@ -193,14 +215,13 @@ typedef enum {
  * @param[in] spawn *Unimplemented*: Whether to enable spawning new ranks to replace
  *   failed ranks when spares are unavailable.
  * @param[in] info Fenix recovery configuration parameters, may be MPI_INFO_NULL
- *   Supports the "FENIX_RESUME_MODE" key, used to indicate where execution should resume upon 
+ *   "FENIX_RESUME_MODE" key is used to indicate where execution should resume upon 
  *   rank failure for all active (non-spare) ranks in any resilient communicators, not only for 
- *   those ranks in communicators that failed. The following values associated with the 
- *   "resume_mode" key are supported:
- *   - "Fenix_init" (default): execution resumes at logical exit of Fenix_Init.
- *   - "NO_JUMP":    execution continues from the failing MPI call. Errors are otherwise handled
- *   as normal, but return the error code as well. Applications should typically
- *   either check for return codes or assign an error callback through Fenix.
+ *   those ranks in communicators that failed. The value should be a string with the name of a
+ *   Fenix_Resume_mode enum value.
+ *   "FENIX_UNHANDLED_MODE" key is used to indicate how Fenix should handle error values
+ *   returned by MPI functions that are unrelated to failed processes. The value should be
+ *   a string with the name of a Fenix_Unhandled_mode enum value.
  * @param[out] error The return status of \c Fenix_Init<br>
  *   Used to signal that a non-fatal error or special condition was encountered in the execution of
  *   Fenix_Init, or FENIX_SUCCESS otherwise. It has the same value across all ranks released by 
@@ -217,10 +238,8 @@ typedef enum {
         *(_role) = __fenix_preinit(_role, _comm, _newcomm, _argc,       \
                                    _argv, _spare_ranks, _spawn, _info,  \
                                    _error, &bufjmp);                    \
-        if(setjmp(bufjmp)) {                                            \
-            *(_role) = FENIX_ROLE_SURVIVOR_RANK;                        \
-        }                                                               \
-        __fenix_postinit( _error );                                     \
+        setjmp(bufjmp);                                                 \
+        __fenix_postinit();                                             \
     }
 
 
@@ -261,6 +280,11 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *),
 int Fenix_Callback_pop();
 
 /**
+ * @brief Invoke all callbacks with information from the last recovered fault
+ */
+void Fenix_Callback_invoke_all();
+
+/**
  * @brief Check for any failed ranks
  *
  * @param[in] do_recovery If true, Fenix will attempt to recover from any detected failures.
@@ -273,7 +297,16 @@ int Fenix_Process_detect_failures(int do_recovery);
 int Fenix_get_number_of_ranks_with_role(int, int *);
 
 //!@unimplemented Returns the #Fenix_Rank_role for a given rank
-int Fenix_get_role(MPI_Comm comm, int rank, int *role);
+int Fenix_get_rank_role(MPI_Comm comm, int rank, int *role);
+
+//!@brief Returns this rank's #Fenix_Rank_role
+Fenix_Rank_role Fenix_get_role();
+
+//!@brief Returns the error value from Fenix_Init or the latest recovery
+int Fenix_get_error();
+
+//!@brief Returns the number of spare ranks currently available to Fenix
+int Fenix_get_nspare();
 
 /**
  * @brief Get the list of ranks that failed in the most recent failure.
@@ -332,9 +365,13 @@ int Fenix_Finalize();
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE     14
 #define FENIX_DATA_SNAPSHOT_LATEST           -1
 #define FENIX_DATA_SNAPSHOT_ALL              16
+#define FENIX_RESIZEABLE                      0
 #define FENIX_DATA_SUBSET_CREATED             2
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID     13
+#define FENIX_DATA_POLICY_IMR                FENIX_DATA_POLICY_IN_MEMORY_RAID
+
+#define FENIX_TIME_STAMP_IGNORE NULL
 
 /**
  * @unimplemented As MPI_Request, but for Fenix asynchronous data recovery calls
@@ -344,12 +381,29 @@ typedef struct {
     MPI_Request mpi_recv_req;
 } Fenix_Request;
 
+
+/**
+ * @brief Represents a data subset that can be stored/recovered
+ *
+ * Must be initialized (via #Fenix_Data_subset_create or
+ * #Fenix_Data_subset_createv) before using as an input parameter.
+ *
+ * Must be uninitialized or freed (#Fenix_Data_subset_free) before using as an
+ * output parameter to avoid data leaks.
+ */
+typedef struct {
+    //!@internal @brief pointer to a Fenix::DataSubset object
+    void* impl;
+} Fenix_Data_subset;
+
+
 //!@brief A standin for checkpointing/recovering all available data in a member.
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 
 //!@brief A standin for checkpointing/recovering none of the available data in a member.
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
 
+extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
 
 /**
  * @brief Create a Data Group
@@ -403,7 +457,7 @@ int Fenix_Data_group_create(int group_id, MPI_Comm comm, int start_time_stamp,
  *        is critical for non-survivor ranks after a failure which will have an invalid address
  *        which was generated on the failed rank and must update.
  * @param count The maximum number of contiguous elements of type \c datatype of the data to be
- *        stored. Need not be the same in all calling ranks.
+ *        stored. A value of FENIX_RESIZEABLE allows this member to have a varying data size.
  * @param datatype The MPI_Datatype of the elements in \c source_buffer
  *
  * @return FENIX_SUCCESS, or an error value.
@@ -443,24 +497,25 @@ int Fenix_Data_test(Fenix_Request request, int *flag);
  * @param member_id All ranks must provide the same member_id
  * @param subset_specifier Which subset of the data to store. It is always valid for every rank to provide the same 
  *        subset_specifier; depending on the group's policy, varying combinations of specifiers may be possible.
+ *        If this member was created with size FENIX_RESIZEABLE, FENIX_DATA_SUBSET_ALL is an invalid input.
  * @return FENIX_SUCCESS, or an error value.
  */
 int Fenix_Data_member_store(int group_id, int member_id,
-                            Fenix_Data_subset subset_specifier);
+                            const Fenix_Data_subset subset_specifier);
 
 
 //!@unimplemented As [store](#Fenix_Data_member_store), but subsets may vary rank-to-rank.
 int Fenix_Data_member_storev(int group_id, int member_id,
-                             Fenix_Data_subset subset_specifier);
+                             const Fenix_Data_subset subset_specifier);
 
 //!@unimplemented As [store](#Fenix_Data_member_store), but asynchronous.
 int Fenix_Data_member_istore(int group_id, int member_id,
-                             Fenix_Data_subset subset_specifier,
+                             const Fenix_Data_subset subset_specifier,
                              Fenix_Request *request);
 
 //!@unimplemented As [istore](#Fenix_Data_member_istore), but asynchronous.
 int Fenix_Data_member_istorev(int group_id, int member_id,
-                              Fenix_Data_subset subset_specifier,
+                              const Fenix_Data_subset subset_specifier,
                               Fenix_Request *request);
 
 /**
@@ -606,10 +661,23 @@ int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets,
  */
 int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier);
 
-//!@unimplemented Get the number of members in a data group.
+/**
+ * @brief Get the number of members in a data group.
+ *
+ * @param[in] group_id The group to query
+ * @param[out] number_of_members Number of members in the group
+ */
 int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members);
 
-//!@unimplemented Get member ID based on member index
+/**
+ * @brief Get member ID based on member index
+ *
+ * See #Fenix_Data_group_get_number_of_members
+ *
+ * @param[in] group_id The group to query
+ * @param[out] member_id The member id at this index in the group
+ * @param[in] position The position to check, [0, number_of_members)
+ */
 int Fenix_Data_group_get_member_at_position(int group_id, int *member_id,
                                             int position);
 
@@ -695,6 +763,8 @@ int Fenix_Data_member_delete(int group_id, int member_id);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }
+
+#include "fenix.hpp"
 #endif
 
 #endif // __FENIX__

@@ -53,38 +53,63 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_SUBSET_H__
-#define __FENIX_DATA_SUBSET_H__
+
+#ifndef __FENIX_DATA_RECOVERY__
+#define __FENIX_DATA_RECOVERY__
+
+
+#include "fenix_data_group.hpp"
+#include "fenix_data_member.hpp"
+#include "fenix_data_subset.h"
+#include "fenix_util.hpp"
 #include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <sys/time.h>
 
-#include "fenix.h"
+#define __FENIX_COMMIT_MODE     1
+#define __GROUP_ENTRY_ATTR_SIZE 4
+#define __NUM_MEMBER_ATTR_SIZE  3
+#define __GRP_MEMBER_LENTRY_ATTR_SIZE 11
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
-int __fenix_data_subset_init_empty(Fenix_Data_subset* subset);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-void __fenix_data_subset_deep_copy(const Fenix_Data_subset* from, Fenix_Data_subset* to);
-void __fenix_data_subset_merge(const Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset);
-void __fenix_data_subset_copy_data(const Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size, size_t max_size);
-int __fenix_data_subset_storage_size(const Fenix_Data_subset* ss, size_t max_size);
-void __fenix_data_subset_serialize(const Fenix_Data_subset* ss, void* src,
-      void* dest, size_t type_size, size_t max_size, size_t output_size);
-void __fenix_data_subset_deserialize(const Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t max_size, size_t type_size);
-void __fenix_data_subset_send(const Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
-int __fenix_data_subset_is_full(const Fenix_Data_subset* ss, size_t data_length);
-int __fenix_data_subset_free(Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
+#define STORE_RANK_TAG  2000
+#define STORE_COUNT_TAG 2001
+#define STORE_SIZE_TAG  2002
+#define STORE_DATA_TAG  2003
+#define STORE_PAYLOAD_TAG  2004
 
-size_t __fenix_data_subset_count(const Fenix_Data_subset* ss, size_t max_idx);
-inline size_t __fenix_data_subset_data_size(
-    const Fenix_Data_subset* ss, size_t max_size
-){
-    return __fenix_data_subset_count(ss, max_size-1);
+#define PARTNER_STATUS_TAG       1900
+#define RECOVER_GROUP_TAG        1901
+#define RECOVER_GROUP_ENTRY_TAG  1902
+#define RECOVER_MEMBER_TAG       1903
+#define RECOVER_MEMBER_ENTRY_TAG 1904
+#define RECOVERY_VERSION_TAG     1905
+#define RECOVER_SIZE_TAG         1906
+#define RECOVER_DATA_TAG         1907
+
+
+namespace Fenix::Data {
+
+typedef struct __data_entry_packet {
+    int count;
+    int datatype_size;
+} fenix_data_entry_packet_t;
+
+
+int __fenix_group_get_redundancy_policy(int, int*, int*, int*);
+int __fenix_data_wait(Fenix_Request);
+int __fenix_data_test(Fenix_Request, int *);
+int __fenix_data_barrier(int);
+int __fenix_member_restore_from_rank(int, int, void *, int, int, int);
+int __fenix_get_number_of_members(int, int *);
+int __fenix_get_member_at_position(int, int *, int);
+int __fenix_get_number_of_snapshots(int, int *);
+int __fenix_get_snapshot_at_position(int, int, int *);
+int __fenix_member_get_attribute(int, int, int, void *, int *, int);
+int __fenix_member_set_attribute(int, int, int, void *, int *);
+
 }
-#endif // FENIX_DATA_SUBSET_H
+
+#endif

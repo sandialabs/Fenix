@@ -8,7 +8,8 @@
 #  directory.
 #
 
-add_executable(fenix_no_jump_test fenix_no_jump_test.c)
-target_link_libraries(fenix_no_jump_test fenix MPI::MPI_CXX)
+add_executable(fenix_exceptions fenix_exceptions.cpp)
+target_link_libraries(fenix_exceptions fenix MPI::MPI_CXX)
 
-add_test(NAME no_jump COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} fenix_no_jump_test ${MPIEXEC_POSTFLAGS} "1")
+add_test(NAME exception_throw
+  COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} fenix_exceptions ${MPIEXEC_POSTFLAGS})

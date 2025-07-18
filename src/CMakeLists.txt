@@ -12,35 +12,35 @@ configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
   "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
 
 #include_directories(${CMAKE_CURRENT_BINARY_DIR})
-FILE(GLOB Fenix_HEADERS ${CMAKE_SOURCE_DIR}/include/*.h)
+FILE(GLOB Fenix_HEADERS ${CMAKE_SOURCE_DIR}/include/*.h*)
 
 set (Fenix_SOURCES 
-fenix.c
-fenix_mpi_override.c
-fenix_opt.c
-fenix_process_recovery.c
-fenix_util.c
-fenix_data_recovery.c
-fenix_data_group.c
-fenix_data_policy.c
-fenix_data_policy_in_memory_raid.c
-fenix_data_member.c
-fenix_data_subset.c
-fenix_comm_list.c
-fenix_callbacks.c
-globals.c
+    fenix.cpp
+    fenix_opt.cpp
+    fenix_process_recovery.cpp
+    fenix_util.cpp
+    fenix_data_recovery.cpp
+    fenix_data_group.cpp
+    fenix_data_policy.cpp
+    fenix_data_policy_in_memory_raid.cpp
+    fenix_data_member.cpp
+    fenix_data_subset.cpp
+    fenix_callbacks.cpp
+    fenix_ext.cpp
 )
 
-add_library( fenix STATIC ${Fenix_SOURCES})
+add_library(fenix STATIC ${Fenix_SOURCES})
 
-target_link_libraries(fenix PUBLIC MPI::MPI_C)
+target_compile_features(fenix PRIVATE cxx_std_17)
 
-target_include_directories(fenix 
-    PUBLIC  
+target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
+
+target_include_directories(fenix
+    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
-    PRIVATE "${CMAKE_SOURCE_DIR}/src") 
+    PRIVATE "${CMAKE_SOURCE_DIR}/src")
 
 install(TARGETS fenix
     EXPORT fenix

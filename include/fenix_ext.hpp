@@ -53,38 +53,66 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_DATA_SUBSET_H__
-#define __FENIX_DATA_SUBSET_H__
+
+#ifndef __FENIX_EXT_H__
+#define __FENIX_EXT_H__
+
 #include <mpi.h>
-
+#include <vector>
 #include "fenix.h"
+#include "fenix.hpp"
+#include "fenix_opt.hpp"
+#include "fenix_process_recovery.hpp"
+#include "fenix_data_group.hpp"
 
-int __fenix_data_subset_init(int num_blocks, Fenix_Data_subset* subset);
-int __fenix_data_subset_init_empty(Fenix_Data_subset* subset);
-int __fenix_data_subset_create(int, int, int, int, Fenix_Data_subset *);
-int __fenix_data_subset_createv(int, int *, int *, Fenix_Data_subset *);
-void __fenix_data_subset_deep_copy(const Fenix_Data_subset* from, Fenix_Data_subset* to);
-void __fenix_data_subset_merge(const Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset, Fenix_Data_subset* output);
-void __fenix_data_subset_merge_inplace(Fenix_Data_subset* first_subset, 
-      const Fenix_Data_subset* second_subset);
-void __fenix_data_subset_copy_data(const Fenix_Data_subset* ss, void* dest,
-      void* src, size_t data_type_size, size_t max_size);
-int __fenix_data_subset_storage_size(const Fenix_Data_subset* ss, size_t max_size);
-void __fenix_data_subset_serialize(const Fenix_Data_subset* ss, void* src,
-      void* dest, size_t type_size, size_t max_size, size_t output_size);
-void __fenix_data_subset_deserialize(const Fenix_Data_subset* ss, void* src, 
-      void* dest, size_t max_size, size_t type_size);
-void __fenix_data_subset_send(const Fenix_Data_subset* ss, int dest, int tag, MPI_Comm comm);
-void __fenix_data_subset_recv(Fenix_Data_subset* ss, int src, int tag, MPI_Comm comm);
-int __fenix_data_subset_is_full(const Fenix_Data_subset* ss, size_t data_length);
-int __fenix_data_subset_free(Fenix_Data_subset *);
-int __fenix_data_subset_delete(Fenix_Data_subset *);
+namespace Fenix {
 
-size_t __fenix_data_subset_count(const Fenix_Data_subset* ss, size_t max_idx);
-inline size_t __fenix_data_subset_data_size(
-    const Fenix_Data_subset* ss, size_t max_size
-){
-    return __fenix_data_subset_count(ss, max_size-1);
+typedef struct {
+    int num_inital_ranks;        // Keeps the global MPI rank ID at Fenix_init
+    int num_survivor_ranks = 0;  // Keeps the global information on the number of survived MPI ranks after failure
+    int num_recovered_ranks = 0; // Keeps the number of spare ranks brought into MPI communicator recovery
+    int spare_ranks;             // Spare ranks entered by user to repair failed ranks
+    
+    ResumeMode resume_mode = JUMP;
+    CallbackExceptionMode callback_exception_mode = RETHROW;
+    UnhandledMode unhandled_mode = ABORT;
+    int ignore_errs = false;       // Temporarily ignore all errors & recovery
+    int spawn_policy;             // Indicate dynamic process spawning
+    jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
+
+    int mpi_fail_code = MPI_SUCCESS;
+    int repair_result = FENIX_SUCCESS; // Internal variable to store the result of MPI comm repair
+    int role = FENIX_ROLE_INITIAL_RANK;
+
+    int fenix_init_flag = false;
+    int finalized = false;
+
+    int fail_world_size = 0;
+    int* fail_world = nullptr;
+
+    //Save the pointer to role and error of Fenix_Init
+    int *ret_role = nullptr;
+    int *ret_error = nullptr;
+
+    std::vector<fenix_callback_func> callbacks;
+    fenix_debug_opt_t options; // This is reserved to store the user options
+
+    MPI_Comm *world;      // Duplicate of comm provided by user
+    MPI_Comm *user_world; // User-facing comm with repaired ranks and no spares
+    MPI_Comm new_world;   // Internal duplicate of user_world
+    int new_world_exists = false, user_world_exists = false;
+   
+    //Values used for Fenix_Process_detect_failures
+    int dummy_recv_buffer;
+    MPI_Request check_failures_req;
+    
+    MPI_Op   agree_op;             // Global agreement call for Fenix data recovery API
+    MPI_Errhandler mpi_errhandler; // Our custom error handler
+
+    Fenix::Data::fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
+} fenix_t;
+
 }
-#endif // FENIX_DATA_SUBSET_H
+
+extern Fenix::fenix_t fenix;
+#endif // __FENIX_EXT_H__
