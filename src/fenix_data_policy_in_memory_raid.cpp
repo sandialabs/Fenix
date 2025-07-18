@@ -56,13 +56,13 @@
 
 #include <mpi.h>
 #include "fenix.h"
-#include "fenix_ext.h"
-#include "fenix_opt.h"
+#include "fenix_ext.hpp"
+#include "fenix_opt.hpp"
 #include "fenix_data_subset.h"
-#include "fenix_data_recovery.h"
-#include "fenix_data_policy.h"
-#include "fenix_data_group.h"
-#include "fenix_data_member.h"
+#include "fenix_data_recovery.hpp"
+#include "fenix_data_policy.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_data_member.hpp"
 
 #define __FENIX_IMR_DEFAULT_MENTRY_NUM 10
 #define __FENIX_IMR_NO_MEMBERS 16000
@@ -846,7 +846,7 @@ int __imr_member_restore(fenix_group_t* g, int member_id,
       if(recovery_locally_possible) retval = FENIX_SUCCESS;
 
    } else if (group->raid_mode == 5){
-      int* set_results = malloc(sizeof(int) * group->set_size);
+      int* set_results = (int *) malloc(sizeof(int) * group->set_size);
       MPI_Allgather((void*)&found_member, 1, MPI_INT, (void*)set_results, 1, MPI_INT, 
           group->set_comm);
 

@@ -10,7 +10,7 @@
 
 cmake_minimum_required(VERSION 3.10.2)
 
-project(Fenix C)
+project(Fenix C CXX)
 # The version number.
 set(FENIX_VERSION_MAJOR 1)
 set(FENIX_VERSION_MINOR 0)

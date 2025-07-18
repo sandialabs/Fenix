@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Authors Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//         and Matthew Whitloc
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -54,33 +54,40 @@
 //@HEADER
 */
 
-#include <mpi.h>
-#include "fenix_data_policy_in_memory_raid.h"
-#include "fenix_data_policy.h"
-#include "fenix_data_group.h"
-#include "fenix_opt.h"
-#include "fenix_ext.h"
-#include "fenix.h"
+#include <stdio.h>
+#include <string.h>
+#include "fenix_opt.hpp"
+#include "fenix_util.hpp"
+#include "fenix_ext.hpp"
+
+#define DEBUG 1
+
+
+
 
 /**
- *@brief
- **/
-int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
-      int timestart, int depth, int policy_name, void* policy_value, 
-      int* flag){
-   int retval = -1;
-   
-   switch (policy_name){
-      case FENIX_DATA_POLICY_IN_MEMORY_RAID:
-         __fenix_policy_in_memory_raid_get_group(group, comm, timestart, 
-               depth, policy_value, flag);
-         retval = FENIX_SUCCESS;
-         break;
-      default:
-         debug_print("ERROR Fenix_Data_group_create: the specified policy <%d> is not supported.\n", policy_name);
-         retval = -1;
-         break;
-   }
+ * @brief
+ * @param argc
+ * @param argv
+ * @param opts
+ */
+void __fenix_init_opt(int argc, char **argv) {
+   int i;
 
-   return retval;
+   /* Initialize the value */
+
+   fenix.options.verbose = -1;
+
+   for( i = 0; i < argc; i++ )
+   {
+
+      if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
+      {
+          printf("Inside if %d\n",i);
+         if( i+1 < argc )
+         {
+            fenix.options.verbose = atoi(argv[i+1]);
+         }
+      }
+    }
 }

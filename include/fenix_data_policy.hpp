@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar
-//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
+// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -53,23 +53,15 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef __FENIX_PROCES_RECOVERY_GLOBAL_H__
-#define __FENIX_PROCES_RECOVERY_GLOBAL_H__
+
+#ifndef __FENIX_DATA_POLICY_H__
+#define __FENIX_DATA_POLICY_H__
 
 #include <mpi.h>
-#include <setjmp.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <signal.h>
+#include "fenix.h"
+#include "fenix_data_group.hpp"
 
-#include "fenix_opt.h"
-#include "fenix_util.h"
-#include "fenix_data_group.h"
+int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm, 
+      int timestart, int depth, int policy_name, void* policy_value, int* flag);
 
-
-/* This header file is intended to provide global variable definitions for fenix_process_recovery.c only */
-
-#endif // __FENIX_PROCES_RECOVERY_GLOBAL_H__
+#endif //__FENIX_DATA_POLICY_H__

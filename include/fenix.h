@@ -63,8 +63,10 @@
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
 #endif
+
+
 #include "fenix_data_subset.h"
-#include "fenix_process_recovery.h"
+#include "fenix_init.h"
 
 /**
  * @file

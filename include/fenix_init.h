@@ -54,76 +54,23 @@
 //@HEADER
 */
 
-#ifndef __FENIX_PROCESS_RECOVERY__
-#define __FENIX_PROCESS_RECOVERY__
+#ifndef __FENIX_INIT__
+#define __FENIX_INIT__
 
 #include <mpi.h>
 #include <setjmp.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <signal.h>
 
-#define __FENIX_RESUME_AT_INIT 0 
-#define __FENIX_RESUME_NO_JUMP 200
-
-typedef void (*recover)( MPI_Comm, int, void *);
-
-typedef struct fcouple {
-    recover x;
-    void *y;
-} fenix_callback_func;
-
-typedef struct __fenix_callback_list {
-    fenix_callback_func *callback;
-    struct __fenix_callback_list *next;
-} fenix_callback_list_t;
-
-typedef struct __fenix_comm_list_elm {
-  struct __fenix_comm_list_elm *next;
-  struct __fenix_comm_list_elm *prev;
-  MPI_Comm *comm;
-} fenix_comm_list_elm_t;
-
-typedef struct {
-  fenix_comm_list_elm_t *head;
-  fenix_comm_list_elm_t *tail;
-} fenix_comm_list_t;
+#if defined(c_plusplus) || defined(__cplusplus)
+extern "C" {
+#endif
 
 int __fenix_preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int, MPI_Info, int *, jmp_buf *);
 
-int __fenix_create_new_world();
-
-int __fenix_repair_ranks();
-
-int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
-
-int __fenix_callback_pop();
-
-void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
-
-void __fenix_callback_invoke_all(int error);
-
-int __fenix_callback_destroy(fenix_callback_list_t *callback_list);
-
-int* __fenix_get_fail_ranks(int *, int, int);
-
-int __fenix_spare_rank();
-
-int __fenix_get_rank_role();
-
-void __fenix_set_rank_role(int FenixRankRole);
 
 void __fenix_postinit(int *);
 
-int __fenix_detect_failures(int do_recovery);
-
-void __fenix_finalize();
-
-void __fenix_finalize_spare();
-
-void __fenix_test_MPI(MPI_Comm*, int*, ...);
+#if defined(c_plusplus) || defined(__cplusplus)
+}
+#endif
 
 #endif
