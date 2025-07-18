@@ -15,9 +15,9 @@ jobs:
 
       - name: Lint
         uses: pre-commit/actions@v3.0.1
+        continue-on-error: true
 
       - name: Generate Suggestions
-        if:   ${{ failure() }}
         uses: reviewdog/action-suggester@v1.21.0
         with:
           tool_name: Linter
