@@ -489,6 +489,7 @@ int __imr_member_store(fenix_group_t* g, int member_id,
          free(recv_buf);
          free(serialized);
 
+         retval = FENIX_SUCCESS;
       } else if(group->raid_mode == 5){
          //TODO: Try to optimize for partial commits - currently does parity on the whole region regardless of commit area.
          //TODO: I'm not sure if this is the best way to do this - could be a bottleneck if this is unoptimized since this 
@@ -558,6 +559,7 @@ int __imr_member_store(fenix_group_t* g, int member_id,
 
          //Finally, each node has the right stuff.
 
+         retval = FENIX_SUCCESS;
       } else {
          debug_print("ERROR Fenix_Data_member_store: Raid mode <%d> is not supported yet!\n",
                    group->raid_mode);
