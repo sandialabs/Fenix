@@ -173,6 +173,7 @@ struct Group : public fenix_group_t {
 
   MPI_Comm set_comm = MPI_COMM_NULL;
   int set_size, set_rank;
+  static inline bool set_comm_revoke_callback = false;
 
   std::map<int, std::shared_ptr<Member>> member_data;
   std::deque<int> timestamps;

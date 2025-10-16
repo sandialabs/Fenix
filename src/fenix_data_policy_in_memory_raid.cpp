@@ -64,6 +64,7 @@
 #include <utility>
 
 #include <mpi.h>
+#include <mpi-ext.h>
 #include "fenix.h"
 #include "fenix_ext.hpp"
 #include "fenix_opt.hpp"
@@ -669,6 +670,25 @@ void Group::build_set_comm(){
 
    MPI_Comm_size(set_comm, &set_size);
    MPI_Comm_rank(set_comm, &set_rank);
+
+   if(!set_comm_revoke_callback){
+      //TODO: This isn't great, and doesn't work w/ fenix restarts
+      // (ie finalize then init), we need a better way to refer to callbacks
+      // than just push/pop. Maybe a push/pop stack and an add/del map?
+      set_comm_revoke_callback = true;
+      Fenix::callback_register([](MPI_Comm, int){
+         auto groups = fenix.data_recovery;
+         if(NULL == groups) return;
+         for(int i = 0; i < groups->count; i++){
+            auto g = groups->group[i];
+            if(g->policy_name != FENIX_DATA_POLICY_IMR) continue;
+            auto imr_g = static_cast<Fenix::Data::IMR::Group*>(g);
+
+            if(imr_g->set_comm == MPI_COMM_NULL) continue;
+            MPIX_Comm_revoke(imr_g->set_comm);
+         }
+      }, PRE_RECOVERY);
+   }
 }
 
 Member* Group::find_member(int memberid){
