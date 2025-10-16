@@ -67,25 +67,29 @@
 
 using namespace Fenix;
 
-int __fenix_callback_register(fenix_callback_func& recover)
+static std::vector<fenix_callback_func>& callbacks(CallbackLocation loc){
+    return fenix.callbacks.try_emplace(loc).first->second;
+}
+
+int __fenix_callback_register(fenix_callback_func& recover, CallbackLocation loc)
 {
     if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
 
-    fenix.callbacks.push_back(recover);
+    callbacks(loc).push_back(recover);
 
     return FENIX_SUCCESS;
 }
 
-int __fenix_callback_pop(){
+int __fenix_callback_pop(CallbackLocation loc){
    if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(fenix.callbacks.empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
+   if(callbacks(loc).empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
 
-   fenix.callbacks.pop_back();
+   callbacks(loc).pop_back();
 
    return FENIX_SUCCESS;
 }
 
-void __fenix_callback_invoke_all(){
+void __fenix_callback_invoke_all(CallbackLocation loc){
     //If callbacks are invoked in a nested manner due to caught exceptions
     //within a callback, we want to only finish the most recent call. All prior
     //calls should exit as soon as control returns.
@@ -93,7 +97,7 @@ void __fenix_callback_invoke_all(){
     int m_callbacks_layer = callbacks_depth++;
 
     try {
-        for(auto& cb : fenix.callbacks) {
+        for(auto& cb : callbacks(loc)) {
             if(callbacks_depth != m_callbacks_layer+1) break;
             cb(*fenix.user_world, fenix.mpi_fail_code);
         }

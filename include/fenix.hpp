@@ -97,6 +97,11 @@ constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
 constexpr UnhandledMode PRINT  = FENIX_UNHANDLED_PRINT;
 constexpr UnhandledMode ABORT  = FENIX_UNHANDLED_ABORT;
 
+enum CallbackLocation {
+    PRE_RECOVERY,
+    POST_RECOVERY
+};
+
 namespace Args {
 struct FenixInitArgs {
     int* role                                       = nullptr;
@@ -128,13 +133,13 @@ int error();
 int nspare();
 
 //!@brief Overload of #Fenix_Callback_register
-int callback_register(std::function<void(MPI_Comm, int)> callback);
+int callback_register(std::function<void(MPI_Comm, int)> callback, CallbackLocation loc = POST_RECOVERY);
 
 //@!brief Overload of #Fenix_Callback_pop
-int callback_pop();
+int callback_pop(CallbackLocation loc = POST_RECOVERY);
 
 //@!brief Overload of #Fenix_Callback_invoke_all
-void callback_invoke_all();
+void callback_invoke_all(CallbackLocation loc = POST_RECOVERY);
 
 /**
  * @brief Get the failed ranks from the most recent recovery

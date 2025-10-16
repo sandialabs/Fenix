@@ -94,7 +94,9 @@ typedef struct {
     int *ret_role = nullptr;
     int *ret_error = nullptr;
 
-    std::vector<fenix_callback_func> callbacks;
+    std::unordered_map<
+        CallbackLocation, std::vector<fenix_callback_func>
+    > callbacks;
     fenix_debug_opt_t options; // This is reserved to store the user options
 
     MPI_Comm *world;      // Duplicate of comm provided by user
