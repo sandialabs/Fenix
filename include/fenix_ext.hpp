@@ -72,7 +72,7 @@ typedef struct {
     int num_survivor_ranks = 0;  // Keeps the global information on the number of survived MPI ranks after failure
     int num_recovered_ranks = 0; // Keeps the number of spare ranks brought into MPI communicator recovery
     int spare_ranks;             // Spare ranks entered by user to repair failed ranks
-    
+
     ResumeMode resume_mode = JUMP;
     CallbackExceptionMode callback_exception_mode = RETHROW;
     UnhandledMode unhandled_mode = ABORT;
@@ -101,15 +101,15 @@ typedef struct {
     MPI_Comm *user_world; // User-facing comm with repaired ranks and no spares
     MPI_Comm new_world;   // Internal duplicate of user_world
     int new_world_exists = false, user_world_exists = false;
-   
+
     //Values used for Fenix_Process_detect_failures
     int dummy_recv_buffer;
     MPI_Request check_failures_req;
-    
+
     MPI_Op   agree_op;             // Global agreement call for Fenix data recovery API
     MPI_Errhandler mpi_errhandler; // Our custom error handler
 
-    Fenix::Data::fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
+    Fenix::Data::fenix_data_recovery_t *data_recovery = nullptr;
 } fenix_t;
 
 }

@@ -135,6 +135,7 @@ int group_create( int groupid, MPI_Comm comm, int timestart, int depth, int poli
       group->timestamp = -1; //indicates no commits yet
       group->depth = depth;
       group->comm = comm;
+      group->policy_name = policy_name;
       MPI_Comm_rank(comm, &(group->current_rank));
 
 
