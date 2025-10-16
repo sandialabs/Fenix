@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
       //Do a null restore to get information about the stored subset
       DataSubset stored_subset;
       int ret = member_restore(
-        my_group, my_member, nullptr, 0, FENIX_TIME_STAMP_MAX, stored_subset
+        my_group, my_member, nullptr, 0, FENIX_DATA_SNAPSHOT_LATEST, stored_subset
       );
       if(ret != FENIX_SUCCESS) {
         fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, ret);
@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
       
       //Now do an lrestore to get the recovered data.
       ret = member_lrestore(
-        my_group, my_member, data.data(), data.size(), FENIX_TIME_STAMP_MAX,
+        my_group, my_member, data.data(), data.size(), FENIX_DATA_SNAPSHOT_LATEST,
         stored_subset
       );
       

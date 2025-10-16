@@ -517,7 +517,7 @@ int Member::lrestore(
    entries.back().reset();
 
    int end = 0;
-   if(timestamp == FENIX_TIME_STAMP_MAX){
+   if(timestamp == FENIX_DATA_SNAPSHOT_LATEST){
       if(entries[entries.size()-2].timestamp >= 0){
          end = entries.size()-1;
       }

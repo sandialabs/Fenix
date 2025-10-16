@@ -357,14 +357,13 @@ int Fenix_Finalize();
  */
 #define FENIX_DATA_GROUP_WORLD_ID            10
 #define FENIX_GROUP_ID_MAX                   11
-#define FENIX_TIME_STAMP_MAX                 12
-#define FENIX_DATA_MEMBER_ALL                15
+#define FENIX_DATA_MEMBER_ALL                -1
 #define FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER   11
 #define FENIX_DATA_MEMBER_ATTRIBUTE_COUNT    12
 #define FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE 13
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE     14
 #define FENIX_DATA_SNAPSHOT_LATEST           -1
-#define FENIX_DATA_SNAPSHOT_ALL              16
+#define FENIX_DATA_SNAPSHOT_ALL              -2
 #define FENIX_RESIZEABLE                      0
 #define FENIX_DATA_SUBSET_CREATED             2
 
