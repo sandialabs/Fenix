@@ -56,17 +56,20 @@
 #ifndef __FENIX_DATA_GROUP_H__
 #define __FENIX_DATA_GROUP_H__
 
+#include <vector>
+
 #include <mpi.h>
 #include "fenix.h"
-#include "fenix_data_member.h"
-#include "fenix_data_packet.h"
-#include "fenix_util.h"
+#include "fenix_data_member.hpp"
+#include "fenix_data_packet.hpp"
+#include "fenix_util.hpp"
 #include "fenix_data_subset.h"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
 
 typedef struct __fenix_group_vtbl fenix_group_vtbl_t;
 typedef struct __fenix_group fenix_group_t;
+
 
 //This defines the functions which must be implemented by the group
 typedef struct __fenix_group_vtbl {
@@ -165,7 +168,7 @@ void __fenix_data_recovery_reinit( fenix_data_recovery_t *dr, fenix_two_containe
 
 void __fenix_ensure_data_recovery_capacity( fenix_data_recovery_t *dr);
 
-int __fenix_search_groupid( int key, fenix_data_recovery_t *dr );
+int __fenix_search_groupid( int key, fenix_data_recovery_t *dr);
 
 int __fenix_find_next_group_position( fenix_data_recovery_t *dr );
 

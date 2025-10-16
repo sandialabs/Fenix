@@ -56,12 +56,11 @@
 
 
 
-#include "fenix_data_recovery.h"
-#include "fenix_data_policy.h"
-#include "fenix_opt.h"
-//#include "fenix_process_recovery.h"
-#include "fenix_util.h"
-#include "fenix_ext.h"
+#include "fenix_data_recovery.hpp"
+#include "fenix_data_policy.hpp"
+#include "fenix_opt.hpp"
+#include "fenix_util.hpp"
+#include "fenix_ext.hpp"
 
 #include <mpi-ext.h>
 

@@ -55,8 +55,9 @@
 */
 
 #include "mpi.h"
-#include "fenix-config.h"
-#include "fenix_ext.h"
+#include "fenix.h"
+#include "fenix_opt.hpp"
+#include "fenix_util.hpp"
 #include "fenix_data_subset.h"
 
 

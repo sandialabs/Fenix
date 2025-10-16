@@ -44,8 +44,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
+// Authors Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
+//         and Matthew Whitloc
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -54,83 +54,32 @@
 //@HEADER
 */
 
-#include <assert.h>
-
-#include "fenix_comm_list.h"
-#include "fenix_ext.h"
-#include "fenix_process_recovery.h"
-#include "fenix_data_group.h"
-#include "fenix_data_recovery.h"
-#include "fenix_opt.h"
-#include "fenix_util.h"
 #include <mpi.h>
+#include "fenix_data_policy_in_memory_raid.hpp"
+#include "fenix_data_policy.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_opt.hpp"
+#include "fenix.h"
 
-
-int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data)
-{
-    int error_code = FENIX_SUCCESS;
-    if (fenix.fenix_init_flag) {
-        fenix_callback_func *fp = s_malloc(sizeof(fenix_callback_func));
-        fp->x = recover;
-        fp->y = callback_data;
-        __fenix_callback_push( &fenix.callback_list, fp);
-    } else {
-        error_code = FENIX_ERROR_UNINITIALIZED;
-    }
-    return error_code;
-}
-
-int __fenix_callback_pop(){
-   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(fenix.callback_list == NULL) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
+/**
+ *@brief
+ **/
+int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
+      int timestart, int depth, int policy_name, void* policy_value, 
+      int* flag){
+   int retval = -1;
    
-   fenix_callback_list_t* old_head = fenix.callback_list;
-   fenix.callback_list = old_head->next;
+   switch (policy_name){
+      case FENIX_DATA_POLICY_IN_MEMORY_RAID:
+         __fenix_policy_in_memory_raid_get_group(group, comm, timestart, 
+               depth, policy_value, flag);
+         retval = FENIX_SUCCESS;
+         break;
+      default:
+         debug_print("ERROR Fenix_Data_group_create: the specified policy <%d> is not supported.\n", policy_name);
+         retval = -1;
+         break;
+   }
 
-   free(old_head->callback);
-   free(old_head);
-
-   return FENIX_SUCCESS;
+   return retval;
 }
-
-void __fenix_callback_invoke_all(int error)
-{
-    fenix_callback_list_t *current = fenix.callback_list;
-    while (current != NULL) {
-        (current->callback->x)((MPI_Comm) fenix.new_world, error,
-                               (void *) current->callback->y);
-        current = current->next;
-    }
-}
-
-void __fenix_callback_push(fenix_callback_list_t **head, fenix_callback_func *fp)
-{
-    fenix_callback_list_t *callback = malloc(sizeof(fenix_callback_list_t));
-    callback->callback = fp;
-    callback->next = *head;
-    *head = callback;
-}
-
-int __fenix_callback_destroy(fenix_callback_list_t *callback_list)
-{
-    int error_code = FENIX_SUCCESS;
-
-    if ( fenix.fenix_init_flag ) {
-
-        fenix_callback_list_t *current = callback_list;
-
-        while (current != NULL) {
-            fenix_callback_list_t *old;
-            old = current;
-            current = current->next;
-            free( old->callback );
-            free( old );
-        }
-
-    } else {
-        error_code = FENIX_ERROR_UNINITIALIZED;
-    }
-
-    return error_code;
-}
-

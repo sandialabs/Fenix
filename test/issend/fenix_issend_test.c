@@ -61,6 +61,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <assert.h>
+#include <stdlib.h>
 
 const int kKillID = 1;
 

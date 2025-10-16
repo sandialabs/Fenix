@@ -53,24 +53,75 @@
 // ************************************************************************
 //@HEADER
 */
-#include "fenix_process_recovery.h"
-#include "fenix_comm_list.h"
+
+#ifndef __FENIX_PROCESS_RECOVERY__
+#define __FENIX_PROCESS_RECOVERY__
+
 #include <mpi.h>
-#include <assert.h>
-#include "fenix_ext.h"
+#include <setjmp.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <signal.h>
 
-static inline 
-int __fenix_notify_newcomm(int ret, MPI_Comm *newcomm)
-{
-   if (ret != MPI_SUCCESS || 
-         !fenix.fenix_init_flag ||
-         *newcomm == MPI_COMM_NULL) return ret;
-        
-   if (__fenix_comm_push(newcomm) != FENIX_SUCCESS) {
-      fprintf(stderr, "[fenix error] Did not manage to push communicator\n");
-      PMPI_Comm_free(newcomm);
-      ret = MPI_ERR_INTERN;
-   }
+#include "fenix_init.h"
 
-   return ret;
-}
+#define __FENIX_RESUME_AT_INIT 0 
+#define __FENIX_RESUME_NO_JUMP 200
+
+typedef void (*recover)( MPI_Comm, int, void *);
+
+typedef struct fcouple {
+    recover x;
+    void *y;
+} fenix_callback_func;
+
+typedef struct __fenix_callback_list {
+    fenix_callback_func *callback;
+    struct __fenix_callback_list *next;
+} fenix_callback_list_t;
+
+typedef struct __fenix_comm_list_elm {
+  struct __fenix_comm_list_elm *next;
+  struct __fenix_comm_list_elm *prev;
+  MPI_Comm *comm;
+} fenix_comm_list_elm_t;
+
+typedef struct {
+  fenix_comm_list_elm_t *head;
+  fenix_comm_list_elm_t *tail;
+} fenix_comm_list_t;
+
+int __fenix_create_new_world();
+
+int __fenix_repair_ranks();
+
+int __fenix_callback_register(void (*recover)(MPI_Comm, int, void *), void *);
+
+int __fenix_callback_pop();
+
+void __fenix_callback_push(fenix_callback_list_t **, fenix_callback_func *);
+
+void __fenix_callback_invoke_all(int error);
+
+int __fenix_callback_destroy(fenix_callback_list_t *callback_list);
+
+int* __fenix_get_fail_ranks(int *, int, int);
+
+int __fenix_spare_rank();
+
+int __fenix_get_rank_role();
+
+void __fenix_set_rank_role(int FenixRankRole);
+
+int __fenix_detect_failures(int do_recovery);
+
+void __fenix_finalize();
+
+void __fenix_finalize_spare();
+
+void __fenix_test_MPI(MPI_Comm*, int*, ...);
+
+#endif

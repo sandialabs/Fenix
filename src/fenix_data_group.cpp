@@ -56,10 +56,10 @@
 
 #include "mpi.h"
 #include "fenix-config.h"
-#include "fenix_ext.h"
-#include "fenix_data_group.h"
-#include "fenix_data_member.h"
-#include "fenix_data_packet.h"
+#include "fenix_ext.hpp"
+#include "fenix_data_group.hpp"
+#include "fenix_data_member.hpp"
+#include "fenix_data_packet.hpp"
 
 
 

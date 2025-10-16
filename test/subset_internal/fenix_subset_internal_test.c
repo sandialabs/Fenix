@@ -56,7 +56,6 @@
 */
 
 #include <fenix.h>
-#include <fenix_data_recovery.h> // Never called explicitly by the  users
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>

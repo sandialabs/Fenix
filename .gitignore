@@ -41,6 +41,7 @@ test/request_tracking/fenix_request_tracking_test
 test/request_tracking/fenix_request_tracking_test_nofenix
 build/
 install/
+spack-*
 
 # Other
 *~
