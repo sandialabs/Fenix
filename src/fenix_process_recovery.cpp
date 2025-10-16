@@ -789,6 +789,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
     switch (fenix_rt.mpi_fail_code) {
         case MPI_ERR_PROC_FAILED_PENDING:
         case MPI_ERR_PROC_FAILED:
+            __fenix_callback_invoke_all(fenix::PRE_RECOVERY);
             MPIX_Comm_revoke(*fenix_rt.world);
             MPIX_Comm_revoke(fenix_rt.new_world);
             if(fenix_rt.user_world_exists) MPIX_Comm_revoke(*fenix_rt.user_world);
@@ -796,6 +797,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
             fenix_rt.repair_result = __fenix_repair_ranks();
             break;
         case MPI_ERR_REVOKED:
+            __fenix_callback_invoke_all(fenix::PRE_RECOVERY);
             fenix_rt.repair_result = __fenix_repair_ranks();
             break;
         default:

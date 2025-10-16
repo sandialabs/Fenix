@@ -294,16 +294,16 @@ int nspare(){
     return fenix_rt.spare_ranks;
 }
 
-int callback_register(std::function<void(MPI_Comm, int)> callback){
-    return __fenix_callback_register(callback);
+int callback_register(std::function<void(MPI_Comm, int)> callback, CallbackLocation loc){
+    return __fenix_callback_register(callback, loc);
 }
 
-int callback_pop() {
-    return __fenix_callback_pop();
+int callback_pop(CallbackLocation loc) {
+    return __fenix_callback_pop(loc);
 }
 
-void callback_invoke_all() {
-    __fenix_callback_invoke_all();
+void callback_invoke_all(CallbackLocation loc) {
+    __fenix_callback_invoke_all(loc);
 }
 
 std::vector<int> fail_list(){
