@@ -41,6 +41,9 @@ services:
                 -DBUILD_TESTING=ON \
                 -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe" && \
             make -j
+
+        ENV OMPI_MCA_coll=^han
+        ENV OMPI_MCA_btl=tcp,sm,self
         
         WORKDIR /fenix/build
         ENTRYPOINT ["/entrypoint.sh"]
