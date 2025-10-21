@@ -57,6 +57,16 @@
 #ifndef __FENIX_PROCESS_RECOVERY__
 #define __FENIX_PROCESS_RECOVERY__
 
+#if defined(MPIX_ERR_PROC_FAILED) && ! defined(MPI_ERR_PROC_FAILED)
+#define MPI_ERR_PROC_FAILED MPIX_ERR_PROC_FAILED
+#endif
+#if defined(MPIX_ERR_PROC_FAILED_PENDING) && ! defined(MPI_ERR_PROC_FAILED_PENDING)
+#define MPI_ERR_PROC_FAILED_PENDING MPIX_ERR_PROC_FAILED_PENDING
+#endif
+#if defined(MPIX_ERR_REVOKED) && ! defined(MPI_ERR_REVOKED)
+#define MPI_ERR_REVOKED MPIX_ERR_REVOKED
+#endif
+
 #include <fenix.h>
 #include <mpi.h>
 #include <setjmp.h>

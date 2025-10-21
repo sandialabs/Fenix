@@ -64,7 +64,9 @@
 #include "fenix_ext.hpp"
 #include "fenix_data_subset.hpp"
 
+#ifndef MPICH_VERSION
 #include <mpi-ext.h>
+#endif
 
 namespace Fenix::Data {
 

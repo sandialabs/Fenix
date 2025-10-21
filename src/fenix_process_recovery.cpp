@@ -55,6 +55,12 @@
 */
 
 #include <assert.h>
+#include <sys/time.h>
+
+#include <mpi.h>
+#ifndef MPICH_VERSION
+#include <mpi-ext.h>
+#endif
 
 #include "fenix_ext.hpp"
 #include "fenix_process_recovery.hpp"
@@ -62,10 +68,6 @@
 #include "fenix_data_recovery.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
-#include <mpi.h>
-#include <mpi-ext.h>
-
-#include <sys/time.h>
 
 using namespace Fenix;
 using namespace Fenix::Data;
@@ -180,7 +182,11 @@ int fenix_preinit(const Args::FenixInitArgs& args, jmp_buf* jump_env){
                               __fenix_get_current_rank(*fenix.world), fenix.role);
             }
         } else {
+#ifdef MPICH_VERSION
+            MPIX_Comm_failure_ack(*fenix.world);
+#else
             MPIX_Comm_ack_failed(*fenix.world, __fenix_get_world_size(*fenix.world), &a);
+#endif
         }
         fenix.role = FENIX_ROLE_RECOVERED_RANK;
     }
@@ -651,7 +657,7 @@ void __fenix_postinit()
     if(fenix.new_world_exists){
         //Set up dummy irecv to use for checking for failures.
         MPI_Irecv(&fenix.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
-                  34095347, fenix.new_world, &fenix.check_failures_req);
+                  1234, fenix.new_world, &fenix.check_failures_req);
     }
 
     if(fenix.role != FENIX_ROLE_INITIAL_RANK) {
@@ -704,7 +710,9 @@ void __fenix_finalize()
             for (int i = first_spare_rank; i <= last_spare_rank; i++) {
                 //We don't care if a spare failed, ignore return value
                 int unused;
-                MPI_Send(&unused, 1, MPI_INT, i, 1, *fenix.world);
+                MPI_Request req;
+                MPI_Isend(&unused, 1, MPI_INT, i, 1, *fenix.world, &req);
+                MPI_Request_free(&req);
             }
         }
 
@@ -749,8 +757,11 @@ void __fenix_finalize()
 void __fenix_finalize_spare()
 {
     fenix.fenix_init_flag = false;
-
     int unused;
+
+#ifdef MPICH_VERSION
+    MPIX_Comm_agree(*fenix.world, &unused);
+#else
     MPI_Request agree_req, recv_req = MPI_REQUEST_NULL;
 
     MPIX_Comm_iagree(*fenix.world, &unused, &agree_req);
@@ -770,6 +781,7 @@ void __fenix_finalize_spare()
     }
 
     if(recv_req != MPI_REQUEST_NULL) MPI_Cancel(&recv_req);
+#endif
  
     MPI_Op_free(&fenix.agree_op);
     MPI_Comm_set_errhandler(*fenix.world, MPI_ERRORS_ARE_FATAL);
