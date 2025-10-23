@@ -720,7 +720,7 @@ int Group::member_create(fenix_member_entry_t* mentry){
       else assert(false);
 
       return FENIX_SUCCESS;
-   } else return FENIX_ERROR_MEMBER_CREATE;
+   } else return FENIX_ERROR_MEMBER_EXISTS;
 }
 
 int Group::member_delete(int member_id){

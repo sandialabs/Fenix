@@ -70,13 +70,6 @@
 
 namespace Fenix::Data {
 
-/**
- * @brief           create new group or recover group data for lost processes
- * @param groud_id  
- * @param comm
- * @param time_start
- * @param depth
- */
 int group_create( int groupid, MPI_Comm comm, int timestart, int depth, int policy_name, 
         void* policy_value, int* flag) {
 
@@ -170,6 +163,10 @@ int group_create( int groupid, MPI_Comm comm, int timestart, int depth, int poli
   return retval;
 }
 
+bool group_created(int groupid){
+  return search_group(groupid).second != nullptr;
+}
+
 int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* policy_value, int* flag){
   int retval = -1;
   int group_index = __fenix_search_groupid( groupid, fenix.data_recovery );
@@ -186,15 +183,6 @@ int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* poli
   return retval;
 }
 
-
-/**
- * @brief
- * @param group_id
- * @param member_id
- * @param data
- * @param count
- * @param data_type
- */
 int member_create(
   int groupid, int memberid, void *data, int count, MPI_Datatype datatype
 ) {
@@ -222,6 +210,10 @@ int member_create(
   return group->member_create(mentry);
 }
 
+bool member_created(int group_id, int member_id){
+  auto [group_idx, group] = search_group(group_id);
+  return group && group->search_member(member_id).second;
+}
 
 /**
  * @brief
