@@ -141,8 +141,10 @@ int __fenix_find_next_group_position( fenix_data_recovery_t *dr );
 
 using group_iterator = std::pair<int, fenix_group_t*>;
 
-group_iterator find_group(int id);
+group_iterator search_group(int id, fenix_data_recovery_t *dr);
+group_iterator search_group(int id);
 group_iterator find_group(int id, fenix_data_recovery_t *dr);
+group_iterator find_group(int id);
 
 } //end namespace fenix::data
 

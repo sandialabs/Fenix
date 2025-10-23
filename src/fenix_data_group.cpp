@@ -65,17 +65,28 @@
 
 namespace fenix::data {
 
-group_iterator find_group(int id){
-  return find_group(id, fenix_rt.data_recovery);
+group_iterator search_group(int id, fenix_data_recovery_t* dr){
+  for(int i = 0; i < dr->count; i++){
+    auto group = dr->group[i];
+    if(dr->group[i]->groupid == id){
+      return {i, dr->group[i]};
+    }
+  }
+  return {-1, nullptr};
+}
+group_iterator search_group(int id){
+  return search_group(id, fenix_rt.data_recovery);
 }
 
 group_iterator find_group(int id, fenix_data_recovery_t* dr){
-  int index = __fenix_search_groupid(id, dr);
-  if(index == -1){
+  auto it = search_group(id, dr);
+  if(it.second == nullptr){
     debug_print("ERROR: group_id <%d> does not exist\n", id);
-    return {index, nullptr};
   }
-  return {index, dr->group[index]};
+  return it;
+}
+group_iterator find_group(int id){
+  return find_group(id, fenix_rt.data_recovery);
 }
 
 member_iterator fenix_group_t::search_member(int id){

@@ -161,16 +161,22 @@ extern const DataSubset SUBSET_FULL;
 extern const DataSubset SUBSET_EMPTY;
 extern DataSubset SUBSET_IGNORE;
 
-//@!brief Overload of Fenix_Data_group_create
+//@!brief Overload of #Fenix_Data_group_create
 int group_create(
     int group_id, MPI_Comm comm, int start_time_stamp, int depth,
     int policy_name, void* policy_value, int* flag
 );
 
-//@!brief Overload of Fenix_Data_member_create
+//@!brief Overload of #Fenix_Data_group_created
+bool group_created(int group_id);
+
+//@!brief Overload of #Fenix_Data_member_create
 int member_create(
     int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
 );
+
+//@!brief Overload of #Fenix_Data_member_created
+bool member_created(int group_id, int member_id);
 
 //!@brief Overload of #Fenix_Data_member_store
 int member_store(int group_id, int member_id, const DataSubset& subset);
