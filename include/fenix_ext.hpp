@@ -107,11 +107,9 @@ typedef struct {
     int ignore_errs;                // Set this to return errors instead of using the error handler normally. (Don't forget to unset!)
     int print_unhandled;            // Set this to print the error string for MPI errors of an unhandled return type.
 
-
-
     fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;
 
-extern fenix_t fenix;
+inline fenix_t fenix_rt;
 #endif // __FENIX_EXT_H__
 

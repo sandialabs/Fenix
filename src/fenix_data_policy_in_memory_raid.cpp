@@ -1212,7 +1212,7 @@ void __imr_sync_timestamps(fenix_imr_group_t* group){
 
    //Now fix members
    if(need_reset && group->entries_count > 0) {
-      if(fenix.options.verbose == 1){
+      if(fenix_rt.options.verbose == 1){
          verbose_print("Outdated timestamps on rank %d. All members will require full recovery.\n", 
                        group->base.current_rank);
       }

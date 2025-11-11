@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
   MPI_Info_set(info, "FENIX_UNHANDLED_MODE", "NO_JUMP");
   Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, 0, info, &error);
 
-  Fenix::register_exception_callback();
+  fenix::register_exception_callback();
 
   if(fenix_role == FENIX_ROLE_SURVIVOR_RANK){
     printf("FAILURE: longjmp instead of exception\n");
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
       MPI_Barrier(res_comm);
       printf("FAILURE: barrier finished without fault\n");
       status = 1;
-    } catch (Fenix::CommException e){
+    } catch (fenix::CommException e){
       printf("SUCCESS: caught CommException\n");
     }
   }

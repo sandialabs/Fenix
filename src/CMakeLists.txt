@@ -27,7 +27,6 @@ fenix_data_policy_in_memory_raid.cpp
 fenix_data_member.cpp
 fenix_data_subset.cpp
 fenix_callbacks.cpp
-globals.cpp
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES})

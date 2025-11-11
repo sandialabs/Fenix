@@ -76,17 +76,15 @@ void __fenix_init_opt(int argc, char **argv) {
 
    /* Initialize the value */
 
-   fenix.options.verbose = -1;
+   fenix_rt.options.verbose = -1;
 
    for( i = 0; i < argc; i++ )
    {
-
       if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
       {
-          printf("Inside if %d\n",i);
          if( i+1 < argc )
          {
-            fenix.options.verbose = atoi(argv[i+1]);
+            fenix_rt.options.verbose = atoi(argv[i+1]);
          }
       }
     }

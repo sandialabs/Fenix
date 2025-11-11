@@ -67,25 +67,25 @@
 
 int __fenix_callback_register(fenix_callback_func& recover)
 {
-    if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+    if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
 
-    fenix.callbacks.push_back(recover);
+    fenix_rt.callbacks.push_back(recover);
 
     return FENIX_SUCCESS;
 }
 
 int __fenix_callback_pop(){
-   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(fenix.callbacks.empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
+   if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+   if(fenix_rt.callbacks.empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
 
-   fenix.callbacks.pop_back();
+   fenix_rt.callbacks.pop_back();
 
    return FENIX_SUCCESS;
 }
 
 void __fenix_callback_invoke_all(int error)
 {
-    for(auto it = fenix.callbacks.rbegin(); it != fenix.callbacks.rend(); it++){
-        (*it)(*fenix.user_world, error);
+    for(auto it = fenix_rt.callbacks.rbegin(); it != fenix_rt.callbacks.rend(); it++){
+        (*it)(*fenix_rt.user_world, error);
     }
 }

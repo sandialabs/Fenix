@@ -78,7 +78,7 @@ int Fenix_Callback_pop() {
 }
 
 int Fenix_Initialized(int *flag) {
-    *flag = (fenix.fenix_init_flag) ? 1 : 0;
+    *flag = (fenix_rt.fenix_init_flag) ? 1 : 0;
     return FENIX_SUCCESS;
 }
 
@@ -197,20 +197,20 @@ int Fenix_Data_member_delete(int group_id, int member_id) {
 }
 
 int Fenix_Process_fail_list(int** fail_list){
-  *fail_list = fenix.fail_world;
-  return fenix.fail_world_size;
+  *fail_list = fenix_rt.fail_world;
+  return fenix_rt.fail_world_size;
 }
 
 int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
    
     //We know this may return as "COMM_REVOKED", but we know the error was already handled
-    int old_ignore_setting = fenix.ignore_errs;
-    fenix.ignore_errs = 1;
+    int old_ignore_setting = fenix_rt.ignore_errs;
+    fenix_rt.ignore_errs = 1;
 
     int flag;
     int ret = PMPI_Test(request, &flag, status);
     
-    fenix.ignore_errs = old_ignore_setting;
+    fenix_rt.ignore_errs = old_ignore_setting;
     
     //Request was (potentially) cancelled if ret is MPI_ERR_PROC_FAILED
     return ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED;

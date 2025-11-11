@@ -75,9 +75,9 @@ fenix_data_recovery_t * __fenix_data_recovery_init() {
   data_recovery->group = (fenix_group_t **) s_malloc(
           __FENIX_DEFAULT_GROUP_SIZE * sizeof(fenix_group_t *));
 
-  if (fenix.options.verbose == 41) {
+  if (fenix_rt.options.verbose == 41) {
     verbose_print("c-rank: %d, role: %d, g-count: %zu, g-size: %zu\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, data_recovery->count,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, data_recovery->count,
                   data_recovery->total_size);
   }
 
@@ -86,15 +86,15 @@ fenix_data_recovery_t * __fenix_data_recovery_init() {
 
 int __fenix_member_delete(int groupid, int memberid) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
   int member_index = -1;
   if(group_index !=-1){
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+    member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid);
   }
 
-  if (fenix.options.verbose == 38) {
+  if (fenix_rt.options.verbose == 38) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
                   member_index);
   }
 
@@ -107,7 +107,7 @@ int __fenix_member_delete(int groupid, int memberid) {
                 memberid);
     retval = FENIX_ERROR_INVALID_MEMBERID;
   } else {
-    fenix_data_recovery_t *data_recovery = fenix.data_recovery;
+    fenix_data_recovery_t *data_recovery = fenix_rt.data_recovery;
     fenix_group_t *group = (data_recovery->group[group_index]);
     
     retval = group->vtbl.member_delete(group, memberid);
@@ -119,12 +119,12 @@ int __fenix_member_delete(int groupid, int memberid) {
       mentry->state = DELETED;
     }
 
-    if (fenix.options.verbose == 38) {
+    if (fenix_rt.options.verbose == 38) {
       fenix_member_t *member = group->member;
       fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
       
       verbose_print("c-rank: %d, role: %d, m-count: %zu, m-state: %d",
-                      __fenix_get_current_rank(fenix.new_world), fenix.role,
+                      __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role,
                     member->count, mentry->state);
     }
 
@@ -168,11 +168,11 @@ int __fenix_data_recovery_remove_group(fenix_data_recovery_t* data_recovery, int
  */
 int __fenix_group_delete(int groupid) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
 
-  if (fenix.options.verbose == 37) {
+  if (fenix_rt.options.verbose == 37) {
     verbose_print("c-rank: %d, group_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), group_index);
+                    __fenix_get_current_rank(fenix_rt.new_world), group_index);
   }
 
   if (group_index == -1) {
@@ -180,7 +180,7 @@ int __fenix_group_delete(int groupid) {
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     /* Delete Process */
-    fenix_data_recovery_t *data_recovery = fenix.data_recovery;
+    fenix_data_recovery_t *data_recovery = fenix_rt.data_recovery;
     fenix_group_t *group = (data_recovery->group[group_index]);
     retval = __fenix_group_delete_direct(group);
     
@@ -219,9 +219,9 @@ void __fenix_data_recovery_reinit(fenix_data_recovery_t *data_recovery,
                                                          (data_recovery->total_size) *
                                                          sizeof(fenix_group_t *));
 
-  if (fenix.options.verbose == 48) {
+  if (fenix_rt.options.verbose == 48) {
     verbose_print("c-rank: %d, role: %d, g-size: %zu\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, 
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, 
                     data_recovery->total_size);
   }
 }
@@ -239,7 +239,7 @@ void __fenix_ensure_data_recovery_capacity(fenix_data_recovery_t* data_recovery)
                                                            sizeof(fenix_group_t *));
     data_recovery->total_size = data_recovery->total_size * 2;
 
-    if (fenix.options.verbose == 51) {
+    if (fenix_rt.options.verbose == 51) {
       verbose_print("g-count: %zu, g-size: %zu\n", data_recovery->count, data_recovery->total_size);
     }
   }
