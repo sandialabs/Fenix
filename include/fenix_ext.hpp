@@ -58,6 +58,7 @@
 #define __FENIX_EXT_H__
 
 #include <mpi.h>
+#include <vector>
 #include "fenix.h"
 #include "fenix_opt.hpp"
 #include "fenix_data_group.hpp"
@@ -77,7 +78,7 @@ typedef struct {
 
     //enum FenixRankRole role;    // Role of rank: initial, survivor or repair
     int role;    // Role of rank: initial, survivor or repair
-    int fenix_init_flag;
+    int fenix_init_flag = 0;
 
     int fail_world_size;
     int* fail_world;
@@ -86,7 +87,7 @@ typedef struct {
     int *ret_role;
     int *ret_error;
 
-    fenix_callback_list_t* callback_list;  // singly linked list for user-defined Fenix callback functions
+    std::vector<fenix_callback_func> callbacks;
     fenix_debug_opt_t options;    // This is reserved to store the user options
 
     MPI_Comm *world;                 // Duplicate of the MPI communicator provided by user

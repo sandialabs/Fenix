@@ -54,38 +54,21 @@
 //@HEADER
 */
 
-#include <assert.h>
+#ifndef FENIX_EXCEPTION_HPP
+#define FENIX_EXCEPTION_HPP
 
-#include "fenix_ext.hpp"
-#include "fenix_process_recovery.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_recovery.hpp"
-#include "fenix_opt.hpp"
-#include "fenix_util.hpp"
 #include <mpi.h>
+#include <exception>
 
+namespace Fenix {
 
-int __fenix_callback_register(fenix_callback_func& recover)
-{
-    if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+struct CommException : public std::exception {
+    MPI_Comm repaired_comm;
+    const int fenix_err;
+    CommException(MPI_Comm comm, int err) :
+        repaired_comm(comm), fenix_err(err) { };
+};
 
-    fenix.callbacks.push_back(recover);
+} // namespace Fenix
 
-    return FENIX_SUCCESS;
-}
-
-int __fenix_callback_pop(){
-   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(fenix.callbacks.empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
-
-   fenix.callbacks.pop_back();
-
-   return FENIX_SUCCESS;
-}
-
-void __fenix_callback_invoke_all(int error)
-{
-    for(auto it = fenix.callbacks.rbegin(); it != fenix.callbacks.rend(); it++){
-        (*it)(*fenix.user_world, error);
-    }
-}
+#endif

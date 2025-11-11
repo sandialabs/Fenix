@@ -16,6 +16,7 @@ FILE(GLOB Fenix_HEADERS ${CMAKE_SOURCE_DIR}/include/*.h*)
 
 set (Fenix_SOURCES 
 fenix.cpp
+fenix_exception.cpp
 fenix_opt.cpp
 fenix_process_recovery.cpp
 fenix_util.cpp
@@ -30,6 +31,8 @@ globals.cpp
 )
 
 add_library( fenix STATIC ${Fenix_SOURCES})
+
+target_compile_features(fenix PRIVATE cxx_std_17)
 
 target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
 

@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//        Rob Van der Wijngaart, Michael Heroux, and Matthew Whitlock
+//        Michael Heroux, and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -54,38 +54,51 @@
 //@HEADER
 */
 
-#include <assert.h>
-
-#include "fenix_ext.hpp"
-#include "fenix_process_recovery.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_recovery.hpp"
-#include "fenix_opt.hpp"
-#include "fenix_util.hpp"
 #include <mpi.h>
 
+#include <fenix.h>
+#include <stdio.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <pthread.h>
 
-int __fenix_callback_register(fenix_callback_func& recover)
-{
-    if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+int main(int argc, char **argv) {
+  volatile int status = 0;
 
-    fenix.callbacks.push_back(recover);
+  MPI_Init(&argc, &argv);
 
-    return FENIX_SUCCESS;
-}
+  int fenix_role, error;
+  MPI_Comm res_comm;
+  MPI_Info info;
+  MPI_Info_create(&info);
+  MPI_Info_set(info, "FENIX_RESUME_MODE", "NO_JUMP");
+  MPI_Info_set(info, "FENIX_UNHANDLED_MODE", "NO_JUMP");
+  Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, 0, info, &error);
 
-int __fenix_callback_pop(){
-   if(!fenix.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(fenix.callbacks.empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
+  Fenix::register_exception_callback();
 
-   fenix.callbacks.pop_back();
+  if(fenix_role == FENIX_ROLE_SURVIVOR_RANK){
+    printf("FAILURE: longjmp instead of exception\n");
+    status = 1;
+  }
 
-   return FENIX_SUCCESS;
-}
+  if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
+    int rank;
+    MPI_Comm_rank(res_comm, &rank);
+    if(rank == 1) raise(SIGKILL);
 
-void __fenix_callback_invoke_all(int error)
-{
-    for(auto it = fenix.callbacks.rbegin(); it != fenix.callbacks.rend(); it++){
-        (*it)(*fenix.user_world, error);
+    try {
+      MPI_Barrier(res_comm);
+      printf("FAILURE: barrier finished without fault\n");
+      status = 1;
+    } catch (Fenix::CommException e){
+      printf("SUCCESS: caught CommException\n");
     }
+  }
+
+  Fenix_Finalize();
+  MPI_Finalize();
+
+  return status;
 }
