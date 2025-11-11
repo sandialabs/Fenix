@@ -60,7 +60,7 @@
 #include <mpi.h>
 #include <exception>
 
-namespace Fenix {
+namespace fenix {
 
 struct CommException : public std::exception {
     MPI_Comm repaired_comm;
@@ -69,6 +69,6 @@ struct CommException : public std::exception {
         repaired_comm(comm), fenix_err(err) { };
 };
 
-} // namespace Fenix
+} // namespace fenix
 
 #endif

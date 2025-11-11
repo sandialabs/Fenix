@@ -77,11 +77,11 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
   int retval = -1;
 
   /* Retrieve the array index of the group maintained under the cover. */
-  int group_index = __fenix_search_groupid( groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid( groupid, fenix_rt.data_recovery );
 
-  if (fenix.options.verbose == 12) {
+  if (fenix_rt.options.verbose == 12) {
 
-    verbose_print("c-rank: %d, group_index: %d\n",   __fenix_get_current_rank(fenix.new_world), group_index);
+    verbose_print("c-rank: %d, group_index: %d\n",   __fenix_get_current_rank(fenix_rt.new_world), group_index);
   }
 
 
@@ -107,13 +107,13 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
     fenix_group_t *group;
     MPI_Status status;
 
-    fenix_data_recovery_t *data_recovery = fenix.data_recovery;
+    fenix_data_recovery_t *data_recovery = fenix_rt.data_recovery;
 
     /* Initialize Group.  The group hasn't been created.       */
     /* I am either a brand-new process or a recovered process. */
     if (group_index == -1 ) {
 
-      if (fenix.options.verbose == 12 &&   __fenix_get_current_rank(comm) == 0) {
+      if (fenix_rt.options.verbose == 12 &&   __fenix_get_current_rank(comm) == 0) {
          printf("this is a new group!\n"); 
       }
 
@@ -138,10 +138,10 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
       //Update the count AFTER finding next group position.
       data_recovery->count++;
 
-      if ( fenix.options.verbose == 12) {
+      if ( fenix_rt.options.verbose == 12) {
         verbose_print(
                 "c-rank: %d, g-groupid: %d, g-timestart: %d, g-depth: %d\n",
-                __fenix_get_current_rank(fenix.new_world), group->groupid,
+                __fenix_get_current_rank(fenix_rt.new_world), group->groupid,
                 group->timestart,
                 group->depth);
       }
@@ -166,14 +166,14 @@ int __fenix_group_create( int groupid, MPI_Comm comm, int timestart, int depth, 
 
 int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* policy_value, int* flag){
   int retval = -1;
-  int group_index = __fenix_search_groupid( groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid( groupid, fenix_rt.data_recovery );
   
   if(group_index == -1){
     debug_print("ERROR Fenix_Data_member_create: group_id <%d> does not exist\n",
                 groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t* group = fenix.data_recovery->group[group_index];
+    fenix_group_t* group = fenix_rt.data_recovery->group[group_index];
     retval = group->vtbl.get_redundant_policy(group, policy_name, policy_value, flag);
   }
 
@@ -191,13 +191,13 @@ int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* poli
  */
 int __fenix_member_create(int groupid, int memberid, void *data, int count, int datatype_size ) {
   int retval = -1;
-  int group_index = __fenix_search_groupid( groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid( groupid, fenix_rt.data_recovery );
   int member_index = -1;
-  if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid );
+  if(group_index != -1) member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid );
 
-  if (fenix.options.verbose == 13) {
+  if (fenix_rt.options.verbose == 13) {
     verbose_print("c-rank: %d, group_index: %d, member_index: %d\n",
-                   __fenix_get_current_rank(fenix.new_world),
+                   __fenix_get_current_rank(fenix_rt.new_world),
                   group_index, member_index);
   }
 
@@ -212,7 +212,7 @@ int __fenix_member_create(int groupid, int memberid, void *data, int count, int 
 
   } else {
 
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     fenix_member_t *member = group->member;
 
     //First, we'll make a fenix-core member entry, then pass that info to
@@ -284,18 +284,18 @@ int __fenix_data_test(Fenix_Request request, int *flag) {
 
 int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
   int member_index = -1;
 
   /* Check if the member id already exists. If so, the index of the storage space is assigned */
   if (group_index !=-1 && memberid != FENIX_DATA_MEMBER_ALL) {
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid );
+    member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid );
   }
 
-  if (fenix.options.verbose == 18 && fenix.data_recovery->group[group_index]->current_rank== 0 ) {
+  if (fenix_rt.options.verbose == 18 && fenix_rt.data_recovery->group[group_index]->current_rank== 0 ) {
     verbose_print(
             "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
-              __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+              __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
             member_index, memberid);
   }
 
@@ -307,7 +307,7 @@ int __fenix_member_store(int groupid, int memberid, Fenix_Data_subset specifier)
                 memberid);
     retval = FENIX_ERROR_INVALID_MEMBERID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     retval = group->vtbl.member_store(group, memberid, specifier);
   }
   return retval;
@@ -324,18 +324,18 @@ int __fenix_member_istore(int groupid, int memberid, Fenix_Data_subset specifier
                   Fenix_Request *request) {
 
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
   int member_index = -1;
 
   /* Check if the member id already exists. If so, the index of the storage space is assigned */
   if (group_index !=-1 && memberid != FENIX_DATA_MEMBER_ALL) {
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid );
+    member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid );
   }
 
-  if (fenix.options.verbose == 18 && fenix.data_recovery->group[group_index]->current_rank== 0 ) {
+  if (fenix_rt.options.verbose == 18 && fenix_rt.data_recovery->group[group_index]->current_rank== 0 ) {
     verbose_print(
             "c-rank: %d, role: %d, group_index: %d, member_index: %d memberid: %d\n",
-              __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+              __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
             member_index, memberid);
   }
 
@@ -347,7 +347,7 @@ int __fenix_member_istore(int groupid, int memberid, Fenix_Data_subset specifier
                 memberid);
     retval = FENIX_ERROR_INVALID_MEMBERID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     retval = group->vtbl.member_istore(group, memberid, specifier, request);
   }
   return retval;
@@ -392,8 +392,8 @@ void __fenix_subset(fenix_group_t *group, fenix_member_entry_t *me, Fenix_Data_s
   lentry_packet.entry_count = lentry->count;
   lentry_packet.entry_size = subset_total_size;
 
-  int current_rank =   __fenix_get_current_rank(fenix.new_world);
-  int current_role = fenix.role;
+  int current_rank =   __fenix_get_current_rank(fenix_rt.new_world);
+  int current_role = fenix_rt.role;
 
   MPI_Sendrecv(&lentry_packet, sizeof(member_store_packet_t), MPI_BYTE, ge->out_rank,
                  STORE_SIZE_TAG, &rentry_packet, sizeof(member_store_packet_t), MPI_BYTE,
@@ -467,7 +467,7 @@ int __fenix_member_storev(int group_id, int member_id, Fenix_Data_subset subset_
  * Using the same routine for v and non-v routine.
  */
   int retval = -1;
-  int group_index = __fenix_search_groupid( group_id, fenix.data_recovery );
+  int group_index = __fenix_search_groupid( group_id, fenix_rt.data_recovery );
   int member_index = __fenix_search_memberid(group_index, member_id);
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_member_storev: group_id <%d> does not exist\n",
@@ -478,7 +478,7 @@ int __fenix_member_storev(int group_id, int member_id, Fenix_Data_subset subset_
                 member_id);
     retval = FENIX_ERROR_INVALID_MEMBERID;
   } else {
-    fenix_group_t *group = fenix.data_recovery;
+    fenix_group_t *group = fenix_rt.data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
     __fenix_ensure_version_capacity(member);
@@ -516,7 +516,7 @@ int __fenix_member_istorev(int group_id, int member_id, Fenix_Data_subset subset
                 member_id);
     retval = FENIX_ERROR_INVALID_MEMBERID;
   } else {
-    fenix_group_t *group = fenix.data_recovery;
+    fenix_group_t *group = fenix_rt.data_recovery;
     fenix_group_entry_t *gentry = &(group->group_entry[group_index]);
     fenix_member_t *member = &(gentry->member);
     __fenix_ensure_version_capacity(member);
@@ -540,15 +540,15 @@ int __fenix_data_commit(int groupid, int *timestamp) {
   /* No communication is performed */
   /* Return the new timestamp      */
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
-  if (fenix.options.verbose == 22) {
-    verbose_print("c-rank: %d, role: %d, group_index: %d\n",   __fenix_get_current_rank(fenix.new_world), fenix.role, group_index);
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
+  if (fenix_rt.options.verbose == 22) {
+    verbose_print("c-rank: %d, role: %d, group_index: %d\n",   __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index);
   }
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     
     if (group->timestamp != -1) group->timestamp++;
     else group->timestamp = group->timestart;
@@ -571,21 +571,21 @@ int __fenix_data_commit(int groupid, int *timestamp) {
  */
 int __fenix_data_commit_barrier(int groupid, int *timestamp) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
-  if (fenix.options.verbose == 23) {
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
+  if (fenix_rt.options.verbose == 23) {
     verbose_print("c-rank: %d, role: %d, group_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index);
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index);
   }
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
    
     //We want to make sure there aren't any failed MPI operations (IE unfinished stores)
     //But we don't want to fail to commit if a failure has happened since a successful store.
-    int old_failure_handling = fenix.ignore_errs;
-    fenix.ignore_errs = 1;
+    int old_failure_handling = fenix_rt.ignore_errs;
+    fenix_rt.ignore_errs = 1;
 
     int can_commit = 0;
 
@@ -594,10 +594,10 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     //So if we aren't all here, we've hit an error already.
 
     int location = FENIX_DATA_COMMIT_BARRIER_LOC;
-    int ret = MPIX_Comm_agree(*fenix.user_world, &location);
+    int ret = MPIX_Comm_agree(*fenix_rt.user_world, &location);
     if(location == FENIX_DATA_COMMIT_BARRIER_LOC) can_commit = 1;
 
-    fenix.ignore_errs = old_failure_handling;
+    fenix_rt.ignore_errs = old_failure_handling;
 
     if(can_commit == 1){
         if (group->timestamp != -1) group->timestamp++;
@@ -609,7 +609,7 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
     if(can_commit != 1 || ret != MPI_SUCCESS) {
         //A rank failure has happened, lets trigger error handling if enabled.
         int throwaway = 1;
-        MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix.user_world);
+        MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix_rt.user_world);
     }
 
     
@@ -632,15 +632,15 @@ int __fenix_data_commit_barrier(int groupid, int *timestamp) {
 int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp, Fenix_Data_subset* data_found) {
 
   int retval =  FENIX_SUCCESS;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery);
   int member_index = -1;
 
-  if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+  if(group_index != -1) member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid);
 
 
-  if (fenix.options.verbose == 25) {
+  if (fenix_rt.options.verbose == 25) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
                   member_index);
   }
 
@@ -649,7 +649,7 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
                 groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     retval = group->vtbl.member_restore(group, memberid, data, maxcount, timestamp, data_found);
   }
   return retval;
@@ -666,15 +666,15 @@ int __fenix_member_restore(int groupid, int memberid, void *data, int maxcount, 
 int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, Fenix_Data_subset* data_found) {
 
   int retval =  FENIX_SUCCESS;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery);
   int member_index = -1;
 
-  if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+  if(group_index != -1) member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid);
 
 
-  if (fenix.options.verbose == 25) {
+  if (fenix_rt.options.verbose == 25) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
                   member_index);
   }
 
@@ -683,7 +683,7 @@ int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount,
                 groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     retval = group->vtbl.member_lrestore(group, memberid, data, maxcount, timestamp, data_found);
   }
   return retval;
@@ -701,14 +701,14 @@ int __fenix_member_lrestore(int groupid, int memberid, void *data, int maxcount,
 int __fenix_member_restore_from_rank(int groupid, int memberid, void *target_buffer,
                              int max_count, int time_stamp, int source_rank) {
   int retval =  FENIX_SUCCESS;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery);
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery);
   int member_index = -1;
   
-  if(group_index != -1) member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+  if(group_index != -1) member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid);
 
-  if (fenix.options.verbose == 25) {
+  if (fenix_rt.options.verbose == 25) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
                   member_index);
   }
 
@@ -717,7 +717,7 @@ int __fenix_member_restore_from_rank(int groupid, int memberid, void *target_buf
                 groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     retval = group->vtbl.member_restore_from_rank(group, memberid, target_buffer, 
             max_count, time_stamp, source_rank);
   }
@@ -733,12 +733,12 @@ int __fenix_member_restore_from_rank(int groupid, int memberid, void *target_buf
  */
 int __fenix_get_number_of_members(int group_id, int *num_members) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(group_id, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(group_id, fenix_rt.data_recovery );
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     *num_members = group->member->count;
     retval = FENIX_SUCCESS;
   }
@@ -753,12 +753,12 @@ int __fenix_get_number_of_members(int group_id, int *num_members) {
  */
 int __fenix_get_member_at_position(int group_id, int *member_id, int position) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(group_id, fenix.data_recovery);
+  int group_index = __fenix_search_groupid(group_id, fenix_rt.data_recovery);
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     fenix_member_t *member = group->member;
     if (position < 0 || position > (member->total_size) - 1) {
       debug_print(
@@ -782,12 +782,12 @@ int __fenix_get_member_at_position(int group_id, int *member_id, int position) {
  */
 int __fenix_get_number_of_snapshots(int group_id, int *num_snapshots) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(group_id, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(group_id, fenix_rt.data_recovery );
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     retval = group->vtbl.get_number_of_snapshots(group, num_snapshots);
   }
   return retval;
@@ -801,16 +801,16 @@ int __fenix_get_number_of_snapshots(int group_id, int *num_snapshots) {
  */
 int __fenix_get_snapshot_at_position(int groupid, int position, int *timestamp) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
-  if (fenix.options.verbose == 33) {
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
+  if (fenix_rt.options.verbose == 33) {
     verbose_print("c-rank: %d, role: %d, group_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index);
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index);
   }
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     *timestamp = group->timestamp - position;
   }
   return retval;
@@ -828,16 +828,16 @@ int __fenix_get_snapshot_at_position(int groupid, int position, int *timestamp) 
 int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
                          void *attributevalue, int *flag, int sourcerank) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
   int member_index = -1;
 
   if(group_index != -1){
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+    member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid);
   }
 
-  if (fenix.options.verbose == 34) {
+  if (fenix_rt.options.verbose == 34) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
                   member_index);
   }
   if (group_index == -1) {
@@ -849,7 +849,7 @@ int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
                 memberid);
     retval = FENIX_ERROR_INVALID_MEMBERID;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     fenix_member_t *member = group->member;
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
 
@@ -871,16 +871,16 @@ int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
 int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
                          void *attributevalue, int *flag) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
   int member_index = -1;
 
   if(group_index != -1){
-    member_index = __fenix_search_memberid(fenix.data_recovery->group[group_index]->member, memberid);
+    member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index]->member, memberid);
   }
   
-  if (fenix.options.verbose == 35) {
+  if (fenix_rt.options.verbose == 35) {
     verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, group_index,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
                   member_index);
   }
   
@@ -895,7 +895,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
   } else {
     int my_datatype_size;
     int myerr;
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     fenix_member_t *member = group->member;
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
 
@@ -948,7 +948,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
  */
 int __fenix_snapshot_delete(int group_id, int time_stamp) {
   int retval = -1;
-  int group_index = __fenix_search_groupid(group_id, fenix.data_recovery );
+  int group_index = __fenix_search_groupid(group_id, fenix_rt.data_recovery );
   if (group_index == -1) {
     debug_print("ERROR Fenix_Data_snapshot_delete: group_id <%d> does not exist\n",
                 group_id);
@@ -959,7 +959,7 @@ int __fenix_snapshot_delete(int group_id, int time_stamp) {
             time_stamp);
     retval = FENIX_ERROR_INVALID_TIMESTAMP;
   } else {
-    fenix_group_t *group = (fenix.data_recovery->group[group_index]);
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
     retval = group->vtbl.snapshot_delete(group, time_stamp);
   }
   return retval;
@@ -980,7 +980,7 @@ void __fenix_store_single() {
  */
 void __feninx_dr_print_store() {
   int group, member, version, local, remote;
-  fenix_data_recovery_t *current = fenix.data_recovery;
+  fenix_data_recovery_t *current = fenix_rt.data_recovery;
   int group_count = current->count;
   for (group = 0; group < group_count; group++) {
     int member_count = current->group[group]->member->count;
@@ -991,14 +991,14 @@ void __feninx_dr_print_store() {
         int *local_data = current->group[group]->member->member_entry[member].version->local_entry[version].data;
         for (local = 0; local < local_data_count; local++) {
           //printf("*** store rank[%d] group[%d] member[%d] local[%d]: %d\n",
-          //get_current_rank(fenix.new_world), group, member, local,
+          //get_current_rank(fenix_rt.new_world), group, member, local,
           //local_data[local]);
         }
         int remote_data_count = current->group[group]->member->member_entry[member].version->remote_entry[version].count;
         int *remote_data = current->group[group]->member->member_entry[member].version->remote_entry[version].data;
         for (remote = 0; remote < remote_data_count; remote++) {
           printf("*** store rank[%d] group[%d] member[%d] remote[%d]: %d\n",
-                   __fenix_get_current_rank(fenix.new_world), group, member, remote,
+                   __fenix_get_current_rank(fenix_rt.new_world), group, member, remote,
                  remote_data[remote]);
         }
       }
@@ -1011,14 +1011,14 @@ void __feninx_dr_print_store() {
  */
 
 void __fenix_dr_print_restore() {
-  fenix_data_recovery_t *current = fenix.data_recovery;
+  fenix_data_recovery_t *current = fenix_rt.data_recovery;
   int group_count = current->count;
   int member_count = current->group[0]->member->count;
   int version_count = current->group[0]->member->member_entry[0].version->count;
   int local_data_count = current->group[0]->member->member_entry[0].version->local_entry[0].count;
   int remote_data_count = current->group[0]->member->member_entry[0].version->remote_entry[0].count;
   printf("*** restore rank: %d; group: %d; member: %d; local: %d; remote: %d\n",
-           __fenix_get_current_rank(fenix.new_world), group_count, member_count,
+           __fenix_get_current_rank(fenix_rt.new_world), group_count, member_count,
          local_data_count,
          remote_data_count);
 }
@@ -1028,13 +1028,13 @@ void __fenix_dr_print_restore() {
  */
 void __fenix_dr_print_datastructure() {
   int group_index, member_index, version_index, remote_data_index, local_data_index;
-  fenix_data_recovery_t *current = fenix.data_recovery;
+  fenix_data_recovery_t *current = fenix_rt.data_recovery;
 
   if (!current) {
     return;
   }
 
-  printf("\n\ncurrent_rank: %d\n",   __fenix_get_current_rank(fenix.new_world));
+  printf("\n\ncurrent_rank: %d\n",   __fenix_get_current_rank(fenix_rt.new_world));
   int group_size = current->total_size;
   for (group_index = 0; group_index < group_size; group_index++) {
     int depth = current->group[group_index]->depth;

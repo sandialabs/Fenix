@@ -1,7 +1,7 @@
 #include "fenix_exception.hpp"
 #include "fenix.h"
 
-namespace Fenix {
+namespace fenix {
 
 int register_exception_callback(){
     return Fenix_Callback_register(
@@ -11,4 +11,4 @@ int register_exception_callback(){
     );
 }
 
-} // namespace Fenix
+} // namespace fenix

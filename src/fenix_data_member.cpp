@@ -73,9 +73,9 @@ fenix_member_t *__fenix_data_member_init() {
   member->member_entry = (fenix_member_entry_t *) s_malloc(
           __FENIX_DEFAULT_MEMBER_SIZE * sizeof(fenix_member_entry_t));
 
-  if (fenix.options.verbose == 42) {
+  if (fenix_rt.options.verbose == 42) {
     verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role, member->count,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, member->count,
                   member->total_size);
   }
 
@@ -86,9 +86,9 @@ fenix_member_t *__fenix_data_member_init() {
     mentry->memberid = -1;
     mentry->state = EMPTY;
 
-    if (fenix.options.verbose == 42) {
+    if (fenix_rt.options.verbose == 42) {
       verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                      __fenix_get_current_rank(fenix.new_world), fenix.role,
+                      __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role,
                     mentry->memberid, mentry->state);
     }
   }
@@ -106,7 +106,7 @@ void __fenix_data_member_destroy( fenix_member_t *member ) {
  * @param
  */
 int __fenix_search_memberid(fenix_member_t* member, int key) {
-  fenix_data_recovery_t *data_recovery = fenix.data_recovery;
+  fenix_data_recovery_t *data_recovery = fenix_rt.data_recovery;
   int member_index, found = -1, index = -1;
   for (member_index = 0;
        (found != 1) && (member_index < member->total_size); member_index++) {
@@ -170,9 +170,9 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
                                                               sizeof(fenix_member_entry_t));
     member->total_size = member->total_size * 2;
 
-    if (fenix.options.verbose == 52) {
+    if (fenix_rt.options.verbose == 52) {
       verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role,
                     member->count, member->total_size);
     }
 
@@ -182,10 +182,10 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
       mentry->memberid = -1;
       mentry->state = EMPTY;
 
-      if (fenix.options.verbose == 52) {
+      if (fenix_rt.options.verbose == 52) {
         verbose_print(
                 "c-rank: %d, role: %d, member[%d] m-memberid: %d, m-state: %d\n",
-                  __fenix_get_current_rank(fenix.new_world), fenix.role,
+                  __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role,
                 member_index, mentry->memberid, mentry->state);
       }
     }
@@ -196,7 +196,7 @@ void __fenix_ensure_member_capacity(fenix_member_t *m) {
 int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank){
     int retval = -1;
     
-    fenix_data_recovery_t* data_recovery = fenix.data_recovery;
+    fenix_data_recovery_t* data_recovery = fenix_rt.data_recovery;
     int group_index = __fenix_search_groupid(groupid, data_recovery);
     int member_index;
     if(group_index != -1){
@@ -234,7 +234,7 @@ int __fenix_data_member_recv_metadata(int groupid, int src_rank,
         fenix_member_entry_packet_t* packet){
     int retval = -1;
     
-    fenix_data_recovery_t* data_recovery = fenix.data_recovery;
+    fenix_data_recovery_t* data_recovery = fenix_rt.data_recovery;
     int group_index = __fenix_search_groupid(groupid, data_recovery);
     
     if(group_index == -1){
@@ -269,9 +269,9 @@ void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t 
   member->member_entry = (fenix_member_entry_t *) s_realloc(member->member_entry,
                                                             (member->total_size) *
                                                             sizeof(fenix_member_entry_t));
-  if (fenix.options.verbose == 50) {
+  if (fenix_rt.options.verbose == 50) {
     verbose_print("c-rank: %d, role: %d, m-count: %zu, m-size: %zu\n",
-                    __fenix_get_current_rank(fenix.new_world), fenix.role,
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role,
                   member->count, member->total_size);
   }
 
@@ -282,9 +282,9 @@ void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t 
     fenix_member_entry_t *mentry = &(member->member_entry[member_index]);
     mentry->memberid = -1;
     mentry->state = mystatus;
-    if (fenix.options.verbose == 50) {
+    if (fenix_rt.options.verbose == 50) {
       verbose_print("c-rank: %d, role: %d, m-memberid: %d, m-state: %d\n",
-                      __fenix_get_current_rank(fenix.new_world), fenix.role,
+                      __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role,
                     mentry->memberid, mentry->state);
     }
   }

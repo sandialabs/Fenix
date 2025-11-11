@@ -72,7 +72,7 @@
  */
 int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
 
-namespace Fenix {
+namespace fenix {
 
 /**
  * @brief Registers a callback that throws a CommException
@@ -84,6 +84,6 @@ namespace Fenix {
  */
 int register_exception_callback();
 
-} // namespace Fenix
+} // namespace fenix
 
 #endif
