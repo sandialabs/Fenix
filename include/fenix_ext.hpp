@@ -61,8 +61,9 @@
 #include <vector>
 #include "fenix.h"
 #include "fenix_opt.hpp"
-#include "fenix_data_group.hpp"
 #include "fenix_process_recovery.hpp"
+
+typedef struct __fenix_data_recovery fenix_data_recovery_t;
 
 typedef struct {
     int num_inital_ranks;     // Keeps the global MPI rank ID at Fenix_init

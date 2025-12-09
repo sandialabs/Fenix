@@ -63,19 +63,15 @@
 
 #define __FENIX_DEFAULT_MEMBER_SIZE 512
 
+typedef struct __fenix_group fenix_group_t;
+
 typedef struct __fenix_member_entry {
-    int memberid;
+    int memberid = -1;
     enum states state;
-    void *user_data;
+    void *user_data = nullptr;
     int datatype_size;
     int current_count;
 } fenix_member_entry_t;
-
-typedef struct __fenix_member {
-    size_t count;
-    size_t total_size;
-    fenix_member_entry_t *member_entry;
-} fenix_member_t;
 
 typedef struct __member_entry_packet {
     int memberid;
@@ -83,22 +79,16 @@ typedef struct __member_entry_packet {
     int current_count;
 } fenix_member_entry_packet_t;
 
-fenix_member_t *__fenix_data_member_init( );
-void __fenix_data_member_destroy( fenix_member_t *member ) ;
-
-void __fenix_ensure_member_capacity( fenix_member_t *m );
-void __fenix_ensure_version_capacity_from_member( fenix_member_t *m );
-
-fenix_member_entry_t* __fenix_data_member_add_entry(fenix_member_t* member, 
+fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
         int memberid, void* data, int count, int datatype_size);
 
 int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank);
 int __fenix_data_member_recv_metadata(int groupid, int src_rank, 
         fenix_member_entry_packet_t* packet);
 
-int __fenix_search_memberid(fenix_member_t* member, int memberid);
-int __fenix_find_next_member_position(fenix_member_t *m);
+int __fenix_search_memberid(fenix_group_t* group, int memberid);
 
-void __fenix_data_member_reinit(fenix_member_t *m, fenix_two_container_packet_t packet,
+void __fenix_data_member_reinit(fenix_group_t *group, fenix_two_container_packet_t packet,
                    enum states mystatus);
+
 #endif // FENIX_DATA_MEMBER_H
