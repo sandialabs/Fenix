@@ -38,4 +38,4 @@ jobs:
             *.args.OMPI_VERSION=${{ matrix.ompi_version }}
 
       - name: Test Fenix
-        run: docker run fenix ctest --output-on-failure --timeout 20 --repeat until-fail:5
+        run: docker run fenix ctest -V --timeout 20 --repeat until-fail:5
