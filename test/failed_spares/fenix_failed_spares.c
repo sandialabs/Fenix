@@ -66,7 +66,7 @@
 const int kKillID = 1;
 
 void* exitThread(void* should_exit){
-    sleep(1);
+    usleep(10000);
     if( ((intptr_t)should_exit) == 1){
         pid_t pid = getpid();
         kill(pid, SIGTERM);
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 
   if (recovered == 0) {
     //Give time for exit thread to work (which needed to give time for fenix init)
-    sleep(2);
+    usleep(100000);
   }
 
   MPI_Barrier(new_comm);
