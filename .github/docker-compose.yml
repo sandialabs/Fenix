@@ -39,7 +39,7 @@ services:
                 -DCMAKE_C_COMPILER=mpicc \
                 -DBUILD_EXAMPLES=ON \
                 -DBUILD_TESTING=ON \
-                -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe" && \
+                -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe;--mca;async_mpi_finalize;1" && \
             make -j
 
         ENV OMPI_MCA_coll=^han
@@ -47,7 +47,7 @@ services:
         
         WORKDIR /fenix/build
         ENTRYPOINT ["/entrypoint.sh"]
-        CMD ["ctest", "--output-on-failure", "--timeout", "60"]
+        CMD ["ctest", "--output-on-failure", "--timeout", "20"]
       args:
         OMPI_VERSION: main
     pull_policy: build
