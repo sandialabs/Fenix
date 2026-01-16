@@ -1,0 +1,27 @@
+---
+BasedOnStyle: LLVM
+
+---
+Language: Cpp
+PointerAlignment: Left
+AllowShortLoopsOnASingleLine: true
+
+# If parameters don't fit on one line format(
+#   arg1, arg2
+# );
+AlignAfterOpenBracket: BlockIndent
+
+# Try putting all constructor initializers
+# on the next line if they don't fit, but,
+# if they also don't fit on the next line,
+# make them 1 per line
+PackConstructorInitializers: NextLineOnly
+
+# Function calls and init lists try to fit
+# args on same line, else all on next line,
+# else one arg per line
+BinPackArguments: false
+AllowAllArgumentsOnNextLine: true
+
+# Don't reflow doxygen comment lines
+CommentPragmas: '^\*? ?@'

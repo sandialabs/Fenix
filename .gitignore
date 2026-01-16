@@ -52,3 +52,6 @@ CMakeCache.txt
 *Makefile
 *.cmake
 cmake_install.cmake
+
+# Pre-commit files
+pre-commit-*.pyz
