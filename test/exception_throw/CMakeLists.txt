@@ -9,6 +9,7 @@
 #
 
 add_executable(fenix_exceptions fenix_exceptions.cpp)
+target_compile_features(fenix_exceptions PRIVATE cxx_std_17)
 target_link_libraries(fenix_exceptions fenix MPI::MPI_CXX)
 
 add_test(NAME exception_throw

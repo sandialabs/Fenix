@@ -39,6 +39,7 @@ int main(int argc, char **argv)
     int *bufs_recv = (int *)malloc(isends*sizeof(int));
     MPI_Request *reqs  = (MPI_Request *)malloc(isends*sizeof(MPI_Request));
     MPI_Request *reqs_recv  = (MPI_Request *)malloc(isends*sizeof(MPI_Request));
+    MPI_Status *statuses = (MPI_Status *)malloc(isends*sizeof(MPI_Status));
     MPI_Barrier(newcomm);
     MPI_Barrier(newcomm);
     MPI_Barrier(newcomm);
@@ -59,8 +60,8 @@ int main(int argc, char **argv)
         }
         for(i=0 ; i<isends ; i++)
             MPI_Irecv(&(bufs_recv[i]), 1, MPI_INT, (rank-1)%size, 0, newcomm, &(reqs_recv[i]));
-        MPI_Waitall(isends, reqs, MPI_STATUSES_IGNORE);
-        MPI_Waitall(isends, reqs_recv, MPI_STATUSES_IGNORE);
+        MPI_Waitall(isends, reqs, statuses);
+        MPI_Waitall(isends, reqs_recv, statuses);
     }
     double time = MPI_Wtime()-tstart;
     printf("time taken per iteration (%d isends and %d irecvs): %f\n", isends, isends, time/(double)(its-2));

@@ -64,7 +64,10 @@
 #include <utility>
 
 #include <mpi.h>
+#ifndef MPICH_VERSION
 #include <mpi-ext.h>
+#endif
+
 #include "fenix.h"
 #include "fenix_ext.hpp"
 #include "fenix_opt.hpp"
