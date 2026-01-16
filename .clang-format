@@ -45,3 +45,5 @@ UseTab: Never
 
 ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
+
+BreakTemplateDeclarations: Leave
