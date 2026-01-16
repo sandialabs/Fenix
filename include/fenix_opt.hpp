@@ -78,7 +78,7 @@
         do { printf("%s(): " fmt, __func__, __VA_ARGS__); } while (0)
 
 typedef struct __fenix_debug_opt_t {
-    int verbose;
+    int verbose = -1;
 } fenix_debug_opt_t;
 
 
