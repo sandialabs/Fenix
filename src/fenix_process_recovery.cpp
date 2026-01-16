@@ -68,45 +68,60 @@
 #include <sys/time.h>
 
 using namespace fenix;
+using namespace fenix::data;
 
-int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***argv,
-                    int spare_ranks,
-                    int spawn,
-                    MPI_Info info, int *error, jmp_buf *jump_environment)
-{
-    *role = fenix_rt.role;
-    *error = FENIX_SUCCESS;
+int __fenix_preinit(
+    int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***argv,
+    int spare_ranks, int spawn, MPI_Info info, int *error, jmp_buf *jump_env
+) {
+    args::FenixInitArgs args;
+    args.role = role;
+    args.in_comm = comm;
+    args.out_comm = new_comm;
+    args.argc = argc;
+    args.argv = argv;
+    args.spares = spare_ranks;
+    args.spawn = spawn;
+    args.err = error;
+    if(info != MPI_INFO_NULL){
+        char value[MPI_MAX_INFO_VAL + 1];
+        int vallen = MPI_MAX_INFO_VAL;
+        int found;
 
-    fenix_rt.user_world = new_comm;
+        MPI_Info_get(info, "FENIX_RESUME_MODE", vallen, value, &found);
+        if(found) args.resume_mode = get_resume_mode(value);
+        else args.resume_mode = JUMP;
+        
+        MPI_Info_get(info, "FENIX_UNHANDLED_MODE", vallen, value, &found);
+        if(found) args.unhandled_mode = get_unhandled_mode(value);
+    } else {
+        args.resume_mode = JUMP;
+    }
+    return fenix_preinit(args, jump_env);
+}
 
-    MPI_Comm_create_errhandler(__fenix_test_MPI, &fenix_rt.mpi_errhandler);
-    
+int fenix_preinit(const args::FenixInitArgs& args, jmp_buf* jump_env){
     fenix_rt.world = (MPI_Comm *)malloc(sizeof(MPI_Comm));
-    MPI_Comm_dup(comm, fenix_rt.world);
+    MPI_Comm_dup(args.in_comm, fenix_rt.world);
+    
+    MPI_Comm_create_errhandler(__fenix_test_MPI, &fenix_rt.mpi_errhandler);
     PMPI_Comm_set_errhandler(*fenix_rt.world, fenix_rt.mpi_errhandler);
 
-    fenix_rt.spare_ranks = spare_ranks;
-    fenix_rt.spawn_policy = spawn;
-    fenix_rt.recover_environment = jump_environment;
-    fenix_rt.ret_role = role;
-    fenix_rt.ret_error = error;
+    fenix_rt.user_world = args.out_comm;
+    fenix_rt.spare_ranks = args.spares;
+    fenix_rt.spawn_policy = args.spawn;
+    fenix_rt.recover_environment = jump_env;
+    fenix_rt.resume_mode = args.resume_mode;
+    fenix_rt.unhandled_mode = args.unhandled_mode;
+    fenix_rt.ret_role = args.role ? args.role : &fenix_rt.role;
+    fenix_rt.ret_error = args.err ? args.err : &fenix_rt.repair_result;
+
+    *fenix_rt.ret_role = fenix_rt.role;
+    *fenix_rt.ret_error = FENIX_SUCCESS;
 
     MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &fenix_rt.agree_op);
 
-    /* Check the values in info */
-    if (info != MPI_INFO_NULL) {
-        constexpr int len = MPI_MAX_INFO_VAL;
-        char value[len + 1];
-        int found;
-
-        MPI_Info_get(info, "FENIX_RESUME_MODE", len, value, &found);
-        if (found) __fenix_set_resume_mode(value);
-        
-        MPI_Info_get(info, "FENIX_UNHANDLED_MODE", len, value, &found);
-        if (found) __fenix_set_unhandled_mode(value);
-    }
-
-    if (fenix_rt.spare_ranks >= __fenix_get_world_size(comm)) {
+    if (fenix_rt.spare_ranks >= __fenix_get_world_size(*fenix_rt.world)) {
         debug_print("Fenix: <%d> spare ranks requested are unavailable\n",
                     fenix_rt.spare_ranks);
     }
@@ -129,16 +144,16 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
         if (fenix_rt.options.verbose == 0) {
             verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
                           __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role,
-                          fenix_rt.num_inital_ranks);   
+                          fenix_rt.num_inital_ranks);
         }
 
     } else {
-        fenix_rt.num_inital_ranks = spare_ranks;
+        fenix_rt.num_inital_ranks = fenix_rt.spare_ranks;
 
         if (fenix_rt.options.verbose == 0) {
             verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
                           __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role,
-                          fenix_rt.num_inital_ranks);   
+                          fenix_rt.num_inital_ranks);
         }
     }
 
@@ -146,7 +161,6 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
 
     while ( __fenix_spare_rank() == 1) {
         int a;
-        int myrank;
         MPI_Status mpi_status;
         fenix_rt.ignore_errs = true;
         int ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
@@ -177,30 +191,26 @@ int __fenix_preinit(int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, cha
     return fenix_rt.role;
 }
 
-void __fenix_set_resume_mode(const std::string_view& name){
+Fenix_Resume_mode get_resume_mode(const std::string_view& name){
     if (name == "JUMP") {
-        fenix_rt.resume_mode = Fenix_Resume_mode::JUMP;
+        return Fenix_Resume_mode::JUMP;
     } else if (name == "RETURN") {
-        fenix_rt.resume_mode = Fenix_Resume_mode::RETURN;
+        return Fenix_Resume_mode::RETURN;
     } else if (name == "THROW") {
-        fenix_rt.resume_mode = Fenix_Resume_mode::THROW;
-    } else {
-        fprintf(stderr, "Unsupported FENIX_RESUME_MODE %s\n", name.data());
-        MPI_Abort(*fenix_rt.world, 1);
+        return Fenix_Resume_mode::THROW;
     }
+    fatal_print("Unsupported FENIX_RESUME_MODE %s", name.data());
 }
 
-void __fenix_set_unhandled_mode(const std::string_view& name){
+Fenix_Unhandled_mode get_unhandled_mode(const std::string_view& name){
     if (name == "SILENT") {
-        fenix_rt.resume_mode = Fenix_Unhandled_mode::SILENT;
+        return Fenix_Unhandled_mode::SILENT;
     } else if (name == "PRINT") {
-        fenix_rt.resume_mode = Fenix_Unhandled_mode::PRINT;
+        return Fenix_Unhandled_mode::PRINT;
     } else if (name == "ABORT") {
-        fenix_rt.resume_mode = Fenix_Unhandled_mode::ABORT;
-    } else {
-        fprintf(stderr, "Unsupported FENIX_UNHANDLED_MODE %s\n", name.data());
-        MPI_Abort(*fenix_rt.world, 1);
+        return Fenix_Unhandled_mode::ABORT;
     }
+    fatal_print("Unsupported FENIX_UNHANDLED_MODE %s", name.data());
 }
 
 int __fenix_spare_rank_within(MPI_Comm refcomm)
@@ -823,7 +833,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
             case RETURN:
                 break;
             case THROW:
-                throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
+                fenix::throw_exception();
                 break;
             default:
                 printf("Fenix internal error: Unknown resume mode %d\n",
