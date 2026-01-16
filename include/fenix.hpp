@@ -60,6 +60,8 @@
 
 #include <mpi.h>
 #include <functional>
+#include <vector>
+#include <optional>
 #include "fenix.h"
 #include "fenix_exception.hpp"
 #include "fenix_data_subset.hpp"
@@ -75,18 +77,44 @@ int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
 
 namespace fenix {
 
+using Role = Fenix_Rank_role;
+constexpr Role INITIAL_RANK   = FENIX_ROLE_INITIAL_RANK;
+constexpr Role RECOVERED_RANK = FENIX_ROLE_RECOVERED_RANK;
+constexpr Role SURVIVOR_RANK  = FENIX_ROLE_SURVIVOR_RANK;
+
+using ResumeMode = Fenix_Resume_mode;
+constexpr ResumeMode JUMP   = FENIX_RESUME_JUMP;
+constexpr ResumeMode RETURN = FENIX_RESUME_RETURN;
+constexpr ResumeMode THROW  = FENIX_RESUME_THROW;
+
+enum CallbackExceptionMode {
+    RETHROW,
+    SQUASH
+};
+
+using UnhandledMode = Fenix_Unhandled_mode;
+constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
+constexpr UnhandledMode PRINT  = FENIX_UNHANDLED_PRINT;
+constexpr UnhandledMode ABORT  = FENIX_UNHANDLED_ABORT;
+
+enum CallbackLocation {
+    PRE_RECOVERY,
+    POST_RECOVERY
+};
+
 namespace args {
 struct FenixInitArgs {
-    int* role                           = nullptr;
-    MPI_Comm in_comm                    = MPI_COMM_WORLD;
-    MPI_Comm* out_comm                  = nullptr;
-    int* argc                           = nullptr;
-    char*** argv                        = nullptr;
-    int spares                          = 0;
-    int spawn                           = 0;
-    Fenix_Resume_mode resume_mode       = THROW;
-    Fenix_Unhandled_mode unhandled_mode = ABORT;
-    int* err                            = nullptr;
+    int* role                                       = nullptr;
+    MPI_Comm in_comm                                = MPI_COMM_WORLD;
+    MPI_Comm* out_comm                              = nullptr;
+    int* argc                                       = nullptr;
+    char*** argv                                    = nullptr;
+    int spares                                      = 0;
+    int spawn                                       = 0;
+    ResumeMode resume_mode                          = THROW;
+    CallbackExceptionMode callback_exception_mode   = RETHROW;
+    UnhandledMode unhandled_mode                    = ABORT;
+    int* err                                        = nullptr;
 };
 }
 
@@ -95,12 +123,60 @@ void init(const args::FenixInitArgs args);
 //!@brief Throw an exception for the most recent fault. Helpful for spares.
 void throw_exception();
 
+//!@brief Overload of #Fenix_get_role
+Fenix_Rank_role role();
+
+//!@brief Overload of #Fenix_get_error
+int error();
+
+//!@brief Overload of #Fenix_get_nspare
+int nspare();
+
+//!@brief Overload of #Fenix_Callback_register
+int callback_register(std::function<void(MPI_Comm, int)> callback, CallbackLocation loc = POST_RECOVERY);
+
+//@!brief Overload of #Fenix_Callback_pop
+int callback_pop(CallbackLocation loc = POST_RECOVERY);
+
+//@!brief Overload of #Fenix_Callback_invoke_all
+void callback_invoke_all(CallbackLocation loc = POST_RECOVERY);
+
+/**
+ * @brief Get the failed ranks from the most recent recovery
+ * @return vector of failed ranks
+ */
+std::vector<int> fail_list();
+
+//!@brief Overload of #Fenix_Process_detect_failures
+int detect_failures(bool recover = true);
+
+//!@brief Overload of #Fenix_Initialized that directly returns true if initialized
+bool initialized();
+
 } // namespace fenix
 
 namespace fenix::data {
 
-extern const DataSubset FENIX_SUBSET_FULL;
-extern const DataSubset FENIX_SUBSET_EMPTY;
+extern const DataSubset SUBSET_FULL;
+extern const DataSubset SUBSET_EMPTY;
+extern DataSubset SUBSET_IGNORE;
+
+//@!brief Overload of #Fenix_Data_group_create
+int group_create(
+    int group_id, MPI_Comm comm, int start_time_stamp, int depth,
+    int policy_name, void* policy_value, int* flag
+);
+
+//@!brief Overload of #Fenix_Data_group_created
+bool group_created(int group_id);
+
+//@!brief Overload of #Fenix_Data_member_create
+int member_create(
+    int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
+
+//@!brief Overload of #Fenix_Data_member_created
+bool member_created(int group_id, int member_id);
 
 //!@brief Overload of #Fenix_Data_member_store
 int member_store(int group_id, int member_id, const DataSubset& subset);
@@ -122,15 +198,42 @@ int member_istorev(
 
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
-    int group_id, int member_id, void *target_buffer, int max_count,
+    int group_id, int member_id, void *target_buffer, int max_length,
     int time_stamp, DataSubset& data_found
 );
 
 //!@brief Overload of #Fenix_Data_member_lrestore
 int member_lrestore(
-    int group_id, int member_id, void *target_buffer, int max_count,
+    int group_id, int member_id, void *target_buffer, int max_length,
     int time_stamp, DataSubset& data_found
 );
+
+//@!brief overload of #Fenix_Data_commit
+int commit(int group_id, int* time_stamp = nullptr);
+
+//@!brief overload of #Fenix_Data_commit
+int commit_barrier(int group_id, int* time_stamp = nullptr);
+
+/**
+ * @brief get the members of a group
+ * @return vector of member IDs of each member in group_id if group exists
+ */
+std::optional<std::vector<int>> group_members(int group_id);
+
+/**
+ * @brief get the snapshots of a group
+ * @return vector of timestamps of each snapshot in group_id if group exists
+ */
+std::optional<std::vector<int>> group_snapshots(int group_id);
+
+//@!brief Overload of #Fenix_Data_snapshot_delete
+int snapshot_delete(int group_id, int timestamp);
+
+//@!brief overload of Fenix_Data_group_delete
+int group_delete(int group_id);
+
+//@!brief overload of Fenix_Data_member_delete
+int member_delete(int group_id, int member_id);
 
 } // namespace fenix::data
 

@@ -94,11 +94,13 @@ int __fenix_create_new_world();
 
 int __fenix_repair_ranks();
 
-int __fenix_callback_register(fenix_callback_func& recover);
+int __fenix_callback_register(
+    fenix_callback_func& recover, fenix::CallbackLocation loc = fenix::POST_RECOVERY
+);
 
-int __fenix_callback_pop();
+int __fenix_callback_pop(fenix::CallbackLocation loc = fenix::POST_RECOVERY);
 
-void __fenix_callback_invoke_all(int error);
+void __fenix_callback_invoke_all(fenix::CallbackLocation loc = fenix::POST_RECOVERY);
 
 int* __fenix_get_fail_ranks(int *, int, int);
 

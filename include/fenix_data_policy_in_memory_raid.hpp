@@ -226,6 +226,7 @@ struct Group : public fenix_group_t {
 
   int get_number_of_snapshots(int* number_of_snapshots) override;
   int get_snapshot_at_position(int position, int* timestamp) override;
+  std::vector<int> get_snapshots();
 
   int reinit(int* flag) override;
 };

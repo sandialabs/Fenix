@@ -697,7 +697,7 @@ int Group::member_create(fenix_member_entry_t* mentry){
       else assert(false);
 
       return FENIX_SUCCESS;
-   } else return FENIX_ERROR_MEMBER_CREATE;
+   } else return FENIX_ERROR_MEMBER_EXISTS;
 }
 
 int Group::member_delete(int member_id){
@@ -798,6 +798,10 @@ int Group::get_snapshot_at_position(int idx, int* snapshot){
    return FENIX_SUCCESS;
 }
 
+std::vector<int> Group::get_snapshots(){
+  return {timestamps.begin(), timestamps.end()};
+}
+
 int Group::member_restore(
    int member_id, void* target_buffer, int max_count, int ts,
    DataSubset& data_found
@@ -851,10 +855,10 @@ int Group::member_restore(
       );
 
       if(!found_members[set_rank]){
-         __fenix_member_create(
-            groupid, packet.memberid, target_buffer, packet.current_count,
+         this->member_create(__fenix_data_member_add_entry(
+            this, packet.memberid, target_buffer, packet.current_count,
             packet.datatype_size
-         );
+         ));
          member = find_member(member_id);
          assert(member);
       }

@@ -60,9 +60,12 @@
 #include <mpi.h>
 #include <vector>
 #include "fenix.h"
+#include "fenix.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_process_recovery.hpp"
 #include "fenix_data_group.hpp"
+
+namespace fenix {
 
 typedef struct {
     int num_inital_ranks;        // Keeps the global MPI rank ID at Fenix_init
@@ -70,12 +73,14 @@ typedef struct {
     int num_recovered_ranks = 0; // Keeps the number of spare ranks brought into MPI communicator recovery
     int spare_ranks;             // Spare ranks entered by user to repair failed ranks
     
-    int resume_mode = Fenix_Resume_mode::JUMP;
-    int unhandled_mode = Fenix_Unhandled_mode::ABORT;
+    ResumeMode resume_mode = JUMP;
+    CallbackExceptionMode callback_exception_mode = RETHROW;
+    UnhandledMode unhandled_mode = ABORT;
     int ignore_errs = false;       // Temporarily ignore all errors & recovery
     int spawn_policy;             // Indicate dynamic process spawning
     jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
 
+    int mpi_fail_code = MPI_SUCCESS;
     int repair_result = FENIX_SUCCESS; // Internal variable to store the result of MPI comm repair
     int role = FENIX_ROLE_INITIAL_RANK;
 
@@ -89,7 +94,9 @@ typedef struct {
     int *ret_role = nullptr;
     int *ret_error = nullptr;
 
-    std::vector<fenix_callback_func> callbacks;
+    std::unordered_map<
+        CallbackLocation, std::vector<fenix_callback_func>
+    > callbacks;
     fenix_debug_opt_t options; // This is reserved to store the user options
 
     MPI_Comm *world;      // Duplicate of comm provided by user
@@ -107,5 +114,7 @@ typedef struct {
     fenix::data::fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;
 
-inline fenix_t fenix_rt;
+}
+
+inline fenix::fenix_t fenix_rt;
 #endif // __FENIX_EXT_H__

@@ -78,31 +78,36 @@ extern "C" {
  * Errors are negative, warnings are positive.
  * @{
  */
-#define FENIX_SUCCESS                         0
-#define FENIX_ERROR_UNINITIALIZED            -9
-#define FENIX_ERROR_NOCATEGORY              -10
-#define FENIX_ERROR_CALLBACK_NOT_REGISTERED -11
-#define FENIX_ERROR_GROUP_CREATE            -12
-#define FENIX_ERROR_MEMBER_CREATE           -13
-#define FENIX_ERROR_COMMIT_BARRIER         -133
-#define FENIX_ERROR_INVALID_GROUPID         -14
-#define FENIX_ERROR_INVALID_MEMBERID        -15
-#define FENIX_ERROR_INVALID_LOGIC_CALL     -155
-#define FENIX_ERROR_INVALID_TIMESTAMP       -16
-#define FENIX_ERROR_INVALID_DEPTH           -17
-#define FENIX_ERROR_INVALID_ATTRIBUTE_NAME  -18
-#define FENIX_ERROR_INVALID_ATTRIBUTE_VALUE -19
-#define FENIX_ERROR_INVALID_POSITION        -20
-#define FENIX_ERROR_DATA_WAIT               -21
-#define FENIX_ERROR_SUBSET_NUM_BLOCKS       -22
-#define FENIX_ERROR_SUBSET_START_OFFSET     -23
-#define FENIX_ERROR_SUBSET_END_OFFSET       -24
-#define FENIX_ERROR_SUBSET_STRIDE           -25
-#define FENIX_ERROR_NODATA_FOUND            -30
-#define FENIX_ERROR_INTERN                  -40
-#define FENIX_ERROR_CANCELLED               -50
-#define FENIX_WARNING_SPARE_RANKS_DEPLETED  100
-#define FENIX_WARNING_PARTIAL_RESTORE       101
+typedef enum {
+    FENIX_SUCCESS = 0,
+    // Error values are negative
+    FENIX_ERROR_UNINITIALIZED = -100,
+    FENIX_ERROR_NOCATEGORY,
+    FENIX_ERROR_CALLBACK_NOT_REGISTERED,
+    FENIX_ERROR_GROUP_CREATE,
+    FENIX_ERROR_MEMBER_CREATE,
+    FENIX_ERROR_MEMBER_EXISTS,
+    FENIX_ERROR_COMMIT_BARRIER,
+    FENIX_ERROR_INVALID_GROUPID,
+    FENIX_ERROR_INVALID_MEMBERID,
+    FENIX_ERROR_INVALID_LOGIC_CALL,
+    FENIX_ERROR_INVALID_TIMESTAMP,
+    FENIX_ERROR_INVALID_DEPTH,
+    FENIX_ERROR_INVALID_ATTRIBUTE_NAME,
+    FENIX_ERROR_INVALID_ATTRIBUTE_VALUE,
+    FENIX_ERROR_INVALID_POSITION,
+    FENIX_ERROR_DATA_WAIT,
+    FENIX_ERROR_SUBSET_NUM_BLOCKS,
+    FENIX_ERROR_SUBSET_START_OFFSET,
+    FENIX_ERROR_SUBSET_END_OFFSET,
+    FENIX_ERROR_SUBSET_STRIDE,
+    FENIX_ERROR_NODATA_FOUND,
+    FENIX_ERROR_INTERN,
+    FENIX_ERROR_CANCELLED,
+    //Warnings are positive
+    FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
+    FENIX_WARNING_PARTIAL_RESTORE,
+} Fenix_Return_codes;
 /**@}*/
 
 //!@internal @brief Agreement code for error handler
@@ -145,11 +150,11 @@ typedef enum {
  */
 typedef enum {
     //!Return to Fenix_Init via longjmp (default)
-    JUMP,
+    FENIX_RESUME_JUMP,
     //!Return the error code inline
-    RETURN,
+    FENIX_RESUME_RETURN,
     //!Throw a fenix::CommException
-    THROW
+    FENIX_RESUME_THROW
 } Fenix_Resume_mode;
 
 /**
@@ -157,11 +162,11 @@ typedef enum {
  */
 typedef enum {
     //!Ignore unhandled errors
-    SILENT,
+    FENIX_UNHANDLED_SILENT,
     //!Print error and continue without handling
-    PRINT,
+    FENIX_UNHANDLED_PRINT,
     //!Print error and abort Fenix's world (default)
-    ABORT
+    FENIX_UNHANDLED_ABORT
 } Fenix_Unhandled_mode;
 
 /**
@@ -280,6 +285,11 @@ int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *),
 int Fenix_Callback_pop();
 
 /**
+ * @brief Invoke all callbacks with information from the last recovered fault
+ */
+void Fenix_Callback_invoke_all();
+
+/**
  * @brief Check for any failed ranks
  *
  * @param[in] do_recovery If true, Fenix will attempt to recover from any detected failures.
@@ -299,6 +309,9 @@ Fenix_Rank_role Fenix_get_role();
 
 //!@brief Returns the error value from Fenix_Init or the latest recovery
 int Fenix_get_error();
+
+//!@brief Returns the number of spare ranks currently available to Fenix
+int Fenix_get_nspare();
 
 /**
  * @brief Get the list of ranks that failed in the most recent failure.
@@ -362,6 +375,8 @@ int Fenix_Finalize();
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID     13
 #define FENIX_DATA_POLICY_IMR                FENIX_DATA_POLICY_IN_MEMORY_RAID
 
+#define FENIX_TIME_STAMP_IGNORE NULL
+
 /**
  * @unimplemented As MPI_Request, but for Fenix asynchronous data recovery calls
  */
@@ -392,6 +407,7 @@ extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
 //!@brief A standin for checkpointing/recovering none of the available data in a member.
 extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
 
+extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
 
 /**
  * @brief Create a Data Group
@@ -429,6 +445,15 @@ int Fenix_Data_group_create(int group_id, MPI_Comm comm, int start_time_stamp,
                             int* flag);
 
 /**
+ * @brief Query if a data group exists on this rank
+ * @qualifier local
+ *
+ * @param group_id   Group identifier
+ * @return A truthy value if the group exists
+ */
+int Fenix_Data_group_created(int group_id);
+
+/**
  * @brief Create a data member for store/restore operations
  * @qualifier collective 
  * @qualifier local
@@ -452,6 +477,16 @@ int Fenix_Data_group_create(int group_id, MPI_Comm comm, int start_time_stamp,
  */
 int Fenix_Data_member_create(int group_id, int member_id, void *buffer,
                              int count, MPI_Datatype datatype);
+
+/**
+ * @brief Query if a data member exists on this rank
+ * @qualifier local
+ *
+ * @param group_id   Group identifier
+ * @param member_id  Member identifier
+ * @return A truthy value if the member exists
+ */
+int Fenix_Data_member_created(int group_id, int member_id);
 
 /**
  * @brief Get the storage policy of a data group

@@ -65,17 +65,28 @@
 
 namespace fenix::data {
 
-group_iterator find_group(int id){
-  return find_group(id, fenix_rt.data_recovery);
+group_iterator search_group(int id, fenix_data_recovery_t* dr){
+  for(int i = 0; i < dr->count; i++){
+    auto group = dr->group[i];
+    if(dr->group[i]->groupid == id){
+      return {i, dr->group[i]};
+    }
+  }
+  return {-1, nullptr};
+}
+group_iterator search_group(int id){
+  return search_group(id, fenix_rt.data_recovery);
 }
 
 group_iterator find_group(int id, fenix_data_recovery_t* dr){
-  int index = __fenix_search_groupid(id, dr);
-  if(index == -1){
+  auto it = search_group(id, dr);
+  if(it.second == nullptr){
     debug_print("ERROR: group_id <%d> does not exist\n", id);
-    return {index, nullptr};
   }
-  return {index, dr->group[index]};
+  return it;
+}
+group_iterator find_group(int id){
+  return find_group(id, fenix_rt.data_recovery);
 }
 
 member_iterator fenix_group_t::search_member(int id){
@@ -89,6 +100,15 @@ member_iterator fenix_group_t::find_member(int id){
   auto it = search_member(id);
   if(it.first == -1) debug_print("ERROR group <%d>: member_id <%d> does not exist\n", groupid, id);
   return it;
+}
+
+std::vector<int> fenix_group_t::get_member_ids(){
+  std::vector<int> ret;
+  ret.reserve(members.size());
+  for(const auto& [k, v] : members){
+    ret.push_back(k);
+  }
+  return ret;
 }
 
 fenix_data_recovery_t * __fenix_data_recovery_init() {
@@ -109,7 +129,7 @@ fenix_data_recovery_t * __fenix_data_recovery_init() {
   return data_recovery;
 }
 
-int __fenix_member_delete(int groupid, int memberid) {
+int member_delete(int groupid, int memberid) {
   auto [group_index, group] = find_group(groupid);
   if(!group) return FENIX_ERROR_INVALID_GROUPID;
 
@@ -172,7 +192,7 @@ int __fenix_data_recovery_remove_group(int group_index){
  * @brief
  * @param group_id
  */
-int __fenix_group_delete(int groupid) {
+int group_delete(int groupid) {
   auto [group_index, group] = find_group(groupid);
   if(!group) return FENIX_ERROR_INVALID_GROUPID;
 

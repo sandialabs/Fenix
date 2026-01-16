@@ -86,6 +86,7 @@ struct fenix_group_t {
     int policy_name;
     std::map<int, fenix_member_entry_t> members;
 
+    std::vector<int> get_member_ids();
     //Search for id, returning {-1, nullptr} if not found.
     member_iterator search_member(int id);
     //As search_member, but print an error message if id not found.
@@ -107,6 +108,7 @@ struct fenix_group_t {
     virtual int member_restore_from_rank(int member_id, void* target_bugger, int max, int timestamp, int source_rank) = 0;
     virtual int get_number_of_snapshots(int* num) = 0;
     virtual int get_snapshot_at_position(int position, int* timestamp) = 0;
+    virtual std::vector<int> get_snapshots() = 0;
     virtual int reinit(int* flag) = 0;
     virtual int member_get_attribute(fenix_member_entry_t* mentry, int name, void* value, int* flag, int sourcerank) = 0;
     virtual int member_set_attribute(fenix_member_entry_t* mentry, int name, void* value, int* flag) = 0;
@@ -127,10 +129,6 @@ typedef struct __group_entry_packet {
 
 fenix_data_recovery_t * __fenix_data_recovery_init();
 
-int __fenix_group_delete(int groupid);
-
-int __fenix_member_delete(int groupid, int memberid);
-
 void __fenix_data_recovery_destroy( fenix_data_recovery_t *fx_data_recovery );
 
 void __fenix_data_recovery_reinit( fenix_data_recovery_t *dr, fenix_two_container_packet_t packet);
@@ -143,8 +141,10 @@ int __fenix_find_next_group_position( fenix_data_recovery_t *dr );
 
 using group_iterator = std::pair<int, fenix_group_t*>;
 
-group_iterator find_group(int id);
+group_iterator search_group(int id, fenix_data_recovery_t *dr);
+group_iterator search_group(int id);
 group_iterator find_group(int id, fenix_data_recovery_t *dr);
+group_iterator find_group(int id);
 
 } //end namespace fenix::data
 

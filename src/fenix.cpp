@@ -65,12 +65,14 @@ using namespace fenix;
 using namespace fenix::data;
 
 namespace fenix::data {
-const DataSubset FENIX_SUBSET_FULL = {{0, fenix::DataSubset::MAX}};
-const DataSubset FENIX_SUBSET_EMPTY = {};
+const DataSubset SUBSET_FULL = {{0, fenix::DataSubset::MAX}};
+const DataSubset SUBSET_EMPTY = {};
+DataSubset SUBSET_IGNORE = SUBSET_EMPTY;
 }
 
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = { new DataSubset(DataSubset::MAX) };
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = { new DataSubset() };
+Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE = NULL;
 
 int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback){
     return __fenix_callback_register(callback);
@@ -86,6 +88,10 @@ int Fenix_Callback_pop() {
     return __fenix_callback_pop();
 }
 
+void Fenix_Callback_invoke_all() {
+    __fenix_callback_invoke_all();
+}
+
 int Fenix_Initialized(int *flag) {
     *flag = (fenix_rt.fenix_init_flag) ? 1 : 0;
     return FENIX_SUCCESS;
@@ -96,13 +102,17 @@ int Fenix_Finalize() {
     return FENIX_SUCCESS;
 }
 
-int Fenix_Data_group_create( int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy_name, 
-        void* policy_value, int* flag) {
-    return __fenix_group_create(group_id, comm, start_time_stamp, depth, policy_name, policy_value, flag);
+int Fenix_Data_group_create(
+    int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy,
+    void* policy_args, int* flag
+) {
+    return group_create(
+        group_id, comm, start_time_stamp, depth, policy, policy_args, flag
+    );
 }
 
 int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int count, MPI_Datatype datatype ) {
-    return __fenix_member_create(group_id, member_id, buffer, count, __fenix_get_size(datatype));
+    return member_create(group_id, member_id, buffer, count, datatype);
 }
 
 int Fenix_Data_group_get_redundancy_policy( int group_id, int* policy_name, void *policy_value, int *flag ) {
@@ -134,11 +144,11 @@ int Fenix_Data_member_istorev(int group_id, int member_id, const Fenix_Data_subs
 }
 
 int Fenix_Data_commit(int group_id, int *time_stamp) {
-    return __fenix_data_commit(group_id, time_stamp);
+    return commit(group_id, time_stamp);
 }
 
 int Fenix_Data_commit_barrier(int group_id, int *time_stamp) {
-    return __fenix_data_commit_barrier(group_id, time_stamp);
+    return commit_barrier(group_id, time_stamp);
 }
 
 int Fenix_Data_barrier(int group_id) {
@@ -212,15 +222,15 @@ int Fenix_Data_member_attr_set(int group_id, int member_id, int attribute_name, 
 }
 
 int Fenix_Data_snapshot_delete(int group_id, int time_stamp) {
-    return __fenix_snapshot_delete(group_id, time_stamp);
+    return snapshot_delete(group_id, time_stamp);
 }
 
 int Fenix_Data_group_delete(int group_id) {
-    return __fenix_group_delete(group_id);
+    return group_delete(group_id);
 }
 
 int Fenix_Data_member_delete(int group_id, int member_id) {
-    return __fenix_member_delete(group_id, member_id);
+    return member_delete(group_id, member_id);
 }
 
 int Fenix_Process_fail_list(int** fail_list){
@@ -248,11 +258,15 @@ int Fenix_Process_detect_failures(int do_recovery){
 }
 
 Fenix_Rank_role Fenix_get_role(){
-    return (Fenix_Rank_role) fenix_rt.role;
+    return role();
 }
 
 int Fenix_get_error(){
-    return fenix_rt.repair_result;
+    return error();
+}
+
+int Fenix_get_nspare(){
+    return nspare();
 }
 
 namespace fenix {
@@ -268,48 +282,41 @@ void throw_exception(){
     throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
 }
 
+Fenix_Rank_role role(){
+    return (Fenix_Rank_role) fenix_rt.role;
+}
+
+int error(){
+    return fenix_rt.repair_result;
+}
+
+int nspare(){
+    return fenix_rt.spare_ranks;
+}
+
+int callback_register(std::function<void(MPI_Comm, int)> callback, CallbackLocation loc){
+    return __fenix_callback_register(callback, loc);
+}
+
+int callback_pop(CallbackLocation loc) {
+    return __fenix_callback_pop(loc);
+}
+
+void callback_invoke_all(CallbackLocation loc) {
+    __fenix_callback_invoke_all(loc);
+}
+
+std::vector<int> fail_list(){
+    if(fenix_rt.fail_world_size == 0) return {};
+    return {fenix_rt.fail_world, fenix_rt.fail_world+fenix_rt.fail_world_size};
+}
+
+int detect_failures(bool recover){
+    return __fenix_detect_failures(recover);
+}
+
+bool initialized(){
+    return fenix_rt.fenix_init_flag;
+}
+
 } // namespace fenix
-
-namespace fenix::data {
-
-int member_store(int group_id, int member_id, const DataSubset& subset){
-    return __fenix_member_store(group_id, member_id, subset);
-}
-
-int member_storev(int group_id, int member_id, const DataSubset& subset){
-    return __fenix_member_storev(group_id, member_id, subset);
-}
-
-int member_istore(
-    int group_id, int member_id, const DataSubset& subset,
-    Fenix_Request *request
-){
-    fatal_print("unimplemented");
-    return 0;
-}
-
-int member_istorev(
-    int group_id, int member_id, const DataSubset& subset,
-    Fenix_Request *request
-){
-    fatal_print("unimplemented");
-    return 0;
-}
-
-int member_restore(
-    int group_id, int member_id, void *target_buffer, int max_count,
-    int time_stamp, DataSubset& data_found
-) {
-    data_found = {};
-    return __fenix_member_restore(group_id, member_id, target_buffer, max_count, time_stamp, data_found);
-}
-
-int member_lrestore(
-    int group_id, int member_id, void *target_buffer, int max_count,
-    int time_stamp, DataSubset& data_found
-) {
-    data_found = {};
-    return __fenix_member_lrestore(group_id, member_id, target_buffer, max_count, time_stamp, data_found);
-}
-
-} // namespace fenix::data
