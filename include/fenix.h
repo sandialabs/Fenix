@@ -60,11 +60,24 @@
 #include <mpi.h>
 #include <setjmp.h>
 
+#include "fenix_init.h"
+
+#if defined(MPIX_ERR_PROC_FAILED) && ! defined(MPI_ERR_PROC_FAILED)
+#define MPI_ERR_PROC_FAILED MPIX_ERR_PROC_FAILED
+#endif
+
+#if defined(MPIX_ERR_PROC_FAILED_PENDING) && ! defined(MPI_ERR_PROC_FAILED_PENDING)
+#define MPI_ERR_PROC_FAILED_PENDING MPIX_ERR_PROC_FAILED_PENDING
+#endif
+
+#if defined(MPIX_ERR_REVOKED) && ! defined(MPI_ERR_REVOKED)
+#define MPI_ERR_REVOKED MPIX_ERR_REVOKED
+#endif
+
+
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "fenix_init.h"
 
 /**
  * @file
@@ -785,7 +798,7 @@ int Fenix_Data_member_delete(int group_id, int member_id);
 /**@}*/
 
 #if defined(c_plusplus) || defined(__cplusplus)
-}
+} // extern "C"
 
 #include "fenix.hpp"
 #endif

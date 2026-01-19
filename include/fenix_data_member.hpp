@@ -85,10 +85,6 @@ struct fenix_member_entry_t {
 fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
         int memberid, void* data, int count, int datatype_size);
 
-int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank);
-int __fenix_data_member_recv_metadata(int groupid, int src_rank, 
-        fenix_member_entry_packet_t* packet);
-
 int __fenix_search_memberid(fenix_group_t* group, int memberid);
 
 } // namespace fenix::data

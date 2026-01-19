@@ -70,7 +70,7 @@ int __fenix_preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int, MPI_
 void __fenix_postinit();
 
 #if defined(c_plusplus) || defined(__cplusplus)
-}
+} // extern "C"
 #endif
 
 #endif

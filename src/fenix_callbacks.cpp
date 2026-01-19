@@ -57,21 +57,18 @@
 #include <assert.h>
 
 #include "fenix_ext.hpp"
-#include "fenix_process_recovery.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_recovery.hpp"
-#include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 #include "fenix_exception.hpp"
 #include <mpi.h>
 
-using namespace fenix;
 
-static std::vector<fenix_callback_func>& callbacks(CallbackLocation loc){
+namespace fenix {
+
+static std::vector<FenixCallbackFunc>& callbacks(CallbackLocation loc){
     return fenix_rt.callbacks.try_emplace(loc).first->second;
 }
 
-int __fenix_callback_register(fenix_callback_func& recover, CallbackLocation loc)
+int callback_register(FenixCallbackFunc recover, CallbackLocation loc)
 {
     if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
 
@@ -80,7 +77,7 @@ int __fenix_callback_register(fenix_callback_func& recover, CallbackLocation loc
     return FENIX_SUCCESS;
 }
 
-int __fenix_callback_pop(CallbackLocation loc){
+int callback_pop(CallbackLocation loc){
    if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
    if(callbacks(loc).empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
 
@@ -89,7 +86,7 @@ int __fenix_callback_pop(CallbackLocation loc){
    return FENIX_SUCCESS;
 }
 
-void __fenix_callback_invoke_all(CallbackLocation loc){
+void callback_invoke_all(CallbackLocation loc){
     //If callbacks are invoked in a nested manner due to caught exceptions
     //within a callback, we want to only finish the most recent call. All prior
     //calls should exit as soon as control returns.
@@ -114,3 +111,5 @@ void __fenix_callback_invoke_all(CallbackLocation loc){
     //Reset the callback depth when leaving the outermost call
     if(m_callbacks_layer == 0) callbacks_depth = 0;
 }
+
+} // namespace fenix

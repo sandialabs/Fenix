@@ -54,8 +54,6 @@
 //@HEADER
 */
 
-#include "fenix_data_recovery.hpp"
-#include "fenix_process_recovery.hpp"
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
 #include "fenix.hpp"
@@ -64,32 +62,22 @@
 using namespace fenix;
 using namespace fenix::data;
 
-namespace fenix::data {
-const DataSubset SUBSET_FULL = {{0, fenix::DataSubset::MAX}};
-const DataSubset SUBSET_EMPTY = {};
-DataSubset SUBSET_IGNORE = SUBSET_EMPTY;
-}
-
 const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = { new DataSubset(DataSubset::MAX) };
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = { new DataSubset() };
 Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE = NULL;
 
-int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback){
-    return __fenix_callback_register(callback);
-}
-
 int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
-    return Fenix_Callback_register([recover, callback_data](MPI_Comm comm, int fenix_error){
+    return callback_register([recover, callback_data](MPI_Comm comm, int fenix_error){
         recover(comm, fenix_error, callback_data);
     });
 }
 
 int Fenix_Callback_pop() {
-    return __fenix_callback_pop();
+    return callback_pop();
 }
 
 void Fenix_Callback_invoke_all() {
-    __fenix_callback_invoke_all();
+    callback_invoke_all();
 }
 
 int Fenix_Initialized(int *flag) {
@@ -97,10 +85,76 @@ int Fenix_Initialized(int *flag) {
     return FENIX_SUCCESS;
 }
 
-int Fenix_Finalize() {
-    __fenix_finalize();
-    return FENIX_SUCCESS;
+int Fenix_Process_fail_list(int** fail_list){
+  *fail_list = fenix_rt.fail_world;
+  return fenix_rt.fail_world_size;
 }
+
+int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
+    //We know this may return as "COMM_REVOKED", but we know the error was already handled
+    int old_ignore_setting = fenix_rt.ignore_errs;
+    fenix_rt.ignore_errs = 1;
+
+    int flag;
+    int ret = PMPI_Test(request, &flag, status);
+
+    fenix_rt.ignore_errs = old_ignore_setting;
+
+    //Request was (potentially) cancelled if ret is MPI_ERR_PROC_FAILED
+    return ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED;
+}
+
+int Fenix_Process_detect_failures(int do_recovery){
+    return detect_failures(do_recovery);
+}
+
+Fenix_Rank_role Fenix_get_role(){
+    return role();
+}
+
+int Fenix_get_error(){
+    return error();
+}
+
+int Fenix_get_nspare(){
+    return nspare();
+}
+
+namespace fenix {
+
+void throw_exception(){
+    throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
+}
+
+Fenix_Rank_role role(){
+    return (Fenix_Rank_role) fenix_rt.role;
+}
+
+int error(){
+    return fenix_rt.repair_result;
+}
+
+int nspare(){
+    return fenix_rt.spare_ranks;
+}
+
+std::vector<int> fail_list(){
+    if(fenix_rt.fail_world_size == 0) return {};
+    return {fenix_rt.fail_world, fenix_rt.fail_world+fenix_rt.fail_world_size};
+}
+
+bool initialized(){
+    return fenix_rt.fenix_init_flag;
+}
+
+namespace data {
+const DataSubset SUBSET_FULL = {{0, fenix::DataSubset::MAX}};
+const DataSubset SUBSET_EMPTY = {};
+DataSubset SUBSET_IGNORE = SUBSET_EMPTY;
+} // namespace data
+
+} //namespace fenix
+
 
 int Fenix_Data_group_create(
     int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy,
@@ -113,18 +167,6 @@ int Fenix_Data_group_create(
 
 int Fenix_Data_member_create( int group_id, int member_id, void *buffer, int count, MPI_Datatype datatype ) {
     return member_create(group_id, member_id, buffer, count, datatype);
-}
-
-int Fenix_Data_group_get_redundancy_policy( int group_id, int* policy_name, void *policy_value, int *flag ) {
-    return __fenix_group_get_redundancy_policy( group_id, policy_name, (int*)policy_value, flag );
-}
-
-int Fenix_Data_wait(Fenix_Request request) {
-    return __fenix_data_wait(request);
-}
-
-int Fenix_Data_test(Fenix_Request request, int *flag) {
-    return __fenix_data_test(request, flag);
 }
 
 int Fenix_Data_member_store(int group_id, int member_id, const Fenix_Data_subset subset) {
@@ -181,10 +223,6 @@ int Fenix_Data_member_lrestore(int group_id, int member_id, void *target_buffer,
     return ret;
 }
 
-int Fenix_Data_member_restore_from_rank(int group_id, int member_id, void *target_buffer, int max_count, int time_stamp, Fenix_Data_subset* data_found, int source_rank) {
-    return 0;
-}
-
 int Fenix_Data_subset_create(int num_blocks, int start_offset, int end_offset, int stride, Fenix_Data_subset *subset_specifier) {
     subset_specifier->impl = new DataSubset({start_offset, end_offset}, num_blocks, stride);
     return FENIX_SUCCESS;
@@ -201,30 +239,6 @@ int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier) {
     return FENIX_SUCCESS;
 }
 
-int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members) {
-    return __fenix_get_number_of_members(group_id, number_of_members);
-}
-
-int Fenix_Data_group_get_member_at_position(int group_id, int *member_id, int position) {
-    return __fenix_get_member_at_position(group_id, member_id, position);
-}
-
-int Fenix_Data_group_get_number_of_snapshots(int group_id, int *number_of_snapshots) {
-    return __fenix_get_number_of_snapshots(group_id, number_of_snapshots);
-}
-
-int Fenix_Data_group_get_snapshot_at_position(int group_id, int position, int *time_stamp) {
-    return __fenix_get_snapshot_at_position(group_id, position, time_stamp);
-}
-
-int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename, void *attributevalue, int *flag, int source_rank) {
-    return __fenix_member_get_attribute(group_id, member_id, attributename, attributevalue, flag, source_rank);
-}
-
-int Fenix_Data_member_attr_set(int group_id, int member_id, int attribute_name, void *attribute_value, int *flag) {
-    return __fenix_member_set_attribute(group_id, member_id, attribute_name, attribute_value, flag);
-}
-
 int Fenix_Data_snapshot_delete(int group_id, int time_stamp) {
     return snapshot_delete(group_id, time_stamp);
 }
@@ -236,91 +250,3 @@ int Fenix_Data_group_delete(int group_id) {
 int Fenix_Data_member_delete(int group_id, int member_id) {
     return member_delete(group_id, member_id);
 }
-
-int Fenix_Process_fail_list(int** fail_list){
-  *fail_list = fenix_rt.fail_world;
-  return fenix_rt.fail_world_size;
-}
-
-int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
-   
-    //We know this may return as "COMM_REVOKED", but we know the error was already handled
-    int old_ignore_setting = fenix_rt.ignore_errs;
-    fenix_rt.ignore_errs = 1;
-
-    int flag;
-    int ret = PMPI_Test(request, &flag, status);
-    
-    fenix_rt.ignore_errs = old_ignore_setting;
-    
-    //Request was (potentially) cancelled if ret is MPI_ERR_PROC_FAILED
-    return ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED;
-}
-
-int Fenix_Process_detect_failures(int do_recovery){
-    return __fenix_detect_failures(do_recovery); 
-}
-
-Fenix_Rank_role Fenix_get_role(){
-    return role();
-}
-
-int Fenix_get_error(){
-    return error();
-}
-
-int Fenix_get_nspare(){
-    return nspare();
-}
-
-namespace fenix {
-
-void init(const args::FenixInitArgs args){
-    fenix_assert(args.resume_mode != JUMP, "Must use Fenix_Init to use the JUMP resume mode");
-
-    fenix_preinit(args);
-    __fenix_postinit();
-}
-
-void throw_exception(){
-    throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
-}
-
-Fenix_Rank_role role(){
-    return (Fenix_Rank_role) fenix_rt.role;
-}
-
-int error(){
-    return fenix_rt.repair_result;
-}
-
-int nspare(){
-    return fenix_rt.spare_ranks;
-}
-
-int callback_register(std::function<void(MPI_Comm, int)> callback, CallbackLocation loc){
-    return __fenix_callback_register(callback, loc);
-}
-
-int callback_pop(CallbackLocation loc) {
-    return __fenix_callback_pop(loc);
-}
-
-void callback_invoke_all(CallbackLocation loc) {
-    __fenix_callback_invoke_all(loc);
-}
-
-std::vector<int> fail_list(){
-    if(fenix_rt.fail_world_size == 0) return {};
-    return {fenix_rt.fail_world, fenix_rt.fail_world+fenix_rt.fail_world_size};
-}
-
-int detect_failures(bool recover){
-    return __fenix_detect_failures(recover);
-}
-
-bool initialized(){
-    return fenix_rt.fenix_init_flag;
-}
-
-} // namespace fenix

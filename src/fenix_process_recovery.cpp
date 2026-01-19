@@ -63,46 +63,20 @@
 #endif
 
 #include "fenix_ext.hpp"
-#include "fenix_process_recovery.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_recovery.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 
-using namespace fenix;
-using namespace fenix::data;
 
-int __fenix_preinit(
-    int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***argv,
-    int spare_ranks, int spawn, MPI_Info info, int *error, jmp_buf *jump_env
-) {
-    args::FenixInitArgs args;
-    args.role = role;
-    args.in_comm = comm;
-    args.out_comm = new_comm;
-    args.argc = argc;
-    args.argv = argv;
-    args.spares = spare_ranks;
-    args.spawn = spawn;
-    args.err = error;
-    if(info != MPI_INFO_NULL){
-        char value[MPI_MAX_INFO_VAL + 1];
-        int vallen = MPI_MAX_INFO_VAL;
-        int found;
+namespace fenix {
 
-        MPI_Info_get(info, "FENIX_RESUME_MODE", vallen, value, &found);
-        if(found) args.resume_mode = get_resume_mode(value);
-        else args.resume_mode = JUMP;
-        
-        MPI_Info_get(info, "FENIX_UNHANDLED_MODE", vallen, value, &found);
-        if(found) args.unhandled_mode = get_unhandled_mode(value);
-    } else {
-        args.resume_mode = JUMP;
-    }
-    return fenix_preinit(args, jump_env);
-}
+static int __fenix_create_new_world();
+static int __fenix_repair_ranks();
+static void __fenix_test_MPI(MPI_Comm*, int*, ...);
+static int* __fenix_get_fail_ranks(int *, int, int);
+static int __fenix_spare_rank();
+static void __fenix_finalize_spare();
 
-int fenix_preinit(const args::FenixInitArgs& args, jmp_buf* jump_env){
+static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr){
     fenix_rt.world = (MPI_Comm *)malloc(sizeof(MPI_Comm));
     MPI_Comm_dup(args.in_comm, fenix_rt.world);
     
@@ -129,7 +103,7 @@ int fenix_preinit(const args::FenixInitArgs& args, jmp_buf* jump_env){
                     fenix_rt.spare_ranks);
     }
 
-    fenix_rt.data_recovery = __fenix_data_recovery_init();
+    fenix_rt.data_recovery = data::__fenix_data_recovery_init();
 
     /*****************************************************/
     /* Note: fenix_rt.new_world is only valid for the   */
@@ -196,6 +170,13 @@ int fenix_preinit(const args::FenixInitArgs& args, jmp_buf* jump_env){
     fenix_rt.user_world_exists = true;
 
     return fenix_rt.role;
+}
+
+void init(const args::FenixInitArgs args){
+    fenix_assert(args.resume_mode != JUMP, "Must use Fenix_Init to use the JUMP resume mode");
+
+    preinit(args);
+    __fenix_postinit();
 }
 
 Fenix_Resume_mode get_resume_mode(const std::string_view& name){
@@ -634,28 +615,7 @@ int __fenix_spare_rank(){
     return __fenix_spare_rank_within(*fenix_rt.world);
 }
 
-void __fenix_postinit()
-{
-    *fenix_rt.ret_role = fenix_rt.role;
-    *fenix_rt.ret_error = fenix_rt.repair_result;
-
-    if(fenix_rt.new_world_exists){
-        //Set up dummy irecv to use for checking for failures.
-        MPI_Irecv(&fenix_rt.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
-                  1234, fenix_rt.new_world, &fenix_rt.check_failures_req);
-    }
-
-    if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
-        __fenix_callback_invoke_all();
-    }
-
-    if (fenix_rt.options.verbose == 9) {
-        verbose_print("After barrier. current_rank: %d, role: %d\n", __fenix_get_current_rank(fenix_rt.new_world),
-                      fenix_rt.role);
-    }
-}
-
-int __fenix_detect_failures(int do_recovery){
+int detect_failures(bool do_recovery){
     if(!fenix_rt.new_world_exists) return FENIX_ERROR_UNINITIALIZED;
 
     int old_ignore_errs = fenix_rt.ignore_errs;
@@ -668,75 +628,6 @@ int __fenix_detect_failures(int do_recovery){
     
     fenix_rt.ignore_errs = old_ignore_errs;
     return ret;
-}
-
-void __fenix_finalize()
-{
-    int location = FENIX_FINALIZE_LOC;
-    MPIX_Comm_agree(*fenix_rt.user_world, &location);
-    if(location != FENIX_FINALIZE_LOC){
-        //Some ranks are in error recovery, so trigger error handling.
-        MPIX_Comm_revoke(*fenix_rt.user_world);
-        MPI_Barrier(*fenix_rt.user_world);
-        
-        //In case no-jump enabled after recovery
-        return __fenix_finalize();
-    }
-
-    int first_spare_rank = __fenix_get_world_size(*fenix_rt.user_world);
-    int last_spare_rank = __fenix_get_world_size(*fenix_rt.world) - 1;
-
-    //If we've reached here, we will finalized regardless of further errors.
-    fenix_rt.ignore_errs = true;
-    while(!fenix_rt.finalized){
-        int user_rank = __fenix_get_current_rank(*fenix_rt.user_world);
-
-        if (user_rank == 0) {
-            for (int i = first_spare_rank; i <= last_spare_rank; i++) {
-                //We don't care if a spare failed, ignore return value
-                int unused;
-                MPI_Request req;
-                MPI_Isend(&unused, 1, MPI_INT, i, 1, *fenix_rt.world, &req);
-                MPI_Request_free(&req);
-            }
-        }
-
-        //We need to confirm that rank 0 didn't fail, since it could have
-        //failed before notifying some spares to leave.
-        int need_retry = user_rank == 0 ? 0 : 1;
-        MPIX_Comm_agree(*fenix_rt.user_world, &need_retry);
-        if(need_retry == 1){
-            //Rank 0 didn't contribute, so we need to retry.
-            MPIX_Comm_shrink(*fenix_rt.user_world, fenix_rt.user_world);
-            continue;
-        } else {
-            //If rank 0 did contribute, we know sends made it, and regardless
-            //of any other failures we finalize.
-            fenix_rt.finalized = true;
-        }
-    }
-
-    //Now we do one last agree w/ the spares to let them know they can actually
-    //finalize
-    int unused;
-    MPIX_Comm_agree(*fenix_rt.world, &unused);
-    
-    
-    MPI_Op_free( &fenix_rt.agree_op );
-    MPI_Comm_set_errhandler( *fenix_rt.world, MPI_ERRORS_ARE_FATAL );
-    MPI_Comm_free( fenix_rt.world );
-    free(fenix_rt.world);
-    if(fenix_rt.new_world_exists) MPI_Comm_free( &fenix_rt.new_world ); //It should, but just in case. Won't update because trying to free it again ought to generate an error anyway.
-
-    if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK){
-        free(fenix_rt.fail_world);
-    }
-
-    /* Free data recovery interface */
-    __fenix_data_recovery_destroy( fenix_rt.data_recovery );
-
-    /* Free up any C++ data structures, reset default variables */
-    fenix_rt = {};
 }
 
 void __fenix_finalize_spare()
@@ -795,7 +686,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
     switch (fenix_rt.mpi_fail_code) {
         case MPI_ERR_PROC_FAILED_PENDING:
         case MPI_ERR_PROC_FAILED:
-            __fenix_callback_invoke_all(fenix::PRE_RECOVERY);
+            callback_invoke_all(fenix::PRE_RECOVERY);
             MPIX_Comm_revoke(*fenix_rt.world);
             MPIX_Comm_revoke(fenix_rt.new_world);
             if(fenix_rt.user_world_exists) MPIX_Comm_revoke(*fenix_rt.user_world);
@@ -803,7 +694,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
             fenix_rt.repair_result = __fenix_repair_ranks();
             break;
         case MPI_ERR_REVOKED:
-            __fenix_callback_invoke_all(fenix::PRE_RECOVERY);
+            callback_invoke_all(fenix::PRE_RECOVERY);
             fenix_rt.repair_result = __fenix_repair_ranks();
             break;
         default:
@@ -851,4 +742,129 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
                 break;
         }
     }
+}
+
+} // namespace fenix
+
+using namespace fenix;
+
+int __fenix_preinit(
+    int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***argv,
+    int spare_ranks, int spawn, MPI_Info info, int *error, jmp_buf *jump_env
+) {
+    args::FenixInitArgs args;
+    args.role = role;
+    args.in_comm = comm;
+    args.out_comm = new_comm;
+    args.argc = argc;
+    args.argv = argv;
+    args.spares = spare_ranks;
+    args.spawn = spawn;
+    args.err = error;
+    if(info != MPI_INFO_NULL){
+        char value[MPI_MAX_INFO_VAL + 1];
+        int vallen = MPI_MAX_INFO_VAL;
+        int found;
+
+        MPI_Info_get(info, "FENIX_RESUME_MODE", vallen, value, &found);
+        if(found) args.resume_mode = get_resume_mode(value);
+        else args.resume_mode = JUMP;
+
+        MPI_Info_get(info, "FENIX_UNHANDLED_MODE", vallen, value, &found);
+        if(found) args.unhandled_mode = get_unhandled_mode(value);
+    } else {
+        args.resume_mode = JUMP;
+    }
+    return preinit(args, jump_env);
+}
+
+void __fenix_postinit()
+{
+    *fenix_rt.ret_role = fenix_rt.role;
+    *fenix_rt.ret_error = fenix_rt.repair_result;
+
+    if(fenix_rt.new_world_exists){
+        //Set up dummy irecv to use for checking for failures.
+        MPI_Irecv(&fenix_rt.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
+                  1234, fenix_rt.new_world, &fenix_rt.check_failures_req);
+    }
+
+    if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
+        callback_invoke_all();
+    }
+
+    if (fenix_rt.options.verbose == 9) {
+        verbose_print("After barrier. current_rank: %d, role: %d\n", __fenix_get_current_rank(fenix_rt.new_world),
+                      fenix_rt.role);
+    }
+}
+
+int Fenix_Finalize()
+{
+    int location = FENIX_FINALIZE_LOC;
+    MPIX_Comm_agree(*fenix_rt.user_world, &location);
+    if(location != FENIX_FINALIZE_LOC){
+        //Some ranks are in error recovery, so trigger error handling.
+        MPIX_Comm_revoke(*fenix_rt.user_world);
+        MPI_Barrier(*fenix_rt.user_world);
+
+        //In case no-jump enabled after recovery
+        return Fenix_Finalize();
+    }
+
+    int first_spare_rank = __fenix_get_world_size(*fenix_rt.user_world);
+    int last_spare_rank = __fenix_get_world_size(*fenix_rt.world) - 1;
+
+    //If we've reached here, we will finalized regardless of further errors.
+    fenix_rt.ignore_errs = true;
+    while(!fenix_rt.finalized){
+        int user_rank = __fenix_get_current_rank(*fenix_rt.user_world);
+
+        if (user_rank == 0) {
+            for (int i = first_spare_rank; i <= last_spare_rank; i++) {
+                //We don't care if a spare failed, ignore return value
+                int unused;
+                MPI_Request req;
+                MPI_Isend(&unused, 1, MPI_INT, i, 1, *fenix_rt.world, &req);
+                MPI_Request_free(&req);
+            }
+        }
+
+        //We need to confirm that rank 0 didn't fail, since it could have
+        //failed before notifying some spares to leave.
+        int need_retry = user_rank == 0 ? 0 : 1;
+        MPIX_Comm_agree(*fenix_rt.user_world, &need_retry);
+        if(need_retry == 1){
+            //Rank 0 didn't contribute, so we need to retry.
+            MPIX_Comm_shrink(*fenix_rt.user_world, fenix_rt.user_world);
+            continue;
+        } else {
+            //If rank 0 did contribute, we know sends made it, and regardless
+            //of any other failures we finalize.
+            fenix_rt.finalized = true;
+        }
+    }
+
+    //Now we do one last agree w/ the spares to let them know they can actually
+    //finalize
+    int unused;
+    MPIX_Comm_agree(*fenix_rt.world, &unused);
+
+
+    MPI_Op_free( &fenix_rt.agree_op );
+    MPI_Comm_set_errhandler( *fenix_rt.world, MPI_ERRORS_ARE_FATAL );
+    MPI_Comm_free( fenix_rt.world );
+    free(fenix_rt.world);
+    if(fenix_rt.new_world_exists) MPI_Comm_free( &fenix_rt.new_world ); //It should, but just in case. Won't update because trying to free it again ought to generate an error anyway.
+
+    if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK){
+        free(fenix_rt.fail_world);
+    }
+
+    /* Free data recovery interface */
+    __fenix_data_recovery_destroy( fenix_rt.data_recovery );
+
+    /* Free up any C++ data structures, reset default variables */
+    fenix_rt = {};
+    return FENIX_SUCCESS;
 }

@@ -72,7 +72,6 @@
 #include "fenix_ext.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_data_subset.hpp"
-#include "fenix_data_recovery.hpp"
 #include "fenix_data_policy.hpp"
 #include "fenix_data_group.hpp"
 #include "fenix_data_member.hpp"
@@ -909,7 +908,10 @@ int Group::member_lrestore(
 
 int Group::member_restore_from_rank(int member_id,
         void* target_buffer, int max_count, int timestamp, 
-        int source_rank){return 0;}
+        int source_rank){
+   fenix_assert(false, "restore_from_rank is not supported yet!");
+   return FENIX_ERROR_NOCATEGORY;
+}
 
 
 int Group::member_get_attribute(fenix_member_entry_t* member, 

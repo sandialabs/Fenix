@@ -55,7 +55,6 @@
 */
 
 #include "fenix_opt.hpp"
-#include "fenix_process_recovery.hpp"
 #include "fenix_util.hpp"
 
 char* logname;

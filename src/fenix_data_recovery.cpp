@@ -57,7 +57,6 @@
 
 
 #include "fenix.hpp"
-#include "fenix_data_recovery.hpp"
 #include "fenix_data_policy.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
@@ -68,9 +67,11 @@
 #include <mpi-ext.h>
 #endif
 
+using namespace fenix::data;
+
 namespace fenix::data {
 
-int group_create( int groupid, MPI_Comm comm, int timestart, int depth, int policy_name, 
+int group_create( int groupid, MPI_Comm comm, int timestart, int depth, int policy_name,
         void* policy_value, int* flag) {
 
   int retval = -1;
@@ -113,16 +114,16 @@ int group_create( int groupid, MPI_Comm comm, int timestart, int depth, int poli
     if (group_index == -1 ) {
 
       if (fenix_rt.options.verbose == 12 &&   __fenix_get_current_rank(comm) == 0) {
-         printf("this is a new group!\n"); 
+         printf("this is a new group!\n");
       }
 
       /* Obtain an available group slot */
       group_index = __fenix_find_next_group_position(data_recovery);
 
       /* Initialize Group */
-      __fenix_policy_get_group(data_recovery->group + group_index, comm, timestart, 
+      __fenix_policy_get_group(data_recovery->group + group_index, comm, timestart,
               depth, policy_name, policy_value, flag);
-      
+
       //The group has filled any group-specific details, we need to fill in the core details.
       group = (data_recovery->group[ group_index ] );
       group->groupid = groupid;
@@ -167,22 +168,6 @@ bool group_created(int groupid){
   return search_group(groupid).second != nullptr;
 }
 
-int __fenix_group_get_redundancy_policy(int groupid, int* policy_name, int* policy_value, int* flag){
-  int retval = -1;
-  int group_index = __fenix_search_groupid( groupid, fenix_rt.data_recovery );
-  
-  if(group_index == -1){
-    debug_print("ERROR Fenix_Data_member_create: group_id <%d> does not exist\n",
-                groupid);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else {
-    fenix_group_t* group = fenix_rt.data_recovery->group[group_index];
-    retval = group->get_redundant_policy(policy_name, policy_value, flag);
-  }
-
-  return retval;
-}
-
 int member_create(
   int groupid, int memberid, void *data, int count, MPI_Datatype datatype
 ) {
@@ -215,66 +200,13 @@ bool member_created(int group_id, int member_id){
   return group && group->search_member(member_id).second;
 }
 
-/**
- * @brief
- * @param request
- */
-int __fenix_data_wait( Fenix_Request request ) {
-  int retval = -1;
-  int result = __fenix_mpi_wait(&(request.mpi_recv_req));
-
-  if (result != MPI_SUCCESS) {
-    retval = FENIX_SUCCESS;
-  } else {
-    retval = FENIX_ERROR_DATA_WAIT;
-  }
-
-  result = __fenix_mpi_wait(&(request.mpi_send_req));
-
-  if (result != MPI_SUCCESS) {
-    retval = FENIX_SUCCESS;
-  } else {
-    retval = FENIX_ERROR_DATA_WAIT;
-  }
-
-  return retval;
-}
-
-/**
- * @brief
- * @param request
- * @param flag
- */
-int __fenix_data_test(Fenix_Request request, int *flag) {
-  int retval = -1;
-  int result = ( __fenix_mpi_test(&(request.mpi_recv_req)) & __fenix_mpi_test(&(request.mpi_send_req))) ;
-
-  if ( result == 1 ) {
-    *flag = 1;
-    retval = FENIX_SUCCESS;
-  } else {
-    *flag = 0 ; // incomplete error?
-    retval = FENIX_ERROR_DATA_WAIT;
-  }
-  return retval;
-  /* Good 2/10/17 */
-}
-
-/**
- * @brief // TODO: implement FENIX_DATA_MEMBER_ALL
- * @param group_id
- * @param member_id
- * @param subset_specifier
- *
- */
-
 int member_store(int groupid, int memberid, const DataSubset& specifier) {
   auto [group_index, group] = find_group(groupid);
   if(!group){
     debug_print("ERROR Fenix_Data_member_store: group_id <%d> does not exist", groupid);
     return FENIX_ERROR_INVALID_GROUPID;
   }
-  
+
   return group->member_store(memberid, specifier);
 }
 
@@ -284,17 +216,10 @@ int member_storev(int groupid, int memberid, const DataSubset& specifier) {
     debug_print("ERROR Fenix_Data_member_storev: group_id <%d> does not exist", groupid);
     return FENIX_ERROR_INVALID_GROUPID;
   }
-  
+
   return group->member_storev(memberid, specifier);
 }
 
-/**
- * @brief
- * @param group_id
- * @param member_id
- * @param subset_specifier
- * @param request
- */
 int member_istore(int groupid, int memberid, const DataSubset& specifier,
                   Fenix_Request *request) {
   fatal_print("unimplemented");
@@ -313,19 +238,13 @@ int member_istorev(
   fatal_print("unimplemented");
   auto [group_index, group] = find_group(groupid);
   if(!group){
-    debug_print("ERROR Fenix_Data_member_istore: group_id <%d> does not exist", groupid);
+    debug_print("ERROR Fenix_Data_member_istorev: group_id <%d> does not exist", groupid);
     return FENIX_ERROR_INVALID_GROUPID;
   }
-  
+
   return group->member_istore(memberid, specifier, request);
 }
 
-
-/**
- * @brief
- * @param group_id
- * @param time_stamp
- */
 int commit(int groupid, int *timestamp) {
   /* No communication is performed */
   /* Return the new timestamp      */
@@ -339,12 +258,12 @@ int commit(int groupid, int *timestamp) {
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
-    
+
     if (group->timestamp != -1) group->timestamp++;
     else group->timestamp = group->timestart;
-    
+
     group->commit();
-    
+
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
     }
@@ -354,11 +273,6 @@ int commit(int groupid, int *timestamp) {
   return retval;
 }
 
-/**
- * @brief
- * @param group_id
- * @param time_stamp
- */
 int commit_barrier(int groupid, int *timestamp) {
   int retval = -1;
   int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
@@ -371,7 +285,7 @@ int commit_barrier(int groupid, int *timestamp) {
     retval = FENIX_ERROR_INVALID_GROUPID;
   } else {
     fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
-   
+
     //We want to make sure there aren't any failed MPI operations (IE unfinished stores)
     //But we don't want to fail to commit if a failure has happened since a successful store.
     int old_failure_handling = fenix_rt.ignore_errs;
@@ -402,7 +316,7 @@ int commit_barrier(int groupid, int *timestamp) {
         MPI_Allreduce(MPI_IN_PLACE, &throwaway, 1, MPI_INT, MPI_SUM, *fenix_rt.user_world);
     }
 
-    
+
     if (timestamp != NULL) {
       *timestamp = group->timestamp;
     }
@@ -410,15 +324,6 @@ int commit_barrier(int groupid, int *timestamp) {
   return retval;
 }
 
-
-/**
- * @brief
- * @param group_id
- * @param member_id
- * @param data
- * @param max_count
- * @param time_stamp
- */
 int member_restore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
   int retval =  FENIX_SUCCESS;
   data_found = {};
@@ -444,14 +349,6 @@ int member_restore(int groupid, int memberid, void *data, int maxcount, int time
   return retval;
 }
 
-/**
- * @brief
- * @param group_id
- * @param member_id
- * @param data
- * @param max_count
- * @param time_stamp
- */
 int member_lrestore(int groupid, int memberid, void *data, int maxcount, int timestamp, DataSubset& data_found) {
   int retval =  FENIX_SUCCESS;
   data_found = {};
@@ -478,66 +375,6 @@ int member_lrestore(int groupid, int memberid, void *data, int maxcount, int tim
   return retval;
 }
 
-/**
- * @brief
- * @param group_id
- * @param member_id
- * @param target_buffer
- * @param max_count
- * @param time_stamp
- * @param source_rank
- */
-int __fenix_member_restore_from_rank(int groupid, int memberid, void *target_buffer,
-                             int max_count, int time_stamp, int source_rank) {
-  int retval =  FENIX_SUCCESS;
-  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery);
-  int member_index = -1;
-  
-  if(group_index != -1) member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index], memberid);
-
-  if (fenix_rt.options.verbose == 25) {
-    verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
-                  member_index);
-  }
-
-  if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_member_restore: group_id <%d> does not exist\n",
-                groupid);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else {
-    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
-    retval = group->member_restore_from_rank(memberid, target_buffer, 
-            max_count, time_stamp, source_rank);
-  }
-  return retval;
-}
-
-
-int __fenix_get_number_of_members(int group_id, int *num_members) {
-  auto group = find_group(group_id).second;
-  if(!group) return FENIX_ERROR_INVALID_GROUPID;
-
-  *num_members = group->members.size();
-  return FENIX_SUCCESS;
-}
-
-int __fenix_get_member_at_position(int group_id, int *member_id, int position) {
-  auto [group_index, group] = find_group(group_id);
-  if(!group) return FENIX_ERROR_INVALID_GROUPID;
-
-  if(position < 0 || position >= group->members.size()){
-    debug_print(
-            "ERROR Fenix_Data_group_get_member_at_position: position <%d> must be a value between 0 and number_of_members-1 \n",
-            position);
-    return FENIX_ERROR_INVALID_POSITION;
-  }
-  auto iter = group->members.begin();
-  std::advance(iter, position);
-  *member_id = iter->first;
-  return FENIX_SUCCESS;
-}
-
 std::optional<std::vector<int>> group_members(int group_id){
   auto [group_index, group] = find_group(group_id);
   if(!group) return {};
@@ -550,83 +387,28 @@ std::optional<std::vector<int>> group_snapshots(int group_id){
   return group->get_snapshots();
 }
 
-/**
- * @brief
- * @param group_id
- * @param num_snapshots
- */
-int __fenix_get_number_of_snapshots(int group_id, int *num_snapshots) {
+int snapshot_delete(int group_id, int time_stamp) {
   int retval = -1;
   int group_index = __fenix_search_groupid(group_id, fenix_rt.data_recovery );
   if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
+    debug_print("ERROR Fenix_Data_snapshot_delete: group_id <%d> does not exist\n",
+                group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
+  } else if (time_stamp < 0) {
+    debug_print(
+            "ERROR Fenix_Data_snapshot_delete: time_stamp <%d> must be greater than zero\n",
+            time_stamp);
+    retval = FENIX_ERROR_INVALID_TIMESTAMP;
   } else {
     fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
-    retval = group->get_number_of_snapshots(num_snapshots);
+    retval = group->snapshot_delete(time_stamp);
   }
   return retval;
 }
 
-/**
- * @brief
- * @param group_id
- * @param position
- * @param time_stamp
- */
-int __fenix_get_snapshot_at_position(int groupid, int position, int *timestamp) {
-  int retval = -1;
-  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
-  if (fenix_rt.options.verbose == 33) {
-    verbose_print("c-rank: %d, role: %d, group_index: %d\n",
-                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index);
-  }
-  if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
-    retval = FENIX_ERROR_INVALID_GROUPID;
-  } else {
-    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
-    *timestamp = group->timestamp - position;
-  }
-  return retval;
-}
+} // namespace fenix::data
 
-/**
- * @brief
- * @param group_id
- * @param member_id
- * @param attribute_name
- * @param attribute_value
- * @param flag
- * @param source_rank
- */
-int __fenix_member_get_attribute(int groupid, int memberid, int attributename,
-                         void *attributevalue, int *flag, int sourcerank) {
-  auto [group_index, group] = find_group(groupid);
-  if(!group) return FENIX_ERROR_INVALID_GROUPID;
-
-  auto [member_index, mentry] = group->find_member(memberid);
-  if(!mentry) return FENIX_ERROR_INVALID_MEMBERID;
-
-  if (fenix_rt.options.verbose == 34) {
-    verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
-                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
-                  member_index);
-  }
-
-  return group->member_get_attribute(mentry, attributename,
-          attributevalue, flag, sourcerank);
-}
-
-/**
- * @brief
- * @param group_id
- * @param member_id
- * @param attribute_name
- * @param attribute_value
- * @param flag
- */
-int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
+int Fenix_Data_member_attr_set(int groupid, int memberid, int attributename,
                          void *attributevalue, int *flag) {
   auto [group_index, group] = find_group(groupid);
   if(!group) return FENIX_ERROR_INVALID_GROUPID;
@@ -639,7 +421,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
                     __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
                   member_index);
   }
-  
+
   int my_datatype_size;
   int myerr;
 
@@ -671,7 +453,7 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
       mentry->datatype_size = my_datatype_size;
       retval = FENIX_SUCCESS;
       break;
-    
+
     default:
       //Only an issue if the policy also doesn't have this attribute.
       if(retval){
@@ -685,28 +467,152 @@ int __fenix_member_set_attribute(int groupid, int memberid, int attributename,
   return retval;
 }
 
-/**
- * @brief
- * @param group_id
- * @param time_stamp
- */
-int snapshot_delete(int group_id, int time_stamp) {
+int Fenix_Data_group_get_number_of_snapshots(int group_id, int *num_snapshots) {
   int retval = -1;
   int group_index = __fenix_search_groupid(group_id, fenix_rt.data_recovery );
   if (group_index == -1) {
-    debug_print("ERROR Fenix_Data_snapshot_delete: group_id <%d> does not exist\n",
-                group_id);
+    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", group_id);
     retval = FENIX_ERROR_INVALID_GROUPID;
-  } else if (time_stamp < 0) {
-    debug_print(
-            "ERROR Fenix_Data_snapshot_delete: time_stamp <%d> must be greater than zero\n",
-            time_stamp);
-    retval = FENIX_ERROR_INVALID_TIMESTAMP;
   } else {
     fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
-    retval = group->snapshot_delete(time_stamp);
+    retval = group->get_number_of_snapshots(num_snapshots);
   }
   return retval;
 }
 
-} // namespace fenix::data
+int Fenix_Data_group_get_snapshot_at_position(int groupid, int position, int *timestamp) {
+  int retval = -1;
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery );
+  if (fenix_rt.options.verbose == 33) {
+    verbose_print("c-rank: %d, role: %d, group_index: %d\n",
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index);
+  }
+  if (group_index == -1) {
+    debug_print("ERROR Fenix_Data_commit: group_id <%d> does not exist\n", groupid);
+    retval = FENIX_ERROR_INVALID_GROUPID;
+  } else {
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
+    *timestamp = group->timestamp - position;
+  }
+  return retval;
+}
+
+int Fenix_Data_member_attr_get(int groupid, int memberid, int attributename,
+                         void *attributevalue, int *flag, int sourcerank) {
+  auto [group_index, group] = find_group(groupid);
+  if(!group) return FENIX_ERROR_INVALID_GROUPID;
+
+  auto [member_index, mentry] = group->find_member(memberid);
+  if(!mentry) return FENIX_ERROR_INVALID_MEMBERID;
+
+  if (fenix_rt.options.verbose == 34) {
+    verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
+                  member_index);
+  }
+
+  return group->member_get_attribute(mentry, attributename,
+          attributevalue, flag, sourcerank);
+}
+
+int Fenix_Data_group_get_redundancy_policy(int groupid, int* policy_name, int* policy_value, int* flag){
+  int retval = -1;
+  int group_index = __fenix_search_groupid( groupid, fenix_rt.data_recovery );
+
+  if(group_index == -1){
+    debug_print("ERROR Fenix_Data_member_create: group_id <%d> does not exist\n",
+                groupid);
+    retval = FENIX_ERROR_INVALID_GROUPID;
+  } else {
+    fenix_group_t* group = fenix_rt.data_recovery->group[group_index];
+    retval = group->get_redundant_policy(policy_name, policy_value, flag);
+  }
+
+  return retval;
+}
+
+int Fenix_Data_member_restore_from_rank(int groupid, int memberid, void *target_buffer,
+                             int max_count, int time_stamp, int source_rank) {
+  int retval =  FENIX_SUCCESS;
+  int group_index = __fenix_search_groupid(groupid, fenix_rt.data_recovery);
+  int member_index = -1;
+
+  if(group_index != -1) member_index = __fenix_search_memberid(fenix_rt.data_recovery->group[group_index], memberid);
+
+  if (fenix_rt.options.verbose == 25) {
+    verbose_print("c-rank: %d, role: %d, group_index: %d, member_index: %d\n",
+                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, group_index,
+                  member_index);
+  }
+
+  if (group_index == -1) {
+    debug_print("ERROR Fenix_Data_member_restore: group_id <%d> does not exist\n",
+                groupid);
+    retval = FENIX_ERROR_INVALID_GROUPID;
+  } else {
+    fenix_group_t *group = (fenix_rt.data_recovery->group[group_index]);
+    retval = group->member_restore_from_rank(memberid, target_buffer,
+            max_count, time_stamp, source_rank);
+  }
+  return retval;
+}
+
+int Fenix_Data_group_get_number_of_members(int group_id, int *num_members) {
+  auto group = find_group(group_id).second;
+  if(!group) return FENIX_ERROR_INVALID_GROUPID;
+
+  *num_members = group->members.size();
+  return FENIX_SUCCESS;
+}
+
+int Fenix_Data_group_get_member_at_position(int group_id, int *member_id, int position) {
+  auto [group_index, group] = find_group(group_id);
+  if(!group) return FENIX_ERROR_INVALID_GROUPID;
+
+  if(position < 0 || position >= group->members.size()){
+    debug_print(
+            "ERROR Fenix_Data_group_get_member_at_position: position <%d> must be a value between 0 and number_of_members-1 \n",
+            position);
+    return FENIX_ERROR_INVALID_POSITION;
+  }
+  auto iter = group->members.begin();
+  std::advance(iter, position);
+  *member_id = iter->first;
+  return FENIX_SUCCESS;
+}
+
+int Fenix_Data_wait( Fenix_Request request ) {
+  int retval = -1;
+  int result = __fenix_mpi_wait(&(request.mpi_recv_req));
+
+  if (result != MPI_SUCCESS) {
+    retval = FENIX_SUCCESS;
+  } else {
+    retval = FENIX_ERROR_DATA_WAIT;
+  }
+
+  result = __fenix_mpi_wait(&(request.mpi_send_req));
+
+  if (result != MPI_SUCCESS) {
+    retval = FENIX_SUCCESS;
+  } else {
+    retval = FENIX_ERROR_DATA_WAIT;
+  }
+
+  return retval;
+}
+
+int Fenix_Data_test(Fenix_Request request, int *flag) {
+  int retval = -1;
+  int result = ( __fenix_mpi_test(&(request.mpi_recv_req)) & __fenix_mpi_test(&(request.mpi_send_req))) ;
+
+  if ( result == 1 ) {
+    *flag = 1;
+    retval = FENIX_SUCCESS;
+  } else {
+    *flag = 0 ; // incomplete error?
+    retval = FENIX_ERROR_DATA_WAIT;
+  }
+  return retval;
+}
+

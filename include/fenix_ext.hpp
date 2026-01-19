@@ -62,7 +62,6 @@
 #include "fenix.h"
 #include "fenix.hpp"
 #include "fenix_opt.hpp"
-#include "fenix_process_recovery.hpp"
 #include "fenix_data_group.hpp"
 
 namespace fenix {
@@ -95,7 +94,7 @@ typedef struct {
     int *ret_error = nullptr;
 
     std::unordered_map<
-        CallbackLocation, std::vector<fenix_callback_func>
+        CallbackLocation, std::vector<FenixCallbackFunc>
     > callbacks;
     fenix_debug_opt_t options; // This is reserved to store the user options
 
