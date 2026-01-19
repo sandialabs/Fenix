@@ -60,7 +60,6 @@
 
 #include "fenix_data_group.hpp"
 #include "fenix_data_member.hpp"
-#include "fenix_data_subset.h"
 #include "fenix_util.hpp"
 #include <mpi.h>
 #include <stdio.h>

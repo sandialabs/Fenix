@@ -61,7 +61,6 @@
 #include <mpi.h>
 #include "fenix.h"
 #include "fenix_data_member.hpp"
-#include "fenix_data_packet.hpp"
 #include "fenix_util.hpp"
 #include "fenix_data_subset.hpp"
 
@@ -130,8 +129,6 @@ typedef struct __group_entry_packet {
 fenix_data_recovery_t * __fenix_data_recovery_init();
 
 void __fenix_data_recovery_destroy( fenix_data_recovery_t *fx_data_recovery );
-
-void __fenix_data_recovery_reinit( fenix_data_recovery_t *dr, fenix_two_container_packet_t packet);
 
 void __fenix_ensure_data_recovery_capacity( fenix_data_recovery_t *dr);
 

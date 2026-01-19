@@ -59,7 +59,6 @@
 #include "fenix_ext.hpp"
 #include "fenix_data_recovery.hpp"
 #include "fenix_data_member.hpp"
-#include "fenix_data_packet.hpp"
 
 
 namespace fenix::data {
@@ -118,11 +117,6 @@ int __fenix_data_member_recv_metadata(int groupid, int src_rank,
             RECOVER_MEMBER_ENTRY_TAG^groupid, group->comm, NULL);
 
     return FENIX_SUCCESS;
-}
-
-void __fenix_data_member_reinit(fenix_group_t *group, fenix_two_container_packet_t packet,
-                   enum states mystatus) {
-    group->members.clear();
 }
 
 } //namespace fenix::data

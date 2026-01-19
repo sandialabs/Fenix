@@ -71,7 +71,7 @@
 #include "fenix.h"
 #include "fenix_ext.hpp"
 #include "fenix_opt.hpp"
-#include "fenix_data_subset.h"
+#include "fenix_data_subset.hpp"
 #include "fenix_data_recovery.hpp"
 #include "fenix_data_policy.hpp"
 #include "fenix_data_group.hpp"

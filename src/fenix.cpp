@@ -186,15 +186,19 @@ int Fenix_Data_member_restore_from_rank(int group_id, int member_id, void *targe
 }
 
 int Fenix_Data_subset_create(int num_blocks, int start_offset, int end_offset, int stride, Fenix_Data_subset *subset_specifier) {
-    return __fenix_data_subset_create(num_blocks, start_offset, end_offset, stride, subset_specifier);
+    subset_specifier->impl = new DataSubset({start_offset, end_offset}, num_blocks, stride);
+    return FENIX_SUCCESS;
 }
 
 int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets, int *array_end_offsets, Fenix_Data_subset *subset_specifier) {
-    return __fenix_data_subset_createv(num_blocks, array_start_offsets, array_end_offsets, subset_specifier);
+    subset_specifier->impl = new DataSubset(num_blocks, array_start_offsets, array_end_offsets);
+    return FENIX_SUCCESS;
 }
 
 int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier) {
-    return __fenix_data_subset_free(subset_specifier);
+    delete (DataSubset*) subset_specifier->impl;
+    subset_specifier->impl = nullptr;
+    return FENIX_SUCCESS;
 }
 
 int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members) {
