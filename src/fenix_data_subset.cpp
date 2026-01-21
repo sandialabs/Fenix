@@ -199,17 +199,17 @@ void merge_adjacent_sets(std::set<DataRegion>& a, std::set<DataRegion>& b){
          a.merge(b);
          b.clear();
       } else {
-         a.erase(a.end()--);
+         a.erase(--a.end());
          b.erase(b.begin());
-         a.insert(*merged);
+         a.insert(merged.value());
       }
    }
    while(a.size() > 1){
       auto merged = (----a.end())->try_merge(*(--a.end()));
       if(!merged) break;
-      a.erase(a.end()--);
-      a.erase(a.end()--);
-      a.insert(*merged);
+      a.erase(--a.end());
+      a.erase(--a.end());
+      a.insert(merged.value());
    }
 }
 

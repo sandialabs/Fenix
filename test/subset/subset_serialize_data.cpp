@@ -55,38 +55,69 @@
 //@HEADER
 */
 
-#include <fenix.hpp>
+#include <fenix.h>
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <fenix_data_subset.hpp>
 
-#include <vector>
+#include "subset_common.hpp"
 
-//Returns a variety of subsets to perform tests on
-static std::vector<fenix::DataSubset> get_subsets(){
-    using namespace fenix;
-    std::vector<DataSubset> ret;
-    ret.push_back(DataSubset());
-    ret.push_back(DataSubset(10));
-    ret.push_back(DataSubset(-1));
-    ret.push_back(DataSubset({0, 0}));
-    ret.push_back(DataSubset({0, 10}));
-    ret.push_back(DataSubset({0, -1}));
-    ret.push_back(DataSubset({5, 10}));
-    ret.push_back(DataSubset({5, -1}));
-    ret.push_back(DataSubset({0, 4}, 2, 5));
-    ret.push_back(DataSubset({0, 4}, 2, 6));
-    ret.push_back(DataSubset({0, 4}, 10, 6));
-    ret.push_back(DataSubset({0, 4}, 10, 10));
-    return ret;
+using namespace fenix;
+
+bool test_serialize_data(const DataSubset& a){
+   size_t count = a.max_count();
+   if(count == 0) count = 1000;
+
+   std::vector<int> in, out;
+   in.resize(count);
+   out.resize(count);
+   
+   for(int& i : in) i = 1;
+   for(int& i : out) i = 0;
+
+   DataBuffer in_buf, out_buf, serialized_buf;
+
+   // Data to in_buf
+   a.copy_data(sizeof(int), count, (char*)in.data(), in_buf);
+
+   //Serialize in_buf to serialized_buf
+   a.serialize_data(sizeof(int), in_buf, serialized_buf);
+   
+   // Deserialize back to out_buf
+   out_buf.reset(sizeof(int)*count);
+   a.deserialize_data(sizeof(int), serialized_buf, out_buf);
+
+   // Data from out_buf to out
+   a.copy_data(sizeof(int), out_buf, count, (char*)out.data());
+
+   for(int i = 0; i < count; i++){
+      if(a.includes(i) && out[i] != 1){
+         printf("Failed to transfer index %d\n", i);
+         return false;
+      } else if(!a.includes(i) && out[i] != 0){
+         printf("Incorrectly transfered index %d\n", i);
+         return false;
+      }
+   }
+   
+   return true;
 }
 
-static std::vector<fenix::DataSubset> get_expanded_subsets(){
-    std::vector<fenix::DataSubset> subsets = get_subsets(), expanded;
-    for(const auto& a : subsets){
-        for(const auto& b : subsets){
-            expanded.push_back(a+b);
-            expanded.push_back(b+a);
-        }
-    }
-    for(const auto& a : expanded) subsets.push_back(a);
-    return subsets;
+int main(int argc, char **argv)
+{
+   bool success = true;
+
+   auto subsets = get_expanded_subsets();
+   for(const auto& a : subsets){
+      success &= test_serialize_data(a);
+   }
+
+   return success ? 0 : 1;
 }
+
+
