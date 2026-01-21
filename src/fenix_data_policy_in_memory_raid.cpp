@@ -71,6 +71,7 @@
 #include "fenix.h"
 #include "fenix_ext.hpp"
 #include "fenix_opt.hpp"
+#include "fenix_util.hpp"
 #include "fenix_data_subset.hpp"
 #include "fenix_data_policy.hpp"
 #include "fenix_data_group.hpp"
@@ -84,11 +85,6 @@
 #define STORE_PAYLOAD_TAG 2004
 
 namespace fenix::data::imr {
-
-void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm comm,
-      int timestart, int depth, void* policy_value, int* flag){
-   *group = new Group(comm, timestart, depth, (int*)policy_value, flag);
-};
 
 Entry::Entry(int size, int max_count)
    : elm_size(size), elm_max_count(max_count) {
@@ -556,9 +552,9 @@ int Member::lrestore(
 }
 
 Group::Group(
-   MPI_Comm m_comm, int timestart, int depth, int* policy, int* flag
-){
-   int* policy_vals = (int*)policy;
+   int m_id, MPI_Comm m_comm, int m_timestart, int m_depth,
+   int* policy_vals, int* flag
+) : fenix_group_t(m_id, m_comm, m_timestart, m_depth, FENIX_DATA_POLICY_IMR) {
    mode = policy_vals ? policy_vals[0] : 1;
    rank_separation = policy_vals ? policy_vals[1] : __fenix_get_world_size(m_comm)/2;
 
@@ -722,13 +718,11 @@ int Group::member_create(fenix_member_entry_t* mentry){
    } else return FENIX_ERROR_MEMBER_EXISTS;
 }
 
-int Group::member_delete(int member_id){
-   auto iter = member_data.find(member_id);
+int Group::member_delete(fenix_member_entry_t* mentry){
+   auto iter = member_data.find(mentry->memberid);
 
    if(iter == member_data.end()){
-      debug_print("ERROR Fenix_Data_member_delete: member_id <%d> does not exist!\n",
-                member_id);
-      return FENIX_ERROR_INVALID_MEMBERID; 
+      FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
    }
 
    member_data.erase(iter);
@@ -877,12 +871,11 @@ int Group::member_restore(
       );
 
       if(!found_members[set_rank]){
-         this->member_create(__fenix_data_member_add_entry(
-            this, packet.memberid, target_buffer, packet.current_count,
+         fenix_group_t::member_create(
+            packet.memberid, target_buffer, packet.current_count,
             packet.datatype_size
-         ));
+         );
          member = find_member(member_id);
-         assert(member);
       }
    }
 

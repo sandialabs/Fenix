@@ -30,7 +30,7 @@ set (Fenix_SOURCES
 
 add_library(fenix STATIC ${Fenix_SOURCES})
 
-target_compile_features(fenix PRIVATE cxx_std_17)
+target_compile_features(fenix PUBLIC cxx_std_20)
 
 target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
 

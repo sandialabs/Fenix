@@ -74,6 +74,10 @@
 #include <signal.h>
 #include <libgen.h>
 
+#include <cassert>
+
+#include "fenix_ext.hpp"
+
 extern char *logname;
 
 #define LDEBUG(f...)  {LLIND("debug",f);}
@@ -81,8 +85,6 @@ extern char *logname;
 #define ERRHANDLE(f...){LFATAL(f);}
 #define LFATAL(f...)  {LLINF("fatal", f);}
 #define LLINF(t,f...) {fprintf(stderr,"(%i): %s: ", getpid(), t); fprintf(stderr, f);}
-
-enum states { EMPTY = 0, OCCUPIED = 1, DELETED = 2, NEEDFIX = 3 };
 
 void __fenix_ranks_agree(int *, int *, int *, MPI_Datatype *);
 
@@ -111,5 +113,86 @@ void *s_calloc(int count, size_t size);
 void *s_malloc(size_t size);
 
 void *s_realloc(void *mem, size_t size);
+
+
+namespace fenix::util {
+
+inline int comm_size(MPI_Comm c) {
+  int ret;
+  MPI_Comm_size(c, &ret);
+  return ret;
+}
+inline int comm_rank(MPI_Comm c) {
+  int ret;
+  MPI_Comm_rank(c, &ret);
+  return ret;
+}
+
+// ScopedSetting struct holds the old value and automatically reverts in
+// destructor, so settings changes revert even when exceptions are thrown.
+template<typename T>
+struct ScopedSetting {
+  ScopedSetting(T& m_setting, T val) : setting(m_setting) { setting = val; }
+  ~ScopedSetting() { setting = old_val; }
+ private:
+  T& setting;
+  const T old_val = setting;
+};
+
+struct ScopedIgnoreErrs : public ScopedSetting<bool> {
+  ScopedIgnoreErrs(bool ignore_errs)
+    : ScopedSetting(fenix_rt.ignore_errs, ignore_errs) {}
+};
+struct ScopedResumeMode : public ScopedSetting<ResumeMode> {
+  ScopedResumeMode(ResumeMode resume_mode)
+    : ScopedSetting(fenix_rt.resume_mode, resume_mode) {}
+};
+struct ScopedUnhandledMode : public ScopedSetting<UnhandledMode> {
+  ScopedUnhandledMode(UnhandledMode unhandled_mode)
+    : ScopedSetting(fenix_rt.unhandled_mode, unhandled_mode) {}
+};
+
+// Default error handling for inside the Fenix runtime.
+struct ScopedDefaultRuntimeSettings {
+  const ScopedIgnoreErrs    ignore_errs{ false };
+  const ScopedResumeMode    resume_mode{ THROW };
+  const ScopedUnhandledMode unhandled_mode{ ABORT };
+};
+} // namespace fenix::util
+
+#define RUNTIME_EXCEPTION_HANDLER              \
+  } catch (const fenix::RuntimeException& e) { \
+    debug_print("%s\n", e.what());             \
+    return e.error;
+
+#define COMM_EXCEPTION_HANDLER                                     \
+  } catch (const fenix::CommException& e) {                        \
+    switch(fenix_rt.resume_mode) {                                 \
+      case fenix::JUMP: longjmp(*fenix_rt.recover_environment, 1); \
+      case fenix::THROW: throw;                                    \
+      case fenix::RETURN:                                          \
+      default: break;                                              \
+    }                                                              \
+    return FENIX_ERROR_CANCELLED;                                  \
+  }
+
+#define FENIX_CPP_API_BEGIN                                \
+  try {                                                    \
+    fenix::util::ScopedDefaultRuntimeSettings _scoped_drs; \
+    assert(fenix_rt.fenix_init_flag);
+
+#define FENIX_C_API_BEGIN FENIX_CPP_API_BEGIN
+
+#ifdef FENIX_C_CATCH_RUNTIME_EXCEPTIONS
+#define FENIX_C_API_END RUNTIME_EXCEPTION_HANDLER COMM_EXCEPTION_HANDLER
+#else
+#define FENIX_C_API_END COMM_EXCEPTION_HANDLER
+#endif
+
+#ifdef FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS
+#define FENIX_CPP_API_END RUNTIME_EXCEPTION_HANDLER COMM_EXCEPTION_HANDLER
+#else
+#define FENIX_CPP_API_END COMM_EXCEPTION_HANDLER
+#endif
 
 #endif

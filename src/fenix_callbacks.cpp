@@ -61,55 +61,60 @@
 #include "fenix_exception.hpp"
 #include <mpi.h>
 
-
 namespace fenix {
 
-static std::vector<FenixCallbackFunc>& callbacks(CallbackLocation loc){
-    return fenix_rt.callbacks.try_emplace(loc).first->second;
+static std::vector<FenixCallbackFunc>& callbacks(CallbackLocation loc) {
+  return fenix_rt.callbacks.try_emplace(loc).first->second;
 }
 
-int callback_register(FenixCallbackFunc recover, CallbackLocation loc)
-{
-    if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+int callback_register(FenixCallbackFunc recover, CallbackLocation loc) {
+  FENIX_CPP_API_BEGIN
+  if (!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
 
-    callbacks(loc).push_back(recover);
+  callbacks(loc).push_back(recover);
 
-    return FENIX_SUCCESS;
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
 }
 
-int callback_pop(CallbackLocation loc){
-   if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
-   if(callbacks(loc).empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
+int callback_pop(CallbackLocation loc) {
+  FENIX_CPP_API_BEGIN
+  if (!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
+  if (callbacks(loc).empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
 
-   callbacks(loc).pop_back();
+  callbacks(loc).pop_back();
 
-   return FENIX_SUCCESS;
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
 }
 
-void callback_invoke_all(CallbackLocation loc){
-    //If callbacks are invoked in a nested manner due to caught exceptions
-    //within a callback, we want to only finish the most recent call. All prior
-    //calls should exit as soon as control returns.
-    static int callbacks_depth = 0;
-    int m_callbacks_layer = callbacks_depth++;
+int callback_invoke_all(CallbackLocation loc) {
+  FENIX_CPP_API_BEGIN
+  //If callbacks are invoked in a nested manner due to caught exceptions
+  //within a callback, we want to only finish the most recent call. All prior
+  //calls should exit as soon as control returns.
+  static int callbacks_depth = 0;
+  int m_callbacks_layer = callbacks_depth++;
 
-    try {
-        for(auto& cb : callbacks(loc)) {
-            if(callbacks_depth != m_callbacks_layer+1) break;
-            cb(*fenix_rt.user_world, fenix_rt.mpi_fail_code);
-        }
-    } catch (const CommException& e) {
-        switch(fenix_rt.callback_exception_mode){
-            case(RETHROW):
-                if(m_callbacks_layer == 0) callbacks_depth = 0;
-                throw;
-            case(SQUASH):
-                break;
-        }
+  try {
+    for (auto& cb : callbacks(loc)) {
+      if (callbacks_depth != m_callbacks_layer + 1) break;
+      cb(*fenix_rt.user_world, fenix_rt.mpi_fail_code);
     }
+  } catch (const CommException& e) {
+    switch (fenix_rt.callback_exception_mode) {
+    case (RETHROW):
+      if (m_callbacks_layer == 0) callbacks_depth = 0;
+      throw;
+    case (SQUASH):
+      break;
+    }
+  }
 
-    //Reset the callback depth when leaving the outermost call
-    if(m_callbacks_layer == 0) callbacks_depth = 0;
+  //Reset the callback depth when leaving the outermost call
+  if (m_callbacks_layer == 0) callbacks_depth = 0;
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
 }
 
 } // namespace fenix

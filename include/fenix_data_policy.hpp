@@ -63,8 +63,10 @@
 
 namespace fenix::data {
 
-int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm, 
-      int timestart, int depth, int policy_name, void* policy_value, int* flag);
+fenix_group_t* new_group(
+  int groupid, MPI_Comm comm, int timestart, int depth, int policy_name,
+  void* policy_value, int* flag
+);
 
 } // namespace fenix::data
 
