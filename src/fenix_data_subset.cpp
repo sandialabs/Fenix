@@ -698,7 +698,7 @@ void DataSubset::deserialize_data(
    fenix_assert(dst.size()%elm_size==0);
 
    size_t max_elm = dst.size()/elm_size - 1;
-   if(max_elm == 0){
+   if(max_elm == MAX){
       max_elm = end();
       fenix_assert(max_elm != MAX);
       dst.resize((max_elm+1)*elm_size);
