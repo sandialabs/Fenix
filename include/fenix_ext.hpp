@@ -111,7 +111,7 @@ typedef struct {
     MPI_Op   agree_op;             // Global agreement call for Fenix data recovery API
     MPI_Errhandler mpi_errhandler; // Our custom error handler
 
-    fenix::data::fenix_data_recovery_t *data_recovery;   // Global pointer for Fenix Data Recovery Data Structure
+    fenix::data::fenix_data_recovery_t *data_recovery = nullptr;   // Global pointer for Fenix Data Recovery Data Structure
 } fenix_t;
 
 }

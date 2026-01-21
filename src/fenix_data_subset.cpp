@@ -199,17 +199,17 @@ void merge_adjacent_sets(std::set<DataRegion>& a, std::set<DataRegion>& b){
          a.merge(b);
          b.clear();
       } else {
-         a.erase(a.end()--);
+         a.erase(--a.end());
          b.erase(b.begin());
-         a.insert(*merged);
+         a.insert(merged.value());
       }
    }
    while(a.size() > 1){
       auto merged = (----a.end())->try_merge(*(--a.end()));
       if(!merged) break;
-      a.erase(a.end()--);
-      a.erase(a.end()--);
-      a.insert(*merged);
+      a.erase(--a.end());
+      a.erase(--a.end());
+      a.insert(merged.value());
    }
 }
 
@@ -698,7 +698,7 @@ void DataSubset::deserialize_data(
    fenix_assert(dst.size()%elm_size==0);
 
    size_t max_elm = dst.size()/elm_size - 1;
-   if(max_elm == 0){
+   if(max_elm == MAX){
       max_elm = end();
       fenix_assert(max_elm != MAX);
       dst.resize((max_elm+1)*elm_size);

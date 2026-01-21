@@ -55,38 +55,70 @@
 //@HEADER
 */
 
-#include <fenix.hpp>
+#include <fenix.h>
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <fenix_data_subset.hpp>
 
-#include <vector>
+#include "subset_common.hpp"
 
-//Returns a variety of subsets to perform tests on
-static std::vector<fenix::DataSubset> get_subsets(){
-    using namespace fenix;
-    std::vector<DataSubset> ret;
-    ret.push_back(DataSubset());
-    ret.push_back(DataSubset(10));
-    ret.push_back(DataSubset(-1));
-    ret.push_back(DataSubset({0, 0}));
-    ret.push_back(DataSubset({0, 10}));
-    ret.push_back(DataSubset({0, -1}));
-    ret.push_back(DataSubset({5, 10}));
-    ret.push_back(DataSubset({5, -1}));
-    ret.push_back(DataSubset({0, 4}, 2, 5));
-    ret.push_back(DataSubset({0, 4}, 2, 6));
-    ret.push_back(DataSubset({0, 4}, 10, 6));
-    ret.push_back(DataSubset({0, 4}, 10, 10));
-    return ret;
+using namespace fenix;
+
+bool test_equality(const DataSubset& a, const DataSubset& b){
+   printf("Testing subsets a=%s, b=%s\n", a.str().c_str(), b.str().c_str());
+
+   const DataSubset c = a + b;
+   const DataSubset d = b + a;
+
+   printf("c=a+b=%s\n", c.str().c_str());
+   printf("d=b+a=%s\n", d.str().c_str());
+
+   bool success = true;
+   if(a != a){
+      printf("a != a\n");
+      success = false;
+   }
+   if(b != b){
+      printf("b != b\b");
+      success = false;
+   }
+   if(c != c){
+      printf("c != c\n");
+      success = false;
+   }
+   if(d != d){
+      printf("d != d\n");
+      success = false;
+   }
+   if(c != d){
+      printf("c != d\n");
+      success = false;
+   }
+   if(d != c){
+      printf("d != c\n");
+      success = false;
+   }
+
+   return success;
 }
 
-static std::vector<fenix::DataSubset> get_expanded_subsets(){
-    std::vector<fenix::DataSubset> subsets = get_subsets(), expanded;
-    for(const auto& a : subsets){
-        for(const auto& b : subsets){
-            expanded.push_back(a+b);
-            expanded.push_back(b+a);
-        }
-    }
-    for(const auto& a : expanded) subsets.push_back(a);
-    return subsets;
+int main(int argc, char **argv)
+{
+   bool success = true;
+
+   auto subsets = get_expanded_subsets();
+   for(const auto& a : subsets){
+      for(const auto& b : subsets){
+         success &= test_equality(a, b);
+      }
+   }
+
+   return success ? 0 : 1;
 }
+
+

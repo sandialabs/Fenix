@@ -26,3 +26,18 @@ add_executable(fenix_subset_addition subset_addition.cpp)
 target_link_libraries(fenix_subset_addition fenix)
 target_compile_features(fenix_subset_addition PRIVATE cxx_std_17)
 add_test(subset_addition fenix_subset_addition)
+
+add_executable(fenix_subset_equality subset_equality.cpp)
+target_link_libraries(fenix_subset_equality fenix)
+target_compile_features(fenix_subset_equality PRIVATE cxx_std_17)
+add_test(subset_equality fenix_subset_equality)
+
+add_executable(fenix_subset_serialize_data subset_serialize_data.cpp)
+target_link_libraries(fenix_subset_serialize_data fenix)
+target_compile_features(fenix_subset_serialize_data PRIVATE cxx_std_17)
+add_test(subset_serialize_data fenix_subset_serialize_data)
+
+add_executable(fenix_subset_serialize subset_serialize.cpp)
+target_link_libraries(fenix_subset_serialize fenix)
+target_compile_features(fenix_subset_serialize PRIVATE cxx_std_17)
+add_test(subset_serialize fenix_subset_serialize)
