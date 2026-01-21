@@ -59,16 +59,72 @@
 
 #include <mpi.h>
 #include <exception>
+#include <source_location>
+#include <string_view>
+#include <string>
 
 namespace fenix {
 
 struct CommException : public std::exception {
-    MPI_Comm repaired_comm;
-    const int fenix_err;
-    CommException(MPI_Comm comm, int err) :
-        repaired_comm(comm), fenix_err(err) { };
+  CommException(MPI_Comm comm, int err)
+    : repaired_comm(comm), fenix_err(err) {};
+    
+  MPI_Comm repaired_comm;
+  const int fenix_err;
+};
+
+struct RuntimeException : public std::exception {
+  using Location = std::source_location;
+
+  RuntimeException(Location l = Location::current())
+    : RuntimeException(FENIX_ERROR_NOCATEGORY, "FENIX_ERROR_NOCATEGORY", l) {}
+
+  RuntimeException(const char* e_str, Location l = Location::current())
+    : RuntimeException(FENIX_ERROR_NOCATEGORY, e_str, l) {};
+
+  // Helper for preprocessor macro
+  RuntimeException(
+    const char* e_str, const char*, Location l = Location::current()
+  ) : RuntimeException(FENIX_ERROR_NOCATEGORY, e_str, l) {};
+
+  RuntimeException(int e, const char* e_str, Location l = Location::current())
+    : error(e), error_string(e_str), location(l) {};
+
+  // file:line function error_string
+  std::string to_string(int depth = 0) const noexcept {
+    std::string_view f = location.file_name();
+    std::string l = std::to_string(location.line());
+    std::string_view fn = location.function_name();
+
+    std::string ret;
+    ret.reserve(
+      3 + depth * 2 + f.size() + l.size() + fn.size() + error_string.size()
+    );
+    ret.assign(" ", depth * 2);
+    ret += f;  ret += ":";
+    ret += l;  ret += " ";
+    ret += fn; ret += " ";
+    ret += error_string;
+    return ret;
+  }
+
+  const char* what() const noexcept override {
+    m_string = to_string();
+    return m_string.c_str();
+  }
+
+  const int error;
+  const std::string_view error_string;
+  const std::source_location location;
+
+ private:
+  mutable std::string m_string;
 };
 
 } // namespace fenix
+
+// err can be a FENIX_ERROR_* value, or any string
+#define FENIX_THROW(err) throw fenix::RuntimeException(err, #err)
+#define FENIX_THROW_FROM(err, loc) throw fenix::RuntimeException(err, #err, loc)
 
 #endif

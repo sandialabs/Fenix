@@ -68,25 +68,26 @@ static std::vector<FenixCallbackFunc>& callbacks(CallbackLocation loc){
     return fenix_rt.callbacks.try_emplace(loc).first->second;
 }
 
-int callback_register(FenixCallbackFunc recover, CallbackLocation loc)
-{
+int callback_register(
+    FenixCallbackFunc recover, CallbackLocation loc
+) FENIX_CPP_API_BEGIN {
     if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
 
     callbacks(loc).push_back(recover);
 
     return FENIX_SUCCESS;
-}
+} FENIX_CPP_API_END
 
-int callback_pop(CallbackLocation loc){
+int callback_pop(CallbackLocation loc) FENIX_CPP_API_BEGIN {
    if(!fenix_rt.fenix_init_flag) return FENIX_ERROR_UNINITIALIZED;
    if(callbacks(loc).empty()) return FENIX_ERROR_CALLBACK_NOT_REGISTERED;
 
    callbacks(loc).pop_back();
 
    return FENIX_SUCCESS;
-}
+} FENIX_CPP_API_END
 
-void callback_invoke_all(CallbackLocation loc){
+int callback_invoke_all(CallbackLocation loc) FENIX_CPP_API_BEGIN {
     //If callbacks are invoked in a nested manner due to caught exceptions
     //within a callback, we want to only finish the most recent call. All prior
     //calls should exit as soon as control returns.
@@ -110,6 +111,7 @@ void callback_invoke_all(CallbackLocation loc){
 
     //Reset the callback depth when leaving the outermost call
     if(m_callbacks_layer == 0) callbacks_depth = 0;
-}
+    return FENIX_SUCCESS;
+} FENIX_CPP_API_END
 
 } // namespace fenix

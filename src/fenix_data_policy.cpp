@@ -45,7 +45,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Authors Marc Gamell, Eric Valenzuela, Keita Teranishi, Manish Parashar,
-//         and Matthew Whitloc
+//         and Matthew Whitlock
 //
 // Questions? Contact Keita Teranishi (knteran@sandia.gov) and
 //                    Marc Gamell (mgamell@cac.rutgers.edu)
@@ -63,24 +63,17 @@
 
 namespace fenix::data {
 
-int __fenix_policy_get_group(fenix_group_t** group, MPI_Comm comm,
-      int timestart, int depth, int policy_name, void* policy_value, 
-      int* flag){
-   int retval = -1;
-   
-   switch (policy_name){
+fenix_group_t* new_group(
+   int groupid, MPI_Comm comm, int timestart, int depth, int policy_name,
+   void* policy_value, int* flag
+) {
+   switch(policy_name){
       case FENIX_DATA_POLICY_IN_MEMORY_RAID:
-         imr::__fenix_policy_in_memory_raid_get_group(group, comm, timestart, 
-               depth, policy_value, flag);
-         retval = FENIX_SUCCESS;
-         break;
-      default:
-         debug_print("ERROR Fenix_Data_group_create: the specified policy <%d> is not supported.\n", policy_name);
-         retval = -1;
-         break;
+         return new imr::Group(
+            groupid, comm, timestart, depth, (int*)policy_value, flag
+         );
+      default: FENIX_THROW(FENIX_ERROR_INVALID_POLICY_NAME);
    }
-
-   return retval;
 }
 
 }
