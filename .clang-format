@@ -5,23 +5,40 @@ BasedOnStyle: LLVM
 Language: Cpp
 PointerAlignment: Left
 AllowShortLoopsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 
 # If parameters don't fit on one line format(
 #   arg1, arg2
 # );
 AlignAfterOpenBracket: BlockIndent
 
-# Try putting all constructor initializers
-# on the next line if they don't fit, but,
-# if they also don't fit on the next line,
-# make them 1 per line
-PackConstructorInitializers: NextLineOnly
-
-# Function calls and init lists try to fit
-# args on same line, else all on next line,
-# else one arg per line
-BinPackArguments: false
+# Function calls and init lists try to fit args on same line
+PackConstructorInitializers: BinPack
+BinPackArguments: true
+BinPackParameters: true
 AllowAllArgumentsOnNextLine: true
 
 # Don't reflow doxygen comment lines
 CommentPragmas: '^\*? ?@'
+
+# Class access modifiers ('public:') are indented 1 less than class members
+AccessModifierOffset: -1
+
+# Don't try to sort includes, just leave them be
+SortIncludes: false
+
+# Don't bother about namespace end comments if the namespace is short
+ShortNamespaceLines: 15
+
+# Don't worry about comments being prefixed with spaces
+SpacesInLineCommentPrefix:
+  Minimum: 0
+  Maximum: -1
+
+# Strongly prefer not putting return type on its own line
+PenaltyReturnTypeOnItsOwnLine: 200
+
+UseTab: Never
+
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
