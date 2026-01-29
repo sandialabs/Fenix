@@ -66,10 +66,14 @@ const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL = { new DataSubset(DataSubset::M
 const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY = { new DataSubset() };
 Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE = NULL;
 
-int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *), void *callback_data) {
-    return callback_register([recover, callback_data](MPI_Comm comm, int fenix_error){
-        recover(comm, fenix_error, callback_data);
-    });
+int Fenix_Callback_register(
+    void (*recover)(MPI_Comm, int, void *), void *callback_data
+) {
+    return callback_register(
+        [recover, callback_data](MPI_Comm comm, int fenix_error){
+            recover(comm, fenix_error, callback_data);
+        }
+    );
 }
 
 int Fenix_Callback_pop() {
@@ -85,13 +89,14 @@ int Fenix_Initialized(int *flag) {
     return FENIX_SUCCESS;
 }
 
-int Fenix_Process_fail_list(int** fail_list){
-  *fail_list = fenix_rt.fail_world;
-  return fenix_rt.fail_world_size;
+int Fenix_Process_fail_list(int** fail_list) {
+    *fail_list = fenix_rt.fail_world;
+    return fenix_rt.fail_world_size;
 }
 
-int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
-    //We know this may return as "COMM_REVOKED", but we know the error was already handled
+int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status) {
+    // We know this may return as "COMM_REVOKED", but we know the error was
+    // already handled
     int old_ignore_setting = fenix_rt.ignore_errs;
     fenix_rt.ignore_errs = 1;
 
@@ -100,50 +105,50 @@ int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status){
 
     fenix_rt.ignore_errs = old_ignore_setting;
 
-    //Request was (potentially) cancelled if ret is MPI_ERR_PROC_FAILED
+    // Request was (potentially) cancelled if ret is MPI_ERR_PROC_FAILED
     return ret == MPI_ERR_PROC_FAILED || ret == MPI_ERR_REVOKED;
 }
 
-int Fenix_Process_detect_failures(int do_recovery){
+int Fenix_Process_detect_failures(int do_recovery) {
     return detect_failures(do_recovery);
 }
 
-Fenix_Rank_role Fenix_get_role(){
+Fenix_Rank_role Fenix_get_role() {
     return role();
 }
 
-int Fenix_get_error(){
+int Fenix_get_error() {
     return error();
 }
 
-int Fenix_get_nspare(){
+int Fenix_get_nspare() {
     return nspare();
 }
 
 namespace fenix {
 
-void throw_exception(){
+void throw_exception() {
     throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
 }
 
-Fenix_Rank_role role(){
+Fenix_Rank_role role() {
     return (Fenix_Rank_role) fenix_rt.role;
 }
 
-int error(){
+int error() {
     return fenix_rt.repair_result;
 }
 
-int nspare(){
+int nspare() {
     return fenix_rt.spare_ranks;
 }
 
-std::vector<int> fail_list(){
+std::vector<int> fail_list() {
     if(fenix_rt.fail_world_size == 0) return {};
     return {fenix_rt.fail_world, fenix_rt.fail_world+fenix_rt.fail_world_size};
 }
 
-bool initialized(){
+bool initialized() {
     return fenix_rt.fenix_init_flag;
 }
 

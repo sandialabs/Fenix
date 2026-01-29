@@ -126,7 +126,9 @@ int nspare();
 using FenixCallbackFunc = std::function<void(MPI_Comm, int)>;
 
 //!@brief Overload of #Fenix_Callback_register
-int callback_register(FenixCallbackFunc callback, CallbackLocation loc = POST_RECOVERY);
+int callback_register(
+    FenixCallbackFunc callback, CallbackLocation loc = POST_RECOVERY
+);
 
 //@!brief Overload of #Fenix_Callback_pop
 int callback_pop(CallbackLocation loc = POST_RECOVERY);
