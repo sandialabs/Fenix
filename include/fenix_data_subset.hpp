@@ -149,6 +149,8 @@ struct DataSubset {
     DataSubset(std::pair<size_t, size_t> b, size_t n, size_t stride);
     //[bounds[0].first, bounds[0].second], ...
     DataSubset(std::vector<std::pair<size_t, size_t>> bounds);
+    //[first[0], second[0]], ... [first[n-1], second[n-1]]
+    DataSubset(int n, int* first, int* second);
     //Merge two subsets
     DataSubset(const DataSubset& a, const DataSubset& b);
     //Create from serialized subset object

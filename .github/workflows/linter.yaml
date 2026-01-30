@@ -21,3 +21,4 @@ jobs:
         uses: reviewdog/action-suggester@v1.21.0
         with:
           tool_name: Linter
+          filter_mode: added

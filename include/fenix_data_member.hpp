@@ -57,9 +57,7 @@
 #define __FENIX_DATA_MEMBER_H__
 
 #include <mpi.h>
-#include "fenix_data_packet.hpp"
 #include "fenix_util.hpp"
-
 
 #define __FENIX_DEFAULT_MEMBER_SIZE 512
 namespace fenix::data {
@@ -87,14 +85,7 @@ struct fenix_member_entry_t {
 fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
         int memberid, void* data, int count, int datatype_size);
 
-int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank);
-int __fenix_data_member_recv_metadata(int groupid, int src_rank, 
-        fenix_member_entry_packet_t* packet);
-
 int __fenix_search_memberid(fenix_group_t* group, int memberid);
-
-void __fenix_data_member_reinit(fenix_group_t *group, fenix_two_container_packet_t packet,
-                   enum states mystatus);
 
 } // namespace fenix::data
 #endif // FENIX_DATA_MEMBER_H

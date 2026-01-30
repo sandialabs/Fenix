@@ -58,7 +58,6 @@
 #include "fenix.h"
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
-#include "fenix_data_subset.h"
 #include "fenix_data_subset.hpp"
 
 namespace fenix {
@@ -377,6 +376,16 @@ DataSubset::DataSubset(std::vector<std::pair<size_t, size_t>> bounds){
 
    //Simplify regions
    merge_regions();
+}
+
+DataSubset::DataSubset(int num_blocks, int* firsts, int* seconds){
+   fenix_assert(num_blocks > 0, "num_blocks (%d) must be positive", num_blocks);
+
+   std::vector<std::pair<size_t, size_t>> bounds;
+   bounds.reserve(num_blocks);
+   for(int i = 0; i < num_blocks; i++) bounds.push_back({firsts[i], seconds[i]});
+
+   *this = DataSubset(bounds);
 }
 
 DataSubset::DataSubset(const DataSubset& a, const DataSubset& b){
@@ -797,31 +806,3 @@ std::string DataSubset::str() const {
 }
 
 } // namespace fenix
-
-using namespace fenix;
-
-int __fenix_data_subset_create(
-   int num_blocks, int start, int end, int stride, Fenix_Data_subset *subset
-) {
-  subset->impl = new DataSubset({start, end}, num_blocks, stride);
-  return FENIX_SUCCESS;
-}
-
-int __fenix_data_subset_createv(
-   int num_blocks, int *starts, int *ends, Fenix_Data_subset *subset
-) {
-   fenix_assert(num_blocks > 0, "num_blocks (%d) must be positive", num_blocks);
-
-   std::vector<std::pair<size_t, size_t>> bounds;
-   bounds.reserve(num_blocks);
-   for(int i = 0; i < num_blocks; i++) bounds.push_back({starts[i], ends[i]});
-   
-   subset->impl = new DataSubset(bounds);
-
-   return FENIX_SUCCESS;
-}
-
-int __fenix_data_subset_free( Fenix_Data_subset *subset ) {
-   delete (DataSubset*) subset->impl;
-   return FENIX_SUCCESS;
-}

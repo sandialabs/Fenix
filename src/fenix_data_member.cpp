@@ -54,13 +54,8 @@
 //@HEADER
 */
 
-#include "mpi.h"
-#include "fenix-config.h"
-#include "fenix_ext.hpp"
-#include "fenix_data_recovery.hpp"
+#include "fenix_data_group.hpp"
 #include "fenix_data_member.hpp"
-#include "fenix_data_packet.hpp"
-
 
 namespace fenix::data {
 
@@ -89,40 +84,6 @@ fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
     group->members[memberid] = mentry;
 
     return &group->members[memberid];
-}
-
-int __fenix_data_member_send_metadata(int groupid, int memberid, int dest_rank){
-    auto [group_index, group] = find_group(groupid);
-    if(!group) return FENIX_ERROR_INVALID_GROUPID;
-
-    auto [member_index, member] = group->find_member(memberid);
-    if(!member) return FENIX_ERROR_INVALID_MEMBERID;
-
-    fenix_member_entry_packet_t packet;
-    packet.memberid = member->memberid;
-    packet.datatype_size = member->datatype_size;
-    packet.current_count = member->current_count;
-
-    MPI_Send(&packet, sizeof(packet), MPI_BYTE, dest_rank, RECOVER_MEMBER_ENTRY_TAG^groupid,
-            group->comm);
-
-    return FENIX_SUCCESS;
-}
-
-int __fenix_data_member_recv_metadata(int groupid, int src_rank, 
-        fenix_member_entry_packet_t* packet){
-    auto group = find_group(groupid).second;
-    if(!group) return FENIX_ERROR_INVALID_GROUPID;
-
-    MPI_Recv((void*)packet, sizeof(fenix_member_entry_packet_t), MPI_BYTE, src_rank,
-            RECOVER_MEMBER_ENTRY_TAG^groupid, group->comm, NULL);
-
-    return FENIX_SUCCESS;
-}
-
-void __fenix_data_member_reinit(fenix_group_t *group, fenix_two_container_packet_t packet,
-                   enum states mystatus) {
-    group->members.clear();
 }
 
 } //namespace fenix::data

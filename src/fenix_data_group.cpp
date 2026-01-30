@@ -61,7 +61,6 @@
 #include "fenix_ext.hpp"
 #include "fenix_data_group.hpp"
 #include "fenix_data_member.hpp"
-#include "fenix_data_packet.hpp"
 
 namespace fenix::data {
 
@@ -222,27 +221,6 @@ void __fenix_data_recovery_destroy( fenix_data_recovery_t *data_recovery )  {
   }
   free( data_recovery->group );
   free( data_recovery );
-}
-
-/**
- * @brief
- * @param
- * @param
- */
-void __fenix_data_recovery_reinit(fenix_data_recovery_t *data_recovery, 
-        fenix_two_container_packet_t packet) {
-  int start_index = data_recovery->total_size;
-  data_recovery->count = packet.count;
-  data_recovery->total_size = packet.total_size;
-  data_recovery->group = (fenix_group_t **) s_realloc(data_recovery->group,
-                                                         (data_recovery->total_size) *
-                                                         sizeof(fenix_group_t *));
-
-  if (fenix_rt.options.verbose == 48) {
-    verbose_print("c-rank: %d, role: %d, g-size: %zu\n",
-                    __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role, 
-                    data_recovery->total_size);
-  }
 }
 
 /**

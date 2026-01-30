@@ -66,15 +66,6 @@
 #include "fenix_exception.hpp"
 #include "fenix_data_subset.hpp"
 
-/**
- * @brief As the C-style callback, but accepts an std::function and does not use the void* pointer.
- *
- * @param[in] callback The function to register.
- *
- * @returnstatus
- */
-int Fenix_Callback_register(std::function<void(MPI_Comm, int)> callback);
-
 namespace fenix {
 
 using Role = Fenix_Rank_role;
@@ -132,8 +123,12 @@ int error();
 //!@brief Overload of #Fenix_get_nspare
 int nspare();
 
+using FenixCallbackFunc = std::function<void(MPI_Comm, int)>;
+
 //!@brief Overload of #Fenix_Callback_register
-int callback_register(std::function<void(MPI_Comm, int)> callback, CallbackLocation loc = POST_RECOVERY);
+int callback_register(
+    FenixCallbackFunc callback, CallbackLocation loc = POST_RECOVERY
+);
 
 //@!brief Overload of #Fenix_Callback_pop
 int callback_pop(CallbackLocation loc = POST_RECOVERY);
