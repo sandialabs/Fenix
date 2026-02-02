@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include <utility>
+#include <vector>
 #include <mpi.h>
 #include "task.h"
 
@@ -95,7 +96,7 @@ auto sendrecv(
   const ST& sb, int sr, int st,
         RT& rb, int rr, int rt, MPI_Comm c
 ) {
-  return sendrecv(sb, 1, sr, st, rb, 1, rr, rt, c);
+  return sendrecv(&sb, 1, sr, st, &rb, 1, rr, rt, c);
 }
 template <typename ST, typename RT>
 auto sendrecv(
