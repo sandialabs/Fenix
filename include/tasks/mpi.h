@@ -47,8 +47,8 @@ template <typename T>
 auto recv(T& b, int r, int t, MPI_Comm c) {
   return recv(&b, 1, r, t, c);
 }
-template <typename T>
-auto recv(std::vector<T>& v, int r, int t, MPI_Comm c) {
+template <typename T, typename A>
+auto recv(std::vector<T, A>& v, int r, int t, MPI_Comm c) {
   return recv(v.data(), v.size(), r, t, c);
 }
 
@@ -67,7 +67,7 @@ template <typename T>
 auto send(const T& b, int r, int t, MPI_Comm c) {
   return send(&b, 1, r, t, c);
 }
-template <typename T>
+template <typename T, typename A>
 auto send(const std::vector<T>& v, int r, int t, MPI_Comm c) {
   return send(v.data(), v.size(), r, t, c);
 }
@@ -98,17 +98,17 @@ auto sendrecv(
 ) {
   return sendrecv(&sb, 1, sr, st, &rb, 1, rr, rt, c);
 }
-template <typename ST, typename RT>
+template <typename ST, typename SA, typename RT, typename RA>
 auto sendrecv(
-  const std::vector<ST>& sv, int sr, int st,
-        std::vector<RT>& rv, int rr, int rt, MPI_Comm c
+  const std::vector<ST, SA>& sv, int sr, int st,
+        std::vector<RT, RA>& rv, int rr, int rt, MPI_Comm c
 ) {
   return sendrecv(&sv[0], sv.size(), sr, st, &rv[0], rv.size(), rr, rt, c);
 }
 
 template <typename T>
 MPITask allreduce(
-  const T* sb, T& rb, int n, MPI_Datatype d, MPI_Op o, MPI_Comm c
+  const void* sb, T& rb, int n, MPI_Datatype d, MPI_Op o, MPI_Comm c
 ) {
   MPI_Request request;
   Status ret = MPI_Iallreduce(sb, &rb, n, d, o, c, &request);
@@ -123,9 +123,31 @@ template <typename T>
 auto allreduce(const T& sb, T& rb, MPI_Op o, MPI_Comm c) {
   return allreduce(&sb, rb, 1, o, c);
 }
-template <typename T>
-auto allreduce(const std::vector<T>& sv, T& rb, MPI_Op o, MPI_Comm c) {
+template <typename T, typename A>
+auto allreduce(const std::vector<T, A>& sv, T& rb, MPI_Op o, MPI_Comm c) {
   return allreduce(&sv[0], rb, sv.size(), o, c);
+}
+
+template <typename T>
+MPITask reduce(
+  const void* sb, T& rb, int n, MPI_Datatype d, MPI_Op o, int r, MPI_Comm c
+) {
+  MPI_Request request;
+  Status ret = MPI_Ireduce(sb, &rb, n, d, o, r, c, &request);
+  if (ret) ret = co_await request;
+  co_return ret;
+}
+template <typename T>
+auto reduce(const T* sb, T& rb, int n, MPI_Op o, int r, MPI_Comm c) {
+  return reduce(sb, rb, util::count(sb, n), util::datatype(sb), o, r, c);
+}
+template <typename T>
+auto reduce(const T& sb, T& rb, MPI_Op o, int r, MPI_Comm c) {
+  return reduce(&sb, rb, 1, o, r, c);
+}
+template <typename T, typename A>
+auto reduce(const std::vector<T, A>& sv, T& rb, MPI_Op o, int r, MPI_Comm c) {
+  return reduce(&sv[0], rb, sv.size(), o, r, c);
 }
 
 template <typename T>
@@ -143,8 +165,8 @@ template <typename T>
 auto bcast(T& b, int r, MPI_Comm c) {
   return bcast(b, 1, r, c);
 }
-template <typename T>
-auto bcast(std::vector<T>& v, int r, MPI_Comm c) {
+template <typename T, typename A>
+auto bcast(std::vector<T, A>& v, int r, MPI_Comm c) {
   return bcast(&v[0], v.size(), r, c);
 }
 
