@@ -66,6 +66,7 @@
 #include "fenix_data_group.hpp"
 #include "fenix_data_buffer.hpp"
 #include "fenix_data_subset.hpp"
+#include "tasks/task.h"
 
 namespace fenix::data::imr {
 
@@ -76,30 +77,30 @@ struct Entry {
   Entry& operator=(Entry&&);
 
   Entry(int size, int max_count);
-  
+
   //Re-initializes
   void reset();
 
   //Get raw buffer pointer
   char* data();
   //Get buffer size
-  int   size();
+  int size();
   //Resize buffer
-  void  resize(int size);
+  void resize(int size);
   //Add subset to region and ensure buf is large enough.
   void add_and_fit(const DataSubset& subset);
-  
+
   DataBuffer buf;
   DataSubset region;
-  
+
   char* partner_data();
-  int   partner_size();
-  void  partner_resize(int size);
+  int partner_size();
+  void partner_resize(int size);
   void partner_add_and_fit(const DataSubset& subset);
 
   DataBuffer partner_buf;
   DataSubset partner_region;
-  
+
   int timestamp = -2;
   int elm_size;
   int elm_max_count;
@@ -113,16 +114,20 @@ struct Member {
   //Returns true if snapshot was found.
   bool snapshot_delete(int timestamp);
 
-  //Member::store(v) copies local data and region.
-  int store(const DataSubset& subset);
-  //Handles partner data and region
-  virtual int store_impl(const DataSubset& subset) = 0;
-
   void stage(const DataSubset& subset);
 
-  //As store(_impl)
-  int storev(const DataSubset& subset);
-  virtual int storev_impl(const DataSubset& subset) = 0;
+  //Member::istore(v) copies local data and region.
+  tasks::Task<int> istore(const DataSubset& subset);
+  //Handles partner data and region
+  virtual tasks::Task<int> istore_impl(const DataSubset& subset) = 0;
+
+  //As istore(_impl)
+  tasks::Task<int> istorev(const DataSubset& subset);
+  virtual tasks::Task<int> istorev_impl(const DataSubset& subset) = 0;
+
+  //These call the async versions and wait on them.
+  int store(const DataSubset& subset) { return istore(subset).result(); }
+  int storev(const DataSubset& subset) { return istorev(subset).result(); }
 
   //Restore all internal snapshot data
   //Moves entries to align with the group's list of timestamps.
@@ -147,19 +152,21 @@ struct Member {
 struct BuddyMember : public Member {
   BuddyMember(fenix_member_entry_t& mentry, Group& group);
   int restore_impl() override;
-  int store_impl(const DataSubset& subset) override;
-  int storev_impl(const DataSubset& subset) override;
-  int exch(const DataSubset& subset, const DataSubset& partner_subset);
+  tasks::Task<int> istore_impl(const DataSubset& subset) override;
+  tasks::Task<int> istorev_impl(const DataSubset& subset) override;
+  tasks::Task<int> exch(
+    const DataSubset& subset, const DataSubset& partner_subset
+  );
 };
 
 struct ParityMember : public Member {
   ParityMember(fenix_member_entry_t& mentry, Group& group);
   int restore_impl() override;
-  int store_impl(const DataSubset& subset) override;
+  tasks::Task<int> istore_impl(const DataSubset& subset) override;
 
-  int storev_impl(const DataSubset& subset) override {
+  tasks::Task<int> istorev_impl(const DataSubset& subset) override {
     fatal_print("IMR mode 5 cannot storev");
-    return 0;
+    co_return 0;
   };
 };
 
@@ -186,7 +193,7 @@ struct Group : public fenix_group_t {
 
   //nullptr if member not found
   Member* find_member(int member_id);
-  
+
   std::string str();
 
   int group_delete() override;
@@ -199,10 +206,10 @@ struct Group : public fenix_group_t {
   int member_store(int member_id, const DataSubset& subset) override;
   int member_storev(int member_id, const DataSubset& subset) override;
   int member_istore(
-    int member_id, const DataSubset& subset, Fenix_Request *request
+    int member_id, const DataSubset& subset, Fenix_Request* request
   ) override;
   int member_istorev(
-    int member_id, const DataSubset& subset, Fenix_Request *request
+    int member_id, const DataSubset& subset, Fenix_Request* request
   ) override;
 
   int commit() override;

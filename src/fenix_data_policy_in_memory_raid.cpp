@@ -201,17 +201,17 @@ void Member::stage(const DataSubset& subset){
    subset.copy_data(e.elm_size, e.elm_max_count, mentry.user_data, e.buf);
 }
 
-int Member::storev(const DataSubset& subset){
+tasks::Task<int> Member::istorev(const DataSubset& subset){
    if (subset == SUBSET_PRESTAGED) {
       Entry& e = entries.back();
-      return this->storev_impl(e.region);
+      return this->istorev_impl(e.region);
    } else {
       stage(subset);
-      return this->storev_impl(subset);
+      return this->istorev_impl(subset);
    }
 }
 
-int BuddyMember::exch(
+tasks::Task<int> BuddyMember::exch(
    const DataSubset& subset, const DataSubset& partner_subset
 ){
    const int rank = group.set_rank;
@@ -226,19 +226,19 @@ int BuddyMember::exch(
 
    subset.serialize_data(e.elm_size, e.buf, send_buf);
 
-   MPI_Sendrecv(
+   co_await tasks::mpi::sendrecv(
       send_buf.data(), send_buf.size(), MPI_BYTE, right, 0,
       recv_buf.data(), recv_buf.size(), MPI_BYTE,  left, 0,
-      group.set_comm, MPI_STATUS_IGNORE
+      group.set_comm
    );
  
    partner_subset.deserialize_data(
       e.elm_size, recv_buf, e.partner_buf
    );
-   return FENIX_SUCCESS;
+   co_return FENIX_SUCCESS;
 }
 
-int BuddyMember::storev_impl(const DataSubset& subset){
+tasks::Task<int> BuddyMember::istorev_impl(const DataSubset& subset){
    //My partner ranks (within set_comm)
    const int rank = group.set_rank;
    const int left = rank == 0 ? group.set_size-1 : rank-1;
@@ -248,28 +248,28 @@ int BuddyMember::storev_impl(const DataSubset& subset){
    subset.serialize(send_buf);
 
    for(int i = 0; i < group.set_size; i++){
-      if(i == rank) send_buf.send(right, 0, group.set_comm);
-      if(i == left) recv_buf.recv_unknown(left, 0, group.set_comm);
+      if(i == rank) co_await send_buf.send(right, 0, group.set_comm);
+      if(i == left) co_await recv_buf.recv_unknown(left, 0, group.set_comm);
    }
 
-   return exch(subset, DataSubset(recv_buf));
+   co_return co_await exch(subset, DataSubset(recv_buf));
 }
 
-int Member::store(const DataSubset& subset){
+tasks::Task<int> Member::istore(const DataSubset& subset){
    if (subset == SUBSET_PRESTAGED) {
       Entry& e = entries.back();
-      return this->store_impl(e.region);
+      return this->istore_impl(e.region);
    } else {
       stage(subset);
-      return this->store_impl(subset);
+      return this->istore_impl(subset);
    }
 }
 
-int BuddyMember::store_impl(const DataSubset& subset){
+tasks::Task<int> BuddyMember::istore_impl(const DataSubset& subset){
    return exch(subset, subset);
 }
 
-int ParityMember::store_impl(const DataSubset& subset){
+tasks::Task<int> ParityMember::istore_impl(const DataSubset& subset){
    Entry& entry = entries.back();
 
    int parity_size = entry.size()/(group.set_size - 1);
@@ -308,13 +308,13 @@ int ParityMember::store_impl(const DataSubset& subset){
          offset += len;
       }
 
-      MPI_Reduce(
+      co_await tasks::mpi::reduce(
          MPI_IN_PLACE, input, len, MPI_BYTE, MPI_BXOR, i, group.set_comm
       );
    }
 
    assert(offset == entry.size());
-   return FENIX_SUCCESS;
+   co_return FENIX_SUCCESS;
 }
 
 void Member::commit(int timestamp){
@@ -401,19 +401,19 @@ int BuddyMember::restore_impl(){
      
       if(!found_here){
          //Fetch my data region from right partner
-         recv_buf.recv_unknown(right, 0, group.set_comm);
+         recv_buf.recv_unknown(right, 0, group.set_comm).wait();
          e->add_and_fit({recv_buf});
          //Fetch my data
          int m_count = e->region.count(e->elm_max_count-1);
-         recv_buf.recv(m_count*e->elm_size, right, 0, group.set_comm);
+         recv_buf.recv(m_count*e->elm_size, right, 0, group.set_comm).wait();
          e->region.deserialize_data(e->elm_size, recv_buf, e->buf);
 
          //Fetch left partner's region
-         recv_buf.recv_unknown(left, 0, group.set_comm);
+         recv_buf.recv_unknown(left, 0, group.set_comm).wait();
          e->partner_add_and_fit({recv_buf});
          //Fetch data
          int p_count = e->partner_region.count(e->elm_max_count-1);
-         recv_buf.recv(p_count*e->elm_size, left, 0, group.set_comm);
+         recv_buf.recv(p_count*e->elm_size, left, 0, group.set_comm).wait();
          e->partner_region.deserialize_data(
             e->elm_size, recv_buf, e->partner_buf
          );
@@ -425,20 +425,20 @@ int BuddyMember::restore_impl(){
       if(!found_left){
          //Send partner's data region
          e->partner_region.serialize(send_buf);
-         send_buf.send(left, 0, group.set_comm);
+         send_buf.send(left, 0, group.set_comm).wait();
          //Send their data
          e->partner_region.serialize_data(
             e->elm_size, e->partner_buf, send_buf
          );
-         send_buf.send(left, 0, group.set_comm);
+         send_buf.send(left, 0, group.set_comm).wait();
       }
       if(!found_right){
          //Send my data region
          e->region.serialize(send_buf);
-         send_buf.send(right, 0, group.set_comm);
+         send_buf.send(right, 0, group.set_comm).wait();
          //Send my data
          e->region.serialize_data(e->elm_size, e->buf, send_buf);
-         send_buf.send(right, 0, group.set_comm);
+         send_buf.send(right, 0, group.set_comm).wait();
       }
    }
    return FENIX_SUCCESS;
@@ -480,9 +480,9 @@ int ParityMember::restore_impl(){
       int sender = recovering == 0 ? 1 : 0;
       if(group.set_rank == sender){
          e->region.serialize(send_buf);
-         send_buf.send(recovering, 0, group.set_comm);
+         send_buf.send(recovering, 0, group.set_comm).wait();
       } else if(!found_here){
-         recv_buf.recv_unknown(sender, 0, group.set_comm);
+         recv_buf.recv_unknown(sender, 0, group.set_comm).wait();
          e->add_and_fit({recv_buf});
       }
 

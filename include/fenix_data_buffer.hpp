@@ -60,22 +60,25 @@
 #include <memory>
 #include <vector>
 
+#include "tasks/task.h"
+#include "tasks/mpi.h"
+
 namespace fenix {
 namespace detail {
 
-template<typename T>
-struct UninitializedCharAllocator : public std::allocator<T>{
-    UninitializedCharAllocator() noexcept {};
-    template<typename U>
-    UninitializedCharAllocator(const U& other) noexcept {};
+template <typename T>
+struct UninitializedCharAllocator : public std::allocator<T> {
+  UninitializedCharAllocator() noexcept {};
+  template <typename U>
+  UninitializedCharAllocator(const U& other) noexcept {};
 
-    using value_type = T;
-    void construct(char*){ };
+  using value_type = T;
+  void construct(char*) {};
 
-    template<typename U>
-    struct rebind {
-        using other = UninitializedCharAllocator<U>;
-    };
+  template <typename U>
+  struct rebind {
+    using other = UninitializedCharAllocator<U>;
+  };
 };
 
 using BufferVec = std::vector<char, UninitializedCharAllocator<char>>;
@@ -83,40 +86,35 @@ using BufferVec = std::vector<char, UninitializedCharAllocator<char>>;
 }
 
 class DataBuffer : public detail::BufferVec {
-  public:
-    using BufferVec = detail::BufferVec;
+ public:
+  using BufferVec = detail::BufferVec;
+  using MPITask = tasks::mpi::MPITask;
 
-    void reset(size_t new_size = 0){
-        //Clear first, to be sure any re-allocations don't actually move data
-        clear();
-        resize(new_size);
-    }
+  void reset(size_t new_size = 0) {
+    //Clear first, to be sure any re-allocations don't actually move data
+    clear();
+    resize(new_size);
+  }
 
-    int send(int dst, int tag, MPI_Comm comm){
-        return MPI_Send(data(), size(), MPI_BYTE, dst, tag, comm);
-    }
+  MPITask send(int dst, int tag, MPI_Comm comm) {
+    return tasks::mpi::send(data(), size(), MPI_BYTE, dst, tag, comm);
+  }
 
-    //Recv n bytes
-    int recv(
-        int n, int src, int tag, MPI_Comm comm,
-        MPI_Status* status = MPI_STATUS_IGNORE
-    ) {
-        reset(n);
-        return MPI_Recv(data(), n, MPI_BYTE, src, tag, comm, status);
-    }
+  //Recv n bytes
+  MPITask recv(int n, int src, int tag, MPI_Comm comm) {
+    reset(n);
+    return tasks::mpi::recv(data(), size(), MPI_BYTE, src, tag, comm);
+  }
 
-    //Recv an unknown amount of data and resize to fit
-    int recv_unknown(
-        int src, int tag, MPI_Comm comm, MPI_Status* status = MPI_STATUS_IGNORE
-    ) {
-        MPI_Status p_status;
-        MPI_Probe(src, tag, comm, &p_status);
+  //Recv an unknown amount of data and resize to fit
+  MPITask recv_unknown(int src, int tag, MPI_Comm comm) {
+    auto status = co_await tasks::mpi::probe(src, tag, comm);
+    if (MPI_SUCCESS != status) co_return status;
 
-        int n;
-        MPI_Get_count(&p_status, MPI_BYTE, &n);
-        return recv(n, src, tag, comm);
-    }
-
+    int n;
+    MPI_Get_count(status, MPI_BYTE, &n);
+    co_return co_await recv(n, src, tag, comm);
+  }
 };
 
 } // namespace fenix
