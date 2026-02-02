@@ -109,14 +109,14 @@ class Request {
 // Supporting structured unbinding for Status
 namespace std {
 template <>
-struct tuple_size<fenix::task::Status> : std::integral_constant<size_t, 2> {};
+struct tuple_size<fenix::tasks::Status> : std::integral_constant<size_t, 2> {};
 
 template <>
-struct tuple_element<0, fenix::task::Status> {
+struct tuple_element<0, fenix::tasks::Status> {
   using type = int;
 };
 template <>
-struct tuple_element<1, fenix::task::Status> {
+struct tuple_element<1, fenix::tasks::Status> {
   using type = MPI_Status;
 };
 }

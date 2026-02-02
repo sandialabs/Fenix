@@ -15,7 +15,7 @@ namespace impl {
 template <typename T>
 struct ReturnHolder {
   T val;
-  void return_value(T&& v) { val = std::move(v); }
+  void return_value(const T& v) { val = v; }
   T result() { return val; }
 };
 template <>
