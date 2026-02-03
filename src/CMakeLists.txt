@@ -23,6 +23,8 @@ set(Fenix_SOURCES
     fenix_callbacks.cpp)
 add_library(fenix STATIC ${Fenix_SOURCES})
 
+add_subdirectory(logging)
+
 set(Fenix_INCLUDE ${CMAKE_SOURCE_DIR}/include)
 FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
 

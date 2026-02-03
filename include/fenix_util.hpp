@@ -88,10 +88,23 @@ inline int comm_size(MPI_Comm c) {
   MPI_Comm_size(c, &ret);
   return ret;
 }
+
 inline int comm_rank(MPI_Comm c) {
   int ret;
   MPI_Comm_rank(c, &ret);
   return ret;
+}
+
+static inline int type_size(MPI_Datatype d) {
+  int size;
+  MPI_Type_size(d, &size);
+  return size;
+}
+
+static inline bool mpi_finalized() {
+  int flag;
+  MPI_Finalized(&flag);
+  return flag;
 }
 
 int resume_application(bool new_exception = false);
