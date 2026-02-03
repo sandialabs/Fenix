@@ -41,6 +41,13 @@ target_include_directories(fenix
         $<INSTALL_INTERFACE:include>
     PRIVATE "${CMAKE_SOURCE_DIR}/src")
 
+if(FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
+    target_compile_definitions(fenix PUBLIC FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
+endif()
+if(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+    target_compile_definitions(fenix PUBLIC FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+endif()
+
 install(TARGETS fenix
     EXPORT fenix
     ARCHIVE DESTINATION lib
