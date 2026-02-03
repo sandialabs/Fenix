@@ -77,7 +77,7 @@
 #include "fenix_data_group.hpp"
 #include "fenix_data_member.hpp"
 #include "fenix_data_policy_in_memory_raid.hpp"
-#include "tasks/mpi.h"
+#include "fenix/tasks/mpi.h"
 
 #define __FENIX_IMR_DEFAULT_MENTRY_NUM 10
 #define __FENIX_IMR_NO_MEMBERS 16000
