@@ -61,7 +61,7 @@
 #include <vector>
 
 #include <mpi.h>
-#include "tasks/forward.h"
+#include "fenix/tasks/forward.h"
 
 namespace fenix {
 namespace detail {

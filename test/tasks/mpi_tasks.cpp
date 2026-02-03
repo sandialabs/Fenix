@@ -64,8 +64,8 @@
 #endif
 #include <fenix_opt.hpp>
 
-#include <tasks/task.h>
-#include <tasks/mpi.h>
+#include <fenix/tasks/task.h>
+#include <fenix/tasks/mpi.h>
 
 using namespace fenix::tasks;
 using namespace fenix::tasks::mpi;
