@@ -59,6 +59,7 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 #include "fenix_data_subset.hpp"
+#include "fenix_data_buffer.hpp"
 
 namespace fenix {
 namespace detail {

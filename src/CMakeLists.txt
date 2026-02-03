@@ -8,14 +8,7 @@
 #  directory.
 #
 
-configure_file (${CMAKE_SOURCE_DIR}/include/fenix-config.h.in
-  "${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h" @ONLY)
-
-FILE(GLOB_RECURSE Fenix_HEADERS
-    ${CMAKE_SOURCE_DIR}/include/*.h ${CMAKE_SOURCE_DIR}/include/*.hpp
-)
-
-set (Fenix_SOURCES 
+set(Fenix_SOURCES
     fenix.cpp
     fenix_opt.cpp
     fenix_process_recovery.cpp
@@ -26,17 +19,16 @@ set (Fenix_SOURCES
     fenix_data_policy_in_memory_raid.cpp
     fenix_data_member.cpp
     fenix_data_subset.cpp
-    fenix_callbacks.cpp
-)
-
+    fenix_data_buffer.cpp
+    fenix_callbacks.cpp)
 add_library(fenix STATIC ${Fenix_SOURCES})
-target_sources(fenix PUBLIC
-    FILE_SET HEADERS
-    BASE_DIRS ${CMAKE_SOURCE_DIR}/include
-    FILES ${Fenix_HEADERS}
-)
 
-target_compile_features(fenix PUBLIC cxx_std_20)
+set(Fenix_INCLUDE ${CMAKE_SOURCE_DIR}/include)
+FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
+target_sources(fenix PUBLIC FILE_SET HEADERS
+    BASE_DIRS ${Fenix_INCLUDE} FILES ${Fenix_HEADERS})
+
+target_compile_features(fenix PRIVATE cxx_std_20)
 target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
 
 if(FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
@@ -46,12 +38,7 @@ if(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
     target_compile_definitions(fenix PUBLIC FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
 endif()
 
-install(TARGETS fenix
-    EXPORT fenix
-    ARCHIVE
-    LIBRARY
-    FILE_SET HEADERS
-)
-install(EXPORT fenix
-    FILE fenixTargets.cmake
-    DESTINATION cmake)
+configure_file(${Fenix_INCLUDE}/fenix-config.h.in fenix-config.h @ONLY)
+
+install(TARGETS fenix EXPORT fenix ARCHIVE LIBRARY FILE_SET HEADERS)
+install(EXPORT fenix FILE fenixTargets.cmake DESTINATION cmake)

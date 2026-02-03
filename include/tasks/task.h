@@ -6,10 +6,11 @@
 
 #include "promise.h"
 #include "request.h"
+#include "forward.h"
 
 namespace fenix::tasks {
 
-template <typename T, bool eager = true>
+template <typename T, bool eager /*= true*/>
 class Task {
  public:
   using PromiseT = Promise<T, eager>;
