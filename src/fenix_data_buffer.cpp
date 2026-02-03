@@ -54,58 +54,30 @@
 //@HEADER
 */
 
-#ifndef FENIX_DATA_BUFFER_HPP
-#define FENIX_DATA_BUFFER_HPP
+#include <fenix_data_buffer.hpp>
+#include <tasks/mpi.h>
 
-#include <memory>
-#include <vector>
-
-#include <mpi.h>
-#include "tasks/forward.h"
+using namespace fenix::tasks::mpi;
 
 namespace fenix {
-namespace detail {
-
-template <typename T>
-struct UninitializedCharAllocator : public std::allocator<T> {
-  UninitializedCharAllocator() noexcept {};
-  template <typename U>
-  UninitializedCharAllocator(const U& other) noexcept {};
-
-  using value_type = T;
-  void construct(char*) {};
-
-  template <typename U>
-  struct rebind {
-    using other = UninitializedCharAllocator<U>;
-  };
-};
-
-using BufferVec = std::vector<char, UninitializedCharAllocator<char>>;
-
+MPITask DataBuffer::send(int dst, int tag, MPI_Comm comm) {
+  return tasks::mpi::send(data(), size(), MPI_BYTE, dst, tag, comm);
 }
 
-class DataBuffer : public detail::BufferVec {
- public:
-  using BufferVec = detail::BufferVec;
-  using MPITask = tasks::mpi::MPITask;
+//Recv n bytes
+MPITask DataBuffer::recv(int n, int src, int tag, MPI_Comm comm) {
+  reset(n);
+  return tasks::mpi::recv(data(), size(), MPI_BYTE, src, tag, comm);
+}
 
-  //Set to new size, possibly discarding old data
-  void reset(size_t new_size = 0) {
-    //Clear first, to be sure any re-allocations don't actually move data
-    clear();
-    resize(new_size);
-  }
+//Recv an unknown amount of data and resize to fit
+MPITask DataBuffer::recv_unknown(int src, int tag, MPI_Comm comm) {
+  auto status = co_await tasks::mpi::probe(src, tag, comm);
+  if (MPI_SUCCESS != status) co_return status;
 
-  MPITask send(int dst, int tag, MPI_Comm comm);
+  int n;
+  MPI_Get_count(status, MPI_BYTE, &n);
+  co_return co_await recv(n, src, tag, comm);
+}
 
-  //Recv n bytes
-  MPITask recv(int n, int src, int tag, MPI_Comm comm);
-
-  //Recv an unknown amount of data and resize to fit
-  MPITask recv_unknown(int src, int tag, MPI_Comm comm);
-};
-
-} // namespace fenix
-
-#endif //FENIX_DATA_BUFFER_HPP
+} //namespace fenix
