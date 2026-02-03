@@ -20,6 +20,11 @@ option(BUILD_TESTING     "Builds tests and test modes of files"                O
 option(BUILD_DOCS        "Builds documentation if is doxygen found"            ON)
 option(DOCS_ONLY         "Only build documentation"                            OFF)
 
+option(FENIX_C_CATCH_RUNTIME_EXCEPTIONS
+    "Catch runtime exceptions and return an error code in the C API" OFF)
+option(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS
+    "Catch runtime exceptions and return an error code in the C++ API" OFF)
+
 #Solves an issue with some system environments putting their MPI headers before
 #the headers CMake includes. Forces non-system MPI headers when incorrect headers
 #detected in include path.
