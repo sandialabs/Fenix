@@ -28,7 +28,7 @@ FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
 target_sources(fenix PUBLIC FILE_SET HEADERS
     BASE_DIRS ${Fenix_INCLUDE} FILES ${Fenix_HEADERS})
 
-target_compile_features(fenix PRIVATE cxx_std_20)
+target_compile_features(fenix PUBLIC cxx_std_20)
 target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
 
 if(FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
