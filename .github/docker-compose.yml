@@ -10,6 +10,7 @@ services:
         CMD cp /configs/spack.yaml . && \
             export OMPI_VERSION=$( [[ "$${OMPI_VERSION}" == git.* ]] && echo "$${OMPI_VERSION}=main" || echo "$${OMPI_VERSION}" ) && \
             spack -e . add openmpi@$${OMPI_VERSION} && \
+            spack -e . add cmake && \
             spack -e . containerize >/configs/spack.Dockerfile
       args:
         OMPI_VERSION: main
