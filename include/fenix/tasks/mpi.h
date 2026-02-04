@@ -72,6 +72,8 @@ auto send(const std::vector<T>& v, int r, int t, MPI_Comm c) {
   return send(v.data(), v.size(), r, t, c);
 }
 
+// clang-format off
+// formatting off for sendrecv functions for clearer argument indentation
 template <typename ST, typename RT>
 MPITask sendrecv(
   const ST* sb, int sn, MPI_Datatype sd, int sr, int st,
@@ -105,6 +107,7 @@ auto sendrecv(
 ) {
   return sendrecv(&sv[0], sv.size(), sr, st, &rv[0], rv.size(), rr, rt, c);
 }
+// clang-format on
 
 template <typename T>
 MPITask allreduce(
@@ -190,6 +193,7 @@ template <typename T>
 MPI_Datatype datatype() {
   using U = std::remove_cv_t<std::remove_pointer_t<std::decay_t<T>>>;
   static_assert(std::is_trivially_copyable_v<U>);
+  // clang-format off
   MPI_TASK_TYPE(U, MPI_CHAR,            char);
   MPI_TASK_TYPE(U, MPI_FLOAT,           float);
   MPI_TASK_TYPE(U, MPI_DOUBLE,          double);
@@ -206,6 +210,7 @@ MPI_Datatype datatype() {
   MPI_TASK_TYPE(U, MPI_2INT,            Indexed<int>);
   MPI_TASK_TYPE(U, MPI_SHORT_INT,       Indexed<short>);
   MPI_TASK_TYPE(U, MPI_LONG_DOUBLE_INT, Indexed<long double>);
+  // clang-format on
 
   // Technically sketch to just make this MPI_BYTE, but only when heterogenenous
   // so we'll cross that bridge when we get there. Convenient for trivial custom
