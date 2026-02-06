@@ -25,8 +25,11 @@ add_library(fenix STATIC ${Fenix_SOURCES})
 
 set(Fenix_INCLUDE ${CMAKE_SOURCE_DIR}/include)
 FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
+
+configure_file(${Fenix_INCLUDE}/fenix-config.h.in fenix-config.h @ONLY)
 target_sources(fenix PUBLIC FILE_SET HEADERS
-    BASE_DIRS ${Fenix_INCLUDE} FILES ${Fenix_HEADERS})
+    BASE_DIRS ${Fenix_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR}
+    FILES ${Fenix_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h)
 
 target_compile_features(fenix PUBLIC cxx_std_20)
 target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
@@ -38,7 +41,6 @@ if(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
     target_compile_definitions(fenix PUBLIC FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
 endif()
 
-configure_file(${Fenix_INCLUDE}/fenix-config.h.in fenix-config.h @ONLY)
 
 install(TARGETS fenix EXPORT fenix ARCHIVE LIBRARY FILE_SET HEADERS)
 install(EXPORT fenix FILE fenixTargets.cmake DESTINATION cmake)
