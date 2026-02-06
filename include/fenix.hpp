@@ -175,6 +175,17 @@ int group_create(
   void* policy_value, int* flag
 );
 
+struct GroupCreateArgs {
+  // MPI_COMM_NULL defaults to the resilient communicator
+  MPI_Comm comm        = MPI_COMM_NULL;
+  int start_time_stamp = 0;
+  int depth            = 1;
+  int policy_name      = FENIX_DATA_POLICY_IMR;
+  void* policy_value   = nullptr;
+  int* flag            = nullptr;
+};
+int group_create(int group_id, GroupCreateArgs args = {});
+
 //@!brief Overload of #Fenix_Data_group_created
 bool group_created(int group_id);
 
@@ -192,7 +203,9 @@ int member_stage(
 );
 
 //!@brief Overload of #Fenix_Data_member_store
-int member_store(int group_id, int member_id, const DataSubset& subset);
+int member_store(
+  int group_id, int member_id, const DataSubset& subset = SUBSET_FULL
+);
 
 //!@brief Overload of #Fenix_Data_member_storev
 int member_storev(int group_id, int member_id, const DataSubset& subset);
@@ -210,7 +223,8 @@ int member_istorev(
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
   int group_id, int member_id, void* target_buffer, int max_length,
-  int time_stamp, DataSubset& data_found
+  int time_stamp = FENIX_DATA_SNAPSHOT_LATEST,
+  DataSubset& data_found = SUBSET_IGNORE
 );
 
 //!@brief Overload of #Fenix_Data_member_lrestore

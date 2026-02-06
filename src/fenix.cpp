@@ -252,6 +252,19 @@ const DataSubset& SUBSET_FULL      = SUBSET_FULL_IMPL;
 const DataSubset& SUBSET_EMPTY     = SUBSET_EMPTY_IMPL;
 const DataSubset& SUBSET_PRESTAGED = SUBSET_PRESTAGED_IMPL;
 DataSubset SUBSET_IGNORE           = SUBSET_EMPTY;
+
+int group_create(int group_id, GroupCreateArgs args) {
+  FENIX_CPP_API_BEGIN
+  if (args.comm == MPI_COMM_NULL) args.comm = *fenix_rt.user_world;
+  int ignore;
+  if (args.flag == nullptr) args.flag = &ignore;
+  return group_create(
+    group_id, args.comm, args.start_time_stamp, args.depth, args.policy_name,
+    args.policy_value, args.flag
+  );
+  FENIX_CPP_API_END
+}
+
 } // namespace data
 
 } //namespace fenix
