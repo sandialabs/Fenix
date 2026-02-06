@@ -130,7 +130,7 @@ void CommLog::fenix_pre_recovery() {
 
 void CommLog::reset_consistency(int region) {
   MLOG("%s resetting to region %d\n", str().c_str(), region);
-  assert(m_rank == comm_rank(comm)); // No support for changing ranks
+  assert(m_rank == util::comm_rank(comm)); // No support for changing ranks
   assert(region >= -1);
   assert(tasks.empty());
 
