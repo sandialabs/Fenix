@@ -6,7 +6,7 @@
 #define FENIX_TASKS_FORWARD_H
 
 namespace fenix::tasks {
-template <typename T, bool eager = true>
+template <typename T, bool eager = false>
 class Task;
 
 template <typename T>

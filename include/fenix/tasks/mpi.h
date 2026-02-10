@@ -7,9 +7,7 @@
 #include <mpi.h>
 #include "task.h"
 
-namespace fenix::tasks::mpi {
-
-namespace util {
+namespace fenix::util {
 template <typename T>
 MPI_Datatype datatype();
 
@@ -22,6 +20,7 @@ template <typename T>
 constexpr int count(T&& t, int in_count);
 }
 
+namespace fenix::tasks::mpi {
 // C++ type corresponding to MPI_Datatype index pairs
 template <typename T>
 struct Indexed {
@@ -80,6 +79,8 @@ MPITask sendrecv(
         RT* rb, int rn, MPI_Datatype rd, int rr, int rt, MPI_Comm c
 ) {
   auto recv_task = recv(rb, rn, rd, rr, rt, c);
+  // ensure lazily-evaluated recv_task actually begins
+  recv_task.resume();
   co_await send(sb, sn, sd, sr, st, c);
   co_return co_await recv_task;
 }
@@ -183,14 +184,16 @@ inline MPITask probe(int src, int tag, MPI_Comm comm) {
     co_await std::suspend_always{};
   } while (true);
 }
+} // namespace fenix::tasks::mpi
 
-namespace util {
+namespace fenix::util {
 
 #define MPI_TASK_TYPE(u, r, ...)                                               \
   if constexpr (std::is_same_v<u, __VA_ARGS__>) return r;
 
 template <typename T>
 MPI_Datatype datatype() {
+  using namespace fenix::tasks::mpi;
   using U = std::remove_cv_t<std::remove_pointer_t<std::decay_t<T>>>;
   static_assert(std::is_trivially_copyable_v<U>);
   // clang-format off
@@ -227,7 +230,6 @@ constexpr int count(T&& t, int in_count) {
   }
   return in_count;
 }
-} // namespace util
-} // namespace fenix::tasks::mpi
+} // namespace fenix::util
 
 #endif // FENIX_TASKS_MPI_H

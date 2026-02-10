@@ -10,7 +10,9 @@
 
 namespace fenix::tasks {
 
-template <typename T, bool eager /*= true*/>
+// WARNING: eager tasks can cause gross double free errors, due to some
+// early wonkiness in the C++ spec and in compiler implementations
+template <typename T, bool eager /*= false*/>
 class Task {
  public:
   using PromiseT = Promise<T, eager>;
@@ -18,8 +20,12 @@ class Task {
   using promise_type = PromiseT;
   struct PromiseHolder {
     PromiseHolder() = delete;
-    PromiseHolder(PromiseT* p) : promise(p) {}
-    ~PromiseHolder() { promise->destroy(); }
+    PromiseHolder(PromiseT* p) : promise(p) {
+      promise->register_owning_ptr(&promise);
+    }
+    ~PromiseHolder() {
+      if (promise) promise->destroy();
+    }
     PromiseT* operator->() { return promise; }
     PromiseT* promise;
   };

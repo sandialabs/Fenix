@@ -52,7 +52,17 @@ class Promise : public impl::ReturnHolder<T> {
     return std::suspend_always{};
   }
   // Rethrow exceptions immediately
-  void unhandled_exception() { throw; }
+  void unhandled_exception() {
+    coro_done = true;
+    throw;
+  }
+
+  // Fixes some wonkiness in the standard and in the compiler implementations
+  // of coroutine cleanup w/ exceptions.
+  void register_owning_ptr(PromiseT** ptr) { owning_ptr = ptr; }
+  ~Promise() {
+    if (owning_ptr) *owning_ptr = nullptr;
+  }
 
   void destroy() { handle.destroy(); }
   bool done() { return coro_done; }
@@ -95,6 +105,7 @@ class Promise : public impl::ReturnHolder<T> {
   bool coro_done = false;
   AwaitMode await_mode = AwaitMode::NonBlocking;
   std::shared_ptr<SubtaskBase> subtask;
+  PromiseT** owning_ptr = nullptr;
 };
 
 } // namespace fenix::tasks
