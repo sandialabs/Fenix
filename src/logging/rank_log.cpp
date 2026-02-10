@@ -51,8 +51,8 @@ void RankLog::reset_consistency(int target_region) {
     if (!cur_region.valid()) return;
 
     // This is an application logic error
-    assert(
-      cur_region == target_region &&
+    fenix_assert(
+      cur_region == target_region,
       "Recovering to an undefined region between two defined regions!"
     );
   } else if (target_region > cur_region) {
@@ -215,19 +215,15 @@ void RankLog::replay_messages() {
 }
 
 void RankLog::ensure_consistency() {
-  if (!task && !cur_region.valid()) {
+  if (task) {
+    fatal_print(
+      "%s attempting logged action while forming consistency!\n", str().c_str()
+    );
+  }
+  if (!cur_region.valid()) {
     append_region({comm_log.active_region, 0, 0});
-    comm_log.tasks.push_back(task = form_consistency());
   }
-  while (task) {
-    try {
-      comm_log.progress_through(task);
-    } catch (const fenix::CommException& e) {
-      if (!inline_recovery()) throw;
-    }
-  }
-  assert(cur_region.valid());
-  assert(cur_region >= comm_log.active_region);
+  fenix_assert(cur_region >= comm_log.active_region);
 }
 
 const SendLog& RankLog::log_send(const void* b, int n, MPI_Datatype d, int t) {
@@ -235,8 +231,7 @@ const SendLog& RankLog::log_send(const void* b, int n, MPI_Datatype d, int t) {
   if (cur_region != comm_log.active_region) {
     fatal_print("%s send unexpected until region active\n", str().c_str());
   }
-
-  assert(sends.empty() || *(--sends.end()) == next_send - 1);
+  fenix_assert(sends.empty() || *(--sends.end()) == next_send - 1);
   return *sends.emplace_hint(sends.end(), b, n, d, t, next_send++);
 }
 
@@ -281,24 +276,25 @@ int RankLog::irecv(void* b, int n, MPI_Datatype d, int t, MPI_Request* r) {
 }
 
 fenix::tasks::Status RankLog::wait(MPI_Request* r) {
-  assert(r != NULL);
-  assert(*r != MPI_REQUEST_NULL);
-  assert(active_irecv);
-  assert(r == active_irecv);
+  fenix_assert(r != NULL);
+  fenix_assert(*r != MPI_REQUEST_NULL);
+  fenix_assert(active_irecv);
+  fenix_assert(r == active_irecv);
 
   fenix::tasks::Status ret;
 
   while (true) {
     try {
-      assert(task || cur_region.valid());
-      ensure_consistency();
-      assert(r == active_irecv);
-      assert(*r != MPI_REQUEST_NULL);
+      fenix_assert(cur_region.valid());
+      fenix_assert(r == active_irecv);
+      fenix_assert(*r != MPI_REQUEST_NULL);
+
       ret = comm_log.progress_through(r);
-      break;
     } catch (const fenix::CommException& e) {
-      if (!inline_recovery()) throw;
+      if (inline_recovery()) continue;
+      throw;
     }
+    break;
   }
 
   next_recv++;
@@ -308,24 +304,30 @@ fenix::tasks::Status RankLog::wait(MPI_Request* r) {
 }
 
 void RankLog::begin_region(int region_id) {
-  assert(region_id >= 0);
-  if (task) ensure_consistency();
+  fenix_assert(region_id >= 0);
 
-  // Don't set first region until sending or receiving a message
-  if (!cur_region.valid()) return;
   if (cur_region > region_id) {
-    assert(cur_region.empty());
+    // Fine if no messages have been send in cur_region yet, because the remote
+    // rank may have told us about cur_region before we reached it (while
+    // forming consistency)
+    if (!cur_region.empty()) {
+      fatal_print("Attempt to begin_region before current region");
+    }
     return;
-  }
-
-  if (cur_region == region_id) {
+  } else if (cur_region == region_id) {
     // Allowed when no messages have been sent in the region yet,
     // which lets us create the region when recovering without making
     // the user check if they just recovered when calling begin_region
-    assert(cur_region.valid());
-    assert(cur_region.empty() && "Duplicate begin_region");
-  } else if (cur_region.valid()) {
-    append_region({region_id, cur_region});
+    fenix_assert(cur_region.valid());
+    if (!cur_region.empty()) {
+      fatal_print("Duplicate begin_region");
+    }
+  } else {
+    if (cur_region.valid()) {
+      append_region({region_id, cur_region});
+    } else {
+      append_region({region_id, 0, 0});
+    }
   }
 
   assert(cur_region.valid());

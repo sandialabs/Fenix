@@ -16,10 +16,6 @@ CommLog::CommLog(MPI_Comm& c, int m_max_regions)
   : comm(c), max_regions(m_max_regions) {
   init_mpi_records();
   regions.resize(max_regions);
-
-  if (fenix::role() != fenix::INITIAL_RANK) {
-    pending_reset = true;
-  }
 }
 
 CommLog::CommLog(MPI_Comm& c, std::istream& i) : comm(c) {
@@ -40,8 +36,6 @@ CommLog::CommLog(MPI_Comm& c, std::istream& i) : comm(c) {
     auto [it, emplaced] = rank_logs.try_emplace(rank, *this, rank, i);
     assert(emplaced);
   }
-
-  pending_reset = true;
 }
 
 void CommLog::serialize(std::ostream& o) {
@@ -70,32 +64,10 @@ RankLog& CommLog::logs(int r) {
   return rank_logs.try_emplace(r, *this, r).first->second;
 }
 
-bool CommLog::is_logging(MPI_Comm c) {
-  return logging() && !pending_reset && !fenix_rt.ignore_errs && c == comm;
-}
+bool CommLog::is_logging(MPI_Comm c) { return logging() && c == comm; }
 
 void CommLog::progress() {
-  // Skip progress when error handling will be broken
-  if (fenix_rt.ignore_errs || pending_reset) return;
-
-  // Check if any other ranks are trying to form consistency with us
-  int last_rank, rank = -1;
-  do {
-    last_rank = rank;
-
-    int found;
-    MPI_Status status;
-    MPI_Iprobe(MPI_ANY_SOURCE, CONSISTENCY_TAG, comm, &found, &status);
-    if (found) {
-      auto& log = logs(rank = status.MPI_SOURCE);
-      if (!log.task) {
-        MLOG("Rank %d consistency initiated by rank %d\n", m_rank, rank);
-        log.reply_consistency();
-      }
-      assert(log.task);
-      log.task.resume();
-    }
-  } while (last_rank != rank);
+  if (tasks.empty()) return;
 
   // Attempt to progress all active tasks
   for (int i = tasks.size() - 1; i >= 0; i--) {
@@ -114,13 +86,16 @@ void CommLog::progress_through(TaskT t) {
 }
 
 Status CommLog::progress_through(MPI_Request* r) {
-  Request request(r);
-  while (!request.test()) progress();
-  return request.result();
+  int complete = 0;
+  Status ret;
+  while (!complete) {
+    ret = PMPI_Test(r, &complete, ret);
+    progress();
+  }
+  return ret;
 }
 
 void CommLog::fenix_pre_recovery() {
-  pending_reset = true;
   tasks.clear();
   for (auto& [rank, log] : rank_logs) {
     log.fenix_pre_recovery();
@@ -133,26 +108,52 @@ void CommLog::reset_consistency(int region) {
   assert(m_rank == util::comm_rank(comm)); // No support for changing ranks
   assert(region >= -1);
   assert(tasks.empty());
-
   auto setting = scoped_logging(false);
-
-#ifndef DNDEBUG
-  MPI_Barrier(comm);
-  // If we end up with tasks, pending_reset wasn't set correctly
-  assert(tasks.empty());
-  MLOG("%s completed reset_consistency barrier\n", str().c_str());
-#endif
 
   if (region >= 0) active_region = region;
   for (auto& [rank, log] : rank_logs) {
     log.reset_consistency(region);
   }
 
-  // TODO: set up regions as needed, call form_consistency as needed
+  // TODO: set up collective regions as needed, call form_consistency as needed
 
-  pending_reset = false;
-  progress();
-  MPI_Barrier(comm);
+  // Progress through all of the consistency tasks we know about
+  do {
+    progress();
+    detect_incoming_consistency_request();
+  } while (!tasks.empty());
+
+  // Once locally completed, enter a barrier to wait for global completion
+  MPI_Request req;
+  int complete;
+  MPI_Ibarrier(comm, &req);
+  do {
+    MPI_Test(&req, &complete, MPI_STATUS_IGNORE);
+    // Make sure to contribute to any newly discovered tasks from remote ranks
+    detect_incoming_consistency_request();
+    progress();
+  } while (!complete);
+
+  // Since all ranks completed anything they started, all ranks should be left
+  // with no tasks remaining.
+  assert(tasks.empty());
+}
+
+void CommLog::detect_incoming_consistency_request() {
+  MPI_Status s;
+  int found;
+
+  MPI_Iprobe(MPI_ANY_SOURCE, COLLECTIVE_CONSISTENCY_TAG, comm, &found, &s);
+  if (found && !task) {
+    task = form_consistency();
+    tasks.push_back(task);
+  }
+
+  MPI_Iprobe(MPI_ANY_SOURCE, CONSISTENCY_TAG, comm, &found, &s);
+  if (found && !logs(s.MPI_SOURCE).task) {
+    MLOG("Rank %d consistency initiated by rank %d\n", m_rank, s.MPI_SOURCE);
+    logs(s.MPI_SOURCE).reply_consistency();
+  }
 }
 
 void CommLog::begin_region(int region) {
@@ -165,6 +166,17 @@ void CommLog::begin_region(int region) {
 
 TaskT CommLog::form_consistency() {
   using namespace fenix::tasks::mpi;
+
+  int n_ranks = util::comm_size(comm);
+  int left_rank = (m_rank + n_ranks - 1) % n_ranks;
+  int right_rank = (m_rank + 1) % n_ranks;
+  // This just serves as a notification to other ranks that we do need to
+  // perform collectives consistency forming. Every rank sends to left with
+  // COLLECTIVE_CONSISTENCY_TAG so an iprobe can detect this
+  co_await sendrecv(
+    m_rank,     left_rank,  COLLECTIVE_CONSISTENCY_TAG,
+    right_rank, right_rank, COLLECTIVE_CONSISTENCY_TAG, comm
+  );
 
   auto& m_region = region();
 

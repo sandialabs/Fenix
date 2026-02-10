@@ -6,7 +6,9 @@
 
 #include <mpi.h>
 
-#define CONSISTENCY_TAG 22234652
+#define CONSISTENCY_TAG            22234652
+#define COLLECTIVE_CONSISTENCY_TAG 22234653
+
 namespace fenix::logging {
 
 namespace impl {

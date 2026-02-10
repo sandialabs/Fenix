@@ -46,8 +46,6 @@ struct CommLog {
   int max_regions;
   int active_region = 0;
 
-  bool pending_reset = false;
-
   std::map<int, RankLog> rank_logs;
   std::vector<TaskT> tasks;
 
@@ -87,6 +85,8 @@ struct CommLog {
   }
 
  private:
+  // Iprobe MPI for any other rank trying to form consistency
+  void detect_incoming_consistency_request();
   TaskT form_consistency();
   void replay_collectives(int start_idx);
   void append_region(const CRegion& r);
