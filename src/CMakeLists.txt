@@ -30,7 +30,7 @@ set (Fenix_SOURCES
 
 add_library(fenix STATIC ${Fenix_SOURCES})
 
-target_compile_features(fenix PRIVATE cxx_std_17)
+target_compile_features(fenix PUBLIC cxx_std_20)
 
 target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
 
@@ -40,6 +40,13 @@ target_include_directories(fenix
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
     PRIVATE "${CMAKE_SOURCE_DIR}/src")
+
+if(FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
+    target_compile_definitions(fenix PUBLIC FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
+endif()
+if(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+    target_compile_definitions(fenix PUBLIC FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+endif()
 
 install(TARGETS fenix
     EXPORT fenix

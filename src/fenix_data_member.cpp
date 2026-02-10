@@ -54,6 +54,7 @@
 //@HEADER
 */
 
+#include "fenix_util.hpp"
 #include "fenix_data_group.hpp"
 #include "fenix_data_member.hpp"
 
@@ -68,22 +69,13 @@ fenix_member_entry_t::to_packet(){
   return to_ret;
 }
 
-int __fenix_search_memberid(fenix_group_t* group, int key) {
-  return group->search_member(key).first;
-}
+fenix_member_entry_t::fenix_member_entry_t(
+  int id, void* data, int count, MPI_Datatype datatype
+) : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) { };
 
-
-fenix_member_entry_t* __fenix_data_member_add_entry(fenix_group_t* group,
-        int memberid, void* data, int count, int datatype_size){
-    fenix_member_entry_t mentry;
-    mentry.memberid = memberid;
-    mentry.state = OCCUPIED;
-    mentry.user_data = (char*)data;
-    mentry.current_count = count;
-    mentry.datatype_size = datatype_size;
-    group->members[memberid] = mentry;
-
-    return &group->members[memberid];
-}
+fenix_member_entry_t::fenix_member_entry_t(
+  int id, void* data, int count, int dsize
+) : memberid(id), user_data((char*)data), current_count(count),
+    datatype_size(dsize) { };
 
 } //namespace fenix::data

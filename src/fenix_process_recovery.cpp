@@ -615,7 +615,8 @@ int __fenix_spare_rank(){
     return __fenix_spare_rank_within(*fenix_rt.world);
 }
 
-int detect_failures(bool do_recovery){
+int detect_failures(bool do_recovery) {
+    FENIX_CPP_API_BEGIN
     if(!fenix_rt.new_world_exists) return FENIX_ERROR_UNINITIALIZED;
 
     int old_ignore_errs = fenix_rt.ignore_errs;
@@ -628,6 +629,7 @@ int detect_failures(bool do_recovery){
     
     fenix_rt.ignore_errs = old_ignore_errs;
     return ret;
+    FENIX_CPP_API_END
 }
 
 void __fenix_finalize_spare()
@@ -799,8 +801,8 @@ void __fenix_postinit()
     }
 }
 
-int Fenix_Finalize()
-{
+int Fenix_Finalize() {
+    FENIX_C_API_BEGIN
     int location = FENIX_FINALIZE_LOC;
     MPIX_Comm_agree(*fenix_rt.user_world, &location);
     if(location != FENIX_FINALIZE_LOC){
@@ -867,4 +869,5 @@ int Fenix_Finalize()
     /* Free up any C++ data structures, reset default variables */
     fenix_rt = {};
     return FENIX_SUCCESS;
+    FENIX_C_API_END
 }

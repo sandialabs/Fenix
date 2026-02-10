@@ -69,9 +69,6 @@
 
 namespace fenix::data::imr {
 
-void __fenix_policy_in_memory_raid_get_group(fenix_group_t** group, MPI_Comm comm,
-      int timestart, int depth, void* policy_value, int* flag);
-
 struct Entry {
   //No copying, must be moved
   Entry(const Entry&) = delete;
@@ -165,7 +162,9 @@ struct ParityMember : public Member {
 };
 
 struct Group : public fenix_group_t {
-  Group(MPI_Comm comm, int timestart, int depth, int* policy, int* flag);
+  Group(
+    int id, MPI_Comm comm, int timestart, int depth, int* policy, int* flag
+  );
 
   int mode;
   int rank_separation;
@@ -190,7 +189,7 @@ struct Group : public fenix_group_t {
 
   int group_delete() override;
   int member_create(fenix_member_entry_t* mentry) override;
-  int member_delete(int member_id) override;
+  int member_delete(fenix_member_entry_t* mentry) override;
   int get_redundant_policy(int* name, void* value, int* flag) override;
 
   int member_store(int member_id, const DataSubset& subset) override;

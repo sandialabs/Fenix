@@ -134,7 +134,7 @@ int callback_register(
 int callback_pop(CallbackLocation loc = POST_RECOVERY);
 
 //@!brief Overload of #Fenix_Callback_invoke_all
-void callback_invoke_all(CallbackLocation loc = POST_RECOVERY);
+int callback_invoke_all(CallbackLocation loc = POST_RECOVERY);
 
 /**
  * @brief Get the failed ranks from the most recent recovery

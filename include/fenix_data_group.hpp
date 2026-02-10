@@ -57,23 +57,23 @@
 #define __FENIX_DATA_GROUP_H__
 
 #include <map>
+#include <source_location>
 
 #include <mpi.h>
 #include "fenix.h"
 #include "fenix_data_member.hpp"
-#include "fenix_util.hpp"
 #include "fenix_data_subset.hpp"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
 
 namespace fenix::data {
 
-using member_iterator = std::pair<int, fenix_member_entry_t*>;
-
 //We keep basic bookkeeping info here, policy specific
 //information is kept by the policy's data type.
 struct fenix_group_t {
-    using member_iterator = fenix::data::member_iterator;
+    fenix_group_t(
+        int groupid, MPI_Comm c, int timestart, int depth, int policy
+    );
 
     int groupid;
     MPI_Comm comm;
@@ -86,14 +86,19 @@ struct fenix_group_t {
     std::map<int, fenix_member_entry_t> members;
 
     std::vector<int> get_member_ids();
-    //Search for id, returning {-1, nullptr} if not found.
-    member_iterator search_member(int id);
-    //As search_member, but print an error message if id not found.
-    member_iterator find_member(int id);
+    //Search for id, returning null if not found.
+    fenix_member_entry_t* search_member(int id);
+    //As search_member, but throw if not found
+    fenix_member_entry_t* find_member(
+        int id, std::source_location loc = std::source_location::current()
+    );
+    int member_create(int id, void* data, int count, MPI_Datatype datatype);
+    int member_create(int id, void* data, int count, int datatype_size);
+    int member_delete(int memberid);
     
     virtual int group_delete() = 0;
     virtual int member_create(fenix_member_entry_t* member) = 0;
-    virtual int member_delete(int memberid) = 0;
+    virtual int member_delete(fenix_member_entry_t* member) = 0;
     virtual int get_redundant_policy(int* name, void* value, int* flag) = 0;
     virtual int member_store(int memberid, const DataSubset& subset) = 0;
     virtual int member_storev(int memberid, const DataSubset& subset) = 0;
@@ -128,6 +133,7 @@ typedef struct __group_entry_packet {
 
 fenix_data_recovery_t * __fenix_data_recovery_init();
 
+int __fenix_data_recovery_remove_group(int groupid);
 void __fenix_data_recovery_destroy( fenix_data_recovery_t *fx_data_recovery );
 
 void __fenix_ensure_data_recovery_capacity( fenix_data_recovery_t *dr);
@@ -136,12 +142,10 @@ int __fenix_search_groupid( int key, fenix_data_recovery_t *dr);
 
 int __fenix_find_next_group_position( fenix_data_recovery_t *dr );
 
-using group_iterator = std::pair<int, fenix_group_t*>;
-
-group_iterator search_group(int id, fenix_data_recovery_t *dr);
-group_iterator search_group(int id);
-group_iterator find_group(int id, fenix_data_recovery_t *dr);
-group_iterator find_group(int id);
+fenix_group_t* search_group(int id);
+fenix_group_t* find_group(
+    int id, std::source_location loc = std::source_location::current()
+);
 
 } //end namespace fenix::data
 

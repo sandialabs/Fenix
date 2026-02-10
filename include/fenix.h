@@ -104,7 +104,9 @@ typedef enum {
     FENIX_ERROR_INVALID_GROUPID,
     FENIX_ERROR_INVALID_MEMBERID,
     FENIX_ERROR_INVALID_LOGIC_CALL,
+    FENIX_ERROR_INVALID_POLICY_NAME,
     FENIX_ERROR_INVALID_TIMESTAMP,
+    FENIX_ERROR_INVALID_TIMESTART,
     FENIX_ERROR_INVALID_DEPTH,
     FENIX_ERROR_INVALID_ATTRIBUTE_NAME,
     FENIX_ERROR_INVALID_ATTRIBUTE_VALUE,
@@ -299,8 +301,9 @@ int Fenix_Callback_pop();
 
 /**
  * @brief Invoke all callbacks with information from the last recovered fault
+ * @returnstatus
  */
-void Fenix_Callback_invoke_all();
+int Fenix_Callback_invoke_all();
 
 /**
  * @brief Check for any failed ranks

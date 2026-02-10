@@ -75,7 +75,7 @@ typedef struct {
     ResumeMode resume_mode = JUMP;
     CallbackExceptionMode callback_exception_mode = RETHROW;
     UnhandledMode unhandled_mode = ABORT;
-    int ignore_errs = false;       // Temporarily ignore all errors & recovery
+    bool ignore_errs = false;       // Temporarily ignore all errors & recovery
     int spawn_policy;             // Indicate dynamic process spawning
     jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
 
