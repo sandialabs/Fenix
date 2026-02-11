@@ -5,7 +5,6 @@
 #include "fenix/tasks/mpi.h"
 #include "fenix/logging/comm_log.h"
 #include "fenix/logging/util.h"
-#include "fenix/logging/msg_log.h"
 
 namespace fenix::logging {
 using namespace fenix::tasks;

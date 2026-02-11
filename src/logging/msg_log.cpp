@@ -1,4 +1,4 @@
-#include "fenix/logging/msg_log.h"
+#include "fenix/logging/op_log.h"
 #include "fenix/logging/serialize.h"
 
 using namespace fenix::util;
@@ -55,7 +55,7 @@ void init_mpi_records() {
     MPI_C_COMPLEX, MPI_C_FLOAT_COMPLEX, MPI_C_DOUBLE_COMPLEX,
     MPI_C_LONG_DOUBLE_COMPLEX, MPI_AINT, MPI_COUNT, MPI_OFFSET, MPI_BYTE,
     MPI_PACKED, MPI_SHORT_INT, MPI_LONG_INT, MPI_FLOAT_INT, MPI_DOUBLE_INT,
-    MPI_2INT
+    MPI_2INT, MPI_DATATYPE_NULL
   };
   // clang-format on
   if (!mpi_types.has(builtin_mpi_types.back()))

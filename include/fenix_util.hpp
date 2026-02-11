@@ -96,6 +96,7 @@ inline int comm_rank(MPI_Comm c) {
 }
 
 static inline int type_size(MPI_Datatype d) {
+  if (d == MPI_DATATYPE_NULL) return 0;
   int size;
   MPI_Type_size(d, &size);
   return size;

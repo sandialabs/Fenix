@@ -15,6 +15,7 @@
 #include "fenix/logging/message_logging.h"
 #include "fenix/logging/task.h"
 #include "fenix/logging/rank_log.h"
+#include "fenix/logging/collective_log_holder.h"
 
 namespace fenix::logging {
 
@@ -50,6 +51,7 @@ struct CommLog {
   std::vector<TaskT> tasks;
 
   std::vector<CRegion> regions;
+  std::set<CollectiveLogHolder, std::less<>> collectives;
   int completed_collective = -1;
   TaskT task;
 

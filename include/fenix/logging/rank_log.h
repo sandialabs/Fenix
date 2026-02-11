@@ -5,7 +5,9 @@
 #include <mpi.h>
 
 #include "fenix/logging/task.h"
-#include "fenix/logging/msg_log.h"
+#include "fenix/logging/ops/send_log.h"
+#include "fenix/logging/ops/irecv_log.h"
+
 namespace fenix::logging {
 struct MsgRange {
   int first = -1, next = -1;
