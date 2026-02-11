@@ -207,9 +207,6 @@ int main(int argc, char** argv) {
       int cur_timestamp = old_timestamp;
       while (old_timestamp == cur_timestamp) {
         try {
-          // Make sure we've repeated any messages needed by others
-          ensure_message_consistency();
-
           fenix::data::member_store(group, state_member);
           store_message_logs(group, mlogs_member);
           fenix::data::commit(group);
@@ -224,7 +221,6 @@ int main(int argc, char** argv) {
   // others.
   while (fenix::initialized()) {
     try {
-      ensure_message_consistency();
       Fenix_Finalize();
     } catch (fenix::CommException& error) {
       // Retry
