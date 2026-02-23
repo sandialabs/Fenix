@@ -16,7 +16,8 @@ using CollectiveLogVariant = std::variant<BarrierLog*>;
 // Type-erasing helper that can be serialized/deserialized directly.
 // Treat as a unique_ptr
 class CollectiveLogHolder {
-  CollectiveLogHolder() = delete;
+ public:
+  CollectiveLogHolder() = default;
   CollectiveLogHolder(CollectiveLogHolder&& o) { *this = std::move(o); }
   CollectiveLogHolder& operator=(CollectiveLogHolder&& o) {
     log = std::move(o.log);
@@ -24,10 +25,12 @@ class CollectiveLogHolder {
     return *this;
   }
 
+  // Create based on underlying log type
   template <typename LogT, typename... Args>
-  CollectiveLogHolder(Args... args)
-    : log(std::make_unique<LogT>(args...)),
-      variant(static_cast<LogT*>(log.get())) {}
+  static CollectiveLogHolder create(Args... args) {
+    auto l = std::make_unique<LogT>(args...);
+    return CollectiveLogHolder(std::move(l), static_cast<LogT*>(l.get()));
+  }
 
   CollectiveLogHolder(std::istream& i) {
     read_log(
@@ -79,6 +82,12 @@ class CollectiveLogHolder {
 
   std::unique_ptr<CollectiveLog> log;
   CollectiveLogVariant variant;
+
+ private:
+  CollectiveLogHolder(
+    std::unique_ptr<CollectiveLog>&& m_log, CollectiveLogVariant&& m_variant
+  )
+    : log(std::move(m_log)), variant(std::move(m_variant)) {}
 };
 
 } //namespace fenix::logging

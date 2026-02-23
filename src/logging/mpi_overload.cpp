@@ -88,6 +88,13 @@ int MPI_Wait(MPI_Request* req, MPI_Status* status) {
   return ret;
 }
 
+int MPI_Barrier(MPI_Comm c) {
+  if (!comm_log || !comm_log.value().is_logging(c)) {
+    return PMPI_Barrier(c);
+  }
+  return comm_log->begin<MPI_Barrier>(c);
+}
+
 // Remaining overrides aren't logged, but we override the blocking versions
 // to non-blocking so we can progress consistency meanwhile
 
@@ -122,13 +129,6 @@ int MPI_Allgather(
 ) {
   MPI_Request r;
   int ret = MPI_Iallgather(sb, sn, sd, rb, rn, rd, c, &r);
-  if (ret == MPI_SUCCESS) ret = MPI_Wait(&r, MPI_STATUS_IGNORE);
-  return ret;
-}
-
-int MPI_Barrier(MPI_Comm c) {
-  MPI_Request r;
-  int ret = MPI_Ibarrier(c, &r);
   if (ret == MPI_SUCCESS) ret = MPI_Wait(&r, MPI_STATUS_IGNORE);
   return ret;
 }

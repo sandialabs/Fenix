@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <mpi.h>
 #include "fenix.hpp"
 #include "fenix_ext.hpp"
@@ -94,6 +96,50 @@ Status CommLog::progress_through(MPI_Request* r) {
   return ret;
 }
 
+int CommLog::begin(CollectiveLogHolder&& new_op) {
+  fenix_assert(!active_op);
+  active_op = std::move(new_op);
+
+  int op_idx = active_op->idx();
+  int ret = MPI_SUCCESS;
+
+  // For now, we have a very simple approach of just replaying all collectives
+  // that any ranks need. So, no fancy logic needed when recovering from faults.
+  while (true) {
+    try {
+      util::ScopedDefaultRuntimeSettings settings;
+      fenix_assert(!task);
+      fenix_assert(region().valid());
+      fenix_assert(region() == active_region);
+      fenix_assert(active_op);
+      fenix_assert(active_op->idx() == op_idx);
+
+      ret = active_op->begin(comm);
+      fenix_assert(ret == MPI_SUCCESS);
+    } catch (const CommException& e) {
+      if (inline_recovery()) {
+        continue;
+      } else {
+        active_op = CollectiveLogHolder();
+        switch (fenix_rt.resume_mode) {
+        case fenix::JUMP:
+          longjmp(*fenix_rt.recover_environment, 1);
+        case fenix::THROW:
+          throw;
+        case fenix::RETURN:
+          return e.mpi_err;
+        }
+      }
+    }
+    break;
+  }
+
+  collectives.insert(collectives.end(), std::move(active_op));
+  fenix_assert(!active_op);
+
+  return ret;
+}
+
 void CommLog::fenix_pre_recovery() {
   tasks.clear();
   for (auto& [rank, log] : rank_logs) {
@@ -102,19 +148,42 @@ void CommLog::fenix_pre_recovery() {
   MLOG("%s completed fenix_pre_recovery\n", str().c_str());
 }
 
-void CommLog::reset_consistency(int region) {
-  MLOG("%s resetting to region %d\n", str().c_str(), region);
+void CommLog::reset_consistency(int target_region) {
+  MLOG("%s resetting to region %d\n", str().c_str(), target_region);
   assert(m_rank == util::comm_rank(comm)); // No support for changing ranks
-  assert(region >= -1);
+  assert(target_region >= -1);
   assert(tasks.empty());
   auto setting = scoped_logging(false);
 
-  if (region >= 0) active_region = region;
+  // Call reset_consistency for all point-to-point logs
+  if (target_region >= 0) active_region = target_region;
   for (auto& [rank, log] : rank_logs) {
-    log.reset_consistency(region);
+    log.reset_consistency(target_region);
   }
 
-  // TODO: set up collective regions as needed, call form_consistency as needed
+  // Reset our collective region information, if needed
+  if (region().valid() && target_region != -1 && region() > target_region) {
+    // Erase any CRegions after the reset region
+    auto it = std::upper_bound(regions.begin(), regions.end(), target_region);
+    erase_regions(it, regions.end());
+    fenix_assert(
+      !region().valid() || region() == target_region,
+      "Recovering to an undefined region between two defined regions!"
+    );
+  } else if (region().valid() && target_region > region()) {
+    // Assume we are recovering into the very next region
+    append_region({target_region, region().next});
+  } else if (region().valid() && region() == target_region) {
+    // We're recovering to the beginning of this region, so erase prior logs
+    erase_logs(region());
+    region().next = region().first;
+  }
+
+  // If we have any collective logs, begin forming collective consistency
+  if (region().valid() && !region().fresh()) {
+    task = form_consistency();
+    tasks.push_back(task);
+  }
 
   // Progress through all of the consistency tasks we know about
   do {
@@ -136,16 +205,21 @@ void CommLog::reset_consistency(int region) {
   // Since all ranks completed anything they started, all ranks should be left
   // with no tasks remaining.
   assert(tasks.empty());
+
+  // Wait until after barrier has completed to begin replaying collectives
+  replay_collectives(completed_collective_all + 1);
 }
 
 void CommLog::detect_incoming_consistency_request() {
   MPI_Status s;
   int found;
 
-  MPI_Iprobe(MPI_ANY_SOURCE, COLLECTIVE_CONSISTENCY_TAG, comm, &found, &s);
-  if (found && !task) {
-    task = form_consistency();
-    tasks.push_back(task);
+  if (!task) {
+    MPI_Iprobe(MPI_ANY_SOURCE, COLLECTIVE_CONSISTENCY_TAG, comm, &found, &s);
+    if (found) {
+      task = form_consistency();
+      tasks.push_back(task);
+    }
   }
 
   MPI_Iprobe(MPI_ANY_SOURCE, CONSISTENCY_TAG, comm, &found, &s);
@@ -155,12 +229,30 @@ void CommLog::detect_incoming_consistency_request() {
   }
 }
 
-void CommLog::begin_region(int region) {
-  assert(region >= 0);
+void CommLog::begin_region(int region_id) {
+  assert(region_id >= 0);
   for (auto& [rank, log] : rank_logs) {
-    log.begin_region(region);
+    log.begin_region(region_id);
   }
-  active_region = region;
+  active_region = region_id;
+  if (region() > region_id) {
+    // Fine if no collectives have been run in region() yet, because remote
+    // ranks may have told us about region() before we reached it (while forming
+    // consistency)
+    if (!region().empty()) {
+      fatal_print("Attempt to begin_region before current region");
+    }
+    return;
+  } else if (region() == region_id) {
+    // Again, fine if no collectives have run yet
+    fenix_assert(region().valid());
+    if (!region().empty()) {
+      fatal_print("Duplicate begin_region");
+    }
+  } else {
+    if (region().valid()) append_region({region_id, region().next});
+    else append_region({region_id, 0});
+  }
 }
 
 TaskT CommLog::form_consistency() {
@@ -243,8 +335,9 @@ TaskT CommLog::form_consistency() {
   int earliest_idx;
   co_await allreduce(m_region.next, earliest_idx, MPI_MIN, comm);
 
-  completed_collective = latest_idx - 1;
-  replay_collectives(earliest_idx);
+  completed_collective_any = latest_idx - 1;
+  completed_collective_all = earliest_idx - 1;
+  task = {};
 }
 
 void CommLog::append_region(const CRegion& r) {
@@ -258,11 +351,29 @@ void CommLog::append_region(const CRegion& r) {
 
 void CommLog::erase_logs(const CRegion& r) {
   if (!r.valid()) return;
-  // TODO: Erase collective message logs within r
-  assert(false);
+  collectives.erase(
+    collectives.lower_bound(r.first), collectives.lower_bound(r.next)
+  );
+}
+void CommLog::erase_regions(
+  std::vector<CRegion>::iterator begin, std::vector<CRegion>::iterator end
+) {
+  for (auto it = begin; it < end; it++) erase_logs(*it);
+  while (begin != regions.begin()) *(--end) = *(--begin);
+  while (end != regions.begin()) *(--end) = CRegion();
 }
 void CommLog::replay_collectives(int start_idx) {
-  // TODO: Do this
-  assert(false);
+  fenix_assert(region().valid());
+  if (start_idx >= region().next) return;
+
+  int prev_idx = start_idx - 1;
+  for (auto i = collectives.find(start_idx); i != collectives.end(); i++) {
+    fenix_assert(
+      (*i)->idx() == prev_idx + 1, "Rank %d missing collective %d (next = %d)",
+      m_rank, prev_idx + 1, (*i)->idx()
+    );
+    prev_idx++;
+    (*i)->replay(comm);
+  }
 }
 } //namespace fenix::logging

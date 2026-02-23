@@ -77,6 +77,8 @@ constexpr int mlogs_member = 1;
 constexpr int app_iterations = 100;
 constexpr int iteration_work_ms = 10;
 constexpr int checkpoint_iterations = 10;
+//constexpr int barrier_iterations = checkpoint_iterations / 2;
+constexpr int barrier_iterations = 1;
 
 // Very simplified application state
 struct State {
@@ -178,6 +180,12 @@ int main(int argc, char** argv) {
       // Enable logging and inline recovery within this scope
       auto setting = scoped_inline_recovery(true);
       begin_message_log_region(i);
+
+#ifdef FENIX_STENCIL_ENABLE_BARRIERS
+      if (i % barrier_iterations == 0) {
+        MPI_Barrier(res_world);
+      }
+#endif
 
       // Exchange state information, just like exchanging ghost points
       State left_state, right_state;

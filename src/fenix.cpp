@@ -219,7 +219,9 @@ unsigned get_option(SettingName setting) {
 
 void throw_exception() {
   assert(initialized());
-  throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
+  throw CommException(
+    *fenix_rt.user_world, *fenix_rt.ret_error, MPI_ERR_UNKNOWN
+  );
 }
 
 Fenix_Rank_role role() {

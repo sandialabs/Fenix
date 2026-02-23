@@ -66,15 +66,21 @@ class OpLog {
   mutable MPI_Request* m_req = &req_obj;
 };
 
+template <auto MPIFunction>
+struct mpi_log;
+
+template <auto MPIFunction>
+using mpi_log_t = typename mpi_log<MPIFunction>::type;
+
 class CollectiveLog : public OpLog {
  public:
   using OpLog::OpLog;
 
-  // Asynchronously launch collective
+  // Launch collective for the (locally) first time
   virtual int begin(MPI_Comm c) const = 0;
 
-  // Write collective output to user buffer
-  virtual void write(class BufferWrap buffer) const = 0;
+  // Asynchronously replay collective
+  virtual void replay(MPI_Comm c) const = 0;
 
  protected:
   CollectiveLog& operator=(CollectiveLog&& o) {
@@ -83,76 +89,99 @@ class CollectiveLog : public OpLog {
   }
 };
 
-// Copy a user's buffer with type and size info (or make space for an output)
-class BufferCopy {
+class MPIBuffer {
  public:
-  BufferCopy() = default;
-  BufferCopy(int count, MPI_Datatype datatype)
-    : type(datatype), buf(count * util::type_size(datatype)) {}
-  BufferCopy(const void* user_buf, int count, MPI_Datatype datatype)
-    : BufferCopy(count, datatype) {
-    fenix_assert(user_buf != MPI_IN_PLACE);
-    fenix_assert(user_buf || type == MPI_DATATYPE_NULL);
-    std::memcpy(buf.data(), user_buf, buf.size());
-  }
-
-  // Can be (de)serialized
-  BufferCopy(std::istream& i) {
-    serialize::read(i, type);
-    if (type != MPI_DATATYPE_NULL) serialize::read(i, buf);
-  }
-  void serialize(std::ostream& o) const {
-    serialize::write(o, type);
-    if (type != MPI_DATATYPE_NULL) serialize::write(o, buf);
-  }
+  MPIBuffer() = default;
 
   // No copying, move-only
-  BufferCopy(const BufferCopy&) = delete;
-  BufferCopy& operator=(const BufferCopy& o) = delete;
-  BufferCopy(BufferCopy&& o) { *this = std::move(o); }
-  BufferCopy& operator=(BufferCopy&& o) {
-    buf = std::move(o.buf);
-    type = o.type;
-    o.type = MPI_DATATYPE_NULL;
+  MPIBuffer(const MPIBuffer&) = delete;
+  MPIBuffer& operator=(const MPIBuffer& o) = delete;
+  MPIBuffer(MPIBuffer&& o) { *this = std::move(o); }
+  MPIBuffer& operator=(MPIBuffer&& o) {
+    m_count = o.m_count;
+    o.m_count = 0;
+    m_type = o.m_type;
+    o.m_type = MPI_DATATYPE_NULL;
+    internal_buf = std::move(o.internal_buf);
+    user_buf = o.user_buf;
+    o.user_buf = nullptr;
     return *this;
   }
 
-  // Convert to types needed for MPI operations
-  operator void*() const {
-    if (type == MPI_DATATYPE_NULL) return nullptr;
-    return buf.data();
+  // Wrap a user's buffer
+  static MPIBuffer wrap(void* user_buffer, int count, MPI_Datatype type) {
+    return MPIBuffer(user_buffer, count, type);
   }
-  operator int() const {
-    if (type == MPI_DATATYPE_NULL) return 0;
-    return buf.size() / util::type_size(type);
+  // Create a buffer with uninitialized data
+  static MPIBuffer create(int count, MPI_Datatype type) {
+    return MPIBuffer(count, type);
   }
-  operator MPI_Datatype() const { return type; }
+  // Create a buffer and copy from the user's buffer
+  static MPIBuffer copy(const void* user_buffer, int count, MPI_Datatype type) {
+    return MPIBuffer(count, type, static_cast<const char*>(user_buffer));
+  }
 
-  MPI_Datatype type = MPI_DATATYPE_NULL;
-  mutable std::vector<char> buf;
-};
+  // Check if this object was default initialized or not
+  operator bool() const { return m_type != MPI_DATATYPE_NULL; }
 
-// A user's buffer wrapped with type and size info
-class BufferWrap {
- public:
-  BufferWrap(void* m_buf, int m_count, MPI_Datatype m_type)
-    : buf(m_buf), count(m_count), type(m_type) {
-    fenix_assert(buf || type == MPI_DATATYPE_NULL);
+  void copy_to(void* out) {
+    std::memcpy(out, buf(), m_count * util::type_size(m_type));
+  }
+  void copy_from(void* in) {
+    std::memcpy(buf(), in, m_count * util::type_size(m_type));
+  }
+
+  // Release pointer to user buffer, to avoid use-after-free
+  void release_user_buf() { user_buf = nullptr; }
+
+  void serialize(std::ostream& o) const {
+    serialize::write(o, m_type);
+    serialize::write(o, m_count);
+    serialize::write(o, internal_buf);
+  }
+  MPIBuffer(std::istream& i) {
+    serialize::read(i, m_type);
+    serialize::read(i, m_count);
+    serialize::read(i, internal_buf);
+  }
+
+  void* buf() const {
+    if (user_buf) {
+      // This should always be either a user buf wrapper OR hold its own buf
+      fenix_assert(internal_buf.empty());
+      return user_buf;
+    }
+    if (internal_buf.empty()) {
+      internal_buf.resize(m_count * util::type_size(m_type));
+    }
+    fenix_assert(internal_buf.size() == m_count * util::type_size(m_type));
+    return internal_buf.data();
   };
+  int count() const { return m_count; }
+  MPI_Datatype type() const { return m_type; }
 
-  // Copy from a BufferCopy
-  BufferWrap& operator=(const BufferCopy& o) {
-    fenix_assert(buf || type == MPI_DATATYPE_NULL);
-    fenix_assert(type == o.type);
-    fenix_assert(count == o.buf.size() / util::type_size(type));
-    std::memcpy(buf, o.buf.data(), o.buf.size());
-  }
+  operator void*() const { return buf(); }
+  operator int() const { return m_count; }
+  operator MPI_Datatype() const { return m_type; }
 
-  operator bool() const { return !buf || type == MPI_DATATYPE_NULL; }
+ private:
+  // Wrapping constructor
+  MPIBuffer(void* user_buffer, int count, MPI_Datatype type)
+    : user_buf(user_buffer), m_count(count), m_type(type) {};
+  // Copying constructor
+  MPIBuffer(int count, MPI_Datatype type, const char* b)
+    : internal_buf(b, b + count * util::type_size(type)), m_count(count),
+      m_type(type) {};
+  // Creating constructor
+  MPIBuffer(int count, MPI_Datatype type)
+    : internal_buf(count * util::type_size(type)), m_count(count),
+      m_type(type) {};
 
-  void* buf = nullptr;
-  int count = 0;
-  MPI_Datatype type = MPI_DATATYPE_NULL;
+  void* user_buf = nullptr;
+  mutable std::vector<char> internal_buf;
+
+  int m_count = 0;
+  MPI_Datatype m_type = MPI_DATATYPE_NULL;
 };
 
 } //namespace fenix::logging

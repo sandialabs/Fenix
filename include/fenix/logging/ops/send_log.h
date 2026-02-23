@@ -12,7 +12,7 @@ namespace fenix::logging {
 class SendLog : public OpLog {
  public:
   SendLog(const void* b, int n, MPI_Datatype d, int t, int idx)
-    : OpLog(idx), buf(b, n, d), tag(t) {}
+    : OpLog(idx), buf(MPIBuffer::copy(b, n, d)), tag(t) {}
   ~SendLog() = default;
 
   SendLog(SendLog&& o) { *this = std::move(o); }
@@ -43,7 +43,7 @@ class SendLog : public OpLog {
   }
 
  private:
-  BufferCopy buf;
+  MPIBuffer buf;
   int tag;
 };
 

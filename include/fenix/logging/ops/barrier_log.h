@@ -10,7 +10,7 @@ namespace fenix::logging {
 
 class BarrierLog : public CollectiveLog {
  public:
-  BarrierLog(int idx) : CollectiveLog(idx) {}
+  BarrierLog(MPI_Comm, int idx) : CollectiveLog(idx) {}
   BarrierLog(std::istream& i) : CollectiveLog(i) {}
   BarrierLog(BarrierLog&& o) { *this = std::move(o); }
   BarrierLog& operator=(BarrierLog&& o) {
@@ -27,11 +27,26 @@ class BarrierLog : public CollectiveLog {
   }
 
   int begin(MPI_Comm c) const override {
+    // We need to convert to an Ibarrier to correctly match with the Ibarriers
+    // during replay
     req_free();
-    return PMPI_Ibarrier(c, req());
+    int ret = PMPI_Ibarrier(c, req());
+    if (ret == MPI_SUCCESS) ret = PMPI_Wait(req(), MPI_STATUS_IGNORE);
+    return ret;
   }
 
-  void write(BufferWrap buffer) const override { fenix_assert(!buffer); }
+  void replay(MPI_Comm c) const override {
+    req_free();
+    int ret = PMPI_Ibarrier(c, req());
+    fenix_assert(
+      ret == MPI_SUCCESS, "Non-process MPI error during collective replay\n"
+    );
+  }
+};
+
+template <>
+struct mpi_log<MPI_Barrier> {
+  using type = BarrierLog;
 };
 
 } //namespace fenix::logging

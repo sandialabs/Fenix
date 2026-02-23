@@ -52,7 +52,11 @@ struct CommLog {
 
   std::vector<CRegion> regions;
   std::set<CollectiveLogHolder, std::less<>> collectives;
-  int completed_collective = -1;
+  CollectiveLogHolder active_op;
+  // Collective index every rank has successfully completed, as of last reset
+  int completed_collective_all = -1;
+  // As above, but index any rank has successfully completed
+  int completed_collective_any = -1;
   TaskT task;
 
   RankLog& logs(int r);
@@ -73,6 +77,21 @@ struct CommLog {
     return logs(src).irecv(b, n, d, t, r);
   }
 
+  // Return from logged collective calls. MPI return code and the log
+  using CollectiveResult =
+    std::pair<int, std::reference_wrapper<const CollectiveLogHolder>>;
+
+  // Begin a logged collective MPI Function, return the log
+  template <auto MPIFunction, typename... Args>
+  int begin(Args... args) {
+    using LogT = mpi_log_t<MPIFunction>;
+
+    if (!region().valid()) append_region({active_region, 0});
+    return begin(
+      CollectiveLogHolder::template create<LogT>(args..., region().next++)
+    );
+  }
+
   void fenix_pre_recovery();
   void reset_consistency(int checkpoint_id);
 
@@ -83,7 +102,7 @@ struct CommLog {
   std::string str(bool with_region = false) const {
     return "Rank " + std::to_string(m_rank) +
            " (active=" + std::to_string(active_region) + ")" +
-           (with_region ? region().str() : "");
+           (with_region ? " " + region().str() : "");
   }
 
  private:
@@ -93,6 +112,12 @@ struct CommLog {
   void replay_collectives(int start_idx);
   void append_region(const CRegion& r);
   void erase_logs(const CRegion& r);
+  void erase_regions(
+    std::vector<CRegion>::iterator begin, std::vector<CRegion>::iterator end
+  );
+
+  // Returns reference to logged op in collectives set
+  int begin(CollectiveLogHolder&& collective_op);
 };
 
 extern std::optional<CommLog> comm_log;
