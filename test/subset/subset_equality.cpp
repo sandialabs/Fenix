@@ -34,11 +34,11 @@
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 // GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 // IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
@@ -69,56 +69,41 @@
 
 using namespace fenix;
 
-bool test_equality(const DataSubset& a, const DataSubset& b){
-   printf("Testing subsets a=%s, b=%s\n", a.str().c_str(), b.str().c_str());
+#define TEST_ERROR(...)                                                        \
+  do {                                                                         \
+    if (!printed_test) {                                                       \
+      printf("a=%s, b=%s\n", a.str().c_str(), b.str().c_str());                \
+      printf("c=a+b=%s\n", c.str().c_str());                                   \
+      printf("d=b+a=%s\n", d.str().c_str());                                   \
+      printed_test = true;                                                     \
+    }                                                                          \
+    printf(__VA_ARGS__);                                                       \
+    success = false;                                                           \
+  } while (false)
 
-   const DataSubset c = a + b;
-   const DataSubset d = b + a;
+bool test_equality(const DataSubset& a, const DataSubset& b) {
+  const DataSubset c = a + b;
+  const DataSubset d = b + a;
 
-   printf("c=a+b=%s\n", c.str().c_str());
-   printf("d=b+a=%s\n", d.str().c_str());
-
-   bool success = true;
-   if(a != a){
-      printf("a != a\n");
-      success = false;
-   }
-   if(b != b){
-      printf("b != b\b");
-      success = false;
-   }
-   if(c != c){
-      printf("c != c\n");
-      success = false;
-   }
-   if(d != d){
-      printf("d != d\n");
-      success = false;
-   }
-   if(c != d){
-      printf("c != d\n");
-      success = false;
-   }
-   if(d != c){
-      printf("d != c\n");
-      success = false;
-   }
-
-   return success;
+  bool success = true, printed_test = false;
+  if (a != a) TEST_ERROR("a != a\n");
+  if (b != b) TEST_ERROR("b != b\b");
+  if (c != c) TEST_ERROR("c != c\n");
+  if (d != d) TEST_ERROR("d != d\n");
+  if (c != d) TEST_ERROR("c != d\n");
+  if (d != c) TEST_ERROR("d != c\n");
+  return success;
 }
 
-int main(int argc, char **argv)
-{
-   bool success = true;
+int main(int argc, char** argv) {
+  bool success = true;
 
-   auto subsets = get_expanded_subsets();
-   for(const auto& a : subsets){
-      for(const auto& b : subsets){
-         success &= test_equality(a, b);
-      }
-   }
+  auto subsets = get_expanded_subsets();
+  for (const auto& a : subsets) {
+    for (const auto& b : subsets) {
+      success &= test_equality(a, b);
+    }
+  }
 
-   return success ? 0 : 1;
+  return success ? 0 : 1;
 }
-
-
