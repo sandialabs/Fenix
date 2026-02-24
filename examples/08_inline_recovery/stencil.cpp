@@ -77,8 +77,11 @@ constexpr int mlogs_member = 1;
 constexpr int app_iterations = 100;
 constexpr int iteration_work_ms = 10;
 constexpr int checkpoint_iterations = 10;
+
+// These are arbitrary
 constexpr int barrier_iterations = 1;
 constexpr int bcast_iterations = 2;
+constexpr int reduce_iterations = 3;
 
 // Very simplified application state
 struct State {
@@ -195,6 +198,16 @@ int main(int argc, char** argv) {
         MPI_Bcast(&root_state, 2, MPI_INT, root, res_world);
         // Ensure we always get the expected message, regardless of faults
         assert(root_state.rank == root && root_state.iteration == i);
+      }
+#endif
+#ifdef FENIX_STENCIL_ENABLE_REDUCES
+      if (i % reduce_iterations == 0) {
+        // Get the maximum iteration from each rank (should be the same value)
+        int root = i % n_ranks, result = -1;
+        MPI_Reduce(&i, &result, 1, MPI_INT, MPI_MAX, root, res_world);
+        // Ensure we always get the expected message, regardless of faults
+        if (root == rank) assert(result == i);
+        else assert(result == -1);
       }
 #endif
 

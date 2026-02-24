@@ -101,3 +101,12 @@ int MPI_Bcast(void* b, int n, MPI_Datatype d, int r, MPI_Comm c) {
   }
   return comm_log->begin<MPI_Bcast>(b, n, d, r, c);
 }
+
+int MPI_Reduce(
+  const void* sb, void* rb, int n, MPI_Datatype d, MPI_Op o, int r, MPI_Comm c
+) {
+  if (!comm_log || !comm_log.value().is_logging(c)) {
+    return PMPI_Reduce(sb, rb, n, d, o, r, c);
+  }
+  return comm_log->begin<MPI_Reduce>(sb, rb, n, d, o, r, c);
+}

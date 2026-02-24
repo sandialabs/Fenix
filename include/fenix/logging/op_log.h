@@ -184,9 +184,7 @@ class MPIBuffer {
     : internal_buf(b, b + count * util::type_size(type)), m_count(count),
       m_type(type) {};
   // Creating constructor
-  MPIBuffer(int count, MPI_Datatype type)
-    : internal_buf(count * util::type_size(type)), m_count(count),
-      m_type(type) {};
+  MPIBuffer(int count, MPI_Datatype type) : m_count(count), m_type(type) {};
 
   mutable void* user_buf = nullptr;
   mutable std::vector<char> internal_buf;

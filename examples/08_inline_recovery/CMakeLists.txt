@@ -21,10 +21,16 @@ target_link_libraries(stencil_bcasts fenix ${MPI_C_LIBRARIES})
 target_compile_definitions(stencil_bcasts PRIVATE
    FENIX_STENCIL_ENABLE_BCASTS)
 
+add_executable(stencil_reduces stencil.cpp)
+target_link_libraries(stencil_reduces fenix ${MPI_C_LIBRARIES})
+target_compile_definitions(stencil_reduces PRIVATE
+   FENIX_STENCIL_ENABLE_REDUCES)
+
 add_executable(stencil_everything stencil.cpp)
 target_link_libraries(stencil_everything fenix ${MPI_C_LIBRARIES})
 target_compile_definitions(stencil_everything PRIVATE
-   FENIX_STENCIL_ENABLE_BARRIERS FENIX_STENCIL_ENABLE_BCASTS)
+   FENIX_STENCIL_ENABLE_BARRIERS FENIX_STENCIL_ENABLE_BCASTS
+   FENIX_STENCIL_ENABLE_REDUCES)
 
 if(BUILD_TESTING) 
    add_test(NAME inline_recovery 
@@ -38,6 +44,10 @@ if(BUILD_TESTING)
    add_test(NAME inline_recovery_bcasts
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} stencil_bcasts ${MPIEXEC_POSTFLAGS})
    set_tests_properties(inline_recovery_bcasts PROPERTIES LABELS "Example")
+   
+   add_test(NAME inline_recovery_reduces
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} stencil_reduces ${MPIEXEC_POSTFLAGS})
+   set_tests_properties(inline_recovery_reduces PROPERTIES LABELS "Example")
    
    add_test(NAME inline_recovery_everything
       COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} stencil_everything ${MPIEXEC_POSTFLAGS})
