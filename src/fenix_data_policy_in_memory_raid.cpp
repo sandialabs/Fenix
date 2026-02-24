@@ -452,7 +452,7 @@ int ParityMember::restore_impl(){
             if(group.set_rank == 0)
                debug_print(
                   "WARNING Fenix_Data_member_restore: %s member %d timestamp %d unrecoverable",
-                  group.str(), id, *ts
+                  group.str().c_str(), id, *ts
                );
             recovering = -1;
             break;

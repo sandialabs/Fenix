@@ -61,17 +61,18 @@
 #include <stdlib.h>
 #include <time.h>
 #include <signal.h>
+#include <unistd.h>
 
-float *create_rand_nums(int num_elements) {
-  float *rand_nums = (float *) malloc(sizeof(float) * num_elements);
+float* create_rand_nums(int num_elements) {
+  float* rand_nums = (float*)malloc(sizeof(float) * num_elements);
   int i;
-  for (i = 0; i < num_elements; i ++) {
-    rand_nums[i] = (rand() / (float) RAND_MAX);
+  for (i = 0; i < num_elements; i++) {
+    rand_nums[i] = (rand() / (float)RAND_MAX);
   }
   return rand_nums;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 
   // Standard
   int world_rank;
@@ -85,25 +86,28 @@ int main(int argc, char **argv) {
   int error;
   float local_sum = 0;
   int i;
-  float *rand_nums = NULL;
+  float* rand_nums = NULL;
   int kill_rank;
   int spare_ranks;
   int num_elements_per_proc;
   int recovered;
 
   if (argc != 4) {
-    fprintf(stderr, "Usage: <# elements> <# spare ranks> <rank ID for killing>\n");
+    fprintf(
+      stderr, "Usage: <# elements> <# spare ranks> <rank ID for killing>\n"
+    );
     exit(0);
   }
   kill_rank = atoi(argv[3]);
   spare_ranks = atoi(argv[2]);
   num_elements_per_proc = atoi(argv[1]);
 
-
   MPI_Init(&argc, &argv);
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
-  Fenix_Init(&fenix_role, world_comm, &new_comm, &argc, &argv, 
-              spare_ranks, spawn_mode, MPI_INFO_NULL, &error );
+  Fenix_Init(
+    &fenix_role, world_comm, &new_comm, &argc, &argv, spare_ranks, spawn_mode,
+    MPI_INFO_NULL, &error
+  );
 
   MPI_Comm_rank(new_comm, &world_rank);
   MPI_Comm_size(new_comm, &world_size);
@@ -112,15 +116,15 @@ int main(int argc, char **argv) {
     recovered = 0;
   } else {
     recovered = 1;
-    if( rand_nums != NULL ) {
-       free( rand_nums );
+    if (rand_nums != NULL) {
+      free(rand_nums);
     }
   }
 
   srand(time(NULL) * world_rank);
   rand_nums = create_rand_nums(num_elements_per_proc);
 
-  for (i = 0; i < num_elements_per_proc; i ++) {
+  for (i = 0; i < num_elements_per_proc; i++) {
     local_sum += rand_nums[i];
   }
   float global_sum;
@@ -128,21 +132,19 @@ int main(int argc, char **argv) {
   float mean = global_sum / (num_elements_per_proc * world_size);
 
   float local_sq_diff = 0;
-  for (i = 0; i < num_elements_per_proc; i ++) {
+  for (i = 0; i < num_elements_per_proc; i++) {
     local_sq_diff += (rand_nums[i] - mean) * (rand_nums[i] - mean);
   }
-
-
 
   if (world_rank == kill_rank && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGKILL);
   }
 
-
-
   float global_sq_diff;
-  MPI_Reduce(&local_sq_diff, &global_sq_diff, 1, MPI_FLOAT, MPI_SUM, 0, new_comm);
+  MPI_Reduce(
+    &local_sq_diff, &global_sq_diff, 1, MPI_FLOAT, MPI_SUM, 0, new_comm
+  );
 
   free(rand_nums);
   rand_nums = NULL;

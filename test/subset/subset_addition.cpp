@@ -34,11 +34,11 @@
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 // GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 // IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
@@ -69,70 +69,66 @@
 
 using namespace fenix;
 
-bool test_addition(const DataSubset& a, const DataSubset& b){
-   printf("Testing subsets a=%s, b=%s\n", a.str().c_str(), b.str().c_str());
+#define TEST_ERROR(...)                                                        \
+  do {                                                                         \
+    printf("a=%s, b=%s\n", a.str().c_str(), b.str().c_str());                  \
+    printf("c=a+b=%s\n", c.str().c_str());                                     \
+    printf("d=b+a=%s\n", d.str().c_str());                                     \
+    printf(__VA_ARGS__);                                                       \
+    return false;                                                              \
+  } while (false)
 
-   const DataSubset c = a + b;
-   const DataSubset d = b + a;
+bool test_addition(const DataSubset& a, const DataSubset& b) {
+  const DataSubset c = a + b;
+  const DataSubset d = b + a;
 
-   printf("c=a+b=%s\n", c.str().c_str());
-   printf("d=b+a=%s\n", d.str().c_str());
+  if (c != d) {
+    TEST_ERROR("a+b != b+a\n");
+  }
 
-   if(c != d){
-      printf("a+b != b+a\n");
-      return false;
-   }
+  size_t start = std::min(a.start(), b.start());
+  size_t end;
+  if (a.end() == -1 || b.end() == -1) {
+    end = start + 1000;
+  } else {
+    end = std::max(a.end(), b.end()) + 10;
+  }
 
-   size_t start = std::min(a.start(), b.start());
-   size_t end;
-   if(a.end() == -1 || b.end() == -1){
-      end = start+1000;
-   } else {
-      end = std::max(a.end(), b.end()) + 10;
-   }
-   
-   for(int i = start; i <= end; i++){
-      if(c.includes(i) != (a.includes(i) || b.includes(i))){
-         if(c.includes(i)){
-            printf("c=a+b incorrectly includes index %d not in a or b\n", i);
-            return false;
-         } else {
-            printf(
-               "c=a+b incorrectly excludes index %d in %s\n", i,
-               a.includes(i) ? b.includes(i) ? "both" : "a" : "b"
-            );
-            return false;
-         }
+  for (int i = start; i <= end; i++) {
+    if (c.includes(i) != (a.includes(i) || b.includes(i))) {
+      if (c.includes(i)) {
+        TEST_ERROR("c=a+b incorrectly includes index %d not in a or b\n", i);
+      } else {
+        TEST_ERROR(
+          "c=a+b incorrectly excludes index %d in %s\n", i,
+          a.includes(i) ? b.includes(i) ? "both" : "a" : "b"
+        );
       }
-      if(d.includes(i) != (a.includes(i) || b.includes(i))){
-         if(d.includes(i)){
-            printf("d=b+a incorrectly includes index %d not in a or b\n", i);
-            return false;
-         } else {
-            printf(
-               "d=b+a incorrectly excludes index %d in %s\n", i,
-               a.includes(i) ? b.includes(i) ? "both" : "a" : "b"
-            );
-            return false;
-         }
+    }
+    if (d.includes(i) != (a.includes(i) || b.includes(i))) {
+      if (d.includes(i)) {
+        TEST_ERROR("d=b+a incorrectly includes index %d not in a or b\n", i);
+      } else {
+        TEST_ERROR(
+          "d=b+a incorrectly excludes index %d in %s\n", i,
+          a.includes(i) ? b.includes(i) ? "both" : "a" : "b"
+        );
       }
-   }
+    }
+  }
 
-   return true;
+  return true;
 }
 
-int main(int argc, char **argv)
-{
-   bool success = true;
+int main(int argc, char** argv) {
+  bool success = true;
 
-   auto subsets = get_subsets();
-   for(const auto& a : subsets){
-      for(const auto& b : subsets){
-         success &= test_addition(a, b);
-      }
-   }
+  auto subsets = get_subsets();
+  for (const auto& a : subsets) {
+    for (const auto& b : subsets) {
+      success &= test_addition(a, b);
+    }
+  }
 
-   return success ? 0 : 1;
+  return success ? 0 : 1;
 }
-
-

@@ -62,27 +62,28 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <assert.h>
 
 const int kKillID = 1;
 
-void* exitThread(void* should_exit){
-    usleep(10000);
-    if( ((intptr_t)should_exit) == 1){
-        pid_t pid = getpid();
-        kill(pid, SIGTERM);
-    }
-    return NULL;
+void* exitThread(void* should_exit) {
+  usleep(10000);
+  if (((intptr_t)should_exit) == 1) {
+    pid_t pid = getpid();
+    kill(pid, SIGTERM);
+  }
+  return NULL;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 
   if (argc < 3) {
-      printf("Usage: %s <# spare ranks> <fail_rank 1> <fail_rank 2> ... <fail_rank n>\n", *argv);
-      exit(0);
+    printf("Usage: %s <# spares> <fail_rank 1> <fail_rank 2> ...\n", *argv);
+    exit(0);
   }
 
-  int old_world_size, new_world_size = - 1;
-  int old_rank = 1, new_rank = - 1;
+  int old_world_size, new_world_size = -1;
+  int old_rank = 1, new_rank = -1;
   int spare_ranks = atoi(argv[1]);
 
   MPI_Init(&argc, &argv);
@@ -92,10 +93,10 @@ int main(int argc, char **argv) {
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   MPI_Comm_size(world_comm, &old_world_size);
   MPI_Comm_rank(world_comm, &old_rank);
- 
+
   intptr_t should_cancel = 0;
-  for(int i = 2; i < argc; i++){
-    if(atoi(argv[i]) == old_rank) should_cancel = 1;
+  for (int i = 2; i < argc; i++) {
+    if (atoi(argv[i]) == old_rank) should_cancel = 1;
   }
   pthread_t thread_id;
   pthread_create(&thread_id, NULL, exitThread, (void*)should_cancel);
@@ -104,7 +105,10 @@ int main(int argc, char **argv) {
   int recovered = 0;
   MPI_Comm new_comm;
   int error;
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+  Fenix_Init(
+    &fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0,
+    MPI_INFO_NULL, &error
+  );
 
   if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
     MPI_Comm_size(new_comm, &new_world_size);
@@ -113,7 +117,7 @@ int main(int argc, char **argv) {
   }
 
   if (recovered == 0) {
-    //Give time for exit thread to work (which needed to give time for fenix init)
+    //Give time for exit thread to work
     usleep(100000);
   }
 
@@ -123,21 +127,28 @@ int main(int argc, char **argv) {
   int name_len;
   MPI_Get_processor_name(processor_name, &name_len);
 
-  printf("hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active ranks: %d, ranks before process failure: %d\n",
-         processor_name, old_rank, new_rank, new_world_size, old_world_size);
-  
+  printf(
+    "hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, "
+    "active ranks: %d, ranks before process failure: %d\n",
+    processor_name, old_rank, new_rank, new_world_size, old_world_size
+  );
+
   int *fails, num_fails;
   num_fails = Fenix_Process_fail_list(&fails);
-  
-  char fails_str[100];
-  sprintf(fails_str, "Rank %d sees failed processes [", new_rank);
-  for(int i = 0; i < num_fails; i++){
-    sprintf(fails_str, "%s%s%d", fails_str, (i==0 ? "" : ", "), fails[i]);
+
+  int max = 100, used;
+  char fails_str[max];
+  used = snprintf(fails_str, max, "Rank %d sees failed processes [", new_rank);
+  assert(used > 0 && used < max);
+  for (int i = 0; i < num_fails; i++) {
+    used = snprintf(
+      fails_str, max, "%s%s%d", fails_str, (i == 0 ? "" : ", "), fails[i]
+    );
+    assert(used > 0 && used < max);
   }
-  sprintf(fails_str, "%s]\n", fails_str);
-  printf(fails_str);
-
-
+  used = snprintf(fails_str, max, "%s]", fails_str);
+  assert(used > 0 && used < max);
+  printf("%s\n", fails_str);
 
   Fenix_Finalize();
   pthread_join(thread_id, NULL);
