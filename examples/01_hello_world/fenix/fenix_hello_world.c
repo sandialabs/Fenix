@@ -61,18 +61,19 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <assert.h>
 
 const int kKillID = 1;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 
   if (argc < 2) {
-      printf("Usage: %s <# spare ranks> \n", *argv);
-      exit(0);
+    printf("Usage: %s <# spare ranks> \n", *argv);
+    exit(0);
   }
 
-  int old_world_size, new_world_size = - 1;
-  int old_rank = 1, new_rank = - 1;
+  int old_world_size, new_world_size = -1;
+  int old_rank = 1, new_rank = -1;
   int spare_ranks = atoi(argv[1]);
 
   MPI_Init(&argc, &argv);
@@ -87,7 +88,10 @@ int main(int argc, char **argv) {
   int recovered = 0;
   MPI_Comm new_comm;
   int error;
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+  Fenix_Init(
+    &fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0,
+    MPI_INFO_NULL, &error
+  );
 
   if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
     MPI_Comm_size(new_comm, &new_world_size);
@@ -95,7 +99,7 @@ int main(int argc, char **argv) {
     recovered = 1;
   }
 
-  if (old_rank == kKillID &&  recovered == 0) {
+  if (old_rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGTERM);
   }
@@ -106,21 +110,28 @@ int main(int argc, char **argv) {
   int name_len;
   MPI_Get_processor_name(processor_name, &name_len);
 
-  printf("hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active ranks: %d, ranks before process failure: %d\n",
-         processor_name, old_rank, new_rank, new_world_size, old_world_size);
-  
+  printf(
+    "hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active "
+    "ranks: %d, ranks before process failure: %d\n",
+    processor_name, old_rank, new_rank, new_world_size, old_world_size
+  );
+
   int *fails, num_fails;
   num_fails = Fenix_Process_fail_list(&fails);
-  
-  char fails_str[100];
-  sprintf(fails_str, "Rank %d sees failed processes [", new_rank);
-  for(int i = 0; i < num_fails; i++){
-    sprintf(fails_str, "%s%s%d", fails_str, (i==0 ? "" : ", "), fails[i]);
+
+  int max = 100, used;
+  char fails_str[max];
+  used = snprintf(fails_str, max, "Rank %d sees failed processes [", new_rank);
+  assert(used > 0 && used < max);
+  for (int i = 0; i < num_fails; i++) {
+    used = snprintf(
+      fails_str, max, "%s%s%d", fails_str, (i == 0 ? "" : ", "), fails[i]
+    );
+    assert(used > 0 && used < max);
   }
-  sprintf(fails_str, "%s]\n", fails_str);
-  printf(fails_str);
-
-
+  used = snprintf(fails_str, max, "%s]", fails_str);
+  assert(used > 0 && used < max);
+  printf("%s\n", fails_str);
 
   Fenix_Finalize();
   MPI_Finalize();
