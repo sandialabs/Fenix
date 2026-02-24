@@ -77,8 +77,8 @@ constexpr int mlogs_member = 1;
 constexpr int app_iterations = 100;
 constexpr int iteration_work_ms = 10;
 constexpr int checkpoint_iterations = 10;
-//constexpr int barrier_iterations = checkpoint_iterations / 2;
 constexpr int barrier_iterations = 1;
+constexpr int bcast_iterations = 2;
 
 // Very simplified application state
 struct State {
@@ -184,6 +184,17 @@ int main(int argc, char** argv) {
 #ifdef FENIX_STENCIL_ENABLE_BARRIERS
       if (i % barrier_iterations == 0) {
         MPI_Barrier(res_world);
+      }
+#endif
+#ifdef FENIX_STENCIL_ENABLE_BCASTS
+      if (i % bcast_iterations == 0) {
+        // Pick a rotating root rank
+        int root = i % n_ranks;
+        // Broadcast that rank's current state
+        State root_state = rank == root ? state : State();
+        MPI_Bcast(&root_state, 2, MPI_INT, root, res_world);
+        // Ensure we always get the expected message, regardless of faults
+        assert(root_state.rank == root && root_state.iteration == i);
       }
 #endif
 

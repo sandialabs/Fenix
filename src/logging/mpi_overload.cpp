@@ -95,40 +95,9 @@ int MPI_Barrier(MPI_Comm c) {
   return comm_log->begin<MPI_Barrier>(c);
 }
 
-// Remaining overrides aren't logged, but we override the blocking versions
-// to non-blocking so we can progress consistency meanwhile
-
-int MPI_Allreduce(
-  const void* sb, void* rb, int n, MPI_Datatype d, MPI_Op o, MPI_Comm c
-) {
-  MPI_Request r;
-  int ret = MPI_Iallreduce(sb, rb, n, d, o, c, &r);
-  if (ret == MPI_SUCCESS) ret = MPI_Wait(&r, MPI_STATUS_IGNORE);
-  return ret;
-}
-
-int MPI_Reduce(
-  const void* sb, void* rb, int n, MPI_Datatype d, MPI_Op o, int r, MPI_Comm c
-) {
-  MPI_Request req;
-  int ret = MPI_Ireduce(sb, rb, n, d, o, r, c, &req);
-  if (ret == MPI_SUCCESS) ret = MPI_Wait(&req, MPI_STATUS_IGNORE);
-  return ret;
-}
-
 int MPI_Bcast(void* b, int n, MPI_Datatype d, int r, MPI_Comm c) {
-  MPI_Request req;
-  int ret = MPI_Ibcast(b, n, d, r, c, &req);
-  if (ret == MPI_SUCCESS) ret = MPI_Wait(&req, MPI_STATUS_IGNORE);
-  return ret;
-}
-
-int MPI_Allgather(
-  const void* sb, int sn, MPI_Datatype sd, void* rb, int rn, MPI_Datatype rd,
-  MPI_Comm c
-) {
-  MPI_Request r;
-  int ret = MPI_Iallgather(sb, sn, sd, rb, rn, rd, c, &r);
-  if (ret == MPI_SUCCESS) ret = MPI_Wait(&r, MPI_STATUS_IGNORE);
-  return ret;
+  if (!comm_log || !comm_log.value().is_logging(c)) {
+    return PMPI_Bcast(b, n, d, r, c);
+  }
+  return comm_log->begin<MPI_Bcast>(b, n, d, r, c);
 }

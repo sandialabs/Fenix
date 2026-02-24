@@ -304,12 +304,12 @@ TaskT CommLog::form_consistency() {
     // We are before root's earliest region
     if (it != latest_regions.begin() && (it - 1)->valid()) {
       fatal_print(
-        "%s region unknown to rank %d (between %d and %d)\n", str(true).c_str(),
+        "%s region unknown to rank %d (between %s and %s)\n", str(true).c_str(),
         root, (it - 1)->str().c_str(), it->str().c_str()
       );
     } else if (!m_region.valid() || m_region.next != it->first) {
       fatal_print(
-        "%s region unknown to rank %d (earliest=%d)\n", str(true).c_str(), root,
+        "%s region unknown to rank %d (earliest=%s)\n", str(true).c_str(), root,
         it->str().c_str()
       );
     } else {

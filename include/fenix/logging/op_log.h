@@ -132,17 +132,25 @@ class MPIBuffer {
   }
 
   // Release pointer to user buffer, to avoid use-after-free
-  void release_user_buf() { user_buf = nullptr; }
+  void release_user_buf() const { user_buf = nullptr; }
 
   void serialize(std::ostream& o) const {
     serialize::write(o, m_type);
     serialize::write(o, m_count);
-    serialize::write(o, internal_buf);
+
+    int size = garbage_data ? 0 : internal_buf.size();
+    serialize::write<int>(o, size);
+    if (size > 0) serialize::write(o, internal_buf.data(), size);
   }
   MPIBuffer(std::istream& i) {
     serialize::read(i, m_type);
     serialize::read(i, m_count);
-    serialize::read(i, internal_buf);
+
+    int size = serialize::read<int>(i);
+    if (size > 0) {
+      internal_buf.resize(size);
+      serialize::read(i, &internal_buf[0], size);
+    }
   }
 
   void* buf() const {
@@ -152,6 +160,9 @@ class MPIBuffer {
       return user_buf;
     }
     if (internal_buf.empty()) {
+      // We're allocating the buffer to store unused output data into during
+      // replay, so track that this should not be serialized
+      garbage_data = true;
       internal_buf.resize(m_count * util::type_size(m_type));
     }
     fenix_assert(internal_buf.size() == m_count * util::type_size(m_type));
@@ -177,8 +188,11 @@ class MPIBuffer {
     : internal_buf(count * util::type_size(type)), m_count(count),
       m_type(type) {};
 
-  void* user_buf = nullptr;
+  mutable void* user_buf = nullptr;
   mutable std::vector<char> internal_buf;
+  // Sometimes internal_buf is only allocated as a receive buffer for replayed
+  // operations. In that case, we don't serialize the data
+  mutable bool garbage_data = false;
 
   int m_count = 0;
   MPI_Datatype m_type = MPI_DATATYPE_NULL;
