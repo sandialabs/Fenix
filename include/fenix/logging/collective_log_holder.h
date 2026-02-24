@@ -10,10 +10,12 @@
 #include "fenix/logging/ops/barrier_log.h"
 #include "fenix/logging/ops/bcast_log.h"
 #include "fenix/logging/ops/reduce_log.h"
+#include "fenix/logging/ops/allreduce_log.h"
 
 namespace fenix::logging {
 
-using CollectiveLogVariant = std::variant<BarrierLog*, BcastLog*, ReduceLog*>;
+using CollectiveLogVariant =
+  std::variant<BarrierLog*, BcastLog*, ReduceLog*, AllreduceLog*>;
 
 // Type-erasing helper that can be serialized/deserialized directly.
 // Treat as a unique_ptr

@@ -110,3 +110,12 @@ int MPI_Reduce(
   }
   return comm_log->begin<MPI_Reduce>(sb, rb, n, d, o, r, c);
 }
+
+int MPI_Allreduce(
+  const void* sb, void* rb, int n, MPI_Datatype d, MPI_Op o, MPI_Comm c
+) {
+  if (!comm_log || !comm_log.value().is_logging(c)) {
+    return PMPI_Allreduce(sb, rb, n, d, o, c);
+  }
+  return comm_log->begin<MPI_Allreduce>(sb, rb, n, d, o, c);
+}

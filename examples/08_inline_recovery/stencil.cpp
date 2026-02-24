@@ -82,6 +82,7 @@ constexpr int checkpoint_iterations = 10;
 constexpr int barrier_iterations = 1;
 constexpr int bcast_iterations = 2;
 constexpr int reduce_iterations = 3;
+constexpr int allreduce_iterations = 3;
 
 // Very simplified application state
 struct State {
@@ -208,6 +209,13 @@ int main(int argc, char** argv) {
         // Ensure we always get the expected message, regardless of faults
         if (root == rank) assert(result == i);
         else assert(result == -1);
+      }
+#endif
+#ifdef FENIX_STENCIL_ENABLE_ALLREDUCES
+      if ((i + 1) % allreduce_iterations == 0) {
+        int result = -1;
+        MPI_Allreduce(&i, &result, 1, MPI_INT, MPI_SUM, res_world);
+        assert(result == i * n_ranks);
       }
 #endif
 
