@@ -11,11 +11,4 @@
 add_executable(resizeable resizeable.cpp)
 target_link_libraries(resizeable fenix ${MPI_C_LIBRARIES})
 
-target_compile_features(resizeable PRIVATE cxx_std_20)
-
-if(BUILD_TESTING) 
-   add_test(NAME resizeable 
-      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} resizeable ${MPIEXEC_POSTFLAGS} 1)
-   set_tests_properties(resizeable PROPERTIES
-      FAIL_REGULAR_EXPRESSION "FAILURE" LABELS "Example") 
-endif()
+fenix_test(EXAMPLE EXE resizeable RANKS 5 ARGS 1 FAIL_OUTPUT "FAILURE")
