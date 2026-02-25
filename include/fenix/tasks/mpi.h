@@ -71,8 +71,6 @@ auto send(const std::vector<T>& v, int r, int t, MPI_Comm c) {
   return send(v.data(), v.size(), r, t, c);
 }
 
-// clang-format off
-// formatting off for sendrecv functions for clearer argument indentation
 template <typename ST, typename RT>
 MPITask sendrecv(
   const ST* sb, int sn, MPI_Datatype sd, int sr, int st,
@@ -108,7 +106,6 @@ auto sendrecv(
 ) {
   return sendrecv(&sv[0], sv.size(), sr, st, &rv[0], rv.size(), rr, rt, c);
 }
-// clang-format on
 
 template <typename T>
 MPITask allreduce(
