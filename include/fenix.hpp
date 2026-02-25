@@ -206,19 +206,44 @@ int member_stage(
 int member_store(
   int group_id, int member_id, const DataSubset& subset = SUBSET_FULL
 );
+//!@brief Overload of #Fenix_Data_member_store, stores all members
+inline int member_store(int group_id, const DataSubset& subset = SUBSET_FULL) {
+    return member_store(group_id, FENIX_DATA_MEMBER_ALL, subset);
+}
 
 //!@brief Overload of #Fenix_Data_member_storev
 int member_storev(int group_id, int member_id, const DataSubset& subset);
+//!@brief Overload of #Fenix_Data_member_storev, stores all members
+inline int member_storev(int group_id, const DataSubset& subset) {
+    return member_storev(group_id, FENIX_DATA_MEMBER_ALL, subset);
+}
 
 //!@brief Overload of #Fenix_Data_member_istore
 int member_istore(
   int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
 
+struct MemberIstoreArgs {
+    int member_id = FENIX_DATA_MEMBER_ALL;
+    const DataSubset& subset = SUBSET_FULL;
+};
+//!@brief Overload of #Fenix_Data_member_istore
+inline int member_istore(
+    int group_id, Fenix_Request* request, MemberIstoreArgs args = {}
+) {
+    return member_istore(group_id, args.member_id, args.subset, request);
+}
+
 //!@brief Overload of #Fenix_Data_member_istorev
 int member_istorev(
   int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
+//!@brief Overload of #Fenix_Data_member_istorev, stores all members
+inline int member_istorev(
+    int group_id, const DataSubset& subset, Fenix_Request* request
+) {
+    return member_istorev(group_id, FENIX_DATA_MEMBER_ALL, subset, request);
+}
 
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(

@@ -60,11 +60,11 @@ void reset_message_consistency(int checkpoint_id) {
   comm_log.value().reset_consistency(checkpoint_id);
 }
 
-void store_message_logs(std::ostream& o) {
+void serialize_message_logs(std::ostream& o) {
   if (!comm_log) return;
   comm_log.value().serialize(o);
 }
-void store_message_logs(int group_id, int member_id) {
+void stage_message_logs(int group_id, int member_id) {
   if (!comm_log) return;
 
   using namespace fenix;
@@ -87,11 +87,11 @@ void store_message_logs(int group_id, int member_id) {
   Fenix_Data_member_attr_set(
     group_id, member_id, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, ptr, &flag
   );
-  int ret = member_storev(group_id, member_id, DataSubset(size - 1));
-  assert(ret == FENIX_SUCCESS || ret == FENIX_DATA_SNAPSHOT_LATEST);
+  int ret = member_stage(group_id, member_id, DataSubset(size - 1));
+  assert(ret == FENIX_SUCCESS);
 }
 
-void restore_message_logs(std::istream& i, MPI_Comm& comm) {
+void deserialize_message_logs(std::istream& i, MPI_Comm& comm) {
   bool existing = !!comm_log;
   comm_log.emplace(comm, i);
   if (!existing) {
@@ -101,8 +101,8 @@ void restore_message_logs(std::istream& i, MPI_Comm& comm) {
     );
   }
 }
-void restore_message_logs(std::istream& i) {
-  restore_message_logs(i, comm_log.value().comm);
+void deserialize_message_logs(std::istream& i) {
+  deserialize_message_logs(i, comm_log.value().comm);
 }
 
 fenix::DataSubset impl_null_restore_message_logs(int group_id, int member_id) {
@@ -140,7 +140,7 @@ void restore_message_logs(int group_id, int member_id, MPI_Comm& comm) {
 
   std::istringstream i(std::move(buf));
   assert(i.view().size() == length);
-  restore_message_logs(i, comm);
+  deserialize_message_logs(i, comm);
 }
 void restore_message_logs(int group_id, int member_id) {
   restore_message_logs(group_id, member_id, comm_log.value().comm);

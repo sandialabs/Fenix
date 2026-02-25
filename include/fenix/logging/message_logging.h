@@ -90,11 +90,11 @@ void progress_message_consistency();
 
 void begin_message_log_region(int region);
 
-void store_message_logs(std::ostream& o);
-void restore_message_logs(std::istream& i);
-void restore_message_logs(std::istream& i, MPI_Comm& comm);
+void serialize_message_logs(std::ostream& o);
+void deserialize_message_logs(std::istream& i);
+void deserialize_message_logs(std::istream& i, MPI_Comm& comm);
 
-void store_message_logs(int group_id, int member_id);
+void stage_message_logs(int group_id, int member_id);
 void null_restore_message_logs(int group_id, int member_id);
 void restore_message_logs(int group_id, int member_id);
 void restore_message_logs(int group_id, int member_id, MPI_Comm& comm);

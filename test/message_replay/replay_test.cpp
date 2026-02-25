@@ -106,6 +106,7 @@ void check_inject_failure(State& state, int app_ranks) {
 }
 
 int main(int argc, char** argv) {
+  using namespace fenix::data;
   MPI_Init(&argc, &argv);
 
   // Initialize fenix in exception-based recovery mode
@@ -136,7 +137,8 @@ int main(int argc, char** argv) {
     // Hold on to checkpoint_iterations+1 regions at once, to be sure we can
     // replay any failed neighbor's messages
     init_message_logs(res_world, checkpoint_iterations + 1);
-    store_message_logs(group, mlogs_member);
+    stage_message_logs(group, mlogs_member);
+    fenix::data::member_storev(group, mlogs_member, SUBSET_PRESTAGED);
 
     fenix::data::commit_barrier(group);
   } else {
@@ -248,7 +250,8 @@ int main(int argc, char** argv) {
       while (old_timestamp == cur_timestamp) {
         try {
           fenix::data::member_store(group, state_member);
-          store_message_logs(group, mlogs_member);
+          stage_message_logs(group, mlogs_member);
+          fenix::data::member_storev(group, mlogs_member, SUBSET_PRESTAGED);
           fenix::data::commit(group);
         } catch (fenix::CommException& error) {
         }

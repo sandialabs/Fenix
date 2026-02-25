@@ -106,6 +106,7 @@ void check_inject_failure(State& state, int app_ranks) {
 }
 
 int main(int argc, char** argv) {
+  using namespace fenix::data;
   MPI_Init(&argc, &argv);
 
   // Initialize fenix in exception-based recovery mode
@@ -131,13 +132,14 @@ int main(int argc, char** argv) {
     fenix::data::group_create(group);
 
     fenix::data::member_create(group, state_member, &state, 2, MPI_INT);
-    fenix::data::member_store(group, state_member);
+    fenix::data::member_stage(group, state_member);
 
     // Hold on to checkpoint_iterations+1 regions at once, to be sure we can
     // replay any failed neighbor's messages
     init_message_logs(res_world, checkpoint_iterations + 1);
-    store_message_logs(group, mlogs_member);
+    stage_message_logs(group, mlogs_member);
 
+    fenix::data::member_storev(group, SUBSET_PRESTAGED);
     fenix::data::commit_barrier(group);
   } else {
     // Recovered ranks just recover from the checkpoint instead
@@ -157,7 +159,7 @@ int main(int argc, char** argv) {
   }
 
   // Now that our local state is good, add our recovery callback to help
-  // others recovery their state on failure(s).
+  // others recover their state on failure(s).
   fenix::callback_register([&](MPI_Comm repaired_comm, int mpi_err) {
     assert(fenix::error() == FENIX_SUCCESS);
 
@@ -221,7 +223,8 @@ int main(int argc, char** argv) {
       while (old_timestamp == cur_timestamp) {
         try {
           fenix::data::member_store(group, state_member);
-          store_message_logs(group, mlogs_member);
+          stage_message_logs(group, mlogs_member);
+          fenix::data::member_storev(group, mlogs_member, SUBSET_PRESTAGED);
           fenix::data::commit(group);
         } catch (fenix::CommException& error) {
         }
