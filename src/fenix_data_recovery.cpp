@@ -131,15 +131,30 @@ int member_stage(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_END
 }
 
+// Quick little helper function for the 4 kinds of stores
+template <auto Func, typename... Args>
+static int store(int groupid, int memberid, Args&&... args) {
+  auto group = find_group(groupid);
+  if (memberid == FENIX_DATA_MEMBER_ALL) {
+    for (auto& [id, member] : group->members) {
+      int ret = (group->*Func)(id, std::forward<Args>(args)...);
+      if (ret != FENIX_SUCCESS) return ret;
+    }
+    return FENIX_SUCCESS;
+  } else {
+    return (group->*Func)(memberid, std::forward<Args>(args)...);
+  }
+}
+
 int member_store(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_BEGIN
-  return find_group(groupid)->member_store(memberid, specifier);
+  return store<&fenix_group_t::member_store>(groupid, memberid, specifier);
   FENIX_CPP_API_END
 }
 
 int member_storev(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_BEGIN
-  return find_group(groupid)->member_storev(memberid, specifier);
+  return store<&fenix_group_t::member_storev>(groupid, memberid, specifier);
   FENIX_CPP_API_END
 }
 
@@ -148,7 +163,9 @@ int member_istore(
 ) {
   FENIX_CPP_API_BEGIN
   fatal_print("unimplemented");
-  return find_group(groupid)->member_istore(memberid, specifier, request);
+  return store<&fenix_group_t::member_istore>(
+    groupid, memberid, specifier, request
+  );
   FENIX_CPP_API_END
 }
 
@@ -157,7 +174,9 @@ int member_istorev(
 ) {
   FENIX_CPP_API_BEGIN
   fatal_print("unimplemented");
-  return find_group(groupid)->member_istore(memberid, specifier, request);
+  return store<&fenix_group_t::member_istorev>(
+    groupid, memberid, specifier, request
+  );
   FENIX_CPP_API_END
 }
 
