@@ -511,11 +511,14 @@ typedef struct {
 } Fenix_Data_subset;
 
 
-//!@brief A standin for checkpointing/recovering all available data in a member.
-extern const Fenix_Data_subset  FENIX_DATA_SUBSET_FULL;
+//!@brief A standin for checkpointing/recovering the full member's data
+extern const Fenix_Data_subset FENIX_DATA_SUBSET_FULL;
 
-//!@brief A standin for checkpointing/recovering none of the available data in a member.
-extern const Fenix_Data_subset  FENIX_DATA_SUBSET_EMPTY;
+//!@brief A standin for checkpointing/recovering no data
+extern const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY;
+
+//!@brief A standin for checkpointing/recovering all of pre-staged data
+extern const Fenix_Data_subset FENIX_DATA_SUBSET_PRESTAGED;
 
 extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
 
@@ -620,6 +623,26 @@ int Fenix_Data_test(Fenix_Request request, int *flag);
 
 
 /**
+ * @brief Serialize a group member's data into the member's local store.
+ * 
+ * A store operation can broken into two parts: locally staging the data within
+ * Fenix, then policy-specific operations to make the data resilient to faults.
+ * This function performs ONLY the first part. Applications should subsequently
+ * make a store of this member to the FENIX_DATA_SUBSET_PRESTAGED data subset.
+ *
+ * It is undefined behaviour to commit staged-but-not-stored data.
+ *
+ * @param group_id All ranks must provide the same group_id
+ * @param member_id All ranks must provide the same member_id
+ * @param subset_specifier Which subset of the data to stage.
+ *        FENIX_DATA_SUBSET_ALL is invalid if member size is FENIX_RESIZEABLE.
+ *        FENIX_DATA_SUBSET_PRESTAGED is invalid.
+ * @returnstatus
+ **/
+int Fenix_Data_member_stage(int group_id, int member_id,
+                            const Fenix_Data_subset subset_specifier);
+
+/**
  * @brief Store a particular group member into the group's resilient storage space, in uncommitted storage.
  * @qualifier collective
  *
@@ -628,8 +651,7 @@ int Fenix_Data_test(Fenix_Request request, int *flag);
  *
  * @param group_id All ranks must provide the same group_id
  * @param member_id All ranks must provide the same member_id
- * @param subset_specifier Which subset of the data to store. It is always valid for every rank to provide the same 
- *        subset_specifier; depending on the group's policy, varying combinations of specifiers may be possible.
+ * @param subset_specifier Which subset of the data to store.
  *        If this member was created with size FENIX_RESIZEABLE, FENIX_DATA_SUBSET_ALL is an invalid input.
  * @return FENIX_SUCCESS, or an error value.
  */

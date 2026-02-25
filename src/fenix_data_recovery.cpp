@@ -124,6 +124,13 @@ bool member_created(int group_id, int member_id) {
   FENIX_CPP_API_END
 }
 
+int member_stage(int groupid, int memberid, const DataSubset& specifier) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_stage(memberid, specifier);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
 int member_store(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_BEGIN
   return find_group(groupid)->member_store(memberid, specifier);

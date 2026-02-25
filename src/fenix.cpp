@@ -62,11 +62,14 @@
 using namespace fenix;
 using namespace fenix::data;
 
-const Fenix_Data_subset FENIX_DATA_SUBSET_FULL = {
-  new DataSubset(DataSubset::MAX)
-};
-const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY = {new DataSubset()};
-Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE     = NULL;
+DataSubset SUBSET_FULL_IMPL{DataSubset::MAX};
+DataSubset SUBSET_EMPTY_IMPL{};
+DataSubset SUBSET_PRESTAGED_IMPL{};
+
+const Fenix_Data_subset FENIX_DATA_SUBSET_FULL      = {&SUBSET_FULL_IMPL};
+const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY     = {&SUBSET_EMPTY_IMPL};
+const Fenix_Data_subset FENIX_DATA_SUBSET_PRESTAGED = {&SUBSET_PRESTAGED_IMPL};
+Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE         = NULL;
 
 int Fenix_set_option(Fenix_Setting_name setting, unsigned option) {
   // This function gets special handling, since it can be called before init
@@ -236,9 +239,10 @@ std::vector<int> fail_list() {
 bool initialized() { return fenix_rt.fenix_init_flag; }
 
 namespace data {
-const DataSubset SUBSET_FULL  = {{0, fenix::DataSubset::MAX}};
-const DataSubset SUBSET_EMPTY = {};
-DataSubset SUBSET_IGNORE      = SUBSET_EMPTY;
+const DataSubset& SUBSET_FULL      = SUBSET_FULL_IMPL;
+const DataSubset& SUBSET_EMPTY     = SUBSET_EMPTY_IMPL;
+const DataSubset& SUBSET_PRESTAGED = SUBSET_PRESTAGED_IMPL;
+DataSubset SUBSET_IGNORE           = SUBSET_EMPTY;
 } // namespace data
 
 } //namespace fenix
