@@ -279,12 +279,40 @@ std::optional<std::vector<int>> group_snapshots(int group_id);
 //@!brief Overload of #Fenix_Data_snapshot_delete
 int snapshot_delete(int group_id, int timestamp);
 
-//@!brief overload of Fenix_Data_group_delete
+//@!brief Overload of #Fenix_Data_group_delete
 int group_delete(int group_id);
 
-//@!brief overload of Fenix_Data_member_delete
+//@!brief Overload of #Fenix_Data_member_delete
 int member_delete(int group_id, int member_id);
 
 } // namespace fenix::data
+
+namespace fenix::mlog {
+
+//@brief Overload of #Fenix_Mlog_create
+int create(int mlog_id, MPI_Comm& comm, int depth);
+
+//@brief Overload of #Fenix_Mlog_activate
+int activate(int mlog_id);
+
+//@brief Overload of #Fenix_Mlog_begin_region
+int begin_region(int mlog_id, int region_id);
+
+//@brief Overload of #Fenix_Mlog_sync
+int sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE);
+
+//@brief Overload of Fenix_Mlog_stage
+int stage(int mlog_id, int group_id, int member_id);
+
+//@brief Overload of Fenix_Mlog_lrestore
+int lrestore(
+    int mlog_id, int group_id, int member_id,
+    int time_stamp = FENIX_DATA_SNAPSHOT_LATEST
+);
+
+//@brief Overload of Fenix_Mlog_delete
+int mlog_delete(int mlog_id);
+
+}
 
 #endif

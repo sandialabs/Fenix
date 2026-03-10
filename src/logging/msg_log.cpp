@@ -1,5 +1,6 @@
 #include "fenix/logging/op_log.h"
 #include "fenix/logging/serialize.h"
+#include "fenix/mpi_util.hpp"
 
 using namespace fenix::util;
 

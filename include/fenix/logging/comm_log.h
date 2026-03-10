@@ -10,15 +10,12 @@
 
 #include <mpi.h>
 
-#include "fenix_util.hpp"
 #include "fenix/tasks/request.h"
-#include "fenix/logging/message_logging.h"
 #include "fenix/logging/task.h"
 #include "fenix/logging/rank_log.h"
 #include "fenix/logging/collective_log_holder.h"
 
 namespace fenix::logging {
-
 struct CRegion {
   int id = -1, first = -1, next = -1;
   CRegion() = default;
@@ -43,7 +40,7 @@ struct CommLog {
   void serialize(std::ostream& o);
 
   MPI_Comm& comm;
-  const int m_rank = util::comm_rank(comm);
+  const int m_rank;
   int max_regions;
   int active_region = 0;
 
@@ -67,8 +64,6 @@ struct CommLog {
   // Progress pending tasks and this one until this task completes
   void progress_through(TaskT t);
   fenix::tasks::Status progress_through(MPI_Request* r);
-
-  bool is_logging(MPI_Comm c);
 
   int send(const void* b, int n, MPI_Datatype d, int dst, int t) {
     return logs(dst).send(b, n, d, t);

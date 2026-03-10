@@ -8,6 +8,7 @@
 #include <concepts>
 #include <istream>
 #include <ostream>
+#include <optional>
 #include <mpi.h>
 
 namespace fenix::logging::serialize {

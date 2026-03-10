@@ -14,4 +14,5 @@ target_sources(fenix PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/rank_log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/msg_log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/mpi_overload.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/task.cpp
 )

@@ -121,6 +121,8 @@ typedef enum {
     FENIX_ERROR_CANCELLED,
     FENIX_ERROR_INVALID_SETTING_NAME,
     FENIX_ERROR_INVALID_SETTING_OPTION,
+    FENIX_ERROR_INVALID_MLOGID,
+    FENIX_ERROR_MLOG_EXISTS,
     //Warnings are positive
     FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
     FENIX_WARNING_PARTIAL_RESTORE,
@@ -540,7 +542,7 @@ extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
  * All calling ranks must pass the same values for the parameters \c group_id, \c comm,
  * \c start_time_stamp, \c policy_name, and \c policy_value.
  *
- * @param group_id A unique identifier to this group.
+ * b@param group_id A unique identifier to this group.
  * @param comm A resilient communicator on which the group is formed.
  * @param start_time_stamp The time_stamp to be used for the first commit in this group.
  * @param depth
@@ -921,6 +923,107 @@ int Fenix_Data_group_delete(int group_id);
  * @returnstatus
  */
 int Fenix_Data_member_delete(int group_id, int member_id);
+/**@}*/
+
+
+/**
+ * @defgroup Mlog Message Logging
+ * @brief Functions for logging and replaying MPI messages after faults
+ *
+ * @{
+ */
+
+#define FENIX_MLOG_NONE     -1
+#define FENIX_MLOG_CONTINUE -1
+
+/**
+ * @brief Create a new message logger
+ * @qualifier local
+ *
+ * @param[in] mlog_id A unique identifier (>= 0) for this message logger
+ * @param[in] comm The MPI_Comm to log messages from.
+ *            Must be repaired after failures.
+ * @param[in] depth Number of regions to keep in logs at once.
+ *            Older regions will be deleted automatically.
+ * @returnstatus
+ */
+int Fenix_Mlog_create(int mlog_id, MPI_Comm* comm, int depth);
+
+/**
+ * @brief Active a given mlog, deactivating any previously active mlog.
+ * @qualifier local
+ *
+ * Only the active mlog can log messages.
+ *
+ * @param[in] mlog_id The logger to activate. May be FENIX_MLOG_NONE.
+ * @returnstatus
+ */
+int Fenix_Mlog_activate(int mlog_id);
+
+/**
+ * @brief Set the region of the given message logger.
+ * @qualifier local
+ *
+ * @param[in] mlog_id The logger to set the region of
+ * @param[in] mlog_id The region ID to set
+ *            Must be positive and greater than current region_id (may equal
+ *            current region_id if no messages have been logged in the region)
+ * @returnstatus
+ */
+int Fenix_Mlog_begin_region(int mlog_id, int region_id);
+
+/**
+ * @brief Synchronize messages across ranks each starting at their given region
+ * @qualifier collective
+ *
+ * Ranks recovering to later states will replay messages to ranks recovering to
+ * earlier states.
+ *
+ * @param[in] mlog_id The logger to sync
+ * @param[in] region_id The region that this rank will begin at.
+ *            May be FENIX_MLOG_CONTINUE, in which case this rank will recover
+ *            to its latest region's latest message state (instead of restarting
+ *            the region)
+ * @returnstatus
+ */
+int Fenix_Mlog_sync(int mlog_id, int region_id);
+
+/**
+ * @brief Stage an mlog's data into a Fenix data member
+ * @qualifier local
+ *
+ * @param[in] mlog_id   The mlog to stage.
+ * @param[in] group_id  The group to stage into.
+ * @param[in] member_id The member to stage into.
+ *                      The member does not have to already exist.
+ *                      If the member already exists, it must have been created
+ *                      with size FENIX_RESIZEABLE and datatype MPI_BYTE
+ * @returnstatus
+ */
+int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id);
+
+/**
+ * @brief Restore an mlog from a Fenix data member's local snapshot
+ * @qualifier local
+ *
+ * @param[in] mlog_id    The mlog to restore.
+ * @param[in] group_id   The group to restore from.
+ * @param[in] member_id  The member to restore from.
+ * @param[in] time_stamp The time stamp of the snapshot to restore from.
+ * @returnstatus
+ */
+int Fenix_Mlog_lrestore(int mlog_id, int group_id, int member_id,
+                        int time_stamp);
+
+/**
+ * @brief Delete an mlog
+ * @qualifier local
+ *
+ * @param[in] mlog_id The mlog to delete
+ * @returnstatus
+ */
+int Fenix_Mlog_delete(int mlog_id);
+
 /**@}*/
 
 #if defined(c_plusplus) || defined(__cplusplus)

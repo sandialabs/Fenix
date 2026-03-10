@@ -59,10 +59,13 @@
 
 #include <mpi.h>
 #include <vector>
+#include <unordered_map>
+#include <map>
 #include "fenix.h"
 #include "fenix.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_data_group.hpp"
+#include "fenix/logging/comm_log.h"
 
 namespace fenix {
 
@@ -120,6 +123,21 @@ struct fenix_t {
   MPI_Errhandler mpi_errhandler; // Our custom error handler
 
   fenix::data::fenix_data_recovery_t* data_recovery = nullptr;
+    
+  // -------------------------
+  // Message logging variables
+  // -------------------------
+  
+  // All loggers indexed by ID
+  std::unordered_map<int, std::shared_ptr<logging::CommLog>> mlogs;
+  // Active log (if any)
+  std::shared_ptr<logging::CommLog> active_mlog;
+  // Inline recovery may be enabled even without an active mlog
+  bool inline_recovery = false;
+  
+  // Maps of UID to MPI internal types for logging
+  std::map<int, MPI_Datatype> mpi_types;
+  std::map<int, MPI_Op> mpi_ops;
 };
 
 inline fenix::fenix_t fenix_rt;

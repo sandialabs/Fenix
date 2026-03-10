@@ -427,3 +427,47 @@ int Fenix_Data_member_delete(int group_id, int member_id) {
   return member_delete(group_id, member_id);
   FENIX_C_API_END
 }
+
+int Fenix_Mlog_create(int mlog_id, MPI_Comm* comm, int depth) {
+  FENIX_C_API_BEGIN
+  return mlog::create(mlog_id, *comm, depth);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_activate(int mlog_id) {
+  FENIX_C_API_BEGIN
+  return mlog::activate(mlog_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_begin_region(int mlog_id, int region_id) {
+  FENIX_C_API_BEGIN
+  return mlog::begin_region(mlog_id, region_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_sync(int mlog_id, int region_id) {
+  FENIX_C_API_BEGIN
+  return mlog::sync(mlog_id, region_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id) {
+  FENIX_C_API_BEGIN
+  return mlog::stage(mlog_id, group_id, member_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_lrestore(
+  int mlog_id, int group_id, int member_id, int time_stamp
+) {
+  FENIX_C_API_BEGIN
+  return mlog::lrestore(mlog_id, group_id, member_id, time_stamp);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_delete(int mlog_id) {
+  FENIX_C_API_BEGIN
+  return mlog::mlog_delete(mlog_id);
+  FENIX_C_API_END
+}

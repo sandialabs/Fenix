@@ -3,7 +3,8 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
-#include "fenix_util.hpp"
+#include "fenix_opt.hpp"
+#include "fenix/mpi_util.hpp"
 #include "fenix/logging/serialize.h"
 
 namespace fenix::logging {

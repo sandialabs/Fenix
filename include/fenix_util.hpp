@@ -60,6 +60,7 @@
 #include <mpi.h>
 #include "fenix.hpp"
 #include "fenix_opt.hpp"
+#include "fenix/logging/message_logging.h"
 
 extern char* logname;
 
@@ -82,31 +83,6 @@ void* s_malloc(size_t size);
 void* s_realloc(void* mem, size_t size);
 
 namespace fenix::util {
-
-inline int comm_size(MPI_Comm c) {
-  int ret;
-  MPI_Comm_size(c, &ret);
-  return ret;
-}
-
-inline int comm_rank(MPI_Comm c) {
-  int ret;
-  MPI_Comm_rank(c, &ret);
-  return ret;
-}
-
-static inline int type_size(MPI_Datatype d) {
-  if (d == MPI_DATATYPE_NULL) return 0;
-  int size;
-  MPI_Type_size(d, &size);
-  return size;
-}
-
-static inline bool mpi_finalized() {
-  int flag;
-  MPI_Finalized(&flag);
-  return flag;
-}
 
 int resume_application(bool new_exception = false);
 
@@ -136,6 +112,31 @@ struct ScopedDefaultRuntimeOptions {
 // Helper for MPI_ERRORS_RETURN-like error handling
 struct ScopedIgnoreAndReturn {
   ScopedOption recovery{RECOVERY_MODE, IGNORE}, resume{RESUME_MODE, RETURN};
+};
+
+// ScopedSetting struct holds the old value and automatically reverts in
+// destructor, so settings changes revert even when exceptions are thrown.
+// TODO: Remove this (artifact of rebasing)
+template<typename T>
+struct ScopedSetting {
+  ScopedSetting(T& m_setting, T val) : setting(m_setting) { setting = val; }
+  ~ScopedSetting() { setting = old_val; }
+ private:
+  T& setting;
+  const T old_val = setting;
+};
+
+using ScopedMlogSetting = ScopedSetting<std::shared_ptr<mlog::CommLog>>;
+struct ScopedActiveMlog : public ScopedMlogSetting {
+  ScopedActiveMlog(int id)
+    : ScopedMlogSetting(fenix_rt.active_mlog, mlog::impl::find_mlog(id)) {}
+  ScopedActiveMlog(std::shared_ptr<mlog::CommLog> mlog)
+    : ScopedMlogSetting(fenix_rt.active_mlog, mlog) {}
+};
+
+struct ScopedInlineRecovery : public ScopedSetting<bool> {
+  ScopedInlineRecovery(bool setting)
+    : ScopedSetting(fenix_rt.inline_recovery, setting) {}
 };
 
 } // namespace fenix::util

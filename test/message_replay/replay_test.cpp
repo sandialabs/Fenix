@@ -66,13 +66,14 @@
 #include <mpi.h>
 
 #include <fenix.hpp>
+#include <fenix_util.hpp>
 #include <fenix/logging/message_logging.h>
-
-using namespace fenix::logging;
 
 constexpr int group = 0;
 constexpr int state_member = 0;
 constexpr int mlogs_member = 1;
+
+constexpr int mlogs = 2;
 
 constexpr int app_iterations = 100;
 constexpr int iteration_work_ms = 10;
@@ -114,6 +115,10 @@ int main(int argc, char** argv) {
   fenix::init({.out_comm = &res_world, .spares = 3});
   assert(fenix::error() == FENIX_SUCCESS);
 
+  // Hold on to checkpoint_iterations * 2 regions at once, to be sure we can
+  // replay any failed rank's collective messages
+  fenix::mlog::create(mlogs, res_world, checkpoint_iterations * 2);
+
   // Grab basic MPI info
   int n_ranks, rank;
   MPI_Comm_size(res_world, &n_ranks);
@@ -130,16 +135,10 @@ int main(int argc, char** argv) {
     state.iteration = 0;
 
     fenix::data::group_create(group);
-
     fenix::data::member_create(group, state_member, &state, 2, MPI_INT);
-    fenix::data::member_store(group, state_member);
-
-    // Hold on to checkpoint_iterations+1 regions at once, to be sure we can
-    // replay any failed neighbor's messages
-    init_message_logs(res_world, checkpoint_iterations + 1);
-    stage_message_logs(group, mlogs_member);
-    fenix::data::member_storev(group, mlogs_member, SUBSET_PRESTAGED);
-
+    fenix::data::member_stage(group, state_member);
+    fenix::mlog::stage(mlogs, group, mlogs_member);
+    fenix::data::member_store(group, SUBSET_PRESTAGED);
     fenix::data::commit_barrier(group);
   } else {
     // Recovered ranks just recover from the checkpoint instead
@@ -147,8 +146,9 @@ int main(int argc, char** argv) {
       try {
         fenix::data::group_create(group);
         fenix::data::member_restore(group, state_member, &state, 2);
-        restore_message_logs(group, mlogs_member, res_world);
-        reset_message_consistency(state.iteration);
+        fenix::data::member_restore(group, mlogs_member, nullptr, 0);
+        fenix::mlog::lrestore(mlogs, group, mlogs_member);
+        fenix::mlog::sync(mlogs, state.iteration);
       } catch (fenix::CommException& error) {
         continue;
       }
@@ -164,14 +164,14 @@ int main(int argc, char** argv) {
     assert(fenix::error() == FENIX_SUCCESS);
 
     // Disable logging inside this callback
-    auto setting = scoped_logging(false);
+    fenix::util::ScopedActiveMlog setting(nullptr);
 
     fenix::data::group_create(group);
     fenix::data::member_restore(group, state_member, NULL, 0);
-    null_restore_message_logs(group, mlogs_member);
+    fenix::data::member_restore(group, mlogs_member, NULL, 0);
 
-    // Reset without specifying a region for inlined recovery
-    reset_message_consistency();
+    // We want to continue from exactly where we are
+    fenix::mlog::sync(mlogs, FENIX_MLOG_CONTINUE);
 
     printf(
       "Rank %d continuing inline at iteration %d\n", state.rank, state.iteration
@@ -184,8 +184,9 @@ int main(int argc, char** argv) {
 
     {
       // Enable logging and inline recovery within this scope
-      auto setting = scoped_inline_recovery(true);
-      begin_message_log_region(i);
+      fenix::util::ScopedActiveMlog mlog_setting(mlogs);
+      fenix::util::ScopedInlineRecovery setting(true);
+      fenix::mlog::begin_region(mlogs, i);
 
 #ifdef FENIX_STENCIL_ENABLE_BARRIERS
       if (i % barrier_iterations == 0) {
@@ -250,7 +251,7 @@ int main(int argc, char** argv) {
       while (old_timestamp == cur_timestamp) {
         try {
           fenix::data::member_store(group, state_member);
-          stage_message_logs(group, mlogs_member);
+          fenix::mlog::stage(mlogs, group, mlogs_member);
           fenix::data::member_storev(group, mlogs_member, SUBSET_PRESTAGED);
           fenix::data::commit(group);
         } catch (fenix::CommException& error) {
