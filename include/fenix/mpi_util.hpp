@@ -57,6 +57,7 @@
 #define __FENIX_MPI_UTIL__
 
 #include <mpi.h>
+#include <tuple>
 
 namespace fenix::util {
 
