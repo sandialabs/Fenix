@@ -67,7 +67,6 @@
 
 #include <fenix.hpp>
 #include <fenix_util.hpp>
-#include <fenix/logging/message_logging.h>
 
 constexpr int group = 0;
 constexpr int state_member = 0;
