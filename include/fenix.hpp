@@ -301,16 +301,16 @@ int begin_region(int mlog_id, int region_id);
 //@brief Overload of #Fenix_Mlog_sync
 int sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE);
 
-//@brief Overload of Fenix_Mlog_stage
+//@brief Overload of #Fenix_Mlog_stage
 int stage(int mlog_id, int group_id, int member_id);
 
-//@brief Overload of Fenix_Mlog_lrestore
+//@brief Overload of #Fenix_Mlog_lrestore
 int lrestore(
     int mlog_id, int group_id, int member_id,
     int time_stamp = FENIX_DATA_SNAPSHOT_LATEST
 );
 
-//@brief Overload of Fenix_Mlog_delete
+//@brief Overload of #Fenix_Mlog_delete
 int mlog_delete(int mlog_id);
 
 }
