@@ -542,7 +542,7 @@ extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
  * All calling ranks must pass the same values for the parameters \c group_id, \c comm,
  * \c start_time_stamp, \c policy_name, and \c policy_value.
  *
- * b@param group_id A unique identifier to this group.
+ * @param group_id A unique identifier to this group.
  * @param comm A resilient communicator on which the group is formed.
  * @param start_time_stamp The time_stamp to be used for the first commit in this group.
  * @param depth
@@ -633,7 +633,7 @@ int Fenix_Data_test(Fenix_Request request, int *flag);
 
 /**
  * @brief Serialize a group member's data into the member's local store.
- * 
+ *
  * A store operation can broken into two parts: locally staging the data within
  * Fenix, then policy-specific operations to make the data resilient to faults.
  * This function performs ONLY the first part. Applications should subsequently
@@ -924,7 +924,6 @@ int Fenix_Data_group_delete(int group_id);
  */
 int Fenix_Data_member_delete(int group_id, int member_id);
 /**@}*/
-
 
 /**
  * @defgroup Mlog Message Logging
