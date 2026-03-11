@@ -446,6 +446,12 @@ int Fenix_Mlog_begin_region(int mlog_id, int region_id) {
   FENIX_C_API_END
 }
 
+int Fenix_Mlog_activate_region(int mlog_id, int region_id) {
+  FENIX_C_API_BEGIN
+  return mlog::activate(mlog_id, region_id);
+  FENIX_C_API_END
+}
+
 int Fenix_Mlog_sync(int mlog_id, int region_id) {
   FENIX_C_API_BEGIN
   return mlog::sync(mlog_id, region_id);

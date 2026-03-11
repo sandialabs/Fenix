@@ -972,6 +972,21 @@ int Fenix_Mlog_activate(int mlog_id);
 int Fenix_Mlog_begin_region(int mlog_id, int region_id);
 
 /**
+ * @brief Activate the mlog and begin the region
+ * @qualifier local
+ *
+ * This helper function is equivalent to:
+ *   Fenix_Mlog_activate(mlog_id);
+ *   Fenix_Mlog_begin_region(mlog_id, region_id);
+ *
+ * @param[in] mlog_id The logger to activate and set the region of
+ * @param[in] mlog_id The region ID to set, with the same semantics as
+ *            #Fenix_Mlog_begin_region
+ * @returnstatus
+ */
+int Fenix_Mlog_activate_region(int mlog_id, int region_id);
+
+/**
  * @brief Synchronize messages across ranks each starting at their given region
  * @qualifier collective
  *

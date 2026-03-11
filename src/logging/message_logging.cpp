@@ -51,6 +51,15 @@ int begin_region(int mlog_id, int region_id) {
   FENIX_CPP_API_END
 }
 
+int activate(int mlog_id, int region_id) {
+  FENIX_CPP_API_BEGIN
+  if (mlog_id == FENIX_MLOG_NONE) FENIX_THROW(FENIX_ERROR_INVALID_MLOGID);
+  int ret = activate(mlog_id);
+  if (ret == FENIX_SUCCESS) ret = begin_region(mlog_id, region_id);
+  return ret;
+  FENIX_CPP_API_END
+}
+
 int sync(int mlog_id, int region_id) {
   FENIX_CPP_API_BEGIN
   find_mlog(mlog_id)->reset_consistency(region_id);

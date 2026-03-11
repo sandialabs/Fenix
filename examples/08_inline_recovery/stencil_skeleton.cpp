@@ -117,6 +117,8 @@ int main(int argc, char** argv) {
   // Hold on to checkpoint_iterations+1 regions at once, to be sure we can
   // replay any failed neighbor's messages
   fenix::mlog::create(mlogs, res_world, checkpoint_iterations + 1);
+  // TODO: This needs a more appropriate way to set it
+  fenix::util::ScopedInlineRecovery setting(true);
 
   // Grab basic MPI info
   int n_ranks, rank;
@@ -183,10 +185,8 @@ int main(int argc, char** argv) {
     check_inject_failure(state, n_ranks);
 
     {
-      // Enable logging and inline recovery within this scope
-      fenix::util::ScopedActiveMlog mlog_setting(mlogs);
-      fenix::util::ScopedInlineRecovery setting(true);
-      fenix::mlog::begin_region(mlogs, i);
+      // Enable logging on mlogs and start region i
+      fenix::mlog::activate(mlogs, i);
 
       // Exchange state information, just like exchanging ghost points
       State left_state, right_state;
@@ -213,6 +213,9 @@ int main(int argc, char** argv) {
         MPI_Allreduce(&my_part, &result, 1, MPI_DOUBLE, MPI_SUM, res_world);
         assert(result == i * n_ranks);
       }
+
+      // Disable logging
+      fenix::mlog::activate(FENIX_MLOG_NONE);
     }
 
     if (state.iteration % checkpoint_iterations == 0) {

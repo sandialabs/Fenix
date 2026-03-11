@@ -117,6 +117,8 @@ int main(int argc, char** argv) {
   // Hold on to checkpoint_iterations * 2 regions at once, to be sure we can
   // replay any failed rank's collective messages
   fenix::mlog::create(mlogs, res_world, checkpoint_iterations * 2);
+  // TODO: This needs a more appropriate way to set it
+  fenix::util::ScopedInlineRecovery setting(true);
 
   // Grab basic MPI info
   int n_ranks, rank;
@@ -182,10 +184,8 @@ int main(int argc, char** argv) {
     check_inject_failure(state, n_ranks);
 
     {
-      // Enable logging and inline recovery within this scope
-      fenix::util::ScopedActiveMlog mlog_setting(mlogs);
-      fenix::util::ScopedInlineRecovery setting(true);
-      fenix::mlog::begin_region(mlogs, i);
+      // Enable logging on mlogs and start region i
+      fenix::mlog::activate(mlogs, i);
 
 #ifdef FENIX_STENCIL_ENABLE_BARRIERS
       if (i % barrier_iterations == 0) {
@@ -239,6 +239,9 @@ int main(int argc, char** argv) {
       assert(state.iteration == i);
       state.iteration++;
       std::this_thread::sleep_for(std::chrono::milliseconds(iteration_work_ms));
+
+      // Disable logging
+      fenix::mlog::activate(FENIX_MLOG_NONE);
     }
 
     if (state.iteration % checkpoint_iterations == 0) {

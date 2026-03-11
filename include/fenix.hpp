@@ -298,6 +298,9 @@ int activate(int mlog_id);
 //@brief Overload of #Fenix_Mlog_begin_region
 int begin_region(int mlog_id, int region_id);
 
+//@brief Overload of #Fenix_Mlog_activate_region
+int activate(int mlog_id, int region_id);
+
 //@brief Overload of #Fenix_Mlog_sync
 int sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE);
 
@@ -313,6 +316,6 @@ int lrestore(
 //@brief Overload of #Fenix_Mlog_delete
 int mlog_delete(int mlog_id);
 
-}
+} // namespace fenix::mlog
 
 #endif
