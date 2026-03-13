@@ -74,7 +74,7 @@ int Fenix_set_option(Fenix_Setting_name setting, int option) {
   try {
     set_option(setting, option);
     return FENIX_SUCCESS;
-  } catch (const fenix::RuntimeException& e){
+  } catch (const fenix::RuntimeException& e) {
     return e.error;
   }
 #else
@@ -167,8 +167,8 @@ namespace fenix {
     if (option >= FENIX_##name##_MODE_MAXCODE) {                               \
       FENIX_THROW(FENIX_ERROR_INVALID_SETTING_OPTION);                         \
     }                                                                          \
-    if (!fenix_rt.fenix_init_flag) fenix_rt.user_defaults. var = option;       \
-    else fenix_rt.settings. var = option;                                      \
+    if (!fenix_rt.fenix_init_flag) fenix_rt.user_defaults.var = option;        \
+    else fenix_rt.settings.var = option;                                       \
     break
 
 void set_option(SettingName setting, int option) {
@@ -176,24 +176,28 @@ void set_option(SettingName setting, int option) {
     FENIX_THROW(FENIX_ERROR_INVALID_SETTING_NAME);
   }
   switch (setting) {
-  SET_OPTION_CASE(RECOVERY, recovery);
-  SET_OPTION_CASE(RESUME, resume);
-  SET_OPTION_CASE(UNHANDLED, unhandled);
-  SET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
-  default: FENIX_THROW(FENIX_ERROR_INTERN);
+    SET_OPTION_CASE(RECOVERY, recovery);
+    SET_OPTION_CASE(RESUME, resume);
+    SET_OPTION_CASE(UNHANDLED, unhandled);
+    SET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
+  default:
+    FENIX_THROW(FENIX_ERROR_INTERN);
   }
 }
 
-#define GET_OPTION_CASE(n, v) case n##_MODE: return fenix_rt.settings. v
+#define GET_OPTION_CASE(n, v)                                                  \
+  case n##_MODE:                                                               \
+    return fenix_rt.settings.v
 
 int get_option(SettingName setting) {
   if (!fenix_rt.fenix_init_flag) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
   switch (setting) {
-  GET_OPTION_CASE(RECOVERY, recovery);
-  GET_OPTION_CASE(RESUME, resume);
-  GET_OPTION_CASE(UNHANDLED, unhandled);
-  GET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
-  default: FENIX_THROW(FENIX_ERROR_INTERN);
+    GET_OPTION_CASE(RECOVERY, recovery);
+    GET_OPTION_CASE(RESUME, resume);
+    GET_OPTION_CASE(UNHANDLED, unhandled);
+    GET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
+  default:
+    FENIX_THROW(FENIX_ERROR_INTERN);
   }
 }
 

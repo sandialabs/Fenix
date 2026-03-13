@@ -66,13 +66,12 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 
-#define APPLY_USER_DEFAULT(setting_name)                                      \
-    do {                                                                      \
-        if (fenix_rt.user_defaults. setting_name != -1) {                    \
-            fenix_rt.settings. setting_name =                                \
-                fenix_rt.user_defaults. setting_name;                        \
-        }                                                                     \
-    } while (false)
+#define APPLY_USER_DEFAULT(setting_name)                                       \
+  do {                                                                         \
+    if (fenix_rt.user_defaults.setting_name != -1) {                           \
+      fenix_rt.settings.setting_name = fenix_rt.user_defaults.setting_name;    \
+    }                                                                          \
+  } while (false)
 
 namespace fenix {
 

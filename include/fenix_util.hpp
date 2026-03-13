@@ -134,7 +134,9 @@ struct ScopedOption {
   ScopedOption(SettingName m_setting, int new_option) : setting(m_setting) {
     set_option(setting, new_option);
   }
-  ~ScopedOption() { if (!fenix_rt.finalized) set_option(setting, old); }
+  ~ScopedOption() {
+    if (!fenix_rt.finalized) set_option(setting, old);
+  }
 
   // No moving or copying scoped options, things would get complicated.
   ScopedOption(const ScopedOption&) = delete;
@@ -146,14 +148,12 @@ struct ScopedOption {
 
 // Default error handling for inside the Fenix runtime.
 struct ScopedDefaultRuntimeOptions {
-  ScopedOption resume{RESUME_MODE, THROW},
-               unhandled {UNHANDLED_MODE, ABORT};
+  ScopedOption resume{RESUME_MODE, THROW}, unhandled{UNHANDLED_MODE, ABORT};
 };
 
 // Helper for MPI_ERRORS_RETURN-like error handling
 struct ScopedIgnoreAndReturn {
-  ScopedOption recovery{RECOVERY_MODE, IGNORE},
-               resume{RESUME_MODE, RETURN};
+  ScopedOption recovery{RECOVERY_MODE, IGNORE}, resume{RESUME_MODE, RETURN};
 };
 
 } // namespace fenix::util
