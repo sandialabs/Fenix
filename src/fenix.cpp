@@ -68,6 +68,28 @@ const Fenix_Data_subset FENIX_DATA_SUBSET_FULL = {
 const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY = {new DataSubset()};
 Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE = NULL;
 
+int Fenix_set_option(Fenix_Setting_name setting, int option) {
+  // This function gets special handling, since it can be called before init
+#ifdef FENIC_C_CATCH_RUNTIME_EXCEPTIONS
+  try {
+    set_option(setting, option);
+    return FENIX_SUCCESS;
+  } catch (const fenix::RuntimeException& e){
+    return e.error;
+  }
+#else
+  set_option(setting, option);
+  return FENIX_SUCCESS;
+#endif
+}
+
+int Fenix_get_option(Fenix_Setting_name setting, int* option) {
+  FENIX_C_API_BEGIN
+  *option = get_option(setting);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
 int Fenix_Callback_register(
   void (*recover)(MPI_Comm, int, void*), void* callback_data
 ) {
@@ -107,7 +129,7 @@ int Fenix_check_cancelled(MPI_Request* request, MPI_Status* status) {
   FENIX_C_API_BEGIN
   // We know this may return as "COMM_REVOKED", but we know the error was
   // already handled
-  util::ScopedIgnoreErrs ignore_errs{true};
+  util::ScopedIgnoreAndReturn opt;
 
   int flag;
   int ret = PMPI_Test(request, &flag, status);
@@ -139,6 +161,41 @@ int Fenix_get_nspare() {
 }
 
 namespace fenix {
+
+#define SET_OPTION_CASE(name, var)                                             \
+  case name##_MODE:                                                            \
+    if (option >= FENIX_##name##_MODE_MAXCODE) {                               \
+      FENIX_THROW(FENIX_ERROR_INVALID_SETTING_OPTION);                         \
+    }                                                                          \
+    if (!fenix_rt.fenix_init_flag) fenix_rt.user_defaults. var = option;       \
+    else fenix_rt.settings. var = option;                                      \
+    break
+
+void set_option(SettingName setting, int option) {
+  if (setting >= FENIX_SETTING_NAME_MAXCODE) {
+    FENIX_THROW(FENIX_ERROR_INVALID_SETTING_NAME);
+  }
+  switch (setting) {
+  SET_OPTION_CASE(RECOVERY, recovery);
+  SET_OPTION_CASE(RESUME, resume);
+  SET_OPTION_CASE(UNHANDLED, unhandled);
+  SET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
+  default: FENIX_THROW(FENIX_ERROR_INTERN);
+  }
+}
+
+#define GET_OPTION_CASE(n, v) case n##_MODE: return fenix_rt.settings. v
+
+int get_option(SettingName setting) {
+  if (!fenix_rt.fenix_init_flag) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
+  switch (setting) {
+  GET_OPTION_CASE(RECOVERY, recovery);
+  GET_OPTION_CASE(RESUME, resume);
+  GET_OPTION_CASE(UNHANDLED, unhandled);
+  GET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
+  default: FENIX_THROW(FENIX_ERROR_INTERN);
+  }
+}
 
 void throw_exception() {
   assert(initialized());

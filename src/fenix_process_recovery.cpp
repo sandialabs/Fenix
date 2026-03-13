@@ -66,6 +66,13 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 
+#define APPLY_USER_DEFAULT(setting_name)                                      \
+    do {                                                                      \
+        if (fenix_rt.user_defaults. setting_name != -1) {                    \
+            fenix_rt.settings. setting_name =                                \
+                fenix_rt.user_defaults. setting_name;                        \
+        }                                                                     \
+    } while (false)
 
 namespace fenix {
 
@@ -77,6 +84,8 @@ static int __fenix_spare_rank();
 static void __fenix_finalize_spare();
 
 static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr){
+    fenix_rt.finalized = false;
+
     fenix_rt.world = (MPI_Comm *)malloc(sizeof(MPI_Comm));
     MPI_Comm_dup(args.in_comm, fenix_rt.world);
     
@@ -85,16 +94,24 @@ static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr)
 
     fenix_rt.user_world = args.out_comm;
     fenix_rt.spare_ranks = args.spares;
-    fenix_rt.spawn_policy = args.spawn;
     fenix_rt.recover_environment = jump_env;
-    fenix_rt.resume_mode = args.resume_mode;
-    fenix_rt.unhandled_mode = args.unhandled_mode;
-    fenix_rt.callback_exception_mode = args.callback_exception_mode;
+
     fenix_rt.ret_role = args.role ? args.role : &fenix_rt.role;
     fenix_rt.ret_error = args.err ? args.err : &fenix_rt.repair_result;
 
     *fenix_rt.ret_role = fenix_rt.role;
     *fenix_rt.ret_error = FENIX_SUCCESS;
+
+    APPLY_USER_DEFAULT(recovery);
+    APPLY_USER_DEFAULT(callback_exception);
+    APPLY_USER_DEFAULT(unhandled);
+
+    fenix_rt.settings.resume = jump_env ? JUMP : THROW;
+    APPLY_USER_DEFAULT(resume);
+    fenix_assert(
+        fenix_rt.settings.resume != JUMP || jump_env != nullptr,
+        "Must use Fenix_Init to use FENIX_RESUME_JUMP"
+    );
 
     MPI_Op_create((MPI_User_function *) __fenix_ranks_agree, 1, &fenix_rt.agree_op);
 
@@ -117,32 +134,33 @@ static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr)
     while (__fenix_create_new_world());
 
     if ( __fenix_spare_rank() != 1) {
-        fenix_rt.num_inital_ranks = __fenix_get_world_size(fenix_rt.new_world);
+        fenix_rt.num_initial_ranks = __fenix_get_world_size(fenix_rt.new_world);
         if (fenix_rt.options.verbose == 0) {
             verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
                           __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role,
-                          fenix_rt.num_inital_ranks);
+                          fenix_rt.num_initial_ranks);
         }
 
     } else {
-        fenix_rt.num_inital_ranks = fenix_rt.spare_ranks;
+        fenix_rt.num_initial_ranks = fenix_rt.spare_ranks;
 
         if (fenix_rt.options.verbose == 0) {
             verbose_print("rank: %d, role: %d, number_initial_ranks: %d\n",
                           __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role,
-                          fenix_rt.num_inital_ranks);
+                          fenix_rt.num_initial_ranks);
         }
     }
 
     fenix_rt.fenix_init_flag = true;
 
     while ( __fenix_spare_rank() == 1) {
-        int a;
+        int a, ret;
         MPI_Status mpi_status;
-        fenix_rt.ignore_errs = true;
-        int ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
+        {
+            util::ScopedIgnoreAndReturn opts;
+            ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
                             *fenix_rt.world, &mpi_status);
-        fenix_rt.ignore_errs = false;
+        }
         if (ret == MPI_SUCCESS) {
             if (fenix_rt.options.verbose == 0) {
                 verbose_print("Finalize the program; rank: %d, role: %d\n",
@@ -173,7 +191,6 @@ static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr)
 }
 
 void init(const args::FenixInitArgs args){
-    fenix_assert(args.resume_mode != JUMP, "Must use Fenix_Init to use the JUMP resume mode");
 
     preinit(args);
     __fenix_postinit();
@@ -262,11 +279,13 @@ int __fenix_create_new_world(){
 
 int __fenix_repair_ranks()
 {
+    util::ScopedIgnoreAndReturn scoped_opts;
+    int recovery = scoped_opts.recovery.old;
+    if(recovery == NOOP) return FENIX_SUCCESS;
+
     /*********************************************************/
     /* Do not forget comm_free for broken communicators      */
     /*********************************************************/
-    fenix_rt.ignore_errs = 1;
-
     int ret;
     int survived_flag;
     int *survivor_world;
@@ -338,8 +357,8 @@ int __fenix_repair_ranks()
                     fenix_rt.fail_world_size);
             }
 
-            if (fenix_rt.spawn_policy == 1) {
-                debug_print("Spawn policy <%d>is not supported\n", fenix_rt.spawn_policy);
+            if (recovery == SPAWN) {
+                debug_print("FENIX_RECOVERY_SPAWN is not supported\n");
             } else {
 
                 rt_code = FENIX_WARNING_SPARE_RANKS_DEPLETED;
@@ -394,7 +413,7 @@ int __fenix_repair_ranks()
                     goto END_LOOP;
                 }
 
-                fenix_rt.num_inital_ranks = 0;
+                fenix_rt.num_initial_ranks = 0;
 
                 /* recovered ranks must be the number of spare ranks */
                 fenix_rt.num_recovered_ranks = fenix_rt.fail_world_size;
@@ -486,7 +505,7 @@ int __fenix_repair_ranks()
             }
 
 
-            fenix_rt.num_inital_ranks = 0;
+            fenix_rt.num_initial_ranks = 0;
             fenix_rt.num_recovered_ranks = fenix_rt.fail_world_size;
             
             if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK){
@@ -587,7 +606,6 @@ int __fenix_repair_ranks()
     }
 
     *fenix_rt.world = fixed_world;
-    fenix_rt.ignore_errs=0;
     return rt_code;
 }
 
@@ -617,17 +635,18 @@ int __fenix_spare_rank(){
 
 int detect_failures(bool do_recovery) {
     FENIX_CPP_API_BEGIN
-    if(!fenix_rt.new_world_exists) return FENIX_ERROR_UNINITIALIZED;
+    if(!fenix_rt.new_world_exists) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
 
-    int old_ignore_errs = fenix_rt.ignore_errs;
-    fenix_rt.ignore_errs = !do_recovery;
+    if (!do_recovery) {
+        util::ScopedIgnoreAndReturn scoped_opts;
+        return detect_failures(true);
+    }
 
     int req_completed;
-    int ret = MPI_Test(&fenix_rt.check_failures_req, &req_completed, MPI_STATUS_IGNORE);
-
-    if(req_completed) ret = FENIX_ERROR_INTERN;
-    
-    fenix_rt.ignore_errs = old_ignore_errs;
+    int ret = MPI_Test(
+        &fenix_rt.check_failures_req, &req_completed, MPI_STATUS_IGNORE
+    );
+    if(req_completed) FENIX_THROW(FENIX_ERROR_INTERN);
     return ret;
     FENIX_CPP_API_END
 }
@@ -676,59 +695,61 @@ void __fenix_finalize_spare()
     exit(0);
 }
 
-void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
-{
-    int ret_repair;
-    int index;
+void handle_mpi_error(MPI_Comm* pcomm, int* pret){
     fenix_rt.mpi_fail_code = *pret;
-    if(!fenix_rt.fenix_init_flag || __fenix_spare_rank() == 1 || fenix_rt.ignore_errs) {
-        return;
-    }
 
     switch (fenix_rt.mpi_fail_code) {
-        case MPI_ERR_PROC_FAILED_PENDING:
-        case MPI_ERR_PROC_FAILED:
-            callback_invoke_all(fenix::PRE_RECOVERY);
-            MPIX_Comm_revoke(*fenix_rt.world);
-            MPIX_Comm_revoke(fenix_rt.new_world);
-            if(fenix_rt.user_world_exists) MPIX_Comm_revoke(*fenix_rt.user_world);
+    case MPI_ERR_PROC_FAILED_PENDING:
+    case MPI_ERR_PROC_FAILED:
+        callback_invoke_all(fenix::PRE_RECOVERY);
+        MPIX_Comm_revoke(*fenix_rt.world);
+        MPIX_Comm_revoke(fenix_rt.new_world);
+        if(fenix_rt.user_world_exists) MPIX_Comm_revoke(*fenix_rt.user_world);
 
-            fenix_rt.repair_result = __fenix_repair_ranks();
-            break;
-        case MPI_ERR_REVOKED:
-            callback_invoke_all(fenix::PRE_RECOVERY);
-            fenix_rt.repair_result = __fenix_repair_ranks();
-            break;
-        default:
-            int len;
-            char errstr[MPI_MAX_ERROR_STRING];
-            MPI_Error_string(fenix_rt.mpi_fail_code, errstr, &len);
-            switch (fenix_rt.unhandled_mode) {
-                case ABORT:
-                    fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
-                    MPI_Abort(*fenix_rt.world, 1);
-                    break;
-                case PRINT:
-                    fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
-                    break;
-                case SILENT:
-                    break;
-                default:
-                    printf(
-                        "Fenix internal error: Unknown unhandled mode %d\n",
-                        fenix_rt.unhandled_mode
-                    );
-                    assert(false);
-                    break;
-            }
-            return;
-            break;
+        fenix_rt.repair_result = __fenix_repair_ranks();
+        break;
+    case MPI_ERR_REVOKED:
+        callback_invoke_all(fenix::PRE_RECOVERY);
+        fenix_rt.repair_result = __fenix_repair_ranks();
+        break;
+    default:
+        int len;
+        char errstr[MPI_MAX_ERROR_STRING];
+        MPI_Error_string(fenix_rt.mpi_fail_code, errstr, &len);
+        switch (fenix_rt.settings.unhandled) {
+            case ABORT:
+                fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+                MPI_Abort(*fenix_rt.world, 1);
+                break;
+            case PRINT:
+                fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+                break;
+            case SILENT:
+                break;
+            default:
+                printf(
+                    "Fenix internal error: Unknown unhandled mode %d\n",
+                    fenix_rt.settings.unhandled
+                );
+                assert(false);
+                break;
+        }
+        return;
+        break;
     }
 
     fenix_rt.role = FENIX_ROLE_SURVIVOR_RANK;
     __fenix_postinit();
+}
+
+void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
+{
+    if(!fenix_rt.fenix_init_flag || __fenix_spare_rank() == 1) return;
+
+    if(fenix_rt.settings.recovery != IGNORE) handle_mpi_error(pcomm, pret);
+
     if(!fenix_rt.finalized) {
-        switch(fenix_rt.resume_mode) {
+        switch(fenix_rt.settings.resume) {
             case JUMP:
                 longjmp(*fenix_rt.recover_environment, 1);
                 break;
@@ -739,7 +760,7 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
                 break;
             default:
                 printf("Fenix internal error: Unknown resume mode %d\n",
-                       fenix_rt.resume_mode);
+                       fenix_rt.settings.resume);
                 assert(false);
                 break;
         }
@@ -752,7 +773,7 @@ using namespace fenix;
 
 int __fenix_preinit(
     int *role, MPI_Comm comm, MPI_Comm *new_comm, int *argc, char ***argv,
-    int spare_ranks, int spawn, MPI_Info info, int *error, jmp_buf *jump_env
+    int spare_ranks, int *error, jmp_buf *jump_env
 ) {
     args::FenixInitArgs args;
     args.role = role;
@@ -761,22 +782,7 @@ int __fenix_preinit(
     args.argc = argc;
     args.argv = argv;
     args.spares = spare_ranks;
-    args.spawn = spawn;
     args.err = error;
-    if(info != MPI_INFO_NULL){
-        char value[MPI_MAX_INFO_VAL + 1];
-        int vallen = MPI_MAX_INFO_VAL;
-        int found;
-
-        MPI_Info_get(info, "FENIX_RESUME_MODE", vallen, value, &found);
-        if(found) args.resume_mode = get_resume_mode(value);
-        else args.resume_mode = JUMP;
-
-        MPI_Info_get(info, "FENIX_UNHANDLED_MODE", vallen, value, &found);
-        if(found) args.unhandled_mode = get_unhandled_mode(value);
-    } else {
-        args.resume_mode = JUMP;
-    }
     return preinit(args, jump_env);
 }
 
@@ -818,7 +824,8 @@ int Fenix_Finalize() {
     int last_spare_rank = __fenix_get_world_size(*fenix_rt.world) - 1;
 
     //If we've reached here, we will finalized regardless of further errors.
-    fenix_rt.ignore_errs = true;
+    fenix_rt.settings.recovery = IGNORE;
+    fenix_rt.settings.resume = RETURN;
     while(!fenix_rt.finalized){
         int user_rank = __fenix_get_current_rank(*fenix_rt.user_world);
 
@@ -868,6 +875,7 @@ int Fenix_Finalize() {
 
     /* Free up any C++ data structures, reset default variables */
     fenix_rt = {};
+    fenix_rt.finalized = true;
     return FENIX_SUCCESS;
     FENIX_C_API_END
 }

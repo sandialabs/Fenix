@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     int fenix_status;
     int error;
     int spare_ranks = 1;
-    Fenix_Init(&fenix_status, MPI_COMM_WORLD, &newcomm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+    Fenix_Init(&fenix_status, MPI_COMM_WORLD, &newcomm, &argc, &argv, spare_ranks, &error);
 #else
     #warning "no fenix"
     MPI_Comm_dup(MPI_COMM_WORLD, &newcomm);

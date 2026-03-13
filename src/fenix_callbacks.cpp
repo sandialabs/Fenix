@@ -102,7 +102,7 @@ int callback_invoke_all(CallbackLocation loc) {
       cb(*fenix_rt.user_world, fenix_rt.mpi_fail_code);
     }
   } catch (const CommException& e) {
-    switch (fenix_rt.callback_exception_mode) {
+    switch (fenix_rt.settings.callback_exception) {
     case (RETHROW):
       if (m_callbacks_layer == 0) callbacks_depth = 0;
       throw;

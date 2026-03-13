@@ -85,15 +85,13 @@ int main(int argc, char **argv) {
   MPI_Comm_size(world_comm, &old_world_size);
   MPI_Comm_rank(world_comm, &old_rank);
 
-  MPI_Info info;
-  MPI_Info_create(&info);
-  MPI_Info_set(info, "FENIX_RESUME_MODE", "RETURN");
+  Fenix_set_option(FENIX_RESUME_MODE, FENIX_RESUME_RETURN);
 
   int fenix_status;
   int recovered = 0;
   MPI_Comm new_comm;
   int error;
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, info, &error);
+  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, &error);
 
   MPI_Comm_size(new_comm, &new_world_size);
   MPI_Comm_rank(new_comm, &new_rank);

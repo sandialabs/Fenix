@@ -65,18 +65,23 @@
 #include "fenix_data_group.hpp"
 
 namespace fenix {
+struct fenix_t {
+    struct Settings {
+        int recovery           = -1;
+        int resume             = -1;
+        int callback_exception = -1;
+        int unhandled          = -1;
+    };
+    // Global settings specified by the user prior to initializing
+    inline static Settings user_defaults = {-1, -1, -1, -1};
+    // Global Fenix settings
+    Settings settings {REPAIR, JUMP, SQUASH, ABORT};
 
-typedef struct {
-    int num_inital_ranks;        // Keeps the global MPI rank ID at Fenix_init
+    int num_initial_ranks;       // Keeps the global MPI rank ID at Fenix_init
     int num_survivor_ranks = 0;  // Keeps the global information on the number of survived MPI ranks after failure
     int num_recovered_ranks = 0; // Keeps the number of spare ranks brought into MPI communicator recovery
     int spare_ranks;             // Spare ranks entered by user to repair failed ranks
     
-    ResumeMode resume_mode = JUMP;
-    CallbackExceptionMode callback_exception_mode = RETHROW;
-    UnhandledMode unhandled_mode = ABORT;
-    bool ignore_errs = false;       // Temporarily ignore all errors & recovery
-    int spawn_policy;             // Indicate dynamic process spawning
     jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
 
     int mpi_fail_code = MPI_SUCCESS;
@@ -111,9 +116,8 @@ typedef struct {
     MPI_Errhandler mpi_errhandler; // Our custom error handler
 
     fenix::data::fenix_data_recovery_t *data_recovery = nullptr;   // Global pointer for Fenix Data Recovery Data Structure
-} fenix_t;
-
-}
+};
+} // namespace fenix
 
 inline fenix::fenix_t fenix_rt;
 #endif // __FENIX_EXT_H__

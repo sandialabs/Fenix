@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   int error;
   MPI_Request req = MPI_REQUEST_NULL;
   fprintf(stderr, "Before Fenix init\n");
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL, &error);
+  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, &error);
   fprintf(stderr, "After Fenix init\n");
     
   MPI_Comm_size(new_comm, &new_world_size);

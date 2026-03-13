@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   MPI_Comm_rank(world_comm, &rank);
 
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0, MPI_INFO_NULL,
+  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks,
              &error);
 
   if (fenix_status == FENIX_ROLE_INITIAL_RANK) {

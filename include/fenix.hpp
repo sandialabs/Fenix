@@ -73,15 +73,26 @@ constexpr Role INITIAL_RANK   = FENIX_ROLE_INITIAL_RANK;
 constexpr Role RECOVERED_RANK = FENIX_ROLE_RECOVERED_RANK;
 constexpr Role SURVIVOR_RANK  = FENIX_ROLE_SURVIVOR_RANK;
 
+using SettingName = Fenix_Setting_name;
+constexpr SettingName RECOVERY_MODE           = FENIX_RECOVERY_MODE;
+constexpr SettingName RESUME_MODE             = FENIX_RESUME_MODE;
+constexpr SettingName UNHANDLED_MODE          = FENIX_UNHANDLED_MODE;
+constexpr SettingName CALLBACK_EXCEPTION_MODE = FENIX_CALLBACK_EXCEPTION_MODE;
+
+using RecoveryMode = Fenix_Recovery_mode;
+constexpr RecoveryMode IGNORE = FENIX_RECOVERY_IGNORE;
+constexpr RecoveryMode NOOP   = FENIX_RECOVERY_NOOP;
+constexpr RecoveryMode REPAIR = FENIX_RECOVERY_REPAIR;
+constexpr RecoveryMode SPAWN  = FENIX_RECOVERY_SPAWN;
+
 using ResumeMode = Fenix_Resume_mode;
 constexpr ResumeMode JUMP   = FENIX_RESUME_JUMP;
 constexpr ResumeMode RETURN = FENIX_RESUME_RETURN;
 constexpr ResumeMode THROW  = FENIX_RESUME_THROW;
 
-enum CallbackExceptionMode {
-    RETHROW,
-    SQUASH
-};
+using CallbackExceptionMode = Fenix_Callback_exception_mode;
+constexpr CallbackExceptionMode RETHROW = FENIX_CALLBACK_EXCEPTION_RETHROW;
+constexpr CallbackExceptionMode SQUASH = FENIX_CALLBACK_EXCEPTION_SQUASH;
 
 using UnhandledMode = Fenix_Unhandled_mode;
 constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
@@ -101,15 +112,17 @@ struct FenixInitArgs {
     int* argc                                       = nullptr;
     char*** argv                                    = nullptr;
     int spares                                      = 0;
-    int spawn                                       = 0;
-    ResumeMode resume_mode                          = THROW;
-    CallbackExceptionMode callback_exception_mode   = RETHROW;
-    UnhandledMode unhandled_mode                    = ABORT;
     int* err                                        = nullptr;
 };
 }
 
 void init(const args::FenixInitArgs args);
+
+//!@brief overload of #Fenix_set_option
+void set_option(SettingName setting, int option);
+
+//!@brief overload of #Fenix_get_option returning the option directly
+int get_option(SettingName setting);
 
 //!@brief Throw an exception for the most recent fault. Helpful for spares.
 void throw_exception();

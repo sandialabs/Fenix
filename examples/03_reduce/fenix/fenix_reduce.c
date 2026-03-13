@@ -82,7 +82,6 @@ int main(int argc, char** argv) {
   int fenix_role;
   MPI_Comm world_comm = NULL;
   MPI_Comm new_comm = NULL;
-  int spawn_mode = 0;
   int error;
   float local_sum = 0;
   int i;
@@ -105,8 +104,7 @@ int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   Fenix_Init(
-    &fenix_role, world_comm, &new_comm, &argc, &argv, spare_ranks, spawn_mode,
-    MPI_INFO_NULL, &error
+    &fenix_role, world_comm, &new_comm, &argc, &argv, spare_ranks, &error
   );
 
   MPI_Comm_rank(new_comm, &world_rank);
