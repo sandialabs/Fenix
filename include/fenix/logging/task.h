@@ -1,6 +1,6 @@
 #ifndef TASK_H
 #define TASK_H
-#include "fenix/tasks/task.h"
+#include "fenix/tasks/task.hpp"
 
 namespace fenix::logging {
 class TaskT : public fenix::tasks::LazyTask<void> {

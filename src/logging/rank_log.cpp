@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "fenix.hpp"
-#include "fenix/tasks/mpi.h"
+#include "fenix/tasks/mpi.hpp"
 #include "fenix/logging/message_logging.h"
 #include "fenix/logging/util.h"
 #include "fenix/logging/rank_log.h"

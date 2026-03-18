@@ -1,6 +1,6 @@
 #include <mpi.h>
 #include "fenix.hpp"
-#include "fenix/tasks/request.h"
+#include "fenix/tasks/request.hpp"
 #include "fenix/logging/message_logging.h"
 
 using namespace fenix;

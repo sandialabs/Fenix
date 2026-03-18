@@ -4,8 +4,8 @@
 #include "fenix.hpp"
 #include "fenix_ext.hpp"
 #include "fenix_util.hpp"
-#include "fenix/tasks/request.h"
-#include "fenix/tasks/mpi.h"
+#include "fenix/tasks/request.hpp"
+#include "fenix/tasks/mpi.hpp"
 #include "fenix/logging/comm_log.h"
 #include "fenix/logging/util.h"
 

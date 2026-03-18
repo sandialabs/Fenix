@@ -10,7 +10,7 @@
 
 #include <mpi.h>
 
-#include "fenix/tasks/request.h"
+#include "fenix/tasks/request.hpp"
 #include "fenix/logging/task.h"
 #include "fenix/logging/rank_log.h"
 #include "fenix/logging/collective_log_holder.h"
