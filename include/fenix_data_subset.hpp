@@ -137,6 +137,11 @@ struct DataRegion {
 struct DataSubset {
     static constexpr size_t MAX = detail::DataRegion::MAX;
 
+    enum SubsetType {
+        BasicSubset,
+        PrestagedSubset,
+    };
+
     //DataSubset(const DataSubset&) = default;
     //DataSubset(DataSubset&&) = default;
     //Empty
@@ -155,6 +160,7 @@ struct DataSubset {
     DataSubset(const DataSubset& a, const DataSubset& b);
     //Create from serialized subset object
     DataSubset(const DataBuffer& buf);
+    explicit DataSubset(SubsetType special_type) : type(special_type) { };
 
     DataSubset operator+(const DataSubset& other) const;
     DataSubset& operator+=(const DataSubset& other);
@@ -220,6 +226,8 @@ struct DataSubset {
 
     //Individual data regions in this subset
     std::set<detail::DataRegion> regions;
+
+    SubsetType type = BasicSubset;
 
   private:
     //merge immediately adjacent regions to simplify

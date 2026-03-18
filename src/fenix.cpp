@@ -64,7 +64,7 @@ using namespace fenix::data;
 
 DataSubset SUBSET_FULL_IMPL{DataSubset::MAX};
 DataSubset SUBSET_EMPTY_IMPL{};
-DataSubset SUBSET_PRESTAGED_IMPL{};
+DataSubset SUBSET_PRESTAGED_IMPL{DataSubset::PrestagedSubset};
 
 const Fenix_Data_subset FENIX_DATA_SUBSET_FULL      = {&SUBSET_FULL_IMPL};
 const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY     = {&SUBSET_EMPTY_IMPL};

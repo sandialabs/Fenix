@@ -193,7 +193,7 @@ bool Member::snapshot_delete(int timestamp){
 }
 
 void Member::stage(const DataSubset& subset){
-   if (&subset == &SUBSET_PRESTAGED)
+   if (subset == SUBSET_PRESTAGED)
       FENIX_THROW("Cannot stage FENIX_DATA_SUBSET_PRESTAGED");
 
    Entry& e = entries.back();
@@ -202,7 +202,7 @@ void Member::stage(const DataSubset& subset){
 }
 
 int Member::storev(const DataSubset& subset){
-   if (&subset == &SUBSET_PRESTAGED) {
+   if (subset == SUBSET_PRESTAGED) {
       Entry& e = entries.back();
       return this->storev_impl(e.region);
    } else {
@@ -256,7 +256,7 @@ int BuddyMember::storev_impl(const DataSubset& subset){
 }
 
 int Member::store(const DataSubset& subset){
-   if (&subset == &SUBSET_PRESTAGED) {
+   if (subset == SUBSET_PRESTAGED) {
       Entry& e = entries.back();
       return this->store_impl(e.region);
    } else {
