@@ -1,5 +1,5 @@
-#ifndef FENIX_TASKS_REQUEST_H
-#define FENIX_TASKS_REQUEST_H
+#ifndef FENIX_TASKS_REQUEST_HPP
+#define FENIX_TASKS_REQUEST_HPP
 
 #include <coroutine>
 #include <exception>
@@ -7,7 +7,7 @@
 
 #include <mpi.h>
 
-#include "subtask.h"
+#include "subtask.hpp"
 
 namespace fenix::tasks {
 
@@ -46,7 +46,7 @@ class Request {
  public:
   Request(MPI_Request* r) : request(r) {};
 
-  Request() = default;
+  Request()               = default;
   Request(const Request&) = delete;
   Request(Request&& r) { *this = std::move(r); }
   Request& operator=(MPI_Request* r) { return *this = Request(r); }
@@ -76,7 +76,7 @@ class Request {
   }
   void wait() {
     if (!is_complete()) {
-      ret = MPI_Wait(request, ret);
+      ret      = MPI_Wait(request, ret);
       complete = true;
     }
   }
@@ -93,8 +93,8 @@ class Request {
 
  private:
   Request& operator=(const Request& r) {
-    request = r.request;
-    ret = r.ret;
+    request  = r.request;
+    ret      = r.ret;
     complete = r.complete;
     return *this;
   }
@@ -121,4 +121,4 @@ struct tuple_element<1, fenix::tasks::Status> {
 };
 }
 
-#endif //FENIX_TASKS_REQUEST_H
+#endif //FENIX_TASKS_REQUEST_HPP

@@ -2,8 +2,8 @@
 // Forward declarations to avoid apps needing C++20 unless they're directly
 // using the coroutines
 
-#ifndef FENIX_TASKS_FORWARD_H
-#define FENIX_TASKS_FORWARD_H
+#ifndef FENIX_TASKS_FORWARD_HPP
+#define FENIX_TASKS_FORWARD_HPP
 
 namespace fenix::tasks {
 template <typename T, bool eager = false>
@@ -19,4 +19,4 @@ using MPITask = Task<Status>;
 }
 }
 
-#endif // FENIX_TASKS_FORWARD_H
+#endif // FENIX_TASKS_FORWARD_HPP

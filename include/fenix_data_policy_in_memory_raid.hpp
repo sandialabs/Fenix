@@ -66,7 +66,7 @@
 #include "fenix_data_group.hpp"
 #include "fenix_data_buffer.hpp"
 #include "fenix_data_subset.hpp"
-#include "fenix/tasks/task.h"
+#include "fenix/tasks/task.hpp"
 
 namespace fenix::data::imr {
 

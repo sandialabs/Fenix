@@ -1,5 +1,5 @@
-#ifndef FENIX_TASKS_SUBTASK_H
-#define FENIX_TASKS_SUBTASK_H
+#ifndef FENIX_TASKS_SUBTASK_HPP
+#define FENIX_TASKS_SUBTASK_HPP
 
 #include <coroutine>
 #include <exception>
@@ -19,9 +19,9 @@ class SubtaskBase {
  public:
   virtual ~SubtaskBase() = default;
 
-  virtual bool done() const = 0;
+  virtual bool done() const   = 0;
   virtual void resume() const = 0;
-  virtual void wait() const = 0;
+  virtual void wait() const   = 0;
 };
 
 namespace impl {
@@ -66,4 +66,4 @@ class Subtask : public SubtaskBase {
 
 } // namespace fenix::tasks
 
-#endif //FENIX_TASKS_SUBTASK_H
+#endif //FENIX_TASKS_SUBTASK_HPP

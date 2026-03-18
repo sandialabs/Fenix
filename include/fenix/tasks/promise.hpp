@@ -1,11 +1,11 @@
-#ifndef FENIX_TASKS_PROMISE_H
-#define FENIX_TASKS_PROMISE_H
+#ifndef FENIX_TASKS_PROMISE_HPP
+#define FENIX_TASKS_PROMISE_HPP
 
 #include <coroutine>
 #include <exception>
-#include "subtask.h"
-#include "awaiter.h"
-#include "request.h"
+#include "subtask.hpp"
+#include "awaiter.hpp"
+#include "request.hpp"
 
 #include <cstdio>
 
@@ -31,8 +31,8 @@ template <typename T, bool eager = true>
 class Promise : public impl::ReturnHolder<T> {
  public:
   using PromiseT = Promise<T, eager>;
-  using TaskT = Task<T, eager>;
-  using HandleT = std::coroutine_handle<PromiseT>;
+  using TaskT    = Task<T, eager>;
+  using HandleT  = std::coroutine_handle<PromiseT>;
 
   TaskT get_return_object() noexcept {
     assert(!handle);
@@ -102,7 +102,7 @@ class Promise : public impl::ReturnHolder<T> {
   }
 
   HandleT handle;
-  bool coro_done = false;
+  bool coro_done       = false;
   AwaitMode await_mode = AwaitMode::NonBlocking;
   std::shared_ptr<SubtaskBase> subtask;
   PromiseT** owning_ptr = nullptr;
@@ -110,4 +110,4 @@ class Promise : public impl::ReturnHolder<T> {
 
 } // namespace fenix::tasks
 
-#endif //FENIX_TASKS_PROMISE_H
+#endif //FENIX_TASKS_PROMISE_HPP

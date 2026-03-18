@@ -64,8 +64,8 @@
 #endif
 #include <fenix_opt.hpp>
 
-#include <fenix/tasks/task.h>
-#include <fenix/tasks/mpi.h>
+#include <fenix/tasks/task.hpp>
+#include <fenix/tasks/mpi.hpp>
 
 using namespace fenix::tasks;
 using namespace fenix::tasks::mpi;
@@ -75,7 +75,7 @@ Task<int> get_partner_rank() {
   MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
   MPI_Comm_rank(MPI_COMM_WORLD, &me);
 
-  int left = (me + n_ranks - 1) % n_ranks;
+  int left  = (me + n_ranks - 1) % n_ranks;
   int right = (me + 1) % n_ranks;
   int partner;
 

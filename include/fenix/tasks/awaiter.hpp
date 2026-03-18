@@ -1,10 +1,10 @@
-#ifndef FENIX_TASKS_AWAITER_H
-#define FENIX_TASKS_AWAITER_H
+#ifndef FENIX_TASKS_AWAITER_HPP
+#define FENIX_TASKS_AWAITER_HPP
 
 #include <coroutine>
 #include <exception>
 
-#include "subtask.h"
+#include "subtask.hpp"
 
 namespace fenix::tasks {
 
@@ -32,4 +32,4 @@ class Awaiter {
 
 } // namespace fenix::tasks
 
-#endif //FENIX_TASKS_AWAITER_H
+#endif //FENIX_TASKS_AWAITER_HPP

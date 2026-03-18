@@ -55,7 +55,7 @@
 */
 
 #include "fenix_data_buffer.hpp"
-#include "fenix/tasks/mpi.h"
+#include "fenix/tasks/mpi.hpp"
 
 using namespace fenix::tasks::mpi;
 

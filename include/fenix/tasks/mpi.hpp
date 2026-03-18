@@ -1,11 +1,11 @@
-#ifndef FENIX_TASKS_MPI_H
-#define FENIX_TASKS_MPI_H
+#ifndef FENIX_TASKS_MPI_HPP
+#define FENIX_TASKS_MPI_HPP
 
 #include <type_traits>
 #include <utility>
 #include <vector>
 #include <mpi.h>
-#include "task.h"
+#include "task.hpp"
 
 namespace fenix::util {
 template <typename T>
@@ -229,4 +229,4 @@ constexpr int count(T&& t, int in_count) {
 }
 } // namespace fenix::util
 
-#endif // FENIX_TASKS_MPI_H
+#endif // FENIX_TASKS_MPI_HPP

@@ -1,12 +1,12 @@
-#ifndef FENIX_TASKS_TASK_H
-#define FENIX_TASKS_TASK_H
+#ifndef FENIX_TASKS_TASK_HPP
+#define FENIX_TASKS_TASK_HPP
 
 #include <cassert>
 #include <memory>
 
-#include "promise.h"
-#include "request.h"
-#include "forward.h"
+#include "promise.hpp"
+#include "request.hpp"
+#include "forward.hpp"
 
 namespace fenix::tasks {
 
@@ -15,8 +15,8 @@ namespace fenix::tasks {
 template <typename T, bool eager /*= false*/>
 class Task {
  public:
-  using PromiseT = Promise<T, eager>;
-  using TaskT = Task<T, eager>;
+  using PromiseT     = Promise<T, eager>;
+  using TaskT        = Task<T, eager>;
   using promise_type = PromiseT;
   struct PromiseHolder {
     PromiseHolder() = delete;
@@ -71,4 +71,4 @@ using LazyTask = Task<T, false>;
 
 } // namespace fenix::tasks
 
-#endif // FENIX_TASKS_TASK_H
+#endif // FENIX_TASKS_TASK_HPP

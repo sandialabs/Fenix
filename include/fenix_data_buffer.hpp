@@ -61,7 +61,7 @@
 #include <vector>
 
 #include <mpi.h>
-#include "fenix/tasks/forward.h"
+#include "fenix/tasks/forward.hpp"
 
 namespace fenix {
 namespace detail {
@@ -88,7 +88,7 @@ using BufferVec = std::vector<char, UninitializedCharAllocator<char>>;
 class DataBuffer : public detail::BufferVec {
  public:
   using BufferVec = detail::BufferVec;
-  using MPITask = tasks::mpi::MPITask;
+  using MPITask   = tasks::mpi::MPITask;
 
   //Set to new size, possibly discarding old data
   void reset(size_t new_size = 0) {
