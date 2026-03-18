@@ -94,7 +94,7 @@ int callback_invoke_all(CallbackLocation loc) {
   //within a callback, we want to only finish the most recent call. All prior
   //calls should exit as soon as control returns.
   static int callbacks_depth = 0;
-  int m_callbacks_layer = callbacks_depth++;
+  int m_callbacks_layer      = callbacks_depth++;
 
   try {
     for (auto& cb : callbacks(loc)) {
@@ -102,7 +102,7 @@ int callback_invoke_all(CallbackLocation loc) {
       cb(*fenix_rt.user_world, fenix_rt.mpi_fail_code);
     }
   } catch (const CommException& e) {
-    switch (fenix_rt.settings.callback_exception) {
+    switch (fenix_rt.settings.cb_exception) {
     case (RETHROW):
       if (m_callbacks_layer == 0) callbacks_depth = 0;
       throw;

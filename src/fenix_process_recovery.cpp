@@ -66,13 +66,6 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 
-#define APPLY_USER_DEFAULT(setting_name)                                       \
-  do {                                                                         \
-    if (fenix_rt.user_defaults.setting_name != -1) {                           \
-      fenix_rt.settings.setting_name = fenix_rt.user_defaults.setting_name;    \
-    }                                                                          \
-  } while (false)
-
 namespace fenix {
 
 static int __fenix_create_new_world();
@@ -101,12 +94,10 @@ static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr)
     *fenix_rt.ret_role = fenix_rt.role;
     *fenix_rt.ret_error = FENIX_SUCCESS;
 
-    APPLY_USER_DEFAULT(recovery);
-    APPLY_USER_DEFAULT(callback_exception);
-    APPLY_USER_DEFAULT(unhandled);
-
-    fenix_rt.settings.resume = jump_env ? JUMP : THROW;
-    APPLY_USER_DEFAULT(resume);
+    fenix_rt.settings = fenix_default_settings;
+    if (fenix_rt.settings.resume == FENIX_RESUME_MODE_MAXCODE) {
+        fenix_rt.settings.resume = jump_env ? JUMP : THROW;
+    }
     fenix_assert(
         fenix_rt.settings.resume != JUMP || jump_env != nullptr,
         "Must use Fenix_Init to use FENIX_RESUME_JUMP"

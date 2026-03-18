@@ -12,6 +12,9 @@ AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 # );
 AlignAfterOpenBracket: BlockIndent
 
+# Align assignments not separated by non-assignment or empty line
+AlignConsecutiveAssignments: AcrossComments
+
 # Function calls and init lists try to fit args on same line
 PackConstructorInitializers: BinPack
 BinPackArguments: true

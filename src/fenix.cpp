@@ -66,9 +66,9 @@ const Fenix_Data_subset FENIX_DATA_SUBSET_FULL = {
   new DataSubset(DataSubset::MAX)
 };
 const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY = {new DataSubset()};
-Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE = NULL;
+Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE     = NULL;
 
-int Fenix_set_option(Fenix_Setting_name setting, int option) {
+int Fenix_set_option(Fenix_Setting_name setting, unsigned option) {
   // This function gets special handling, since it can be called before init
 #ifdef FENIC_C_CATCH_RUNTIME_EXCEPTIONS
   try {
@@ -83,7 +83,7 @@ int Fenix_set_option(Fenix_Setting_name setting, int option) {
 #endif
 }
 
-int Fenix_get_option(Fenix_Setting_name setting, int* option) {
+int Fenix_get_option(Fenix_Setting_name setting, unsigned* option) {
   FENIX_C_API_BEGIN
   *option = get_option(setting);
   return FENIX_SUCCESS;
@@ -162,24 +162,30 @@ int Fenix_get_nspare() {
 
 namespace fenix {
 
+template <typename T>
+static void set_opt_enum(T& t, unsigned opt, unsigned opt_oob) {
+  static_assert(std::is_enum_v<T>);
+  if (opt >= opt_oob) FENIX_THROW(FENIX_ERROR_INVALID_SETTING_OPTION);
+  t = static_cast<T>(opt);
+}
+
 #define SET_OPTION_CASE(name, var)                                             \
   case name##_MODE:                                                            \
-    if (option >= FENIX_##name##_MODE_MAXCODE) {                               \
-      FENIX_THROW(FENIX_ERROR_INVALID_SETTING_OPTION);                         \
-    }                                                                          \
-    if (!fenix_rt.fenix_init_flag) fenix_rt.user_defaults.var = option;        \
-    else fenix_rt.settings.var = option;                                       \
+    set_opt_enum(settings.var, option, FENIX_##name##_MODE_MAXCODE);           \
     break
 
-void set_option(SettingName setting, int option) {
+void set_option(SettingName setting, unsigned option) {
   if (setting >= FENIX_SETTING_NAME_MAXCODE) {
     FENIX_THROW(FENIX_ERROR_INVALID_SETTING_NAME);
   }
+
+  Settings& settings =
+    fenix_rt.fenix_init_flag ? fenix_rt.settings : fenix_default_settings;
   switch (setting) {
     SET_OPTION_CASE(RECOVERY, recovery);
     SET_OPTION_CASE(RESUME, resume);
     SET_OPTION_CASE(UNHANDLED, unhandled);
-    SET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
+    SET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -189,13 +195,13 @@ void set_option(SettingName setting, int option) {
   case n##_MODE:                                                               \
     return fenix_rt.settings.v
 
-int get_option(SettingName setting) {
+unsigned get_option(SettingName setting) {
   if (!fenix_rt.fenix_init_flag) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
   switch (setting) {
     GET_OPTION_CASE(RECOVERY, recovery);
     GET_OPTION_CASE(RESUME, resume);
     GET_OPTION_CASE(UNHANDLED, unhandled);
-    GET_OPTION_CASE(CALLBACK_EXCEPTION, callback_exception);
+    GET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -230,9 +236,9 @@ std::vector<int> fail_list() {
 bool initialized() { return fenix_rt.fenix_init_flag; }
 
 namespace data {
-const DataSubset SUBSET_FULL = {{0, fenix::DataSubset::MAX}};
+const DataSubset SUBSET_FULL  = {{0, fenix::DataSubset::MAX}};
 const DataSubset SUBSET_EMPTY = {};
-DataSubset SUBSET_IGNORE = SUBSET_EMPTY;
+DataSubset SUBSET_IGNORE      = SUBSET_EMPTY;
 } // namespace data
 
 } //namespace fenix
@@ -316,7 +322,7 @@ int Fenix_Data_member_restore(
 ) {
   FENIX_C_API_BEGIN
   DataSubset* s = new DataSubset();
-  int ret = member_restore(
+  int ret       = member_restore(
     group_id, member_id, target_buffer, max_count, time_stamp, *s
   );
   if (data_found == nullptr) {
@@ -334,7 +340,7 @@ int Fenix_Data_member_lrestore(
 ) {
   FENIX_C_API_BEGIN
   DataSubset* s = new DataSubset();
-  int ret = member_lrestore(
+  int ret       = member_lrestore(
     group_id, member_id, target_buffer, max_count, time_stamp, *s
   );
   if (data_found == nullptr) {

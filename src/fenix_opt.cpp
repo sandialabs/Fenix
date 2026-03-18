@@ -62,30 +62,25 @@
 
 #define DEBUG 1
 
-
-
-
 /**
  * @brief
  * @param argc
  * @param argv
  * @param opts
  */
-void __fenix_init_opt(int argc, char **argv) {
-   int i;
+void __fenix_init_opt(int argc, char** argv) {
+  int i;
 
-   /* Initialize the value */
+  /* Initialize the value */
 
-   fenix_rt.options.verbose = -1;
+  fenix::fenix_rt.options.verbose = -1;
 
-   for( i = 0; i < argc; i++ )
-   {
-      if( strcmp(argv[i],"--fenix_v") == 0 || strcmp(argv[i],"--FENIX_V") == 0 )
-      {
-         if( i+1 < argc )
-         {
-            fenix_rt.options.verbose = atoi(argv[i+1]);
-         }
+  for (i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--fenix_v") == 0 ||
+        strcmp(argv[i], "--FENIX_V") == 0) {
+      if (i + 1 < argc) {
+        fenix::fenix_rt.options.verbose = atoi(argv[i + 1]);
       }
     }
+  }
 }

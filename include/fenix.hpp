@@ -54,7 +54,6 @@
 //@HEADER
 */
 
-
 #ifndef __FENIX_HPP__
 #define __FENIX_HPP__
 
@@ -68,61 +67,58 @@
 
 namespace fenix {
 
-using Role = Fenix_Rank_role;
+using Role                    = Fenix_Rank_role;
 constexpr Role INITIAL_RANK   = FENIX_ROLE_INITIAL_RANK;
 constexpr Role RECOVERED_RANK = FENIX_ROLE_RECOVERED_RANK;
 constexpr Role SURVIVOR_RANK  = FENIX_ROLE_SURVIVOR_RANK;
 
-using SettingName = Fenix_Setting_name;
+using SettingName                             = Fenix_Setting_name;
 constexpr SettingName RECOVERY_MODE           = FENIX_RECOVERY_MODE;
 constexpr SettingName RESUME_MODE             = FENIX_RESUME_MODE;
 constexpr SettingName UNHANDLED_MODE          = FENIX_UNHANDLED_MODE;
 constexpr SettingName CALLBACK_EXCEPTION_MODE = FENIX_CALLBACK_EXCEPTION_MODE;
 
-using RecoveryMode = Fenix_Recovery_mode;
+using RecoveryMode            = Fenix_Recovery_mode;
 constexpr RecoveryMode IGNORE = FENIX_RECOVERY_IGNORE;
 constexpr RecoveryMode NOOP   = FENIX_RECOVERY_NOOP;
 constexpr RecoveryMode REPAIR = FENIX_RECOVERY_REPAIR;
 constexpr RecoveryMode SPAWN  = FENIX_RECOVERY_SPAWN;
 
-using ResumeMode = Fenix_Resume_mode;
+using ResumeMode            = Fenix_Resume_mode;
 constexpr ResumeMode JUMP   = FENIX_RESUME_JUMP;
 constexpr ResumeMode RETURN = FENIX_RESUME_RETURN;
 constexpr ResumeMode THROW  = FENIX_RESUME_THROW;
 
-using CallbackExceptionMode = Fenix_Callback_exception_mode;
+using CallbackExceptionMode             = Fenix_Callback_exception_mode;
 constexpr CallbackExceptionMode RETHROW = FENIX_CALLBACK_EXCEPTION_RETHROW;
-constexpr CallbackExceptionMode SQUASH = FENIX_CALLBACK_EXCEPTION_SQUASH;
+constexpr CallbackExceptionMode SQUASH  = FENIX_CALLBACK_EXCEPTION_SQUASH;
 
-using UnhandledMode = Fenix_Unhandled_mode;
+using UnhandledMode            = Fenix_Unhandled_mode;
 constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
 constexpr UnhandledMode PRINT  = FENIX_UNHANDLED_PRINT;
 constexpr UnhandledMode ABORT  = FENIX_UNHANDLED_ABORT;
 
-enum CallbackLocation {
-    PRE_RECOVERY,
-    POST_RECOVERY
-};
+enum CallbackLocation { PRE_RECOVERY, POST_RECOVERY };
 
 namespace args {
 struct FenixInitArgs {
-    int* role                                       = nullptr;
-    MPI_Comm in_comm                                = MPI_COMM_WORLD;
-    MPI_Comm* out_comm                              = nullptr;
-    int* argc                                       = nullptr;
-    char*** argv                                    = nullptr;
-    int spares                                      = 0;
-    int* err                                        = nullptr;
+  int* role          = nullptr;
+  MPI_Comm in_comm   = MPI_COMM_WORLD;
+  MPI_Comm* out_comm = nullptr;
+  int* argc          = nullptr;
+  char*** argv       = nullptr;
+  int spares         = 0;
+  int* err           = nullptr;
 };
 }
 
 void init(const args::FenixInitArgs args);
 
 //!@brief overload of #Fenix_set_option
-void set_option(SettingName setting, int option);
+void set_option(SettingName setting, unsigned option);
 
 //!@brief overload of #Fenix_get_option returning the option directly
-int get_option(SettingName setting);
+unsigned get_option(SettingName setting);
 
 //!@brief Throw an exception for the most recent fault. Helpful for spares.
 void throw_exception();
@@ -140,7 +136,7 @@ using FenixCallbackFunc = std::function<void(MPI_Comm, int)>;
 
 //!@brief Overload of #Fenix_Callback_register
 int callback_register(
-    FenixCallbackFunc callback, CallbackLocation loc = POST_RECOVERY
+  FenixCallbackFunc callback, CallbackLocation loc = POST_RECOVERY
 );
 
 //@!brief Overload of #Fenix_Callback_pop
@@ -171,8 +167,8 @@ extern DataSubset SUBSET_IGNORE;
 
 //@!brief Overload of #Fenix_Data_group_create
 int group_create(
-    int group_id, MPI_Comm comm, int start_time_stamp, int depth,
-    int policy_name, void* policy_value, int* flag
+  int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy_name,
+  void* policy_value, int* flag
 );
 
 //@!brief Overload of #Fenix_Data_group_created
@@ -180,7 +176,7 @@ bool group_created(int group_id);
 
 //@!brief Overload of #Fenix_Data_member_create
 int member_create(
-    int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
 );
 
 //@!brief Overload of #Fenix_Data_member_created
@@ -194,26 +190,24 @@ int member_storev(int group_id, int member_id, const DataSubset& subset);
 
 //!@brief Overload of #Fenix_Data_member_istore
 int member_istore(
-    int group_id, int member_id, const DataSubset& subset,
-    Fenix_Request *request
+  int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
 
 //!@brief Overload of #Fenix_Data_member_istorev
 int member_istorev(
-    int group_id, int member_id, const DataSubset& subset,
-    Fenix_Request *request
+  int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
 
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
-    int group_id, int member_id, void *target_buffer, int max_length,
-    int time_stamp, DataSubset& data_found
+  int group_id, int member_id, void* target_buffer, int max_length,
+  int time_stamp, DataSubset& data_found
 );
 
 //!@brief Overload of #Fenix_Data_member_lrestore
 int member_lrestore(
-    int group_id, int member_id, void *target_buffer, int max_length,
-    int time_stamp, DataSubset& data_found
+  int group_id, int member_id, void* target_buffer, int max_length,
+  int time_stamp, DataSubset& data_found
 );
 
 //@!brief overload of #Fenix_Data_commit

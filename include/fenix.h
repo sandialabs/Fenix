@@ -351,7 +351,7 @@ int Fenix_Initialized(int *flag);
  * @param[in] option  The option to configure setting to.
  * @returnstatus
  */
-int Fenix_set_option(Fenix_Setting_name setting, int option);
+int Fenix_set_option(Fenix_Setting_name setting, unsigned option);
 
 /**
  * @brief Get the current option for a Fenix setting.
@@ -362,7 +362,7 @@ int Fenix_set_option(Fenix_Setting_name setting, int option);
  * @param[out] option  The current option of the setting.
  * @returnstatus
  */
-int Fenix_get_option(Fenix_Setting_name setting, int option);
+int Fenix_get_option(Fenix_Setting_name setting, unsigned* option);
 
 /**
  * @brief Register a callback to be invoked after failure process recovery.
