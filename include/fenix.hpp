@@ -161,8 +161,9 @@ bool initialized();
 
 namespace fenix::data {
 
-extern const DataSubset SUBSET_FULL;
-extern const DataSubset SUBSET_EMPTY;
+extern const DataSubset& SUBSET_FULL;
+extern const DataSubset& SUBSET_EMPTY;
+extern const DataSubset& SUBSET_PRESTAGED;
 extern DataSubset SUBSET_IGNORE;
 
 //@!brief Overload of #Fenix_Data_group_create
@@ -181,6 +182,11 @@ int member_create(
 
 //@!brief Overload of #Fenix_Data_member_created
 bool member_created(int group_id, int member_id);
+
+//!@brief Overload of #Fenix_Data_member_stage
+int member_stage(
+    int group_id, int member_id, const DataSubset& subset = SUBSET_FULL
+);
 
 //!@brief Overload of #Fenix_Data_member_store
 int member_store(int group_id, int member_id, const DataSubset& subset);

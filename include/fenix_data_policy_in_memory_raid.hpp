@@ -118,6 +118,8 @@ struct Member {
   //Handles partner data and region
   virtual int store_impl(const DataSubset& subset) = 0;
 
+  void stage(const DataSubset& subset);
+
   //As store(_impl)
   int storev(const DataSubset& subset);
   virtual int storev_impl(const DataSubset& subset) = 0;
@@ -191,6 +193,8 @@ struct Group : public fenix_group_t {
   int member_create(fenix_member_entry_t* mentry) override;
   int member_delete(fenix_member_entry_t* mentry) override;
   int get_redundant_policy(int* name, void* value, int* flag) override;
+
+  void member_stage(int member_id, const DataSubset& subset) override;
 
   int member_store(int member_id, const DataSubset& subset) override;
   int member_storev(int member_id, const DataSubset& subset) override;

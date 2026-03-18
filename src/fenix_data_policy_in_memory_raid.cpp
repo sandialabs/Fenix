@@ -192,11 +192,23 @@ bool Member::snapshot_delete(int timestamp){
    return found;
 }
 
-int Member::storev(const DataSubset& subset){
+void Member::stage(const DataSubset& subset){
+   if (subset == SUBSET_PRESTAGED)
+      FENIX_THROW("Cannot stage FENIX_DATA_SUBSET_PRESTAGED");
+
    Entry& e = entries.back();
    e.add_and_fit(subset);
    subset.copy_data(e.elm_size, e.elm_max_count, mentry.user_data, e.buf);
-   return this->storev_impl(subset);
+}
+
+int Member::storev(const DataSubset& subset){
+   if (subset == SUBSET_PRESTAGED) {
+      Entry& e = entries.back();
+      return this->storev_impl(e.region);
+   } else {
+      stage(subset);
+      return this->storev_impl(subset);
+   }
 }
 
 int BuddyMember::exch(
@@ -244,10 +256,13 @@ int BuddyMember::storev_impl(const DataSubset& subset){
 }
 
 int Member::store(const DataSubset& subset){
-   Entry& e = entries.back();
-   e.add_and_fit(subset);
-   subset.copy_data(e.elm_size, e.elm_max_count, mentry.user_data, e.buf);
-   return this->store_impl(subset);
+   if (subset == SUBSET_PRESTAGED) {
+      Entry& e = entries.back();
+      return this->store_impl(e.region);
+   } else {
+      stage(subset);
+      return this->store_impl(subset);
+   }
 }
 
 int BuddyMember::store_impl(const DataSubset& subset){
@@ -727,6 +742,12 @@ int Group::member_delete(fenix_member_entry_t* mentry){
 
    member_data.erase(iter);
    return FENIX_SUCCESS;
+}
+
+void Group::member_stage(int member_id, const DataSubset& subset) {
+   auto iter = member_data.find(member_id);
+   if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+   iter->second->stage(subset);
 }
 
 int Group::member_store(int member_id, const DataSubset& subset){

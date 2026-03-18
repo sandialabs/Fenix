@@ -389,6 +389,8 @@ DataSubset::DataSubset(int num_blocks, int* firsts, int* seconds){
 }
 
 DataSubset::DataSubset(const DataSubset& a, const DataSubset& b){
+   fenix_assert(a.type == BasicSubset && b.type == BasicSubset);
+
    if(a.empty() || b.empty()){
       *this = a.empty() ? b : a;
       return;
@@ -530,6 +532,7 @@ void DataSubset::serialize(DataBuffer& buf) const {
 }
 
 DataSubset DataSubset::operator+(const DataSubset& other) const {
+   fenix_assert(type == BasicSubset && other.type == BasicSubset);
    return DataSubset(*this, other);
 }
 
@@ -538,6 +541,7 @@ DataSubset DataSubset::operator+(const Fenix_Data_subset& other) const {
 }
 
 DataSubset& DataSubset::operator+=(const DataSubset& other) {
+   fenix_assert(type == BasicSubset && other.type == BasicSubset);
    *this = *this + other;
    return *this;
 }
@@ -547,6 +551,7 @@ DataSubset& DataSubset::operator+=(const Fenix_Data_subset& other) {
 }
 
 DataSubset DataSubset::operator-(const DataSubset& other) const {
+   fenix_assert(type == BasicSubset && other.type == BasicSubset);
    if(empty() || other.empty()) return *this;
 
    size_t a_stride = 0, b_stride = 0;
@@ -598,6 +603,8 @@ DataSubset DataSubset::operator-(const DataSubset& other) const {
 }
 
 bool DataSubset::operator==(const DataSubset& other) const {
+   if(type != BasicSubset || other.type != BasicSubset)
+      return type == other.type;
    //Making checks in approximate order of cost
    if(start() != other.start()) return false;
    if(regions.empty() != other.regions.empty()) return false;
@@ -620,19 +627,23 @@ bool DataSubset::operator!=(const DataSubset& other) const {
 }
 
 bool DataSubset::empty() const {
+   fenix_assert(type == BasicSubset);
    return regions.empty();
 }
 
 std::pair<size_t, size_t> DataSubset::range() const {
+   fenix_assert(type == BasicSubset);
    return {start(), end()};
 }
 
 size_t DataSubset::start() const {
+   fenix_assert(type == BasicSubset);
    if(regions.empty()) return -1;
    return regions.begin()->start;
 }
 
 size_t DataSubset::end() const {
+   fenix_assert(type == BasicSubset);
    if(empty()) return -1;
 
    size_t ret = 0;
@@ -649,6 +660,7 @@ std::set<DataRegion> DataSubset::bounded_regions(size_t max_idx) const {
 std::set<DataRegion> DataSubset::bounded_regions(
    size_t start, size_t end
 ) const {
+   fenix_assert(type == BasicSubset);
    std::set<DataRegion> ret;
    DataRegion bounds({start, end});
    for(const auto& r : regions){
@@ -660,6 +672,7 @@ std::set<DataRegion> DataSubset::bounded_regions(
 }
 
 size_t DataSubset::count(size_t max_index) const {
+   fenix_assert(type == BasicSubset);
    size_t ret = 0;
    for(const auto& r : bounded_regions(max_index)){
       size_t c = r.count();
@@ -670,12 +683,14 @@ size_t DataSubset::count(size_t max_index) const {
 }
 
 size_t DataSubset::max_count() const {
+   fenix_assert(type == BasicSubset);
    return end()+1;
 }
 
 void DataSubset::serialize_data(
    size_t elm_size, const DataBuffer& src, DataBuffer& dst
 ) const {
+   fenix_assert(type == BasicSubset);
    if(regions.empty()){
       dst.resize(0);
       return;
@@ -703,6 +718,7 @@ void DataSubset::serialize_data(
 void DataSubset::deserialize_data(
    size_t elm_size, const DataBuffer& src, DataBuffer& dst
 ) const {
+   fenix_assert(type == BasicSubset);
    if(regions.empty()) return;
    fenix_assert(dst.size()%elm_size==0);
 
@@ -733,6 +749,7 @@ void DataSubset::deserialize_data(
 void DataSubset::copy_data(
    const size_t elm_size, const size_t src_len, const char* src, DataBuffer& dst
 ) const {
+   fenix_assert(type == BasicSubset);
    if(regions.empty()) return;
    fenix_assert(src_len != 0 || end() != MAX, 
       "must specify either a maximum element count or provide a limited-bounds data subset");
@@ -754,6 +771,7 @@ void DataSubset::copy_data(
 void DataSubset::copy_data(
    const size_t elm_size, const DataBuffer& src, const size_t dst_len, char* dst
 ) const {
+   fenix_assert(type == BasicSubset);
    if(regions.empty()) return;
    fenix_assert(dst_len != 0 || end() != MAX, 
       "must specify either a maximum element count or provide a limited-bounds data subset");
@@ -772,10 +790,12 @@ void DataSubset::copy_data(
 }
 
 bool DataSubset::includes(size_t idx) const {
+   fenix_assert(type == BasicSubset);
    return !bounded_regions(idx, idx).empty();
 }
 
 bool DataSubset::includes_all(size_t end) const {
+   fenix_assert(type == BasicSubset);
    std::set<DataRegion> remaining = {DataRegion({0, end})};
 
    for(const auto& r : regions){
@@ -795,6 +815,7 @@ bool DataSubset::includes_all(size_t end) const {
 }
 
 std::string DataSubset::str() const {
+    if(type == PrestagedSubset) return "fenix::SUBSET_PRESTAGED";
     std::string ret = "{";
     for(const auto& r : regions) ret += r.str() + ", ";
     if(!empty()){
