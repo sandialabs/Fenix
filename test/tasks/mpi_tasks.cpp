@@ -54,58 +54,84 @@
 //@HEADER
 */
 
-#ifndef FENIX_DATA_BUFFER_HPP
-#define FENIX_DATA_BUFFER_HPP
-
-#include <memory>
-#include <vector>
-
 #include <mpi.h>
-#include "fenix/tasks/forward.hpp"
+#include <stdio.h>
+#include <chrono>
+#include <thread>
 
-namespace fenix {
-namespace detail {
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <fenix_opt.hpp>
 
-template <typename T>
-struct UninitializedCharAllocator : public std::allocator<T> {
-  UninitializedCharAllocator() noexcept {};
-  template <typename U>
-  UninitializedCharAllocator(const U& other) noexcept {};
+#include <fenix/tasks/task.hpp>
+#include <fenix/tasks/mpi.hpp>
 
-  using value_type = T;
-  void construct(char*) {};
+using namespace fenix::tasks;
+using namespace fenix::tasks::mpi;
 
-  template <typename U>
-  struct rebind {
-    using other = UninitializedCharAllocator<U>;
-  };
-};
+Task<int> get_partner_rank() {
+  int n_ranks, me;
+  MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &me);
 
-using BufferVec = std::vector<char, UninitializedCharAllocator<char>>;
+  int left  = (me + n_ranks - 1) % n_ranks;
+  int right = (me + 1) % n_ranks;
+  int partner;
 
+  // Send me to left with tag 0, recv partner from right with tag 0
+  co_await sendrecv(me, left, 0, partner, right, 0, MPI_COMM_WORLD);
+  fenix_assert(partner == right, "ERR: exchanged partner rank %d\n", partner);
+  co_return partner;
 }
 
-class DataBuffer : public detail::BufferVec {
- public:
-  using BufferVec = detail::BufferVec;
-  using MPITask   = tasks::mpi::MPITask;
+Task<int> get_max_partner() {
+  int n_ranks, me;
+  MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &me);
 
-  //Set to new size, possibly discarding old data
-  void reset(size_t new_size = 0) {
-    //Clear first, to be sure any re-allocations don't actually move data
-    clear();
-    resize(new_size);
+  int partner = co_await get_partner_rank();
+  fenix_assert(
+    partner == (me + 1) % n_ranks, "ERR: returned partner rank %d\n", partner
+  );
+  fprintf(stderr, "Rank %d has partner %d\n", me, partner);
+
+  Indexed<int> my_partner = {.value = partner, .index = me};
+  Indexed<int> max_partner;
+  co_await allreduce(my_partner, max_partner, MPI_MAXLOC, MPI_COMM_WORLD);
+  fenix_assert(
+    max_partner.value == n_ranks - 1, "ERR: max_partner %d\n", max_partner.value
+  );
+  fenix_assert(
+    max_partner.index == n_ranks - 2, "ERR: max_index %d\n", max_partner.index
+  );
+  fprintf(
+    stderr, "Rank %d sees %d has max partner %d\n", me, max_partner.index,
+    max_partner.value
+  );
+  co_return max_partner.value;
+}
+
+int main(int argc, char** argv) {
+  MPI_Init(&argc, &argv);
+
+  int n_ranks, me;
+  MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &me);
+  if (me == n_ranks - 1) {
+    // Induce some delay to make sure the tasks aren't just returning
+    // immediately regardless of completion
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
-  MPITask send(int dst, int tag, MPI_Comm comm);
+  auto max_partner_task = get_max_partner();
+  max_partner_task.wait();
+  int max_partner = max_partner_task.result();
 
-  //Recv n bytes
-  MPITask recv(int n, int src, int tag, MPI_Comm comm);
+  fenix_assert(
+    max_partner == n_ranks - 1, "ERR: returned max partner %d\n", max_partner
+  );
 
-  //Recv an unknown amount of data and resize to fit
-  MPITask recv_unknown(int src, int tag, MPI_Comm comm);
-};
-
-} // namespace fenix
-
-#endif //FENIX_DATA_BUFFER_HPP
+  MPI_Finalize();
+  return 0;
+}

@@ -8,18 +8,5 @@
 #  directory.
 #
 
-function(subset_test name)
-  set(exe fenix_subset_${name})
-  add_executable(${exe} subset_${name}.cpp)
-  target_link_libraries(${exe} fenix)
-
-  add_test(subset_${name} ${exe})
-endfunction()
-
-subset_test(includes)
-subset_test(subtraction)
-subset_test(copy)
-subset_test(addition)
-subset_test(equality)
-subset_test(serialize_data)
-subset_test(serialize)
+fenix_mpi_test(mpi_tasks.cpp 4)
+target_compile_features(mpi_tasks_exe PRIVATE cxx_std_20)

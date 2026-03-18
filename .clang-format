@@ -45,3 +45,8 @@ UseTab: Never
 
 ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
+
+BreakTemplateDeclarations: Leave
+
+# Ignore whitespace "issues" in sendrecvs
+WhitespaceSensitiveMacros: [MPI_Sendrecv, MPI_Isendrecv, sendrecv]

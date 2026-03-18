@@ -28,4 +28,3 @@ spack:
         - numactl
       final:
         - build-essential
-        - cmake
