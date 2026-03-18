@@ -360,30 +360,30 @@ int Fenix_Data_subset_create(
   int num_blocks, int start_offset, int end_offset, int stride,
   Fenix_Data_subset* subset_specifier
 ) {
-  FENIX_C_API_BEGIN
+  FENIX_LOCAL_C_API_BEGIN
   subset_specifier->impl =
     new DataSubset({start_offset, end_offset}, num_blocks, stride);
   return FENIX_SUCCESS;
-  FENIX_C_API_END
+  FENIX_LOCAL_C_API_END
 }
 
 int Fenix_Data_subset_createv(
   int num_blocks, int* array_start_offsets, int* array_end_offsets,
   Fenix_Data_subset* subset_specifier
 ) {
-  FENIX_C_API_BEGIN
+  FENIX_LOCAL_C_API_BEGIN
   subset_specifier->impl =
     new DataSubset(num_blocks, array_start_offsets, array_end_offsets);
   return FENIX_SUCCESS;
-  FENIX_C_API_END
+  FENIX_LOCAL_C_API_END
 }
 
 int Fenix_Data_subset_delete(Fenix_Data_subset* subset_specifier) {
-  FENIX_C_API_BEGIN
+  FENIX_LOCAL_C_API_BEGIN
   delete (DataSubset*)subset_specifier->impl;
   subset_specifier->impl = nullptr;
   return FENIX_SUCCESS;
-  FENIX_C_API_END
+  FENIX_LOCAL_C_API_END
 }
 
 int Fenix_Data_snapshot_delete(int group_id, int time_stamp) {
