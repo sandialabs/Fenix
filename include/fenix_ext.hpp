@@ -66,54 +66,62 @@
 
 namespace fenix {
 
-typedef struct {
-    int num_inital_ranks;        // Keeps the global MPI rank ID at Fenix_init
-    int num_survivor_ranks = 0;  // Keeps the global information on the number of survived MPI ranks after failure
-    int num_recovered_ranks = 0; // Keeps the number of spare ranks brought into MPI communicator recovery
-    int spare_ranks;             // Spare ranks entered by user to repair failed ranks
-    
-    ResumeMode resume_mode = JUMP;
-    CallbackExceptionMode callback_exception_mode = RETHROW;
-    UnhandledMode unhandled_mode = ABORT;
-    bool ignore_errs = false;       // Temporarily ignore all errors & recovery
-    int spawn_policy;             // Indicate dynamic process spawning
-    jmp_buf *recover_environment; // Calling environment to fill the jmp_buf structure
+// Fenix's global settings, configurable before initialization
+struct Settings {
+  RecoveryMode recovery              = REPAIR;
+  // Defaults to JUMP if a jump_buf provided, else THROW
+  ResumeMode resume                  = FENIX_RESUME_MODE_MAXCODE;
+  CallbackExceptionMode cb_exception = SQUASH;
+  UnhandledMode unhandled            = ABORT;
+};
 
-    int mpi_fail_code = MPI_SUCCESS;
-    int repair_result = FENIX_SUCCESS; // Internal variable to store the result of MPI comm repair
-    int role = FENIX_ROLE_INITIAL_RANK;
+// Configurations before init change this
+inline Settings fenix_default_settings;
 
-    int fenix_init_flag = false;
-    int finalized = false;
+struct fenix_t {
+  // Global Fenix settings
+  Settings settings;
 
-    int fail_world_size = 0;
-    int* fail_world = nullptr;
+  int num_initial_ranks;
+  int num_survivor_ranks  = 0; // As of last failure
+  int num_recovered_ranks = 0; // As of last failure
+  int spare_ranks;             // Spare ranks entered by user
 
-    //Save the pointer to role and error of Fenix_Init
-    int *ret_role = nullptr;
-    int *ret_error = nullptr;
+  jmp_buf* recover_environment; // for FENIX_RESUME_JUMP
 
-    std::unordered_map<
-        CallbackLocation, std::vector<FenixCallbackFunc>
-    > callbacks;
-    fenix_debug_opt_t options; // This is reserved to store the user options
+  int mpi_fail_code = MPI_SUCCESS;
+  int repair_result = FENIX_SUCCESS; // Result of MPI comm repair
+  int role          = FENIX_ROLE_INITIAL_RANK;
 
-    MPI_Comm *world;      // Duplicate of comm provided by user
-    MPI_Comm *user_world; // User-facing comm with repaired ranks and no spares
-    MPI_Comm new_world;   // Internal duplicate of user_world
-    int new_world_exists = false, user_world_exists = false;
-   
-    //Values used for Fenix_Process_detect_failures
-    int dummy_recv_buffer;
-    MPI_Request check_failures_req;
-    
-    MPI_Op   agree_op;             // Global agreement call for Fenix data recovery API
-    MPI_Errhandler mpi_errhandler; // Our custom error handler
+  int fenix_init_flag = false;
+  int finalized       = false;
 
-    fenix::data::fenix_data_recovery_t *data_recovery = nullptr;   // Global pointer for Fenix Data Recovery Data Structure
-} fenix_t;
+  int fail_world_size = 0;
+  int* fail_world     = nullptr;
 
-}
+  //Save the pointer to role and error of Fenix_Init
+  int* ret_role  = nullptr;
+  int* ret_error = nullptr;
+
+  std::unordered_map<CallbackLocation, std::vector<FenixCallbackFunc>>
+    callbacks;
+  fenix_debug_opt_t options; // This is reserved to store the user options
+
+  MPI_Comm* world;      // Duplicate of comm provided by user
+  MPI_Comm* user_world; // User-facing comm with repaired ranks and no spares
+  MPI_Comm new_world;   // Internal duplicate of user_world
+  int new_world_exists = false, user_world_exists = false;
+
+  //Values used for Fenix_Process_detect_failures
+  int dummy_recv_buffer;
+  MPI_Request check_failures_req;
+
+  MPI_Op agree_op;               // Global agreement call for data recovery API
+  MPI_Errhandler mpi_errhandler; // Our custom error handler
+
+  fenix::data::fenix_data_recovery_t* data_recovery = nullptr;
+};
 
 inline fenix::fenix_t fenix_rt;
+} // namespace fenix
 #endif // __FENIX_EXT_H__

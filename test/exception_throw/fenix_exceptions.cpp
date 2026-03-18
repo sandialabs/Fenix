@@ -70,10 +70,8 @@ int main(int argc, char **argv) {
 
   int fenix_role, error;
   MPI_Comm res_comm;
-  MPI_Info info;
-  MPI_Info_create(&info);
-  MPI_Info_set(info, "FENIX_RESUME_MODE", "THROW");
-  Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, 0, info, &error);
+  Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, &error);
+  Fenix_set_option(FENIX_RESUME_MODE, FENIX_RESUME_THROW);
 
   if(fenix_role == FENIX_ROLE_SURVIVOR_RANK){
     printf("FAILURE: longjmp instead of exception\n");

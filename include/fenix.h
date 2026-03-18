@@ -119,6 +119,8 @@ typedef enum {
     FENIX_ERROR_NODATA_FOUND,
     FENIX_ERROR_INTERN,
     FENIX_ERROR_CANCELLED,
+    FENIX_ERROR_INVALID_SETTING_NAME,
+    FENIX_ERROR_INVALID_SETTING_OPTION,
     //Warnings are positive
     FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
     FENIX_WARNING_PARTIAL_RESTORE,
@@ -161,15 +163,68 @@ typedef enum {
 } Fenix_Rank_role;
 
 /**
+ * @brief Global Fenix settings.
+ */
+typedef enum {
+    //!See #Fenix_Recovery_mode
+    FENIX_RECOVERY_MODE,
+    //!See #Fenix_Resume_mode
+    FENIX_RESUME_MODE,
+    //!See #Fenix_Unhandled_mode
+    FENIX_UNHANDLED_MODE,
+    //!See #Fenix_Callback_exception_mode
+    FENIX_CALLBACK_EXCEPTION_MODE,
+
+    //!Not a valid option.
+    FENIX_SETTING_NAME_MAXCODE
+} Fenix_Setting_name;
+
+/**
+ * @brief Options for recovering after a failed rank is detected
+ */
+typedef enum {
+    //!Do not repair communicator, immediately resume per #FENIX_RESUME_MODE
+    FENIX_RECOVERY_IGNORE,
+    /**
+     * @brief Do not repair communicator, otherwise behave normally
+     *
+     * This includes calling the PRE_RECOVERY and POST_RECOVERY callbacks
+     */
+    FENIX_RECOVERY_NOOP,
+    //!Repair the communicator with spares or by shrinking
+    FENIX_RECOVERY_REPAIR,
+    //!@unimplemented As REPAIR, but attempt to respawn failed processes
+    FENIX_RECOVERY_SPAWN,
+
+    //!Not a valid option
+    FENIX_RECOVERY_MODE_MAXCODE
+} Fenix_Recovery_mode;
+
+/**
  * @brief Options for passing control back to application after recovery.
  */
 typedef enum {
-    //!Return to Fenix_Init via longjmp (default)
+    /**
+     * @brief Return to Fenix_Init via longjmp (default)
+     *
+     * The value of variables set before the longjmp are subject to undefined
+     * behavior from compiler optimizations. To ensure expected behavior, it is
+     * recommended that any variables that will be used across the longjmp are
+     * declared as volatile, are heap allocated, or are global in scope.
+     *
+     * For C++ applications, whether stack variables are automatically
+     * destructed when leaving stack frames via longjmp is undefined. For this
+     * reason and the above, it is highly recommended to instead use
+     * #FENIX_RESUME_THROW for C++ applications.
+     */
     FENIX_RESUME_JUMP,
     //!Return the error code inline
     FENIX_RESUME_RETURN,
     //!Throw a fenix::CommException
-    FENIX_RESUME_THROW
+    FENIX_RESUME_THROW,
+
+    //!Not a valid option
+    FENIX_RESUME_MODE_MAXCODE
 } Fenix_Resume_mode;
 
 /**
@@ -181,87 +236,97 @@ typedef enum {
     //!Print error and continue without handling
     FENIX_UNHANDLED_PRINT,
     //!Print error and abort Fenix's world (default)
-    FENIX_UNHANDLED_ABORT
+    FENIX_UNHANDLED_ABORT,
+
+    //!Not a valid option
+    FENIX_UNHANDLED_MODE_MAXCODE
 } Fenix_Unhandled_mode;
 
 /**
- * @fn void Fenix_Init(int* role, MPI_Comm comm, MPI_Comm* newcomm, int** argc, char*** argv, int spare_ranks, int spawn, MPI_Info info, int* error);
+ * @brief Options for dealing with CommExceptions generated in callbacks
+ */
+typedef enum {
+    //!CommExceptions are allowed to propagate out of callbacks
+    FENIX_CALLBACK_EXCEPTION_RETHROW,
+    //!CommExceptions from callbacks are squashed
+    FENIX_CALLBACK_EXCEPTION_SQUASH,
+
+    //!Not a valid option
+    FENIX_CALLBACK_EXCEPTION_MODE_MAXCODE
+} Fenix_Callback_exception_mode;
+
+/**
+ * @fn void Fenix_Init(int* role, MPI_Comm comm, MPI_Comm* newcomm, int** argc, char*** argv, int spare_ranks, int* error)
  * @brief Build a resilient communicator and set the restart point.
  *
- * This function must be called by all ranks in \c comm, after MPI initialization. All calling ranks must
- * pass the same values for the parameters \c comm, \c spare_ranks, \c spawn, and \c info. \c Fenix_init
- * must be called exactly once by each rank. This function is used (1) to activate the Fenix library, (2)
- * to specify extra resources in case of rank failure, and (3) to create a logical resumption point in case
- * of rank failure.
+ * This function must be called by all ranks in \c comm, after MPI
+ * initialization. All calling ranks must pass the same values for the
+ * parameters \c comm and \c spare_ranks. \c Fenix_init must be called exactly
+ * once by each rank. This function is used
+ *   (1) to activate the Fenix library,
+ *   (2) to specify extra resources in case of rank failure, and
+ *   (3) to create a logical resume point for when #FENIX_RESUME_JUMP is set
  *
- * For C, the program may rely on the the state of any variables defined and set before the call to \c Fenix_Init.
- * But note that the code executed before \c Fenix_Init is executed by all ranks in the system (including spare 
- * ranks, see below). For C++, the state of objects declared before \c Fenix_Init but within the same scope as
- * \c Fenix_Init is compiler-dependant, and it is recommended to place \c Fenix_Init within a subscope exluding
- * any variables expected to no be destructed.
+ * Note that this function uses #FENIX_RESUME_JUMP by default, which exposes
+ * applications to various undefined behaviors if they do not take care about
+ * how variables are used before and after the jump. See #FENIX_RESUME_JUMP for
+ * more information.
  *
- * It is recommended to access argc and argv only after executin \c Fenix_Init, since command line arguments
- * passed to this function that apply to Fenix may be removed by \c Fenix_Init.
+ * It is recommended to access argc and argv only after executing \c Fenix_Init,
+ * since command line arguments passed to this function that apply to Fenix may
+ * be removed by \c Fenix_Init.
  *
- * \c Fenix_Init is blocking in the following sense. If it is entered for the first time via a regular, explicit
- * function call, it must be entered by all ranks in communicator \c comm. If it is entered after an error 
- * intercepted by Fenix (it if the default execution resumption point, see _info below), no ranks are allowed 
- * to exit from it until all *non-failed* ranks have returned control to it. **Note**: Typically control is  
- * returned automatically through revocation of the resilient communicator, which means ranks which have long 
- * delays between MPI function calls or ranks which only use communicators unaffected by failure may lead to
- * long delays between a failure and its recovery.
+ * \c Fenix_Init is blocking in the following sense. If it is entered for the
+ * first time via a regular, explicit function call, it must be entered by all
+ * ranks in communicator \c comm. If it is entered after an error intercepted by
+ * Fenix (due to #FENIX_RESUME_MODE #FENIX_RESUME_JUMP), no ranks are allowed to
+ * exit from it until all *non-failed* ranks have returned control to it.
+ * **Note**: Typically, control is returned automatically through revocation of
+ * the resilient communicator, which means ranks that have long delays between
+ * MPI function calls or ranks that only use communicators unaffected by failure
+ * may lead to long delays between a failure and its recovery. See
+ * #Fenix_Process_detect_failures for a way to improve this behavior.
  *
- * Ranks to be used as spare ranks by Fenix will be available to the application only before \c Fenix_Init,
- * or after they are used to replace a failed rank, in which case they turn into active ranks. This document
- * refers to the latter as \c RECOVERED ranks (see #Fenix_Rank_role). Note that all spare
- * ranks that have not been used to recover from failures (and, therefore, are still reserved by Fenix and kept 
- * inside \c Fenix_Init) will automatically call \c MPI_Finalize and exit when all active ranks have entered the 
+ * Ranks to be used as spare ranks by Fenix will be available to the application
+ * only before \c Fenix_Init or after they are used to replace a failed rank (in
+ * which case they become active ranks). This document refers to the latter as
+ * \c RECOVERED ranks (see #Fenix_Rank_role). Note that all spare ranks that
+ * have not been used to recover from failures (and, therefore, are still
+ * reserved by Fenix and kept inside \c Fenix_Init) will automatically call
+ * \c MPI_Finalize and exit when all active ranks have entered the
  * #Fenix_Finalize call.
  *
- * No Fenix functions may be called before \c Fenix_Init, except #Fenix_Initialized.
+ * No Fenix functions may be called before \c Fenix_Init, except
+ * #Fenix_Initialized and #Fenix_set_option.
  *
- * @param[out] role The current role of this rank (see #Fenix_Rank_role)
- * @param[in] comm The base communicator to construct a resilient communicator from,
- *   which must include any spare ranks (see below) the user deems necessary.
- *   MPI_COMM_WORLDis a valid value, but MPI_COMM_SELF is not.
- * @param[out] newcomm Resilient output communicator, managed by Fenix and derived 
- *   from comm, to be used by the application instead of comm.
+ * @param[out]   role The current #Fenix_Rank_role of this rank
+ * @param[in]    comm Communicator to construct the resilient communicator from
+ * @param[out]   newcomm Resilient output communicator
  * @param[inout] argc Pointer to application main's argc parameter
  * @param[inout] argv Pointer to application main's argv parameter
- * @param[in] spare_ranks The number of ranks in comm that are exempted by Fenix
- *   in the construction of the resilient communicator by Fenix_Init. These ranks
- *   are kept in reserve to substitute for failed ranks. Failed ranks in resilient
- *   communicators are replaced by spare or spawned ranks.
- * @param[in] spawn *Unimplemented*: Whether to enable spawning new ranks to replace
- *   failed ranks when spares are unavailable.
- * @param[in] info Fenix recovery configuration parameters, may be MPI_INFO_NULL
- *   "FENIX_RESUME_MODE" key is used to indicate where execution should resume upon 
- *   rank failure for all active (non-spare) ranks in any resilient communicators, not only for 
- *   those ranks in communicators that failed. The value should be a string with the name of a
- *   Fenix_Resume_mode enum value.
- *   "FENIX_UNHANDLED_MODE" key is used to indicate how Fenix should handle error values
- *   returned by MPI functions that are unrelated to failed processes. The value should be
- *   a string with the name of a Fenix_Unhandled_mode enum value.
- * @param[out] error The return status of \c Fenix_Init<br>
- *   Used to signal that a non-fatal error or special condition was encountered in the execution of
- *   Fenix_Init, or FENIX_SUCCESS otherwise. It has the same value across all ranks released by 
- *   Fenix_Init. If spawning is explicitly disabled (_spawn equals false) and spare ranks have been 
- *   depleted, Fenix will repair resilience communicators by shrinking them and will report such 
- *   shrinkage in this return parameter through the value FENIX_WARNING_SPARE_RANKS_DEPLETED.
+ * @param[in]    spare_ranks Number of ranks in comm to reserve from newcomm
+ *   These ranks are reserved to substitute for failed ranks.
+ * @param[out]   error The return status of \c Fenix_Init<br>
+ *   Used to signal that a non-fatal error or special condition was encountered
+ *   in the execution of Fenix_Init, or FENIX_SUCCESS otherwise. It has the same
+ *   value across all ranks released by Fenix_Init.
+ *   If spawning is not enabled (#FENIX_RECOVERY_MODE is not
+ *   #FENIX_RECOVERY_SPAWN) and spare ranks have been depleted, Fenix will
+ *   repair resilience communicators by shrinking them and will report such
+ *   shrinkage in this return parameter through the value
+ *   FENIX_WARNING_SPARE_RANKS_DEPLETED.
  */
 
 //!@internal
-#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks,  \
-                   _spawn, _info, _error)                               \
-    {                                                                   \
-        static jmp_buf bufjmp;                                          \
-        *(_role) = __fenix_preinit(_role, _comm, _newcomm, _argc,       \
-                                   _argv, _spare_ranks, _spawn, _info,  \
-                                   _error, &bufjmp);                    \
-        setjmp(bufjmp);                                                 \
-        __fenix_postinit();                                             \
+#define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _err)   \
+    {                                                                          \
+        static jmp_buf bufjmp;                                                 \
+        *(_role) = __fenix_preinit(                                            \
+            _role, _comm, _newcomm, _argc, _argv, _spare_ranks, _err, &bufjmp  \
+        );                                                                     \
+        setjmp(bufjmp);                                                        \
+        __fenix_postinit();                                                    \
     }
-
 
 /**
  * @brief Sets flag to true if Fenix_Init has been called, else false.
@@ -269,6 +334,35 @@ typedef enum {
  * @returnstatus
  */
 int Fenix_Initialized(int *flag);
+
+/**
+ * @brief Configure a global Fenix setting.
+ * @qualifier local
+ *
+ * Each #Fenix_Setting_name will describe its function and valid options.
+ *
+ * If called prior to Fenix_Init, the setting will apply to future Fenix_Inits.
+ * Settings configured during initialization override prior configurations.
+ *
+ * Unless otherwise noted, it is undefined behavior if settings are not
+ * consistent across all ranks.
+ *
+ * @param[in] setting The #Fenix_Setting_name to configure.
+ * @param[in] option  The option to configure setting to.
+ * @returnstatus
+ */
+int Fenix_set_option(Fenix_Setting_name setting, unsigned option);
+
+/**
+ * @brief Get the current option for a Fenix setting.
+ *
+ * Each #Fenix_Setting_name will describe its function and possible options.
+ *
+ * @param[in]  setting The #Fenix_Setting_name to configure.
+ * @param[out] option  The current option of the setting.
+ * @returnstatus
+ */
+int Fenix_get_option(Fenix_Setting_name setting, unsigned* option);
 
 /**
  * @brief Register a callback to be invoked after failure process recovery.

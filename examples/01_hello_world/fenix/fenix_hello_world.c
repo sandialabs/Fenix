@@ -89,8 +89,7 @@ int main(int argc, char** argv) {
   MPI_Comm new_comm;
   int error;
   Fenix_Init(
-    &fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, 0,
-    MPI_INFO_NULL, &error
+    &fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, &error
   );
 
   if (fenix_status != FENIX_ROLE_INITIAL_RANK) {

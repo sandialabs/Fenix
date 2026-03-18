@@ -128,36 +128,34 @@ inline int comm_rank(MPI_Comm c) {
   return ret;
 }
 
-// ScopedSetting struct holds the old value and automatically reverts in
-// destructor, so settings changes revert even when exceptions are thrown.
-template<typename T>
-struct ScopedSetting {
-  ScopedSetting(T& m_setting, T val) : setting(m_setting) { setting = val; }
-  ~ScopedSetting() { setting = old_val; }
- private:
-  T& setting;
-  const T old_val = setting;
-};
+// ScopedOptions hold the old option and revert to it in their destructors, so
+// changes revert even when exceptions are thrown.
+struct ScopedOption {
+  ScopedOption(SettingName m_setting, int new_option) : setting(m_setting) {
+    set_option(setting, new_option);
+  }
+  ~ScopedOption() {
+    if (!fenix_rt.finalized) set_option(setting, old);
+  }
 
-struct ScopedIgnoreErrs : public ScopedSetting<bool> {
-  ScopedIgnoreErrs(bool ignore_errs)
-    : ScopedSetting(fenix_rt.ignore_errs, ignore_errs) {}
-};
-struct ScopedResumeMode : public ScopedSetting<ResumeMode> {
-  ScopedResumeMode(ResumeMode resume_mode)
-    : ScopedSetting(fenix_rt.resume_mode, resume_mode) {}
-};
-struct ScopedUnhandledMode : public ScopedSetting<UnhandledMode> {
-  ScopedUnhandledMode(UnhandledMode unhandled_mode)
-    : ScopedSetting(fenix_rt.unhandled_mode, unhandled_mode) {}
+  // No moving or copying scoped options, things would get complicated.
+  ScopedOption(const ScopedOption&) = delete;
+  ScopedOption(ScopedOption&&) = delete;
+
+  const SettingName setting;
+  const int old = get_option(setting);
 };
 
 // Default error handling for inside the Fenix runtime.
-struct ScopedDefaultRuntimeSettings {
-  const ScopedIgnoreErrs    ignore_errs{ false };
-  const ScopedResumeMode    resume_mode{ THROW };
-  const ScopedUnhandledMode unhandled_mode{ ABORT };
+struct ScopedDefaultRuntimeOptions {
+  ScopedOption resume{RESUME_MODE, THROW}, unhandled{UNHANDLED_MODE, ABORT};
 };
+
+// Helper for MPI_ERRORS_RETURN-like error handling
+struct ScopedIgnoreAndReturn {
+  ScopedOption recovery{RECOVERY_MODE, IGNORE}, resume{RESUME_MODE, RETURN};
+};
+
 } // namespace fenix::util
 
 #define RUNTIME_EXCEPTION_HANDLER              \
@@ -167,7 +165,7 @@ struct ScopedDefaultRuntimeSettings {
 
 #define COMM_EXCEPTION_HANDLER                                     \
   } catch (const fenix::CommException& e) {                        \
-    switch(fenix_rt.resume_mode) {                                 \
+    switch(fenix_rt.settings.resume) {                             \
       case fenix::JUMP: longjmp(*fenix_rt.recover_environment, 1); \
       case fenix::THROW: throw;                                    \
       case fenix::RETURN:                                          \
@@ -176,10 +174,10 @@ struct ScopedDefaultRuntimeSettings {
     return FENIX_ERROR_CANCELLED;                                  \
   }
 
-#define FENIX_CPP_API_BEGIN                                \
-  try {                                                    \
-    fenix::util::ScopedDefaultRuntimeSettings _scoped_drs; \
-    assert(fenix_rt.fenix_init_flag);
+#define FENIX_CPP_API_BEGIN                                                    \
+  try {                                                                        \
+    fenix::util::ScopedDefaultRuntimeOptions _scoped_dro;                      \
+    if (!fenix_rt.fenix_init_flag) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
 
 #define FENIX_C_API_BEGIN FENIX_CPP_API_BEGIN
 

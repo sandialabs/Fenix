@@ -66,7 +66,29 @@ const Fenix_Data_subset FENIX_DATA_SUBSET_FULL = {
   new DataSubset(DataSubset::MAX)
 };
 const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY = {new DataSubset()};
-Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE = NULL;
+Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE     = NULL;
+
+int Fenix_set_option(Fenix_Setting_name setting, unsigned option) {
+  // This function gets special handling, since it can be called before init
+#ifdef FENIC_C_CATCH_RUNTIME_EXCEPTIONS
+  try {
+    set_option(setting, option);
+    return FENIX_SUCCESS;
+  } catch (const fenix::RuntimeException& e) {
+    return e.error;
+  }
+#else
+  set_option(setting, option);
+  return FENIX_SUCCESS;
+#endif
+}
+
+int Fenix_get_option(Fenix_Setting_name setting, unsigned* option) {
+  FENIX_C_API_BEGIN
+  *option = get_option(setting);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
 
 int Fenix_Callback_register(
   void (*recover)(MPI_Comm, int, void*), void* callback_data
@@ -107,7 +129,7 @@ int Fenix_check_cancelled(MPI_Request* request, MPI_Status* status) {
   FENIX_C_API_BEGIN
   // We know this may return as "COMM_REVOKED", but we know the error was
   // already handled
-  util::ScopedIgnoreErrs ignore_errs{true};
+  util::ScopedIgnoreAndReturn opt;
 
   int flag;
   int ret = PMPI_Test(request, &flag, status);
@@ -140,6 +162,51 @@ int Fenix_get_nspare() {
 
 namespace fenix {
 
+template <typename T>
+static void set_opt_enum(T& t, unsigned opt, unsigned opt_oob) {
+  static_assert(std::is_enum_v<T>);
+  if (opt >= opt_oob) FENIX_THROW(FENIX_ERROR_INVALID_SETTING_OPTION);
+  t = static_cast<T>(opt);
+}
+
+#define SET_OPTION_CASE(name, var)                                             \
+  case name##_MODE:                                                            \
+    set_opt_enum(settings.var, option, FENIX_##name##_MODE_MAXCODE);           \
+    break
+
+void set_option(SettingName setting, unsigned option) {
+  if (setting >= FENIX_SETTING_NAME_MAXCODE) {
+    FENIX_THROW(FENIX_ERROR_INVALID_SETTING_NAME);
+  }
+
+  Settings& settings =
+    fenix_rt.fenix_init_flag ? fenix_rt.settings : fenix_default_settings;
+  switch (setting) {
+    SET_OPTION_CASE(RECOVERY, recovery);
+    SET_OPTION_CASE(RESUME, resume);
+    SET_OPTION_CASE(UNHANDLED, unhandled);
+    SET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
+  default:
+    FENIX_THROW(FENIX_ERROR_INTERN);
+  }
+}
+
+#define GET_OPTION_CASE(n, v)                                                  \
+  case n##_MODE:                                                               \
+    return fenix_rt.settings.v
+
+unsigned get_option(SettingName setting) {
+  if (!fenix_rt.fenix_init_flag) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
+  switch (setting) {
+    GET_OPTION_CASE(RECOVERY, recovery);
+    GET_OPTION_CASE(RESUME, resume);
+    GET_OPTION_CASE(UNHANDLED, unhandled);
+    GET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
+  default:
+    FENIX_THROW(FENIX_ERROR_INTERN);
+  }
+}
+
 void throw_exception() {
   assert(initialized());
   throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
@@ -169,9 +236,9 @@ std::vector<int> fail_list() {
 bool initialized() { return fenix_rt.fenix_init_flag; }
 
 namespace data {
-const DataSubset SUBSET_FULL = {{0, fenix::DataSubset::MAX}};
+const DataSubset SUBSET_FULL  = {{0, fenix::DataSubset::MAX}};
 const DataSubset SUBSET_EMPTY = {};
-DataSubset SUBSET_IGNORE = SUBSET_EMPTY;
+DataSubset SUBSET_IGNORE      = SUBSET_EMPTY;
 } // namespace data
 
 } //namespace fenix
@@ -255,7 +322,7 @@ int Fenix_Data_member_restore(
 ) {
   FENIX_C_API_BEGIN
   DataSubset* s = new DataSubset();
-  int ret = member_restore(
+  int ret       = member_restore(
     group_id, member_id, target_buffer, max_count, time_stamp, *s
   );
   if (data_found == nullptr) {
@@ -273,7 +340,7 @@ int Fenix_Data_member_lrestore(
 ) {
   FENIX_C_API_BEGIN
   DataSubset* s = new DataSubset();
-  int ret = member_lrestore(
+  int ret       = member_lrestore(
     group_id, member_id, target_buffer, max_count, time_stamp, *s
   );
   if (data_found == nullptr) {

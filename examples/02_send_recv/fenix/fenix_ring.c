@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   }
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
   Fenix_Init(&fenix_role, world_comm, &new_comm, &argc, &argv,
-             spare_ranks, 0, info, &error);
+             spare_ranks, &error);
 
   if(error){
     fprintf(stderr, "FAILURE, Fenix_Init error %d\n", error);
