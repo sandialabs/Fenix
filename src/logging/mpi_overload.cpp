@@ -3,6 +3,7 @@
 #include "fenix/tasks/request.h"
 #include "fenix/logging/message_logging.h"
 
+using namespace fenix;
 using namespace fenix::logging;
 
 int MPI_Sendrecv(

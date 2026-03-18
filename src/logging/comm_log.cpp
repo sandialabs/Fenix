@@ -101,13 +101,13 @@ int CommLog::begin(CollectiveLogHolder&& new_op) {
   active_op = std::move(new_op);
 
   int op_idx = active_op->idx();
-  int ret = MPI_SUCCESS;
+  int ret    = MPI_SUCCESS;
 
   // For now, we have a very simple approach of just replaying all collectives
   // that any ranks need. So, no fancy logic needed when recovering from faults.
   while (true) {
     try {
-      util::ScopedDefaultRuntimeSettings settings;
+      util::ScopedDefaultRuntimeOptions settings;
       fenix_assert(!task);
       fenix_assert(region().valid());
       fenix_assert(region() == active_region);
@@ -121,12 +121,12 @@ int CommLog::begin(CollectiveLogHolder&& new_op) {
         continue;
       } else {
         active_op = CollectiveLogHolder();
-        switch (fenix_rt.resume_mode) {
-        case fenix::JUMP:
+        switch (fenix_rt.settings.resume) {
+        case JUMP:
           longjmp(*fenix_rt.recover_environment, 1);
-        case fenix::THROW:
+        case THROW:
           throw;
-        case fenix::RETURN:
+        case RETURN:
           return e.mpi_err;
         }
       }
@@ -258,8 +258,8 @@ void CommLog::begin_region(int region_id) {
 TaskT CommLog::form_consistency() {
   using namespace fenix::tasks::mpi;
 
-  int n_ranks = util::comm_size(comm);
-  int left_rank = (m_rank + n_ranks - 1) % n_ranks;
+  int n_ranks    = util::comm_size(comm);
+  int left_rank  = (m_rank + n_ranks - 1) % n_ranks;
   int right_rank = (m_rank + 1) % n_ranks;
   // This just serves as a notification to other ranks that we do need to
   // perform collectives consistency forming. Every rank sends to left with
@@ -337,7 +337,7 @@ TaskT CommLog::form_consistency() {
 
   completed_collective_any = latest_idx - 1;
   completed_collective_all = earliest_idx - 1;
-  task = {};
+  task                     = {};
 }
 
 void CommLog::append_region(const CRegion& r) {
