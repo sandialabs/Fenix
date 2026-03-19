@@ -685,74 +685,61 @@ void __fenix_finalize_spare()
     exit(0);
 }
 
-void handle_mpi_error(MPI_Comm* pcomm, int* pret){
+void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
+{
     fenix_rt.mpi_fail_code = *pret;
+
+    if(!fenix_rt.fenix_init_flag) return;
+
+    constexpr bool throw_new = true;
 
     switch (fenix_rt.mpi_fail_code) {
     case MPI_ERR_PROC_FAILED_PENDING:
     case MPI_ERR_PROC_FAILED:
-        callback_invoke_all(fenix::PRE_RECOVERY);
+    case MPI_ERR_REVOKED:
+        // This is an error type handled by Fenix
+
+        // Skip to resume if recovery mode is IGNORE
+        if(fenix_rt.settings.recovery == IGNORE) {
+            util::resume_application(throw_new);
+            return;
+        }
+
         MPIX_Comm_revoke(*fenix_rt.world);
         MPIX_Comm_revoke(fenix_rt.new_world);
         if(fenix_rt.user_world_exists) MPIX_Comm_revoke(*fenix_rt.user_world);
 
-        fenix_rt.repair_result = __fenix_repair_ranks();
-        break;
-    case MPI_ERR_REVOKED:
         callback_invoke_all(fenix::PRE_RECOVERY);
         fenix_rt.repair_result = __fenix_repair_ranks();
+
+        fenix_rt.role = FENIX_ROLE_SURVIVOR_RANK;
+        __fenix_postinit();
+
+        util::resume_application(throw_new);
         break;
+
     default:
+        // This is an error type not handled by Fenix
         int len;
         char errstr[MPI_MAX_ERROR_STRING];
         MPI_Error_string(fenix_rt.mpi_fail_code, errstr, &len);
         switch (fenix_rt.settings.unhandled) {
-            case ABORT:
-                fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
-                MPI_Abort(*fenix_rt.world, 1);
-                break;
-            case PRINT:
-                fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
-                break;
-            case SILENT:
-                break;
-            default:
-                printf(
-                    "Fenix internal error: Unknown unhandled mode %d\n",
-                    fenix_rt.settings.unhandled
-                );
-                assert(false);
-                break;
-        }
-        return;
-        break;
-    }
-
-    fenix_rt.role = FENIX_ROLE_SURVIVOR_RANK;
-    __fenix_postinit();
-}
-
-void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
-{
-    if(!fenix_rt.fenix_init_flag || __fenix_spare_rank() == 1) return;
-
-    if(fenix_rt.settings.recovery != IGNORE) handle_mpi_error(pcomm, pret);
-
-    if(!fenix_rt.finalized) {
-        switch(fenix_rt.settings.resume) {
-            case JUMP:
-                longjmp(*fenix_rt.recover_environment, 1);
-                break;
-            case RETURN:
-                break;
-            case THROW:
-                fenix::throw_exception();
-                break;
-            default:
-                printf("Fenix internal error: Unknown resume mode %d\n",
-                       fenix_rt.settings.resume);
-                assert(false);
-                break;
+        case ABORT:
+            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+            MPI_Abort(*fenix_rt.world, 1);
+            break;
+        case PRINT:
+            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+            break;
+        case SILENT:
+            break;
+        default:
+            printf(
+                "Fenix internal error: Unknown unhandled mode %d\n",
+                fenix_rt.settings.unhandled
+            );
+            assert(false);
+            break;
         }
     }
 }

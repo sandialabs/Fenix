@@ -58,62 +58,28 @@
 #define __FENIX_UTIL__
 
 #include <mpi.h>
-#include <syslog.h>
-#include <sys/types.h>
-#include <sys/times.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <sys/time.h>
-#include <signal.h>
-#include <libgen.h>
+#include "fenix.hpp"
+#include "fenix_opt.hpp"
 
-#include <cassert>
+extern char* logname;
 
-#include "fenix_ext.hpp"
+void __fenix_ranks_agree(int*, int*, int*, MPI_Datatype*);
 
-extern char *logname;
+int __fenix_binary_search(int*, int, int);
 
-#define LDEBUG(f...)  {LLIND("debug",f);}
-#define LLIND(t,f...) {fprintf(stderr,"%s - %s (%i): %s: \n",logname,__PRETTY_FUNCTION__,getpid(),t); fprintf(stderr,f);}
-#define ERRHANDLE(f...){LFATAL(f);}
-#define LFATAL(f...)  {LLINF("fatal", f);}
-#define LLINF(t,f...) {fprintf(stderr,"(%i): %s: ", getpid(), t); fprintf(stderr, f);}
-
-void __fenix_ranks_agree(int *, int *, int *, MPI_Datatype *);
-
-int __fenix_binary_search(int *, int, int);
-
-int __fenix_comparator(const void *, const void *);
+int __fenix_comparator(const void*, const void*);
 
 int __fenix_get_size(MPI_Datatype);
 
-int __fenix_get_fenix_default_rank_separation();
-
 int __fenix_get_current_rank(MPI_Comm);
-
-int __fenix_get_partner_rank(int, MPI_Comm);
 
 int __fenix_get_world_size(MPI_Comm);
 
-int __fenix_mpi_wait(MPI_Request *);
+void* s_calloc(int count, size_t size);
 
-int __fenix_mpi_test(MPI_Request *);
+void* s_malloc(size_t size);
 
-
-
-void *s_calloc(int count, size_t size);
-
-void *s_malloc(size_t size);
-
-void *s_realloc(void *mem, size_t size);
-
+void* s_realloc(void* mem, size_t size);
 
 namespace fenix::util {
 
@@ -128,6 +94,8 @@ inline int comm_rank(MPI_Comm c) {
   return ret;
 }
 
+int resume_application(bool new_exception = false);
+
 // ScopedOptions hold the old option and revert to it in their destructors, so
 // changes revert even when exceptions are thrown.
 struct ScopedOption {
@@ -135,12 +103,12 @@ struct ScopedOption {
     set_option(setting, new_option);
   }
   ~ScopedOption() {
-    if (!fenix_rt.finalized) set_option(setting, old);
+    if (fenix::initialized()) set_option(setting, old);
   }
 
   // No moving or copying scoped options, things would get complicated.
   ScopedOption(const ScopedOption&) = delete;
-  ScopedOption(ScopedOption&&) = delete;
+  ScopedOption(ScopedOption&&)      = delete;
 
   const SettingName setting;
   const int old = get_option(setting);
@@ -158,26 +126,23 @@ struct ScopedIgnoreAndReturn {
 
 } // namespace fenix::util
 
-#define RUNTIME_EXCEPTION_HANDLER              \
-  } catch (const fenix::RuntimeException& e) { \
-    debug_print("%s\n", e.what());             \
+// clang-format off
+#define RUNTIME_EXCEPTION_HANDLER                                              \
+  } catch (const fenix::RuntimeException& e) {                                 \
+    debug_print("%s\n", e.what());                                             \
     return e.error;
 
-#define COMM_EXCEPTION_HANDLER                                     \
-  } catch (const fenix::CommException& e) {                        \
-    switch(fenix_rt.settings.resume) {                             \
-      case fenix::JUMP: longjmp(*fenix_rt.recover_environment, 1); \
-      case fenix::THROW: throw;                                    \
-      case fenix::RETURN:                                          \
-      default: break;                                              \
-    }                                                              \
-    return FENIX_ERROR_CANCELLED;                                  \
+#define COMM_EXCEPTION_HANDLER                                                 \
+  } catch (const fenix::CommException& e) {                                    \
+    return fenix::util::resume_application();                                  \
   }
 
 #define FENIX_CPP_API_BEGIN                                                    \
   try {                                                                        \
     fenix::util::ScopedDefaultRuntimeOptions _scoped_dro;                      \
-    if (!fenix_rt.fenix_init_flag) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
+    if (!fenix::initialized()) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
+
+// clang-format on
 
 #define FENIX_C_API_BEGIN FENIX_CPP_API_BEGIN
 
@@ -193,6 +158,7 @@ struct ScopedIgnoreAndReturn {
 #define FENIX_CPP_API_END COMM_EXCEPTION_HANDLER
 #endif
 
+// Local functions are ones that can be called before Fenix is initialized
 #define FENIX_LOCAL_CPP_API_BEGIN try {
 #define FENIX_LOCAL_CPP_API_END FENIX_CPP_API_END
 

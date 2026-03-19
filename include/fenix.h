@@ -336,6 +336,13 @@ typedef enum {
 int Fenix_Initialized(int *flag);
 
 /**
+ * @brief Sets flag to true if Fenix_Finalize has been called, else false.
+ * @param[out] flag Pointer to the flag to be set.
+ * @returnstatus
+ */
+int Fenix_Finalized(int *flag);
+
+/**
  * @brief Configure a global Fenix setting.
  * @qualifier local
  *

@@ -59,6 +59,8 @@
 #include "fenix.hpp"
 #include "fenix_data_subset.hpp"
 
+#include <cassert>
+
 using namespace fenix;
 using namespace fenix::data;
 
@@ -118,6 +120,11 @@ int Fenix_Callback_invoke_all() {
 
 int Fenix_Initialized(int* flag) {
   *flag = (fenix_rt.fenix_init_flag) ? 1 : 0;
+  return FENIX_SUCCESS;
+}
+
+int Fenix_Finalized(int* flag) {
+  *flag = (fenix_rt.finalized) ? 1 : 0;
   return FENIX_SUCCESS;
 }
 
@@ -237,6 +244,8 @@ std::vector<int> fail_list() {
 }
 
 bool initialized() { return fenix_rt.fenix_init_flag; }
+
+bool finalized() { return fenix_rt.finalized; }
 
 namespace data {
 const DataSubset& SUBSET_FULL      = SUBSET_FULL_IMPL;
