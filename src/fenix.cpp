@@ -340,6 +340,23 @@ int Fenix_Data_commit_barrier(int group_id, int* time_stamp) {
   FENIX_C_API_END
 }
 
+int Fenix_Data_checkpoint(
+  int group_id, const Fenix_Data_subset subset, int num_storev, int* storev_ids,
+  int* time_stamp
+) {
+  FENIX_C_API_BEGIN
+  if (num_storev == FENIX_STOREV_ALL) {
+    return checkpointv(group_id, *(DataSubset*)subset.impl, time_stamp);
+  } else {
+    std::vector<int> ids;
+    for (int i = 0; i < num_storev; i++) {
+      ids.push_back(storev_ids[i]);
+    }
+    return checkpoint(group_id, *(DataSubset*)subset.impl, ids, time_stamp);
+  }
+  FENIX_C_API_END
+}
+
 int Fenix_Data_barrier(int group_id) {
   FENIX_C_API_BEGIN
   return 0;

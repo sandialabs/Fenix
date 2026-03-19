@@ -131,7 +131,7 @@ typedef enum {
 
 //!@internal @brief Agreement code for error handler
 #define FENIX_ERRHANDLER_LOC		      1
-//!@internal @brief Agreement code for finalize
+//!@internal @brief Agreement code for finalizet
 #define FENIX_FINALIZE_LOC		      2
 //!@internal @brief Agreement code for data commit barrier
 #define FENIX_DATA_COMMIT_BARRIER_LOC	      4
@@ -519,6 +519,7 @@ int Fenix_Finalize();
 #define FENIX_DATA_SNAPSHOT_ALL              -2
 #define FENIX_RESIZEABLE                      0
 #define FENIX_DATA_SUBSET_CREATED             2
+#define FENIX_STOREV_ALL                     -1
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID     13
 #define FENIX_DATA_POLICY_IMR                FENIX_DATA_POLICY_IN_MEMORY_RAID
@@ -745,6 +746,33 @@ int Fenix_Data_commit(int group_id, int *time_stamp);
  * @returnstatus
  */
 int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
+
+/**
+ * @brief Store all members of a group and then commit that group.
+ * @qualifier collective
+ *
+ * Stores each member in order of their creation in the group. Equivalent to
+ * invoking #Fenix_Data_member_store with the specified subset. If a member's
+ * id is listed in storev_ids, this is instead equivalent to invoking
+ * #Fenix_Data_member_storev.
+ *
+ * After storing, equivalent to invoking #Fenix_Data_commit.
+ *
+ * This function supports inline recovery when an mlog is active and
+ * #FENIX_MLOG_RECOVERY_MODE is not #FENIX_MLOG_RECOVERY_MANUAL.
+ *
+ * @param[in] group_id The group to checkpoint
+ * @param[in] subset_specifier The subset of each member to store.
+ * @param[in] num_storev The size of the storev_ids array, or
+ *                       #FENIX_STOREV_ALL.
+ * @param[in] storev_ids Array of member ids to store as storev.
+ *                       May be null if num_storev is zero or
+ *                       #FENIX_STOREV_ALL.
+ * @param[out] time_stamp Pointer to store the time stamp of the commit to, or
+ *                        #FENIX_TIME_STAMP_IGNORE.
+ */
+int Fenix_Data_checkpoint(int group_id, const Fenix_Data_subset subset,
+                          int num_storev, int* storev_ids, int* time_stamp);
 
 //!@unimplemented Block until all ranks in the group have reached this point.
 int Fenix_Data_barrier(int group_id);

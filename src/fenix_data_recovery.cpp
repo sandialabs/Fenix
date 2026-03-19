@@ -221,6 +221,63 @@ int commit_barrier(int groupid, int* timestamp) {
   FENIX_CPP_API_END
 }
 
+int checkpoint(
+  int group_id, const DataSubset& subset, const std::vector<int>& storev_ids,
+  int* timestamp
+) {
+  FENIX_CPP_API_BEGIN
+  bool inline_recovery =
+    fenix_rt.active_mlog &&
+    fenix_rt.settings.mlog_recovery != FENIX_MLOG_RECOVERY_MANUAL;
+  auto g = find_group(group_id);
+
+  int old_timestamp = g->timestamp;
+  while (old_timestamp == g->timestamp) {
+    try {
+      for (int id : g->member_order) {
+        bool must_storev = false;
+        for (int i = 0; i < storev_ids.size() && !must_storev; i++) {
+          if (storev_ids[i] == id) must_storev = true;
+        }
+
+        int ret;
+        if (must_storev) {
+          ret = g->member_storev(id, subset);
+        } else {
+          ret = g->member_store(id, subset);
+        }
+        if (ret != FENIX_SUCCESS) {
+          fenix_assert(ret != FENIX_ERROR_CANCELLED);
+          throw RuntimeException(
+            ret, "Fenix_Data_checkpoint failed to store member"
+          );
+        }
+      }
+
+      g->timestamp = g->timestamp == -1 ? g->timestart : g->timestamp + 1;
+      int ret      = g->commit();
+      if (ret != FENIX_SUCCESS) {
+        fenix_assert(ret != FENIX_ERROR_CANCELLED);
+        throw RuntimeException(ret, "Fenix_Data_checkpoint failed to commit");
+      }
+    } catch (const CommException& e) {
+      if (!inline_recovery) throw;
+    }
+  }
+
+  if (timestamp) *timestamp = g->timestamp;
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int checkpointv(int group_id, const DataSubset& subset, int* time_stamp) {
+  FENIX_CPP_API_BEGIN
+  return checkpoint(
+    group_id, subset, find_group(group_id)->member_order, time_stamp
+  );
+  FENIX_CPP_API_END
+}
+
 int member_restore(
   int groupid, int memberid, void* data, int maxcount, int timestamp,
   DataSubset& data_found

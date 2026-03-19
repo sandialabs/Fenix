@@ -211,21 +211,11 @@ int main(int argc, char** argv) {
     }
 
     if (state.iteration % checkpoint_iterations == 0) {
-      // We might have managed to finish our checkpoint remotely before
-      // failing locally, so check the timestamp after each attempt
-      int old_timestamp;
-      Fenix_Data_group_get_snapshot_at_position(group, 0, &old_timestamp);
-      int cur_timestamp = old_timestamp;
-      while (old_timestamp == cur_timestamp) {
-        try {
-          fenix::data::member_store(group, state_member);
-          fenix::mlog::stage(mlogs, group, mlogs_member);
-          fenix::data::member_storev(group, mlogs_member, SUBSET_PRESTAGED);
-          fenix::data::commit(group);
-        } catch (fenix::CommException& error) {
-        }
-        Fenix_Data_group_get_snapshot_at_position(group, 0, &cur_timestamp);
-      }
+      fenix::data::member_stage(group, state_member);
+      fenix::mlog::stage(mlogs, group, mlogs_member);
+      // With an active log and inline recovery enabled, checkpoint will
+      // recover inline automatically.
+      fenix::data::checkpoint(group, SUBSET_PRESTAGED, {mlogs_member});
     }
   }
 

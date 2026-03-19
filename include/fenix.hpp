@@ -105,6 +105,8 @@ constexpr MlogRecoveryMode INLINE = FENIX_MLOG_RECOVERY_INLINE;
 constexpr MlogRecoveryMode INLINE_AUTOSYNC =
   FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC;
 
+constexpr int STOREV_ALL = FENIX_STOREV_ALL;
+
 enum CallbackLocation { PRE_RECOVERY, POST_RECOVERY };
 
 namespace args {
@@ -265,11 +267,22 @@ int member_lrestore(
   int time_stamp, DataSubset& data_found
 );
 
-//@!brief overload of #Fenix_Data_commit
+//!@brief overload of #Fenix_Data_commit
 int commit(int group_id, int* time_stamp = nullptr);
 
-//@!brief overload of #Fenix_Data_commit
+//!@brief overload of #Fenix_Data_commit
 int commit_barrier(int group_id, int* time_stamp = nullptr);
+
+//!@brief Overload of #Fenix_Data_checkpoint
+int checkpoint(
+  int group_id, const DataSubset& subset,
+  const std::vector<int>& storev_ids = {}, int* time_stamp = nullptr
+);
+
+//!@brief Overload of #Fenix_Data_checkpoint for FENIX_STOREV_ALL
+int checkpointv(
+  int group_id, const DataSubset& subset, int* time_stamp = nullptr
+);
 
 /**
  * @brief get the members of a group
