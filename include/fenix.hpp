@@ -77,6 +77,7 @@ constexpr SettingName RECOVERY_MODE           = FENIX_RECOVERY_MODE;
 constexpr SettingName RESUME_MODE             = FENIX_RESUME_MODE;
 constexpr SettingName UNHANDLED_MODE          = FENIX_UNHANDLED_MODE;
 constexpr SettingName CALLBACK_EXCEPTION_MODE = FENIX_CALLBACK_EXCEPTION_MODE;
+constexpr SettingName MLOG_RECOVERY_MODE      = FENIX_MLOG_RECOVERY_MODE;
 
 using RecoveryMode            = Fenix_Recovery_mode;
 constexpr RecoveryMode IGNORE = FENIX_RECOVERY_IGNORE;
@@ -89,14 +90,20 @@ constexpr ResumeMode JUMP   = FENIX_RESUME_JUMP;
 constexpr ResumeMode RETURN = FENIX_RESUME_RETURN;
 constexpr ResumeMode THROW  = FENIX_RESUME_THROW;
 
-using CallbackExceptionMode             = Fenix_Callback_exception_mode;
-constexpr CallbackExceptionMode RETHROW = FENIX_CALLBACK_EXCEPTION_RETHROW;
-constexpr CallbackExceptionMode SQUASH  = FENIX_CALLBACK_EXCEPTION_SQUASH;
-
 using UnhandledMode            = Fenix_Unhandled_mode;
 constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
 constexpr UnhandledMode PRINT  = FENIX_UNHANDLED_PRINT;
 constexpr UnhandledMode ABORT  = FENIX_UNHANDLED_ABORT;
+
+using CallbackExceptionMode             = Fenix_Callback_exception_mode;
+constexpr CallbackExceptionMode RETHROW = FENIX_CALLBACK_EXCEPTION_RETHROW;
+constexpr CallbackExceptionMode SQUASH  = FENIX_CALLBACK_EXCEPTION_SQUASH;
+
+using MlogRecoveryMode            = Fenix_Mlog_recovery_mode;
+constexpr MlogRecoveryMode MANUAL = FENIX_MLOG_RECOVERY_MANUAL;
+constexpr MlogRecoveryMode INLINE = FENIX_MLOG_RECOVERY_INLINE;
+constexpr MlogRecoveryMode INLINE_AUTOSYNC =
+  FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC;
 
 enum CallbackLocation { PRE_RECOVERY, POST_RECOVERY };
 
@@ -294,6 +301,9 @@ int create(int mlog_id, MPI_Comm& comm, int depth);
 
 //@brief Overload of #Fenix_Mlog_activate
 int activate(int mlog_id);
+
+//@brief Overload of Fenix_Mlog_active, returns active log
+int active();
 
 //@brief Overload of #Fenix_Mlog_begin_region
 int begin_region(int mlog_id, int region_id);

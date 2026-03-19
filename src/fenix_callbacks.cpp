@@ -105,6 +105,7 @@ int callback_invoke_all(CallbackLocation loc) {
   try {
     for (auto& cb : callbacks(loc)) {
       if (callbacks_depth != m_callbacks_layer + 1) break;
+      util::ScopedActiveMlog(FENIX_MLOG_NONE);
       cb(*fenix_rt.user_world, fenix_rt.mpi_fail_code);
     }
   } catch (const CommException& e) {

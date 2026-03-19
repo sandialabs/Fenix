@@ -196,6 +196,7 @@ void set_option(SettingName setting, unsigned option) {
     SET_OPTION_CASE(RESUME, resume);
     SET_OPTION_CASE(UNHANDLED, unhandled);
     SET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
+    SET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -212,6 +213,7 @@ unsigned get_option(SettingName setting) {
     GET_OPTION_CASE(RESUME, resume);
     GET_OPTION_CASE(UNHANDLED, unhandled);
     GET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
+    GET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -437,6 +439,13 @@ int Fenix_Mlog_create(int mlog_id, MPI_Comm* comm, int depth) {
 int Fenix_Mlog_activate(int mlog_id) {
   FENIX_C_API_BEGIN
   return mlog::activate(mlog_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_active(int* mlog_id) {
+  FENIX_C_API_BEGIN
+  *mlog_id = mlog::active();
+  return FENIX_SUCCESS;
   FENIX_C_API_END
 }
 

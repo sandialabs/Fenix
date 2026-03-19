@@ -176,6 +176,8 @@ typedef enum {
     FENIX_UNHANDLED_MODE,
     //!See #Fenix_Callback_exception_mode
     FENIX_CALLBACK_EXCEPTION_MODE,
+    //!See #Fenix_Mlog_recovery_mode
+    FENIX_MLOG_RECOVERY_MODE,
 
     //!Not a valid option.
     FENIX_SETTING_NAME_MAXCODE
@@ -202,6 +204,27 @@ typedef enum {
     FENIX_RECOVERY_MODE_MAXCODE
 } Fenix_Recovery_mode;
 
+typedef enum {
+    //!All message logging recovery is manual
+    FENIX_MLOG_RECOVERY_MANUAL,
+    /**
+     * @brief Automatically repeats failed, logged MPI operations without
+     *        disrupting normal application control flow.
+     * 
+     * User is responsible for handling any recovery steps in Fenix callbacks.
+     */
+    FENIX_MLOG_RECOVERY_INLINE,
+    /**
+     * @brief As INLINE, but automatically sync logs with FENIX_MLOG_CONTINUE.
+     * 
+     * Invoked after post-recovery callbacks, immediately before resuming.
+     * Invoked regardless of the logged-or-not status of the failing message.
+     */
+    FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC,
+
+    //!Not a valid option
+    FENIX_MLOG_RECOVERY_MODE_MAXCODE
+} Fenix_Mlog_recovery_mode;
 /**
  * @brief Options for passing control back to application after recovery.
  */
@@ -386,7 +409,9 @@ int Fenix_get_option(Fenix_Setting_name setting, unsigned* option);
  * callback data.
  *
  * Callbacks will only be invoked by survivor ranks, since spare ranks or respawned ranks had no way
- * to register them before a failure. 
+ * to register them before a failure.
+ *
+ * Any active mlog will be deactivated for the duration of callbacks.
  *
  * @param[in] recover the callback function to register.
  * @param[in] callback_data The user-provided data which will be passed to the callback.
@@ -460,6 +485,10 @@ int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
  * As noted in the description of #Fenix_Init, all spare ranks that have not been used to
  * recover from failures (and therefore are still reserved by Fenix and kept inside #Fenix_Init) will call 
  * \c MPI_Finalize and exit when all active ranks have called \c Fenix_Finalize.
+ *
+ * Supports inline recovery when any mlog is active and FENIX_MLOG_RECOVERY_MODE
+ * is not FENIX_MLOG_RECOVERY_MANUAL. In such a case, a rank will not leave this
+ * function until success unless there is an error with the message logs.
  *
  * **Advice**: Sometimes users may want to remove ranks proactively from the execution, for example because
  * monitoring data shows that failure of a rank is imminent or that a rank is executing un-manageably slowly.
@@ -952,12 +981,27 @@ int Fenix_Mlog_create(int mlog_id, MPI_Comm* comm, int depth);
  * @brief Active a given mlog, deactivating any previously active mlog.
  * @qualifier local
  *
- * Only the active mlog can log messages.
+ * Only the active mlog can log messages. If any errors occur, no mlog will be
+ * active (even if one was active before).
  *
- * @param[in] mlog_id The logger to activate. May be FENIX_MLOG_NONE.
+ * Fenix functions will not be logged, regardless of any active mlog. However,
+ * some functions may support inline recovery if there is an active mlog and
+ * FENIX_MLOG_RECOVERY_MODE is not FENIX_MLOG_RECOVERY_MANUAL. These functions
+ * will specify for themselves if this is the case.
+ *
+ * @param[in] mlog_id The log to activate. May be FENIX_MLOG_NONE.
  * @returnstatus
  */
 int Fenix_Mlog_activate(int mlog_id);
+
+/**
+ * @brief Get the currently active message log
+ * @qualifier local
+ *
+ * @param[out] mlog_id The active log, may be FENIX_MLOG_NONE
+ * @returnstatus
+ */
+int Fenix_Mlog_active(int* mlog_id);
 
 /**
  * @brief Set the region of the given message logger.

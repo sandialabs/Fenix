@@ -76,10 +76,11 @@ int group_create(
   void* policy_value, int* flag
 ) {
   FENIX_CPP_API_BEGIN
+  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   if (timestart < 0) FENIX_THROW(FENIX_ERROR_INVALID_TIMESTART);
   if (depth < -1) FENIX_THROW(FENIX_ERROR_INVALID_DEPTH);
 
-  auto group = search_group(groupid);
+  auto group                = search_group(groupid);
   fenix_data_recovery_t* dr = fenix_rt.data_recovery;
 
   if (!group) {
@@ -136,6 +137,7 @@ int member_stage(int groupid, int memberid, const DataSubset& specifier) {
 // Quick little helper function for the 4 kinds of stores
 template <auto Func, typename... Args>
 static int store(int groupid, int memberid, Args&&... args) {
+  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   auto group = find_group(groupid);
   if (memberid == FENIX_DATA_MEMBER_ALL) {
     for (auto& [id, member] : group->members) {
@@ -184,7 +186,7 @@ int member_istorev(
 
 int commit(int groupid, int* timestamp) {
   FENIX_CPP_API_BEGIN
-  auto g = find_group(groupid);
+  auto g       = find_group(groupid);
   g->timestamp = g->timestamp == -1 ? g->timestart : g->timestamp + 1;
   if (timestamp) *timestamp = g->timestamp;
   return g->commit();
@@ -193,6 +195,7 @@ int commit(int groupid, int* timestamp) {
 
 int commit_barrier(int groupid, int* timestamp) {
   FENIX_CPP_API_BEGIN
+  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   //We want to make sure there aren't any failed MPI operations (IE unfinished
   //stores) But we don't want to fail to commit if a failure has happened after
   //all stores.
@@ -200,9 +203,9 @@ int commit_barrier(int groupid, int* timestamp) {
 
   //Our error handler also enters an agree, with a unique location bit set.
   //So if we aren't all here, we've hit an error already.
-  int location = FENIX_DATA_COMMIT_BARRIER_LOC;
-  int err = MPIX_Comm_agree(*fenix_rt.user_world, &location);
-  bool can_commit = location == FENIX_DATA_COMMIT_BARRIER_LOC;
+  int location      = FENIX_DATA_COMMIT_BARRIER_LOC;
+  int err           = MPIX_Comm_agree(*fenix_rt.user_world, &location);
+  bool can_commit   = location == FENIX_DATA_COMMIT_BARRIER_LOC;
   bool must_recover = !can_commit || err != MPI_SUCCESS;
 
   int ret = FENIX_ERROR_COMMIT_BARRIER;
@@ -287,7 +290,7 @@ int Fenix_Data_member_attr_set(
   int groupid, int memberid, int attributename, void* attributevalue, int* flag
 ) {
   FENIX_C_API_BEGIN
-  auto group = find_group(groupid);
+  auto group  = find_group(groupid);
   auto mentry = group->find_member(memberid);
 
   //Always pass attribute changes along to group - they might have unknown
@@ -363,6 +366,7 @@ int Fenix_Data_member_restore_from_rank(
   int source_rank
 ) {
   FENIX_C_API_BEGIN
+  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   fatal_print("unimplemented");
   return find_group(groupid)->member_restore_from_rank(
     memberid, target_buffer, max_count, time_stamp, source_rank
@@ -394,6 +398,7 @@ int Fenix_Data_group_get_member_at_position(
 
 int Fenix_Data_wait(Fenix_Request request) {
   FENIX_C_API_BEGIN
+  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   fatal_print("unimplemented");
   return FENIX_SUCCESS;
   FENIX_C_API_END
@@ -401,6 +406,7 @@ int Fenix_Data_wait(Fenix_Request request) {
 
 int Fenix_Data_test(Fenix_Request request, int* flag) {
   FENIX_C_API_BEGIN
+  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   fatal_print("unimplemented");
   return FENIX_SUCCESS;
   FENIX_C_API_END

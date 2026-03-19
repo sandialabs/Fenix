@@ -270,6 +270,7 @@ int __fenix_create_new_world(){
 int __fenix_repair_ranks()
 {
     util::ScopedIgnoreAndReturn scoped_opts;
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
     int recovery = scoped_opts.recovery.old;
     if(recovery == NOOP) return FENIX_SUCCESS;
 
@@ -625,6 +626,7 @@ int __fenix_spare_rank(){
 
 int detect_failures(bool do_recovery) {
     FENIX_CPP_API_BEGIN
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
     if(!fenix_rt.new_world_exists) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
 
     if (!do_recovery) {
@@ -687,6 +689,7 @@ void __fenix_finalize_spare()
 
 void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 {
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
     fenix_rt.mpi_fail_code = *pret;
 
     if(!fenix_rt.fenix_init_flag) return;
@@ -765,6 +768,7 @@ int __fenix_preinit(
 
 void __fenix_postinit()
 {
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
     *fenix_rt.ret_role = fenix_rt.role;
     *fenix_rt.ret_error = fenix_rt.repair_result;
 
@@ -776,6 +780,11 @@ void __fenix_postinit()
 
     if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
         callback_invoke_all();
+        if (fenix_rt.settings.mlog_recovery == INLINE_AUTOSYNC) {
+            for (int mlog_id : fenix_rt.mlog_order) {
+                mlog::sync(mlog_id, FENIX_MLOG_CONTINUE);
+            }
+        }
     }
 
     if (fenix_rt.options.verbose == 9) {
@@ -786,16 +795,28 @@ void __fenix_postinit()
 
 int Fenix_Finalize() {
     FENIX_C_API_BEGIN
-    int location = FENIX_FINALIZE_LOC;
-    MPIX_Comm_agree(*fenix_rt.user_world, &location);
-    if(location != FENIX_FINALIZE_LOC){
-        //Some ranks are in error recovery, so trigger error handling.
-        MPIX_Comm_revoke(*fenix_rt.user_world);
-        MPI_Barrier(*fenix_rt.user_world);
 
-        //In case no-jump enabled after recovery
-        return Fenix_Finalize();
-    }
+    // Decide if this function should recover inline before turning off logging
+    bool inline_recovery =
+        fenix_rt.active_mlog && fenix_rt.settings.mlog_recovery != MANUAL;
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+
+    int location = FENIX_FINALIZE_LOC;
+    do {
+        MPIX_Comm_agree(*fenix_rt.user_world, &location);
+        if(location != FENIX_FINALIZE_LOC){
+            //Some ranks are in error recovery, so trigger error handling.
+            MPIX_Comm_revoke(*fenix_rt.user_world);
+            if (inline_recovery) {
+                // If we are doing inline recovery for this function, set errors
+                // to return so we can just keep retrying this barrier.
+                util::ScopedOption(FENIX_RESUME_MODE, RETURN);
+                MPI_Barrier(*fenix_rt.user_world);
+            } else {
+                MPI_Barrier(*fenix_rt.user_world);
+            }
+        }
+    } while (location != FENIX_FINALIZE_LOC);
 
     int first_spare_rank = __fenix_get_world_size(*fenix_rt.user_world);
     int last_spare_rank = __fenix_get_world_size(*fenix_rt.world) - 1;

@@ -29,17 +29,23 @@ using namespace impl;
 
 int create(int mlog_id, MPI_Comm& comm, int depth) {
   FENIX_CPP_API_BEGIN
-  auto mlog = std::make_shared<CommLog>(comm, depth);
+  auto mlog             = std::make_shared<CommLog>(comm, depth);
   auto [iter, inserted] = fenix_rt.mlogs.try_emplace(mlog_id, mlog);
   if (!inserted) FENIX_THROW(FENIX_ERROR_MLOG_EXISTS);
+  else fenix_rt.mlog_order.push_back(mlog_id);
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }
 
 int activate(int mlog_id) {
   FENIX_CPP_API_BEGIN
-  if (mlog_id == FENIX_MLOG_NONE) fenix_rt.active_mlog = nullptr;
-  else fenix_rt.active_mlog = find_mlog(mlog_id);
+  // Always set to no mlog first, so errors leave us in a defined state
+  fenix_rt.active_mlog    = nullptr;
+  fenix_rt.active_mlog_id = FENIX_MLOG_NONE;
+  if (mlog_id != FENIX_MLOG_NONE) {
+    fenix_rt.active_mlog    = find_mlog(mlog_id);
+    fenix_rt.active_mlog_id = mlog_id;
+  }
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }
@@ -60,6 +66,8 @@ int activate(int mlog_id, int region_id) {
   FENIX_CPP_API_END
 }
 
+int active() { return finalized() ? FENIX_MLOG_NONE : fenix_rt.active_mlog_id; }
+
 int sync(int mlog_id, int region_id) {
   FENIX_CPP_API_BEGIN
   find_mlog(mlog_id)->reset_consistency(region_id);
@@ -70,7 +78,7 @@ int sync(int mlog_id, int region_id) {
 int stage(int mlog_id, int group_id, int member_id) {
   FENIX_CPP_API_BEGIN
   using namespace fenix::data;
-  auto mlog = find_mlog(mlog_id);
+  auto mlog  = find_mlog(mlog_id);
   auto group = find_group(group_id);
 
   auto member = group->search_member(member_id);
@@ -103,7 +111,7 @@ int stage(int mlog_id, int group_id, int member_id) {
 int lrestore(int mlog_id, int group_id, int member_id, int time_stamp) {
   FENIX_CPP_API_BEGIN
   using namespace fenix::data;
-  auto mlog = find_mlog(mlog_id);
+  auto mlog  = find_mlog(mlog_id);
   auto group = find_group(group_id);
 
   auto member = group->find_member(member_id);
@@ -130,7 +138,7 @@ int lrestore(int mlog_id, int group_id, int member_id, int time_stamp) {
   std::istringstream i(std::move(buf));
   assert(i.view().size() == len);
 
-  auto new_mlog = std::make_shared<CommLog>(mlog->comm, i);
+  auto new_mlog           = std::make_shared<CommLog>(mlog->comm, i);
   fenix_rt.mlogs[mlog_id] = new_mlog;
   if (fenix_rt.active_mlog == mlog) fenix_rt.active_mlog = new_mlog;
 
@@ -140,10 +148,17 @@ int lrestore(int mlog_id, int group_id, int member_id, int time_stamp) {
 
 int mlog_delete(int mlog_id) {
   FENIX_CPP_API_BEGIN
-  if (fenix_rt.active_mlog == find_mlog(mlog_id)) {
-    fenix_rt.active_mlog = nullptr;
+  if (fenix_rt.active_mlog_id == mlog_id) {
+    fenix_rt.active_mlog    = nullptr;
+    fenix_rt.active_mlog_id = FENIX_MLOG_NONE;
   }
   fenix_rt.mlogs.erase(mlog_id);
+  for (int i = 0; i < fenix_rt.mlog_order.size(); i++) {
+    if (fenix_rt.mlog_order[i] == mlog_id) {
+      fenix_rt.mlog_order.erase(fenix_rt.mlog_order.begin() + i);
+      break;
+    }
+  }
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }

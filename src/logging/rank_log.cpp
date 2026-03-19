@@ -251,7 +251,7 @@ int RankLog::send(const void* b, int n, MPI_Datatype d, int t) {
     if (ret == MPI_SUCCESS) ret = comm_log.progress_through(log.req());
     return ret;
   } catch (const fenix::CommException& e) {
-    if (!fenix_rt.inline_recovery) throw;
+    if (fenix_rt.settings.mlog_recovery == MANUAL) throw;
     else return MPI_SUCCESS;
   }
 }
@@ -267,7 +267,7 @@ int RankLog::irecv(void* b, int n, MPI_Datatype d, int t, MPI_Request* r) {
   try {
     return active_irecv.irecv(rank, comm_log.comm);
   } catch (const fenix::CommException& e) {
-    if (fenix_rt.inline_recovery) {
+    if (fenix_rt.settings.mlog_recovery != MANUAL) {
       ensure_consistency();
       return MPI_SUCCESS;
     } else {
@@ -293,7 +293,7 @@ fenix::tasks::Status RankLog::wait(MPI_Request* r) {
 
       ret = comm_log.progress_through(r);
     } catch (const fenix::CommException& e) {
-      if (fenix_rt.inline_recovery) continue;
+      if (fenix_rt.settings.mlog_recovery != MANUAL) continue;
       throw;
     }
     break;

@@ -4,12 +4,12 @@
 
 namespace fenix::logging {
 void TaskT::resume() {
-  util::ScopedActiveMlog setting(nullptr);
+  util::ScopedActiveMlog setting(FENIX_MLOG_NONE);
   Parent::resume();
 }
 
 void TaskT::wait() {
-  util::ScopedActiveMlog setting(nullptr);
+  util::ScopedActiveMlog setting(FENIX_MLOG_NONE);
   Parent::wait();
 }
 }

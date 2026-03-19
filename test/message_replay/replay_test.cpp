@@ -68,20 +68,20 @@
 #include <fenix.hpp>
 #include <fenix_util.hpp>
 
-constexpr int group = 0;
+constexpr int group        = 0;
 constexpr int state_member = 0;
 constexpr int mlogs_member = 1;
 
 constexpr int mlogs = 2;
 
-constexpr int app_iterations = 100;
-constexpr int iteration_work_ms = 10;
+constexpr int app_iterations        = 100;
+constexpr int iteration_work_ms     = 10;
 constexpr int checkpoint_iterations = 10;
 
 // These are arbitrary
-constexpr int barrier_iterations = 1;
-constexpr int bcast_iterations = 2;
-constexpr int reduce_iterations = 3;
+constexpr int barrier_iterations   = 1;
+constexpr int bcast_iterations     = 2;
+constexpr int reduce_iterations    = 3;
 constexpr int allreduce_iterations = 3;
 
 // Very simplified application state
@@ -117,14 +117,12 @@ int main(int argc, char** argv) {
   // Hold on to checkpoint_iterations * 2 regions at once, to be sure we can
   // replay any failed rank's collective messages
   fenix::mlog::create(mlogs, res_world, checkpoint_iterations * 2);
-  // TODO: This needs a more appropriate way to set it
-  fenix::util::ScopedInlineRecovery setting(true);
 
   // Grab basic MPI info
   int n_ranks, rank;
   MPI_Comm_size(res_world, &n_ranks);
   MPI_Comm_rank(res_world, &rank);
-  const int left_rank = (rank + n_ranks - 1) % n_ranks;
+  const int left_rank  = (rank + n_ranks - 1) % n_ranks;
   const int right_rank = (rank + 1) % n_ranks;
 
   State state;
@@ -132,7 +130,7 @@ int main(int argc, char** argv) {
   // Set up the local state
   if (fenix::role() == fenix::INITIAL_RANK) {
     // Initial ranks initialize state and make the first checkpoint
-    state.rank = rank;
+    state.rank      = rank;
     state.iteration = 0;
 
     fenix::data::group_create(group);
@@ -159,20 +157,18 @@ int main(int argc, char** argv) {
     printf("Rank %d recovered to iteration %d\n", state.rank, state.iteration);
   }
 
+  // From here on, the message logs will automatically sync after failures
+  // and any logged messages will be recovered inline
+  fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
+
   // Now that our local state is good, add our recovery callback to help
   // others recovery their state on failure(s).
   fenix::callback_register([&](MPI_Comm repaired_comm, int mpi_err) {
     assert(fenix::error() == FENIX_SUCCESS);
 
-    // Disable logging inside this callback
-    fenix::util::ScopedActiveMlog setting(nullptr);
-
     fenix::data::group_create(group);
     fenix::data::member_restore(group, state_member, NULL, 0);
     fenix::data::member_restore(group, mlogs_member, NULL, 0);
-
-    // We want to continue from exactly where we are
-    fenix::mlog::sync(mlogs, FENIX_MLOG_CONTINUE);
 
     printf(
       "Rank %d continuing inline at iteration %d\n", state.rank, state.iteration
@@ -183,66 +179,61 @@ int main(int argc, char** argv) {
   for (int i = state.iteration; i < app_iterations; i++) {
     check_inject_failure(state, n_ranks);
 
-    {
-      // Enable logging on mlogs and start region i
-      fenix::mlog::activate(mlogs, i);
+    // Enable logging on mlogs and start region i
+    fenix::mlog::activate(mlogs, i);
 
 #ifdef FENIX_STENCIL_ENABLE_BARRIERS
-      if (i % barrier_iterations == 0) {
-        MPI_Barrier(res_world);
-      }
+    if (i % barrier_iterations == 0) {
+      MPI_Barrier(res_world);
+    }
 #endif
 #ifdef FENIX_STENCIL_ENABLE_BCASTS
-      if (i % bcast_iterations == 0) {
-        // Pick a rotating root rank
-        int root = i % n_ranks;
-        // Broadcast that rank's current state
-        State root_state = rank == root ? state : State();
-        MPI_Bcast(&root_state, 2, MPI_INT, root, res_world);
-        // Ensure we always get the expected message, regardless of faults
-        assert(root_state.rank == root && root_state.iteration == i);
-      }
+    if (i % bcast_iterations == 0) {
+      // Pick a rotating root rank
+      int root         = i % n_ranks;
+      // Broadcast that rank's current state
+      State root_state = rank == root ? state : State();
+      MPI_Bcast(&root_state, 2, MPI_INT, root, res_world);
+      // Ensure we always get the expected message, regardless of faults
+      assert(root_state.rank == root && root_state.iteration == i);
+    }
 #endif
 #ifdef FENIX_STENCIL_ENABLE_REDUCES
-      if (i % reduce_iterations == 0) {
-        // Get the maximum iteration from each rank (should be the same value)
-        int root = i % n_ranks, result = -1;
-        MPI_Reduce(&i, &result, 1, MPI_INT, MPI_MAX, root, res_world);
-        // Ensure we always get the expected message, regardless of faults
-        if (root == rank) assert(result == i);
-        else assert(result == -1);
-      }
+    if (i % reduce_iterations == 0) {
+      // Get the maximum iteration from each rank (should be the same value)
+      int root = i % n_ranks, result = -1;
+      MPI_Reduce(&i, &result, 1, MPI_INT, MPI_MAX, root, res_world);
+      // Ensure we always get the expected message, regardless of faults
+      if (root == rank) assert(result == i);
+      else assert(result == -1);
+    }
 #endif
 #ifdef FENIX_STENCIL_ENABLE_ALLREDUCES
-      if ((i + 1) % allreduce_iterations == 0) {
-        int result = -1;
-        MPI_Allreduce(&i, &result, 1, MPI_INT, MPI_SUM, res_world);
-        assert(result == i * n_ranks);
-      }
+    if ((i + 1) % allreduce_iterations == 0) {
+      int result = -1;
+      MPI_Allreduce(&i, &result, 1, MPI_INT, MPI_SUM, res_world);
+      assert(result == i * n_ranks);
+    }
 #endif
 
-      // Exchange state information, just like exchanging ghost points
-      State left_state, right_state;
-      MPI_Sendrecv(
-        &state,      2, MPI_INT, right_rank, 0,
-        &left_state, 2, MPI_INT, left_rank,  0, res_world, MPI_STATUS_IGNORE
-      );
-      MPI_Sendrecv(
-        &state,       2, MPI_INT, left_rank,  0,
-        &right_state, 2, MPI_INT, right_rank, 0, res_world, MPI_STATUS_IGNORE
-      );
-      // We'll always get the expected messages, regardless of faults
-      assert(left_state.rank == left_rank && left_state.iteration == i);
-      assert(right_state.rank == right_rank && right_state.iteration == i);
+    // Exchange state information, just like exchanging ghost points
+    State left_state, right_state;
+    MPI_Sendrecv(
+      &state,      2, MPI_INT, right_rank, 0,
+      &left_state, 2, MPI_INT, left_rank,  0, res_world, MPI_STATUS_IGNORE
+    );
+    MPI_Sendrecv(
+      &state,       2, MPI_INT, left_rank,  0,
+      &right_state, 2, MPI_INT, right_rank, 0, res_world, MPI_STATUS_IGNORE
+    );
+    // We'll always get the expected messages, regardless of faults
+    assert(left_state.rank == left_rank && left_state.iteration == i);
+    assert(right_state.rank == right_rank && right_state.iteration == i);
 
-      // Do the application work. In this case, just increment our state's iter
-      assert(state.iteration == i);
-      state.iteration++;
-      std::this_thread::sleep_for(std::chrono::milliseconds(iteration_work_ms));
-
-      // Disable logging
-      fenix::mlog::activate(FENIX_MLOG_NONE);
-    }
+    // Do the application work. In this case, just increment our state's iter
+    assert(state.iteration == i);
+    state.iteration++;
+    std::this_thread::sleep_for(std::chrono::milliseconds(iteration_work_ms));
 
     if (state.iteration % checkpoint_iterations == 0) {
       // We might have managed to finish our checkpoint remotely before
@@ -263,17 +254,8 @@ int main(int argc, char** argv) {
     }
   }
 
-  // We're done locally, but we'll need to be sure to finish message replays for
-  // others.
-  while (fenix::initialized()) {
-    try {
-      Fenix_Finalize();
-    } catch (fenix::CommException& error) {
-      // Retry
-      continue;
-    }
-    break;
-  }
-
+  // With an active log and inline recovery enabled, finalize will recover
+  // inline automatically.
+  Fenix_Finalize();
   MPI_Finalize();
 }

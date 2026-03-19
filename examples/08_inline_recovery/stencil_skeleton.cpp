@@ -68,18 +68,18 @@
 #include <fenix.hpp>
 #include <fenix_util.hpp>
 
-constexpr int group = 0;
+constexpr int group        = 0;
 constexpr int state_member = 0;
 constexpr int mlogs_member = 1;
 
 constexpr int mlogs = 2;
 
 // Total work iterations
-constexpr int app_iterations = 100;
+constexpr int app_iterations               = 100;
 // Iterations between allreduce convergence checks
 constexpr int convergence_check_iterations = 5;
 // Iterations between checkpoints
-constexpr int checkpoint_iterations = 10;
+constexpr int checkpoint_iterations        = 10;
 
 // Synthetic per-iteration work, in milliseconds
 constexpr int iteration_work_ms = 10;
@@ -117,14 +117,12 @@ int main(int argc, char** argv) {
   // Hold on to checkpoint_iterations+1 regions at once, to be sure we can
   // replay any failed neighbor's messages
   fenix::mlog::create(mlogs, res_world, checkpoint_iterations + 1);
-  // TODO: This needs a more appropriate way to set it
-  fenix::util::ScopedInlineRecovery setting(true);
 
   // Grab basic MPI info
   int n_ranks, rank;
   MPI_Comm_size(res_world, &n_ranks);
   MPI_Comm_rank(res_world, &rank);
-  const int left_rank = (rank + n_ranks - 1) % n_ranks;
+  const int left_rank  = (rank + n_ranks - 1) % n_ranks;
   const int right_rank = (rank + 1) % n_ranks;
 
   State state;
@@ -132,7 +130,7 @@ int main(int argc, char** argv) {
   // Set up the local state
   if (fenix::role() == fenix::INITIAL_RANK) {
     // Initial ranks initialize state and make the first checkpoint
-    state.rank = rank;
+    state.rank      = rank;
     state.iteration = 0;
 
     fenix::data::group_create(group);
@@ -160,20 +158,19 @@ int main(int argc, char** argv) {
     printf("Rank %d recovered to iteration %d\n", state.rank, state.iteration);
   }
 
+  // From here on, the message logs will automatically sync after failures
+  // and any logged messages will be recovered inline
+  fenix::mlog::activate(mlogs);
+  fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
+
   // Now that our local state is good, add our recovery callback to help
   // others recover their state on failure(s).
   fenix::callback_register([&](MPI_Comm repaired_comm, int mpi_err) {
     assert(fenix::error() == FENIX_SUCCESS);
 
-    // Disable logging inside this callback
-    fenix::util::ScopedActiveMlog setting(nullptr);
-
     fenix::data::group_create(group);
     fenix::data::member_restore(group, state_member, NULL, 0);
     fenix::data::member_restore(group, mlogs_member, NULL, 0);
-
-    // We want to continue from exactly where we are
-    fenix::mlog::sync(mlogs, FENIX_MLOG_CONTINUE);
 
     printf(
       "Rank %d continuing inline at iteration %d\n", state.rank, state.iteration
@@ -184,38 +181,33 @@ int main(int argc, char** argv) {
   for (int i = state.iteration; i < app_iterations; i++) {
     check_inject_failure(state, n_ranks);
 
-    {
-      // Enable logging on mlogs and start region i
-      fenix::mlog::activate(mlogs, i);
+    // Start message log region i
+    fenix::mlog::begin_region(mlogs, i);
 
-      // Exchange state information, just like exchanging ghost points
-      State left_state, right_state;
-      MPI_Sendrecv(
-        &state,      2, MPI_INT, right_rank, 0,
-        &left_state, 2, MPI_INT, left_rank,  0, res_world, MPI_STATUS_IGNORE
-      );
-      MPI_Sendrecv(
-        &state,       2, MPI_INT, left_rank,  0,
-        &right_state, 2, MPI_INT, right_rank, 0, res_world, MPI_STATUS_IGNORE
-      );
-      // We'll always get the expected messages, regardless of faults
-      assert(left_state.rank == left_rank && left_state.iteration == i);
-      assert(right_state.rank == right_rank && right_state.iteration == i);
+    // Exchange state information, just like exchanging ghost points
+    State left_state, right_state;
+    MPI_Sendrecv(
+      &state,      2, MPI_INT, right_rank, 0,
+      &left_state, 2, MPI_INT, left_rank,  0, res_world, MPI_STATUS_IGNORE
+    );
+    MPI_Sendrecv(
+      &state,       2, MPI_INT, left_rank,  0,
+      &right_state, 2, MPI_INT, right_rank, 0, res_world, MPI_STATUS_IGNORE
+    );
+    // We'll always get the expected messages, regardless of faults
+    assert(left_state.rank == left_rank && left_state.iteration == i);
+    assert(right_state.rank == right_rank && right_state.iteration == i);
 
-      // Do the application work. In this case, just increment our state's iter
-      assert(state.iteration == i);
-      state.iteration++;
-      std::this_thread::sleep_for(std::chrono::milliseconds(iteration_work_ms));
+    // Do the application work. In this case, just increment our state's iter
+    assert(state.iteration == i);
+    state.iteration++;
+    std::this_thread::sleep_for(std::chrono::milliseconds(iteration_work_ms));
 
-      // Allreduce, as if checking if the stencil has converged on a solution
-      if (state.iteration % convergence_check_iterations == 0) {
-        double my_part = i, result = -1;
-        MPI_Allreduce(&my_part, &result, 1, MPI_DOUBLE, MPI_SUM, res_world);
-        assert(result == i * n_ranks);
-      }
-
-      // Disable logging
-      fenix::mlog::activate(FENIX_MLOG_NONE);
+    // Allreduce, as if checking if the stencil has converged on a solution
+    if (state.iteration % convergence_check_iterations == 0) {
+      double my_part = i, result = -1;
+      MPI_Allreduce(&my_part, &result, 1, MPI_DOUBLE, MPI_SUM, res_world);
+      assert(result == i * n_ranks);
     }
 
     if (state.iteration % checkpoint_iterations == 0) {
@@ -237,15 +229,8 @@ int main(int argc, char** argv) {
     }
   }
 
-  while (fenix::initialized()) {
-    try {
-      Fenix_Finalize();
-    } catch (fenix::CommException& error) {
-      // Retry
-      continue;
-    }
-    break;
-  }
-
+  // With an active log and inline recovery enabled, finalize will recover
+  // inline automatically.
+  Fenix_Finalize();
   MPI_Finalize();
 }

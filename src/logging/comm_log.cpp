@@ -6,6 +6,7 @@
 #include "fenix_util.hpp"
 #include "fenix/tasks/request.hpp"
 #include "fenix/tasks/mpi.hpp"
+#include "fenix/logging/message_logging.h"
 #include "fenix/logging/comm_log.h"
 #include "fenix/logging/util.h"
 
@@ -79,7 +80,7 @@ void CommLog::progress() {
 }
 
 void CommLog::progress_through(TaskT t) {
-  util::ScopedActiveMlog setting(nullptr);
+  util::ScopedActiveMlog setting(FENIX_MLOG_NONE);
   while (t && !t.done()) {
     t.resume();
     progress();
@@ -117,18 +118,12 @@ int CommLog::begin(CollectiveLogHolder&& new_op) {
       ret = active_op->begin(comm);
       fenix_assert(ret == MPI_SUCCESS);
     } catch (const CommException& e) {
-      if (fenix_rt.inline_recovery) {
-        continue;
-      } else {
+      if (fenix_rt.settings.mlog_recovery == MANUAL) {
         active_op = CollectiveLogHolder();
-        switch (fenix_rt.settings.resume) {
-        case JUMP:
-          longjmp(*fenix_rt.recover_environment, 1);
-        case THROW:
-          throw;
-        case RETURN:
-          return e.mpi_err;
-        }
+        util::resume_application();
+        return e.mpi_err;
+      } else {
+        continue;
       }
     }
     break;
@@ -153,7 +148,7 @@ void CommLog::reset_consistency(int target_region) {
   assert(m_rank == util::comm_rank(comm)); // No support for changing ranks
   assert(target_region >= -1);
   assert(tasks.empty());
-  util::ScopedActiveMlog setting(nullptr);
+  util::ScopedActiveMlog setting(FENIX_MLOG_NONE);
 
   // Call reset_consistency for all point-to-point logs
   if (target_region >= 0) active_region = target_region;

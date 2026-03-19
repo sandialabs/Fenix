@@ -76,6 +76,7 @@ struct Settings {
   ResumeMode resume                  = FENIX_RESUME_MODE_MAXCODE;
   CallbackExceptionMode cb_exception = SQUASH;
   UnhandledMode unhandled            = ABORT;
+  MlogRecoveryMode mlog_recovery     = MANUAL;
 };
 
 // Configurations before init change this
@@ -123,18 +124,19 @@ struct fenix_t {
   MPI_Errhandler mpi_errhandler; // Our custom error handler
 
   fenix::data::fenix_data_recovery_t* data_recovery = nullptr;
-    
+
   // -------------------------
   // Message logging variables
   // -------------------------
-  
+
   // All loggers indexed by ID
   std::unordered_map<int, std::shared_ptr<logging::CommLog>> mlogs;
+  // Order of creation of all existing mlogs
+  std::vector<int> mlog_order;
   // Active log (if any)
   std::shared_ptr<logging::CommLog> active_mlog;
-  // Inline recovery may be enabled even without an active mlog
-  bool inline_recovery = false;
-  
+  int active_mlog_id = FENIX_MLOG_NONE;
+
   // Maps of UID to MPI internal types for logging
   std::map<int, MPI_Datatype> mpi_types;
   std::map<int, MPI_Op> mpi_ops;
