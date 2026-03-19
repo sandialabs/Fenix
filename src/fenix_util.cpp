@@ -54,34 +54,52 @@
 //@HEADER
 */
 
+#include <exception>
+
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
+#include "fenix_exception.hpp"
+#include "fenix_ext.hpp"
+
+namespace fenix::util {
+
+int resume_application(bool new_exception) {
+  if (!initialized() || finalized()) {
+    return FENIX_ERROR_CANCELLED;
+  }
+
+  switch (get_option(FENIX_RESUME_MODE)) {
+  case JUMP:
+    longjmp(*fenix_rt.recover_environment, 1);
+  case THROW:
+    if (new_exception) fenix::throw_exception();
+    else throw;
+  case RETURN:
+    return FENIX_ERROR_CANCELLED;
+  default:
+    fenix_assert(false, "Unknown FENIX_RESUME_MODE");
+    throw RuntimeException(
+      FENIX_ERROR_INVALID_SETTING_OPTION, "Unknown FENIX_RESUME_MODE"
+    );
+  }
+}
+
+} // namespace fenix::util
 
 char* logname;
 
-/**
- * @brief
- * @param invec
- * @param inoutvec
- * @param length
- * @param datatype
- */
-void __fenix_ranks_agree(int *invec, int *inoutvec, int *len, MPI_Datatype *dtype) {
+void __fenix_ranks_agree(
+  int* invec, int* inoutvec, int* len, MPI_Datatype* dtype
+) {
   int index;
   for (index = 0; index < *len; index++) {
     inoutvec[index] = (inoutvec[index] == invec[index]) ? invec[index] : -1;
   }
 }
 
-/**
- * @brief
- * @param a
- * @param length
- * @param key
- */
-int __fenix_binary_search(int *a, int length, int key) {
-  int low = 0;
-  int high = length - 1;
+int __fenix_binary_search(int* a, int length, int key) {
+  int low   = 0;
+  int high  = length - 1;
   int found = -1;
   while (found != 1 && low <= high) {
     int mid = low + (high - low) / 2;
@@ -96,127 +114,54 @@ int __fenix_binary_search(int *a, int length, int key) {
   return found;
 }
 
-/**
- * @brief
- * @param p
- * @param q
- */
-int __fenix_comparator(const void *p, const void *q) {
-  return *(int *) p - *(int *) q;
+int __fenix_comparator(const void* p, const void* q) {
+  return *(int*)p - *(int*)q;
 }
 
-/**
- * @brief
- * @param data_type
- */
 int __fenix_get_size(MPI_Datatype type) {
   int size = -1;
   MPI_Type_size(type, &size);
   return size;
 }
 
-/**
- * @brief
- * @param comm
- */
 int __fenix_get_current_rank(MPI_Comm comm) {
-  int rank = - 1;
+  int rank = -1;
   PMPI_Comm_rank(comm, &rank);
   return rank;
 }
 
-/**
- * @brief
- * @param current_rank
- * @param comm
- */
-int __fenix_get_partner_rank(int current_rank, MPI_Comm comm) {
-  int size = - 1;
-  PMPI_Comm_size(comm, &size);
-  return ((current_rank + (size / 2)) % size);
-}
-
-#if 0
-int get_partner_in_rank(int current_rank, MPI_Comm comm) { 
-  int size = - 1;
-  MPI_Comm_size(comm, &size);
-  return ((current_rank + (size / 2)) % size);
-}
-
-int get_partner_out_rank(int current_rank, MPI_Comm comm) { 
-  int size = - 1;
-  MPI_Comm_size(comm, &size);
-  return ((current_rank + (size / 2)) % size);
-}
-#endif
-
-
-int __fenix_mpi_wait(MPI_Request *request) {
-  MPI_Status status;
-  int result = MPI_Wait(request, &status);
-  return result;
-}
-
-int __fenix_mpi_test(MPI_Request *request) {
-  MPI_Status status;
-  int flag;
-  MPI_Test(request, &flag, &status);
-  return flag;
-}
-
-int __fenix_get_fenix_default_rank_separation( MPI_Comm comm  )
-{
-  int size = - 1;
-  PMPI_Comm_size(comm, &size);
-  return size / 2;
-}
-/**
- * @brief
- * @param comm
- */
-int  __fenix_get_world_size(MPI_Comm comm) {
-  int size = - 1;
+int __fenix_get_world_size(MPI_Comm comm) {
+  int size = -1;
   PMPI_Comm_size(comm, &size);
   return size;
 }
 
-
-
-
-/**
- * @brief
- * @param count
- * @param size
- */
-void *s_calloc(int count, size_t size) {
-    void *retval = calloc(count, size);
-    if (!retval) {
-       debug_print("Out of memory: calloc failed on alloc %lu bytes.\n", (unsigned long) size);
-    }
-    return retval;
+void* s_calloc(int count, size_t size) {
+  void* retval = calloc(count, size);
+  if (!retval) {
+    debug_print(
+      "Out of memory: calloc failed on alloc %lu bytes.\n", (unsigned long)size
+    );
+  }
+  return retval;
 }
 
-/**
- * @brief 
- * @param size
- */
-void *s_malloc(size_t size) {
-    void *retval = malloc(size);
-    if (!retval) {
-        debug_print("Out of memory: malloc failed on alloc %lu bytes.\n", (unsigned long) size);
-    }
-    return retval;
+void* s_malloc(size_t size) {
+  void* retval = malloc(size);
+  if (!retval) {
+    debug_print(
+      "Out of memory: malloc failed on alloc %lu bytes.\n", (unsigned long)size
+    );
+  }
+  return retval;
 }
 
-/**
- * @brief
- * @param memory
- * @param size
- */
-void *s_realloc(void *mem, size_t size) {
-    void *retval = realloc(mem, size);
-     if (!retval) {
-       debug_print("Out of memory: malloc failed on alloc %lu bytes.\n", (unsigned long) size);
-    }
-    return retval;
+void* s_realloc(void* mem, size_t size) {
+  void* retval = realloc(mem, size);
+  if (!retval) {
+    debug_print(
+      "Out of memory: malloc failed on alloc %lu bytes.\n", (unsigned long)size
+    );
+  }
+  return retval;
 }

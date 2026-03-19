@@ -61,6 +61,8 @@
 #include "fenix_ext.hpp"
 #include "fenix_data_subset.hpp"
 
+#include <cassert>
+
 #ifndef MPICH_VERSION
 #include <mpi-ext.h>
 #endif

@@ -57,18 +57,8 @@
 #ifndef __FENIX_OPT__
 #define __FENIX_OPT__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sysexits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <getopt.h>
+#include <cstdio>
+#include <cstdlib>
 
 // FENIX_ABORT kills whole MPI job if MPI visible in current file, else just
 // aborts this process

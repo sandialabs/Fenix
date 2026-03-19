@@ -61,6 +61,8 @@
 #include "fenix_data_subset.hpp"
 #include "fenix_data_buffer.hpp"
 
+#include <cstring>
+
 namespace fenix {
 namespace detail {
 
