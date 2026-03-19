@@ -8,7 +8,4 @@
 #  directory.
 #
 
-add_executable(fenix_no_jump_test fenix_no_jump_test.c)
-target_link_libraries(fenix_no_jump_test fenix MPI::MPI_CXX)
-
-add_test(NAME no_jump COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} fenix_no_jump_test ${MPIEXEC_POSTFLAGS} "1")
+fenix_test(SRC fenix_no_jump_test.c RANKS 5 ARGS "1")

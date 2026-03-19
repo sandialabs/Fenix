@@ -8,18 +8,10 @@
 #  directory.
 #
 
-function(subset_test name)
-  set(exe fenix_subset_${name})
-  add_executable(${exe} subset_${name}.cpp)
-  target_link_libraries(${exe} fenix)
-
-  add_test(subset_${name} ${exe})
-endfunction()
-
-subset_test(includes)
-subset_test(subtraction)
-subset_test(copy)
-subset_test(addition)
-subset_test(equality)
-subset_test(serialize_data)
-subset_test(serialize)
+fenix_test(SRC subset_includes.cpp)
+fenix_test(SRC subset_subtraction.cpp)
+fenix_test(SRC subset_copy.cpp)
+fenix_test(SRC subset_addition.cpp)
+fenix_test(SRC subset_equality.cpp)
+fenix_test(SRC subset_serialize_data.cpp)
+fenix_test(SRC subset_serialize.cpp)

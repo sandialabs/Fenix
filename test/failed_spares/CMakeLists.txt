@@ -8,10 +8,7 @@
 #  directory.
 #
 
+fenix_test(SRC fenix_failed_spares.c RANKS 6 ARGS 3 1 3 4)
+
 find_package(Threads REQUIRED)
-
-add_executable(fenix_failed_spares fenix_failed_spares.c)
-target_link_libraries(fenix_failed_spares fenix MPI::MPI_CXX Threads::Threads)
-
-add_test(NAME failed_spares 
-  COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} fenix_failed_spares ${MPIEXEC_POSTFLAGS} 3 1 3 4 )
+target_link_libraries(fenix_failed_spares Threads::Threads)

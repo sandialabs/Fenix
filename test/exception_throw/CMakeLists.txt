@@ -8,9 +8,4 @@
 #  directory.
 #
 
-add_executable(fenix_exceptions fenix_exceptions.cpp)
-target_compile_features(fenix_exceptions PRIVATE cxx_std_17)
-target_link_libraries(fenix_exceptions fenix MPI::MPI_CXX)
-
-add_test(NAME exception_throw
-  COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} fenix_exceptions ${MPIEXEC_POSTFLAGS})
+fenix_test(SRC fenix_exceptions.cpp RANKS 6)

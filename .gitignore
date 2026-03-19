@@ -50,7 +50,6 @@ spack-*
 CMakeCache.txt
 *CMakeFiles*
 *Makefile
-*.cmake
 cmake_install.cmake
 
 # Pre-commit files

@@ -8,9 +8,4 @@
 #  directory.
 #
 
-add_executable(storev storev.cpp)
-target_link_libraries(storev fenix MPI::MPI_CXX)
-target_compile_features(storev PRIVATE cxx_std_20)
-
-add_test(NAME storev
-  COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} storev ${MPIEXEC_POSTFLAGS})
+fenix_test(SRC storev.cpp RANKS 6)

@@ -15,6 +15,8 @@ project(Fenix C CXX)
 set(FENIX_VERSION_MAJOR 1)
 set(FENIX_VERSION_MINOR 0)
 
+include(cmake/util.cmake)
+
 option(BUILD_EXAMPLES    "Builds example programs from the examples directory" OFF)
 option(BUILD_TESTING     "Builds tests and test modes of files"                ON)
 option(BUILD_DOCS        "Builds documentation if is doxygen found"            ON)
@@ -30,7 +32,6 @@ option(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS
 #detected in include path.
 option(FENIX_SYSTEM_INC_FIX    "Attempts to force overriding any system MPI headers" ON)
 option(FENIX_PROPAGATE_INC_FIX "Attempt overriding system MPI headers in linking projects" ON)
-
 
 if(NOT DOCS_ONLY)
     find_package(MPI REQUIRED)

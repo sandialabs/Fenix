@@ -8,5 +8,4 @@
 #  directory.
 #
 
-fenix_mpi_test(mpi_tasks.cpp 4)
-target_compile_features(mpi_tasks_exe PRIVATE cxx_std_20)
+fenix_test(SRC mpi_tasks.cpp RANKS 4)

@@ -8,7 +8,4 @@
 #  directory.
 #
 
-add_executable(fenix_request_cancelled_test fenix_req_cancelled_test.c)
-target_link_libraries(fenix_request_cancelled_test fenix MPI::MPI_CXX)
-
-add_test(NAME request_cancelled COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 5 ${MPIEXEC_PREFLAGS} fenix_request_cancelled_test ${MPIEXEC_POSTFLAGS} "1")
+fenix_test(SRC fenix_req_cancelled_test.c RANKS 5 ARGS 1)
