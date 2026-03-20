@@ -625,21 +625,37 @@ int __fenix_spare_rank(){
 }
 
 int detect_failures(bool do_recovery) {
+#ifdef FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS
+    // Special handling b/c we're doing things outside the API macro
+    if (!initialized()) return FENIX_ERROR_UNINITIALIZED;
+#endif
+    // Create the IgnoreAndReturn scoped option if recovery is disabled.
+    // Doing this outside of the API macro so the function behaves as if the
+    // user had these settings on.
+    std::optional<util::ScopedIgnoreAndReturn> scoped_opts;
+    if (!do_recovery) scoped_opts.emplace();
+    const bool must_return = get_option(RESUME_MODE) == RETURN;
+
     FENIX_CPP_API_BEGIN
-    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
-    if(!fenix_rt.new_world_exists) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
+    util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
+    const bool inline_recovery = scoped_mlog.old_inline_recovery;
 
-    if (!do_recovery) {
-        util::ScopedIgnoreAndReturn scoped_opts;
-        return detect_failures(true);
+    while (true) {
+        try {
+            int flag;
+            int ret = MPI_Test(
+                &fenix_rt.check_failures_req, &flag, MPI_STATUS_IGNORE
+            );
+            fenix_assert(!flag, "DETECT_FAILURES_TAG should never be used");
+            if (ret == MPI_SUCCESS) return FENIX_SUCCESS;
+            else if (!inline_recovery) return FENIX_ERROR_PROCESS_FAILURE;
+        } catch (const CommException& e) {
+            if (!inline_recovery) {
+                if (must_return) return FENIX_ERROR_PROCESS_FAILURE;
+                else throw;
+            }
+        }
     }
-
-    int req_completed;
-    int ret = MPI_Test(
-        &fenix_rt.check_failures_req, &req_completed, MPI_STATUS_IGNORE
-    );
-    if(req_completed) FENIX_THROW(FENIX_ERROR_INTERN);
-    return ret;
     FENIX_CPP_API_END
 }
 
@@ -723,16 +739,14 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 
     default:
         // This is an error type not handled by Fenix
-        int len;
-        char errstr[MPI_MAX_ERROR_STRING];
-        MPI_Error_string(fenix_rt.mpi_fail_code, errstr, &len);
+        std::string errstr = util::mpi_error_string(fenix_rt.mpi_fail_code);
         switch (fenix_rt.settings.unhandled) {
         case ABORT:
-            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr.c_str());
             MPI_Abort(*fenix_rt.world, 1);
             break;
         case PRINT:
-            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr.c_str());
             break;
         case SILENT:
             break;
@@ -775,7 +789,8 @@ void __fenix_postinit()
     if(fenix_rt.new_world_exists){
         //Set up dummy irecv to use for checking for failures.
         MPI_Irecv(&fenix_rt.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
-                  1234, fenix_rt.new_world, &fenix_rt.check_failures_req);
+                  tags::DETECT_FAILURES_TAG, fenix_rt.new_world,
+                  &fenix_rt.check_failures_req);
     }
 
     if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
@@ -795,11 +810,8 @@ void __fenix_postinit()
 
 int Fenix_Finalize() {
     FENIX_C_API_BEGIN
-
-    // Decide if this function should recover inline before turning off logging
-    bool inline_recovery =
-        fenix_rt.active_mlog && fenix_rt.settings.mlog_recovery != MANUAL;
-    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+    util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
+    bool inline_recovery = scoped_mlog.old_inline_recovery;
 
     int location = FENIX_FINALIZE_LOC;
     do {
@@ -821,7 +833,7 @@ int Fenix_Finalize() {
     int first_spare_rank = __fenix_get_world_size(*fenix_rt.user_world);
     int last_spare_rank = __fenix_get_world_size(*fenix_rt.world) - 1;
 
-    //If we've reached here, we will finalized regardless of further errors.
+    //If we've reached here, we will finalize regardless of further errors.
     fenix_rt.settings.recovery = IGNORE;
     fenix_rt.settings.resume = RETURN;
     while(!fenix_rt.finalized){

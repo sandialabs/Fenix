@@ -114,11 +114,16 @@ struct ScopedIgnoreAndReturn {
 };
 
 struct ScopedActiveMlog {
-  ScopedActiveMlog(int id) : old_mlog(mlog::active()) { mlog::activate(id); }
+  ScopedActiveMlog(int id) : old_mlog(mlog::active()) {
+    mlog::activate(id);
+  }
   ~ScopedActiveMlog() {
     if (fenix::initialized()) mlog::activate(old_mlog);
   }
   const int old_mlog;
+  const bool old_inline_recovery =
+    old_mlog != FENIX_MLOG_NONE && get_option(MLOG_RECOVERY_MODE) != MANUAL &&
+    get_option(RECOVERY_MODE) != IGNORE;
 };
 
 } // namespace fenix::util

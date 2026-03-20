@@ -226,9 +226,8 @@ int checkpoint(
   int* timestamp
 ) {
   FENIX_CPP_API_BEGIN
-  bool inline_recovery =
-    fenix_rt.active_mlog &&
-    fenix_rt.settings.mlog_recovery != FENIX_MLOG_RECOVERY_MANUAL;
+  util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
+  bool inline_recovery = scoped_mlog.old_inline_recovery;
   auto g = find_group(group_id);
 
   int old_timestamp = g->timestamp;

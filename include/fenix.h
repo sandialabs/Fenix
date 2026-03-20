@@ -123,6 +123,7 @@ typedef enum {
     FENIX_ERROR_INVALID_SETTING_OPTION,
     FENIX_ERROR_INVALID_MLOGID,
     FENIX_ERROR_MLOG_EXISTS,
+    FENIX_ERROR_PROCESS_FAILURE,
     //Warnings are positive
     FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
     FENIX_WARNING_PARTIAL_RESTORE,
@@ -435,10 +436,28 @@ int Fenix_Callback_invoke_all();
 
 /**
  * @brief Check for any failed ranks
+ * @local
  *
- * @param[in] do_recovery If true, Fenix will attempt to recover from any detected failures.
- *   Else, it will ignore any failures and simply return the MPI return code.
- * @return MPI_SUCCESS if no failures were detected, else the MPI return code.
+ * This function is a local best-effort check for detecting any failed ranks. It
+ * does not perform communication, and does not guarantee a consistent view
+ * across ranks in the way an MPI_Comm_agree would. This function's goal is to
+ * allow applications with long periods of compute between communication to
+ * more quickly respond to failures during those periods of compute.
+ *
+ * If recovery is enabled, this will behave exactly as a failed MPI operation.
+ * Otherwise, this function behaves as if #FENIX_RECOVERY_MODE_IGNORE and
+ * #FENIX_RESUME_MODE_RETURN are set and returns #FENIX_ERROR_PROCESS_FAILURE
+ * if any rank failures are detected on the resilient communicator provided by
+ * Fenix.
+ *
+ * If recovery is enabled and inline recovery is active (see
+ * #Fenix_Mlog_activate), this function supports inline recovery. In this case,
+ * any detected errors are recovered but the #FENIX_RESUME_MODE is ignored. The
+ * function will automatically replay after recovery until no failures are
+ * detected.
+ *
+ * @param[in] do_recovery Whether to enable recovery for this function.
+ * @returnstatus
  */
 int Fenix_Process_detect_failures(int do_recovery);
 
@@ -486,9 +505,9 @@ int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
  * recover from failures (and therefore are still reserved by Fenix and kept inside #Fenix_Init) will call 
  * \c MPI_Finalize and exit when all active ranks have called \c Fenix_Finalize.
  *
- * Supports inline recovery when any mlog is active and FENIX_MLOG_RECOVERY_MODE
- * is not FENIX_MLOG_RECOVERY_MANUAL. In such a case, a rank will not leave this
- * function until success unless there is an error with the message logs.
+ * Supports inline recovery when it is active (see #Fenix_Mlog_activate). In
+ * this case, a rank will not leave this function until success (or an error
+ * with the message logs).
  *
  * **Advice**: Sometimes users may want to remove ranks proactively from the execution, for example because
  * monitoring data shows that failure of a rank is imminent or that a rank is executing un-manageably slowly.
@@ -758,8 +777,8 @@ int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
  *
  * After storing, equivalent to invoking #Fenix_Data_commit.
  *
- * This function supports inline recovery when an mlog is active and
- * #FENIX_MLOG_RECOVERY_MODE is not #FENIX_MLOG_RECOVERY_MANUAL.
+ * This function supports inline recovery when it is active (see
+ * #Fenix_Mlog_activate).
  *
  * @param[in] group_id The group to checkpoint
  * @param[in] subset_specifier The subset of each member to store.
@@ -1013,9 +1032,12 @@ int Fenix_Mlog_create(int mlog_id, MPI_Comm* comm, int depth);
  * active (even if one was active before).
  *
  * Fenix functions will not be logged, regardless of any active mlog. However,
- * some functions may support inline recovery if there is an active mlog and
- * FENIX_MLOG_RECOVERY_MODE is not FENIX_MLOG_RECOVERY_MANUAL. These functions
- * will specify for themselves if this is the case.
+ * some functions may support inline recovery if it is active. These functions
+ * will specify for themselves if they support inline recovery. There are three
+ * conditions for inline recovery to be active:
+ *   1. FENIX_MLOG_RECOVERY_MODE is not FENIX_MLOG_RECOVERY_MANUAL
+ *   2. FENIX_RECOVERY_MODE is not FENIX_RECOVERY_IGNORE
+ *   3. An mlog is active.
  *
  * @param[in] mlog_id The log to activate. May be FENIX_MLOG_NONE.
  * @returnstatus
