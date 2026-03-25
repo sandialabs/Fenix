@@ -101,6 +101,7 @@ struct fenix_group_t {
     virtual int member_delete(fenix_member_entry_t* member) = 0;
     virtual int get_redundant_policy(int* name, void* value, int* flag) = 0;
     virtual void member_stage(int memberid, const DataSubset& subset) = 0;
+    virtual void member_unstage(int memberid) = 0;
     virtual int member_store(int memberid, const DataSubset& subset) = 0;
     virtual int member_storev(int memberid, const DataSubset& subset) = 0;
     virtual int member_istore(int memberid, const DataSubset& subset, Fenix_Request* req) = 0;
