@@ -23,24 +23,34 @@ set(Fenix_SOURCES
     fenix_callbacks.cpp)
 add_library(fenix STATIC ${Fenix_SOURCES})
 
+add_library(mlog STATIC)
+add_library(Fenix::mlog ALIAS mlog)
+target_link_libraries(mlog INTERFACE fenix)
+
+add_subdirectory(logging)
+
 set(Fenix_INCLUDE ${CMAKE_SOURCE_DIR}/include)
 FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
 
 configure_file(${Fenix_INCLUDE}/fenix-config.h.in fenix-config.h @ONLY)
-target_sources(fenix PUBLIC FILE_SET HEADERS
-    BASE_DIRS ${Fenix_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR}
-    FILES ${Fenix_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h)
 
-target_compile_features(fenix PUBLIC cxx_std_20)
-target_link_libraries(fenix PUBLIC MPI::MPI_CXX)
+foreach(FENIX_LIB fenix mlog)
+    target_sources(${FENIX_LIB} PUBLIC FILE_SET HEADERS
+        BASE_DIRS ${Fenix_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR}
+        FILES ${Fenix_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h)
 
-if(FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
-    target_compile_definitions(fenix PUBLIC FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
-endif()
-if(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
-    target_compile_definitions(fenix PUBLIC FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
-endif()
+    target_compile_features(${FENIX_LIB} PUBLIC cxx_std_20)
+    target_link_libraries(${FENIX_LIB} PUBLIC MPI::MPI_CXX)
 
+    if(FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
+        target_compile_definitions(${FENIX_LIB} PUBLIC FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
+    endif()
+    if(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+        target_compile_definitions(${FENIX_LIB} PUBLIC FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+    endif()
+endforeach()
 
 install(TARGETS fenix EXPORT fenix ARCHIVE LIBRARY FILE_SET HEADERS)
+install(TARGETS mlog EXPORT fenix_modules ARCHIVE LIBRARY FILE_SET HEADERS)
 install(EXPORT fenix FILE fenixTargets.cmake DESTINATION cmake)
+install(EXPORT fenix_modules FILE fenixModuleTargets.cmake NAMESPACE Fenix DESTINATION cmake)

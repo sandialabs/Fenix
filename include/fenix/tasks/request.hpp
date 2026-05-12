@@ -8,36 +8,11 @@
 #include <mpi.h>
 
 #include "subtask.hpp"
+#include "fenix/mpi_util.hpp"
 
 namespace fenix::tasks {
 
-class Status {
- public:
-  int return_value;
-  MPI_Status status;
-
-  Status() = default;
-  Status(int r) : return_value(r) {}
-  auto operator=(int r) {
-    return_value = r;
-    return *this;
-  }
-
-  operator bool() const { return return_value == MPI_SUCCESS; }
-
-  operator int() const { return return_value; }
-  bool operator==(int r) const { return return_value == r; }
-
-  operator MPI_Status() const { return status; }
-  operator MPI_Status*() { return &status; }
-
-  // to support structured unbinding
-  template <size_t I>
-  auto&& get() && {
-    if constexpr (I == 0) return std::move(return_value);
-    if constexpr (I == 1) return std::move(status);
-  }
-};
+using util::Status;
 
 // Note that this 'takes ownership' of the request - if RequestBase is destroyed
 // before completing, it frees the MPI_Request to ensure proper cleanup if a
@@ -105,20 +80,5 @@ class Request {
 };
 
 } // namespace fenix::tasks
-
-// Supporting structured unbinding for Status
-namespace std {
-template <>
-struct tuple_size<fenix::tasks::Status> : std::integral_constant<size_t, 2> {};
-
-template <>
-struct tuple_element<0, fenix::tasks::Status> {
-  using type = int;
-};
-template <>
-struct tuple_element<1, fenix::tasks::Status> {
-  using type = MPI_Status;
-};
-}
 
 #endif //FENIX_TASKS_REQUEST_HPP

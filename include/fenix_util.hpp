@@ -83,17 +83,6 @@ void* s_realloc(void* mem, size_t size);
 
 namespace fenix::util {
 
-inline int comm_size(MPI_Comm c) {
-  int ret;
-  MPI_Comm_size(c, &ret);
-  return ret;
-}
-inline int comm_rank(MPI_Comm c) {
-  int ret;
-  MPI_Comm_rank(c, &ret);
-  return ret;
-}
-
 int resume_application(bool new_exception = false);
 
 // ScopedOptions hold the old option and revert to it in their destructors, so
@@ -122,6 +111,19 @@ struct ScopedDefaultRuntimeOptions {
 // Helper for MPI_ERRORS_RETURN-like error handling
 struct ScopedIgnoreAndReturn {
   ScopedOption recovery{RECOVERY_MODE, IGNORE}, resume{RESUME_MODE, RETURN};
+};
+
+struct ScopedActiveMlog {
+  ScopedActiveMlog(int id) : old_mlog(mlog::active()) {
+    mlog::activate(id);
+  }
+  ~ScopedActiveMlog() {
+    if (fenix::initialized()) mlog::activate(old_mlog);
+  }
+  const int old_mlog;
+  const bool old_inline_recovery =
+    old_mlog != FENIX_MLOG_NONE && get_option(MLOG_RECOVERY_MODE) != MANUAL &&
+    get_option(RECOVERY_MODE) != IGNORE;
 };
 
 } // namespace fenix::util

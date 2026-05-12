@@ -96,9 +96,16 @@ int callback_invoke_all(CallbackLocation loc) {
   static int callbacks_depth = 0;
   int m_callbacks_layer      = callbacks_depth++;
 
+  if (loc == PRE_RECOVERY) {
+    for (auto [mlog_id, mlog] : fenix_rt.mlogs) {
+      mlog->fenix_pre_recovery();
+    }
+  }
+
   try {
     for (auto& cb : callbacks(loc)) {
       if (callbacks_depth != m_callbacks_layer + 1) break;
+      util::ScopedActiveMlog(FENIX_MLOG_NONE);
       cb(*fenix_rt.user_world, fenix_rt.mpi_fail_code);
     }
   } catch (const CommException& e) {

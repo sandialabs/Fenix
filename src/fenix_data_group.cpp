@@ -62,6 +62,7 @@
 #include "fenix_util.hpp"
 #include "fenix_data_group.hpp"
 #include "fenix_data_member.hpp"
+#include "fenix/mpi_util.hpp"
 
 namespace fenix::data {
 
@@ -113,6 +114,7 @@ int fenix_group_t::member_create(
 ) {
   auto [iter, emplaced] = members.try_emplace(id, id, data, count, datatype);
   if(!emplaced) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+  member_order.push_back(id);
   return this->member_create(&iter->second);
 }
 
@@ -122,24 +124,26 @@ int fenix_group_t::member_create(
   auto [iter, emplaced] =
     members.try_emplace(id, id, data, count, datatype_size);
   if(!emplaced) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+  member_order.push_back(id);
   return this->member_create(&iter->second);
 }
 
 int fenix_group_t::member_delete(int id){
   auto member = find_member(id);
   int ret = this->member_delete(member);
-  if(ret == FENIX_SUCCESS) members.erase(id);
-  return ret;
-}
-
-std::vector<int> fenix_group_t::get_member_ids(){
-  std::vector<int> ret;
-  ret.reserve(members.size());
-  for(const auto& [k, v] : members){
-    ret.push_back(k);
+  if(ret == FENIX_SUCCESS) {
+    members.erase(id);
+    for (int i = 0; i < member_order.size(); i++) {
+      if (member_order[i] == id) {
+        member_order.erase(member_order.begin() + i);
+        break;
+      }
+    }
   }
   return ret;
 }
+
+std::vector<int> fenix_group_t::get_member_ids(){ return member_order; }
 
 fenix_data_recovery_t * __fenix_data_recovery_init() {
   fenix_data_recovery_t *data_recovery = (fenix_data_recovery_t *)

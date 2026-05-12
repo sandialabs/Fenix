@@ -77,6 +77,7 @@ constexpr SettingName RECOVERY_MODE           = FENIX_RECOVERY_MODE;
 constexpr SettingName RESUME_MODE             = FENIX_RESUME_MODE;
 constexpr SettingName UNHANDLED_MODE          = FENIX_UNHANDLED_MODE;
 constexpr SettingName CALLBACK_EXCEPTION_MODE = FENIX_CALLBACK_EXCEPTION_MODE;
+constexpr SettingName MLOG_RECOVERY_MODE      = FENIX_MLOG_RECOVERY_MODE;
 
 using RecoveryMode            = Fenix_Recovery_mode;
 constexpr RecoveryMode IGNORE = FENIX_RECOVERY_IGNORE;
@@ -89,14 +90,22 @@ constexpr ResumeMode JUMP   = FENIX_RESUME_JUMP;
 constexpr ResumeMode RETURN = FENIX_RESUME_RETURN;
 constexpr ResumeMode THROW  = FENIX_RESUME_THROW;
 
-using CallbackExceptionMode             = Fenix_Callback_exception_mode;
-constexpr CallbackExceptionMode RETHROW = FENIX_CALLBACK_EXCEPTION_RETHROW;
-constexpr CallbackExceptionMode SQUASH  = FENIX_CALLBACK_EXCEPTION_SQUASH;
-
 using UnhandledMode            = Fenix_Unhandled_mode;
 constexpr UnhandledMode SILENT = FENIX_UNHANDLED_SILENT;
 constexpr UnhandledMode PRINT  = FENIX_UNHANDLED_PRINT;
 constexpr UnhandledMode ABORT  = FENIX_UNHANDLED_ABORT;
+
+using CallbackExceptionMode             = Fenix_Callback_exception_mode;
+constexpr CallbackExceptionMode RETHROW = FENIX_CALLBACK_EXCEPTION_RETHROW;
+constexpr CallbackExceptionMode SQUASH  = FENIX_CALLBACK_EXCEPTION_SQUASH;
+
+using MlogRecoveryMode            = Fenix_Mlog_recovery_mode;
+constexpr MlogRecoveryMode MANUAL = FENIX_MLOG_RECOVERY_MANUAL;
+constexpr MlogRecoveryMode INLINE = FENIX_MLOG_RECOVERY_INLINE;
+constexpr MlogRecoveryMode INLINE_AUTOSYNC =
+  FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC;
+
+constexpr int STOREV_ALL = FENIX_STOREV_ALL;
 
 enum CallbackLocation { PRE_RECOVERY, POST_RECOVERY };
 
@@ -175,6 +184,17 @@ int group_create(
   void* policy_value, int* flag
 );
 
+struct GroupCreateArgs {
+  // MPI_COMM_NULL defaults to the resilient communicator
+  MPI_Comm comm        = MPI_COMM_NULL;
+  int start_time_stamp = 0;
+  int depth            = 1;
+  int policy_name      = FENIX_DATA_POLICY_IMR;
+  void* policy_value   = nullptr;
+  int* flag            = nullptr;
+};
+int group_create(int group_id, GroupCreateArgs args = {});
+
 //@!brief Overload of #Fenix_Data_group_created
 bool group_created(int group_id);
 
@@ -192,25 +212,53 @@ int member_stage(
 );
 
 //!@brief Overload of #Fenix_Data_member_store
-int member_store(int group_id, int member_id, const DataSubset& subset);
+int member_store(
+  int group_id, int member_id, const DataSubset& subset = SUBSET_FULL
+);
+//!@brief Overload of #Fenix_Data_member_store, stores all members
+inline int member_store(int group_id, const DataSubset& subset = SUBSET_FULL) {
+    return member_store(group_id, FENIX_DATA_MEMBER_ALL, subset);
+}
 
 //!@brief Overload of #Fenix_Data_member_storev
 int member_storev(int group_id, int member_id, const DataSubset& subset);
+//!@brief Overload of #Fenix_Data_member_storev, stores all members
+inline int member_storev(int group_id, const DataSubset& subset) {
+    return member_storev(group_id, FENIX_DATA_MEMBER_ALL, subset);
+}
 
 //!@brief Overload of #Fenix_Data_member_istore
 int member_istore(
   int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
 
+struct MemberIstoreArgs {
+    int member_id = FENIX_DATA_MEMBER_ALL;
+    const DataSubset& subset = SUBSET_FULL;
+};
+//!@brief Overload of #Fenix_Data_member_istore
+inline int member_istore(
+    int group_id, Fenix_Request* request, MemberIstoreArgs args = {}
+) {
+    return member_istore(group_id, args.member_id, args.subset, request);
+}
+
 //!@brief Overload of #Fenix_Data_member_istorev
 int member_istorev(
   int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
+//!@brief Overload of #Fenix_Data_member_istorev, stores all members
+inline int member_istorev(
+    int group_id, const DataSubset& subset, Fenix_Request* request
+) {
+    return member_istorev(group_id, FENIX_DATA_MEMBER_ALL, subset, request);
+}
 
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
   int group_id, int member_id, void* target_buffer, int max_length,
-  int time_stamp, DataSubset& data_found
+  int time_stamp = FENIX_DATA_SNAPSHOT_LATEST,
+  DataSubset& data_found = SUBSET_IGNORE
 );
 
 //!@brief Overload of #Fenix_Data_member_lrestore
@@ -219,11 +267,22 @@ int member_lrestore(
   int time_stamp, DataSubset& data_found
 );
 
-//@!brief overload of #Fenix_Data_commit
+//!@brief overload of #Fenix_Data_commit
 int commit(int group_id, int* time_stamp = nullptr);
 
-//@!brief overload of #Fenix_Data_commit
+//!@brief overload of #Fenix_Data_commit
 int commit_barrier(int group_id, int* time_stamp = nullptr);
+
+//!@brief Overload of #Fenix_Data_checkpoint
+int checkpoint(
+  int group_id, const DataSubset& subset,
+  const std::vector<int>& storev_ids = {}, int* time_stamp = nullptr
+);
+
+//!@brief Overload of #Fenix_Data_checkpoint for FENIX_STOREV_ALL
+int checkpointv(
+  int group_id, const DataSubset& subset, int* time_stamp = nullptr
+);
 
 /**
  * @brief get the members of a group
@@ -240,12 +299,46 @@ std::optional<std::vector<int>> group_snapshots(int group_id);
 //@!brief Overload of #Fenix_Data_snapshot_delete
 int snapshot_delete(int group_id, int timestamp);
 
-//@!brief overload of Fenix_Data_group_delete
+//@!brief Overload of #Fenix_Data_group_delete
 int group_delete(int group_id);
 
-//@!brief overload of Fenix_Data_member_delete
+//@!brief Overload of #Fenix_Data_member_delete
 int member_delete(int group_id, int member_id);
 
 } // namespace fenix::data
+
+namespace fenix::mlog {
+
+//@brief Overload of #Fenix_Mlog_create
+int create(int mlog_id, MPI_Comm& comm, int depth);
+
+//@brief Overload of #Fenix_Mlog_activate
+int activate(int mlog_id);
+
+//@brief Overload of Fenix_Mlog_active, returns active log
+int active();
+
+//@brief Overload of #Fenix_Mlog_begin_region
+int begin_region(int mlog_id, int region_id);
+
+//@brief Overload of #Fenix_Mlog_activate_region
+int activate(int mlog_id, int region_id);
+
+//@brief Overload of #Fenix_Mlog_sync
+int sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE);
+
+//@brief Overload of #Fenix_Mlog_stage
+int stage(int mlog_id, int group_id, int member_id);
+
+//@brief Overload of #Fenix_Mlog_lrestore
+int lrestore(
+    int mlog_id, int group_id, int member_id,
+    int time_stamp = FENIX_DATA_SNAPSHOT_LATEST
+);
+
+//@brief Overload of #Fenix_Mlog_delete
+int mlog_delete(int mlog_id);
+
+} // namespace fenix::mlog
 
 #endif
