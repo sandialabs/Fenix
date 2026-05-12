@@ -8,4 +8,4 @@
 #  directory.
 #
 
-fenix_test(SRC detect_failures.cpp RANKS 4)
+fenix_test(SRC detect_failures.cpp RANKS 4 MLOG)
