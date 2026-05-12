@@ -6,6 +6,16 @@
 using namespace fenix;
 using namespace fenix::logging;
 
+int MPI_Init(int* c, char*** v) {
+  fenix_rt.mpi_overloads_linked = true;
+  return PMPI_Init(c, v);
+}
+
+int MPI_Init_thread(int* c, char*** v, int r, int* p) {
+  fenix_rt.mpi_overloads_linked = true;
+  return PMPI_Init_thread(c, v, r, p);
+}
+
 int MPI_Sendrecv(
   // clang-format off
   const void* sb, int sn, MPI_Datatype sd, int dst, int st,

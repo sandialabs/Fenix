@@ -140,6 +140,8 @@ struct fenix_t {
   // Maps of UID to MPI internal types for logging
   std::map<int, MPI_Datatype> mpi_types;
   std::map<int, MPI_Op> mpi_ops;
+
+  static inline bool mpi_overloads_linked = false;
 };
 
 inline fenix::fenix_t fenix_rt;

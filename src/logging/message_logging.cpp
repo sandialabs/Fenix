@@ -29,6 +29,8 @@ using namespace impl;
 
 int create(int mlog_id, MPI_Comm& comm, int depth) {
   FENIX_CPP_API_BEGIN
+  if (!fenix_rt.mpi_overloads_linked)
+    FENIX_THROW(FENIX_ERROR_MLOG_LIBRARY_UNAVAILABLE);
   auto mlog             = std::make_shared<CommLog>(comm, depth);
   auto [iter, inserted] = fenix_rt.mlogs.try_emplace(mlog_id, mlog);
   if (!inserted) FENIX_THROW(FENIX_ERROR_MLOG_EXISTS);

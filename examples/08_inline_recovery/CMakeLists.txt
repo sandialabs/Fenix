@@ -9,6 +9,6 @@
 #
 
 add_executable(stencil_skeleton stencil_skeleton.cpp)
-target_link_libraries(stencil_skeleton fenix ${MPI_C_LIBRARIES})
+target_link_libraries(stencil_skeleton fenix Fenix::mlog ${MPI_C_LIBRARIES})
 
 fenix_test(EXAMPLE EXE stencil_skeleton RANKS 6)
