@@ -30,12 +30,12 @@ class AllreduceLog : public CollectiveLog {
   ~AllreduceLog() = default;
 
   AllreduceLog(std::istream& i) : CollectiveLog(i) {
-    serialize::read(i, op);
+    serialize::read_op(i, op);
     serialize::read(i, sbuf);
     rbuf = MPIBuffer::create(sbuf, sbuf);
   }
   void serialize_impl(std::ostream& s) const override {
-    serialize::write(s, op);
+    serialize::write_op(s, op);
     serialize::write(s, sbuf);
   }
 

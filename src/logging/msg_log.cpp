@@ -13,9 +13,9 @@ struct MPIObjectRecords {
   int find(const T& o) {
     for (auto& [idx, obj] : records)
       if (o == obj) return idx;
-    fatal_print("Using unrecorded MPI_Type or MPI_Op %p\n", o);
+    fatal_print("Using unrecorded MPI_Type or MPI_Op %d\n", (int)o );
   }
-  T find(const int& i) {
+  T find_idx(const int& i) {
     for (auto& [idx, obj] : records)
       if (i == idx) return obj;
     fatal_print("Recovering unrecorded MPI_Datatype or MPI_Op with id %d\n", i);
@@ -26,7 +26,7 @@ struct MPIObjectRecords {
       if (o == obj) return true;
     return false;
   }
-  bool has(const int& i) {
+  bool has_idx(const int& i) {
     for (auto& [idx, obj] : records)
       if (i == idx) return true;
     return false;
@@ -72,16 +72,16 @@ void init_mpi_records() {
 } //namespace fenix::logging
 
 namespace fenix::logging::serialize {
-void write(std::ostream& s, const MPI_Datatype& d) {
+void write_datatype(std::ostream& s, const MPI_Datatype& d) {
   write<int>(s, mpi_types.find(d));
 }
-void write(std::ostream& s, const MPI_Op& o) { write<int>(s, mpi_ops.find(o)); }
-void read(std::istream& s, MPI_Datatype& d) {
+void write_op(std::ostream& s, const MPI_Op& o) { write<int>(s, mpi_ops.find(o)); }
+void read_datatype(std::istream& s, MPI_Datatype& d) {
   int id = read<int>(s);
-  d      = mpi_types.find(id);
+  d      = mpi_types.find_idx(id);
 }
-void read(std::istream& s, MPI_Op& o) {
+void read_op(std::istream& s, MPI_Op& o) {
   int id = read<int>(s);
-  o      = mpi_ops.find(id);
+  o      = mpi_ops.find_idx(id);
 }
 } //namespace fenix::logging::serialize

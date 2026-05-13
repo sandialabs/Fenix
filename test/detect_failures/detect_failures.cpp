@@ -1,7 +1,9 @@
 #include <fenix.hpp>
 #include <fenix/mpi_util.hpp>
 #include <mpi.h>
+#ifndef MPICH_VERSION
 #include <mpi-ext.h>
+#endif
 #include <stdio.h>
 #include <signal.h>
 #include <assert.h>

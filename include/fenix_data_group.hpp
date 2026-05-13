@@ -64,6 +64,7 @@
 #include "fenix.h"
 #include "fenix_data_member.hpp"
 #include "fenix_data_subset.hpp"
+#include "fenix/mpi_util.hpp"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
 
@@ -93,7 +94,7 @@ struct fenix_group_t {
   fenix_member_entry_t* find_member(
     int id, std::source_location loc = std::source_location::current()
   );
-  int member_create(int id, void* data, int count, MPI_Datatype datatype);
+  int member_create(int id, void* data, int count, util::Datatype datatype);
   int member_create(int id, void* data, int count, int datatype_size);
   int member_delete(int memberid);
 

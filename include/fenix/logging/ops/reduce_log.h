@@ -35,13 +35,13 @@ class ReduceLog : public CollectiveLog {
 
   ReduceLog(std::istream& i) : CollectiveLog(i) {
     serialize::read(i, root);
-    serialize::read(i, op);
+    serialize::read_op(i, op);
     serialize::read(i, sbuf);
     rbuf = MPIBuffer::create(sbuf, sbuf);
   }
   void serialize_impl(std::ostream& s) const override {
     serialize::write(s, root);
-    serialize::write(s, op);
+    serialize::write_op(s, op);
     serialize::write(s, sbuf);
   }
 

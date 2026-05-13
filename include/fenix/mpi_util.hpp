@@ -112,6 +112,16 @@ static inline bool mpi_finalized() {
   return flag;
 }
 
+// For compatibility with MPICH, which defines MPI_Datatype as an int
+// (otherwise we get overloading errors)
+class Datatype {
+ public:
+  explicit Datatype(MPI_Datatype d) : datatype(d) { };
+  MPI_Datatype datatype;
+  int size() { return type_size(datatype); }
+};
+
+
 class Status {
  public:
   int return_value;

@@ -56,6 +56,8 @@
 #ifndef __FENIX_DATA_MEMBER_H__
 #define __FENIX_DATA_MEMBER_H__
 
+#include "fenix/mpi_util.hpp"
+
 #define __FENIX_DEFAULT_MEMBER_SIZE 512
 namespace fenix::data {
 
@@ -69,7 +71,7 @@ struct fenix_member_entry_packet_t {
 
 struct fenix_member_entry_t {
   fenix_member_entry_t() = default;
-  fenix_member_entry_t(int id, void* data, int count, MPI_Datatype datatype);
+  fenix_member_entry_t(int id, void* data, int count, util::Datatype datatype);
   fenix_member_entry_t(int id, void* data, int count, int datatype_size);
 
   fenix_member_entry_packet_t to_packet();
