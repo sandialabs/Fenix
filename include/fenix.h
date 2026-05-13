@@ -437,7 +437,7 @@ int Fenix_Callback_invoke_all();
 
 /**
  * @brief Check for any failed ranks
- * @local
+ * @qualifier local
  *
  * This function is a local best-effort check for detecting any failed ranks. It
  * does not perform communication, and does not guarantee a consistent view
@@ -446,8 +446,8 @@ int Fenix_Callback_invoke_all();
  * more quickly respond to failures during those periods of compute.
  *
  * If recovery is enabled, this will behave exactly as a failed MPI operation.
- * Otherwise, this function behaves as if #FENIX_RECOVERY_MODE_IGNORE and
- * #FENIX_RESUME_MODE_RETURN are set and returns #FENIX_ERROR_PROCESS_FAILURE
+ * Otherwise, this function behaves as if #FENIX_RECOVERY_IGNORE and
+ * #FENIX_RESUME_RETURN are set and returns FENIX_ERROR_PROCESS_FAILURE
  * if any rank failures are detected on the resilient communicator provided by
  * Fenix.
  *
@@ -561,7 +561,7 @@ typedef struct {
  * Must be initialized (via #Fenix_Data_subset_create or
  * #Fenix_Data_subset_createv) before using as an input parameter.
  *
- * Must be uninitialized or freed (#Fenix_Data_subset_free) before using as an
+ * Must be uninitialized or deleted (#Fenix_Data_subset_delete) before using as an
  * output parameter to avoid data leaks.
  */
 typedef struct {
@@ -782,14 +782,14 @@ int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
  * #Fenix_Mlog_activate).
  *
  * @param[in] group_id The group to checkpoint
- * @param[in] subset_specifier The subset of each member to store.
+ * @param[in] subset The subset of each member to store.
  * @param[in] num_storev The size of the storev_ids array, or
- *                       #FENIX_STOREV_ALL.
+ *                       FENIX_STOREV_ALL.
  * @param[in] storev_ids Array of member ids to store as storev.
  *                       May be null if num_storev is zero or
- *                       #FENIX_STOREV_ALL.
+ *                       FENIX_STOREV_ALL.
  * @param[out] time_stamp Pointer to store the time stamp of the commit to, or
- *                        #FENIX_TIME_STAMP_IGNORE.
+ *                        FENIX_TIME_STAMP_IGNORE.
  */
 int Fenix_Data_checkpoint(int group_id, const Fenix_Data_subset subset,
                           int num_storev, int* storev_ids, int* time_stamp);
@@ -955,8 +955,8 @@ int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename,
 /**
  * @brief Set the value of a member's attribute.
  *
- * Valid names are #FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, #FENIX_DATA_MEMBER_ATTRIBUTE_COUNT,
- * and #FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE.
+ * Valid names are FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT,
+ * and FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE.
  *
  * The COUNT and DATATYPE attributes may only be set before the first store operation.
  * Contrary to the Fenix specification, returning to #Fenix_Init after a failure does not 
@@ -1059,7 +1059,7 @@ int Fenix_Mlog_active(int* mlog_id);
  * @qualifier local
  *
  * @param[in] mlog_id The logger to set the region of
- * @param[in] mlog_id The region ID to set
+ * @param[in] region_id The region ID to set
  *            Must be positive and greater than current region_id (may equal
  *            current region_id if no messages have been logged in the region)
  * @returnstatus
@@ -1075,7 +1075,7 @@ int Fenix_Mlog_begin_region(int mlog_id, int region_id);
  *   Fenix_Mlog_begin_region(mlog_id, region_id);
  *
  * @param[in] mlog_id The logger to activate and set the region of
- * @param[in] mlog_id The region ID to set, with the same semantics as
+ * @param[in] region_id The region ID to set, with the same semantics as
  *            #Fenix_Mlog_begin_region
  * @returnstatus
  */
