@@ -48,7 +48,7 @@ class BcastLog : public CollectiveLog {
 
   int begin(MPI_Comm c) const override {
     req_free();
-    int ret = PMPI_Ibcast(buf, buf, buf, root, c, req());
+    int ret = PMPI_Ibcast(buf.buf(), buf.count(), buf.type(), root, c, req());
     if (ret == MPI_SUCCESS) ret = PMPI_Wait(req(), MPI_STATUS_IGNORE);
     // Release references to any user buffers if we get this far
     buf.release_user_buf();
@@ -57,7 +57,7 @@ class BcastLog : public CollectiveLog {
 
   void replay(MPI_Comm c) const override {
     req_free();
-    int ret = PMPI_Ibcast(buf, buf, buf, root, c, req());
+    int ret = PMPI_Ibcast(buf.buf(), buf.count(), buf.type(), root, c, req());
     fenix_assert(
       ret == MPI_SUCCESS, "Non-process MPI error during collective replay\n"
     );

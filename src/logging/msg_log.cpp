@@ -1,6 +1,7 @@
 #include "fenix/logging/op_log.h"
 #include "fenix/logging/serialize.h"
 #include "fenix/mpi_util.hpp"
+#include <inttypes.h>
 
 using namespace fenix::util;
 
@@ -13,7 +14,9 @@ struct MPIObjectRecords {
   int find(const T& o) {
     for (auto& [idx, obj] : records)
       if (o == obj) return idx;
-    fatal_print("Using unrecorded MPI_Type or MPI_Op %d\n", (int)o );
+    fatal_print(
+      "Using unrecorded MPI_Type or MPI_Op %p\n", (void*)((intptr_t)o)
+    );
   }
   T find_idx(const int& i) {
     for (auto& [idx, obj] : records)
