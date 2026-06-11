@@ -78,6 +78,7 @@ constexpr SettingName RESUME_MODE             = FENIX_RESUME_MODE;
 constexpr SettingName UNHANDLED_MODE          = FENIX_UNHANDLED_MODE;
 constexpr SettingName CALLBACK_EXCEPTION_MODE = FENIX_CALLBACK_EXCEPTION_MODE;
 constexpr SettingName MLOG_RECOVERY_MODE      = FENIX_MLOG_RECOVERY_MODE;
+constexpr SettingName SPARE_WAIT_MODE         = FENIX_SPARE_WAIT_MODE;
 
 using RecoveryMode            = Fenix_Recovery_mode;
 constexpr RecoveryMode IGNORE = FENIX_RECOVERY_IGNORE;
@@ -104,6 +105,11 @@ constexpr MlogRecoveryMode MANUAL = FENIX_MLOG_RECOVERY_MANUAL;
 constexpr MlogRecoveryMode INLINE = FENIX_MLOG_RECOVERY_INLINE;
 constexpr MlogRecoveryMode INLINE_AUTOSYNC =
   FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC;
+
+using SpareWaitMode           = Fenix_Spare_wait_mode;
+constexpr SpareWaitMode BUSY  = FENIX_SPARE_WAIT_BUSY;
+constexpr SpareWaitMode YIELD = FENIX_SPARE_WAIT_YIELD;
+constexpr SpareWaitMode SLEEP = FENIX_SPARE_WAIT_SLEEP;
 
 constexpr int STOREV_ALL = FENIX_STOREV_ALL;
 

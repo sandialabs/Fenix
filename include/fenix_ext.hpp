@@ -77,6 +77,7 @@ struct Settings {
   CallbackExceptionMode cb_exception = SQUASH;
   UnhandledMode unhandled            = ABORT;
   MlogRecoveryMode mlog_recovery     = MANUAL;
+  SpareWaitMode spare_wait           = YIELD;
 };
 
 // Configurations before init change this

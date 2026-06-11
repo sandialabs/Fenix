@@ -180,6 +180,8 @@ typedef enum {
     FENIX_CALLBACK_EXCEPTION_MODE,
     //!See #Fenix_Mlog_recovery_mode
     FENIX_MLOG_RECOVERY_MODE,
+    //!See #Fenix_Spare_wait_mode
+    FENIX_SPARE_WAIT_MODE,
 
     //!Not a valid option.
     FENIX_SETTING_NAME_MAXCODE
@@ -268,6 +270,22 @@ typedef enum {
     //!Not a valid option
     FENIX_UNHANDLED_MODE_MAXCODE
 } Fenix_Unhandled_mode;
+
+/**
+ * @brief Options for how spare ranks wait to be needed. Must be set before
+ * Fenix_Init to take effect.
+ */
+typedef enum {
+    //!Busy wait, consuming CPU time in exchange for faster response
+    FENIX_SPARE_WAIT_BUSY,
+    //!Tell MPI to yield this thread while waiting (if supported, else busy wait)
+    FENIX_SPARE_WAIT_YIELD,
+    //!Sleep 100ms between checks to see if this thread is needed for recovery
+    FENIX_SPARE_WAIT_SLEEP,
+
+    //!Not a valid option
+    FENIX_SPARE_WAIT_MODE_MAXCODE
+} Fenix_Spare_wait_mode;
 
 /**
  * @brief Options for dealing with CommExceptions generated in callbacks
