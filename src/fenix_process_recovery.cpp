@@ -56,6 +56,8 @@
 
 #include <assert.h>
 #include <sys/time.h>
+#include <chrono>
+#include <thread>
 
 #include <mpi.h>
 #ifndef MPICH_VERSION
@@ -73,6 +75,7 @@ static int __fenix_repair_ranks();
 static void __fenix_test_MPI(MPI_Comm*, int*, ...);
 static int* __fenix_get_fail_ranks(int *, int, int);
 static int __fenix_spare_rank();
+static void spare_rank_loop();
 static void __fenix_finalize_spare();
 
 static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr){
@@ -143,36 +146,7 @@ static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr)
 
     fenix_rt.fenix_init_flag = true;
 
-    while ( __fenix_spare_rank() == 1) {
-        int a, ret;
-        MPI_Status mpi_status;
-        {
-            util::ScopedIgnoreAndReturn opts;
-            ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
-                            *fenix_rt.world, &mpi_status);
-        }
-        if (ret == MPI_SUCCESS) {
-            if (fenix_rt.options.verbose == 0) {
-                verbose_print("Finalize the program; rank: %d, role: %d\n",
-                              __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role);
-            }
-            __fenix_finalize_spare();
-        } else if(ret == MPI_ERR_REVOKED){
-            fenix_rt.repair_result = __fenix_repair_ranks();
-            if (fenix_rt.options.verbose == 0) {
-                verbose_print("spare rank exiting from MPI_Recv - repair ranks; rank: %d, role: %d\n",
-                              __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role);
-            }
-        } else {
-#ifdef MPICH_VERSION
-            MPIX_Comm_failure_ack(*fenix_rt.world);
-#else
-            MPIX_Comm_ack_failed(*fenix_rt.world, __fenix_get_world_size(*fenix_rt.world), &a);
-#endif
-        }
-        fenix_rt.role = FENIX_ROLE_RECOVERED_RANK;
-    }
-
+    if(__fenix_spare_rank() == 1) spare_rank_loop();
     
     if(fenix_rt.role != FENIX_ROLE_RECOVERED_RANK) MPI_Comm_dup(fenix_rt.new_world, fenix_rt.user_world);
     fenix_rt.user_world_exists = true;
@@ -220,6 +194,81 @@ int __fenix_spare_rank_within(MPI_Comm refcomm)
         result = 1;
     }
     return result;
+}
+
+void spare_rank_loop() {
+    const bool yield_mode = get_option(SPARE_WAIT_MODE) == YIELD;
+    const bool sleep_mode = get_option(SPARE_WAIT_MODE) == SLEEP;
+
+    int provided_thread_level;
+    MPI_T_init_thread(MPI_THREAD_SINGLE, &provided_thread_level);
+
+    MPI_T_cvar_handle yield_cvar = MPI_T_CVAR_HANDLE_NULL;
+    bool old_yield_setting = false;
+    if (yield_mode) {
+        int idx, count;
+        int ret = MPI_T_cvar_get_index("mpi_yield_when_idle", &idx);
+        if (ret == MPI_SUCCESS) {
+            MPI_T_cvar_handle_alloc(idx, NULL, &yield_cvar, &count);
+            MPI_T_cvar_read(yield_cvar, &old_yield_setting);
+            MPI_T_cvar_write(yield_cvar, &yield_mode);
+        }
+    }
+
+    while (__fenix_spare_rank() == 1) {
+        int a, ret = MPI_SUCCESS, msg_found = true;
+        MPI_Status mpi_status;
+        {
+            util::ScopedIgnoreAndReturn opts;
+            int progress_count = 0;
+            while (sleep_mode) {
+                ret = PMPI_Iprobe(
+                    MPI_ANY_SOURCE, MPI_ANY_TAG, *fenix_rt.world, &msg_found,
+                    &mpi_status
+                );
+                if (ret == MPI_SUCCESS) {
+                    // Explicit check so older Open MPI versions still work
+                    int is_revoked;
+                    MPIX_Comm_is_revoked(*fenix_rt.world, &is_revoked);
+                    if (is_revoked) ret = MPI_ERR_REVOKED;
+                }
+
+                if (msg_found || ret != MPI_SUCCESS) break;
+                if (++progress_count >= 5) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    progress_count = 0;
+                }
+            }
+            if (ret == MPI_SUCCESS) {
+                ret = PMPI_Recv(
+                    &a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
+                    *fenix_rt.world, &mpi_status
+                );
+            }
+        }
+        if (ret == MPI_SUCCESS) {
+            __fenix_finalize_spare();
+        } else if (ret == MPI_ERR_REVOKED) {
+            fenix_rt.repair_result = __fenix_repair_ranks();
+        } else {
+#ifdef MPICH_VERSION
+            MPIX_Comm_failure_ack(*fenix_rt.world);
+#else
+            MPIX_Comm_ack_failed(
+                *fenix_rt.world, __fenix_get_world_size(*fenix_rt.world), &a
+            );
+#endif
+        }
+    }
+
+    // Cleanup before exiting as a recovered rank
+    if (yield_cvar != MPI_T_CVAR_HANDLE_NULL) {
+        MPI_T_cvar_write(yield_cvar, &old_yield_setting);
+        MPI_T_cvar_handle_free(&yield_cvar);
+    }
+    MPI_T_finalize();
+
+    fenix_rt.role = FENIX_ROLE_RECOVERED_RANK;
 }
 
 int __fenix_create_new_world_from(MPI_Comm from_comm)
