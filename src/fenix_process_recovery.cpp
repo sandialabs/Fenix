@@ -810,6 +810,8 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
     }
 }
 
+int comm_revoke(MPI_Comm comm) { return MPIX_Comm_revoke(comm); }
+
 } // namespace fenix
 
 using namespace fenix;
