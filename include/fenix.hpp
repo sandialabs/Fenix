@@ -175,6 +175,9 @@ bool initialized();
 //!@brief Overload of #Fenix_Finalized that directly returns true if finalized
 bool finalized();
 
+//!@brief Overload of #MPI_Comm_revoke for apps to use until next MPI release
+int comm_revoke(MPI_Comm comm);
+
 } // namespace fenix
 
 namespace fenix::data {
