@@ -286,11 +286,23 @@ int Fenix_Data_group_create(
   FENIX_C_API_END
 }
 
+int Fenix_Data_group_created(int group_id) {
+  FENIX_C_API_BEGIN
+  return group_created(group_id);
+  FENIX_C_API_END
+}
+
 int Fenix_Data_member_create(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
 ) {
   FENIX_C_API_BEGIN
   return member_create(group_id, member_id, buffer, count, datatype);
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_created(int group_id, int member_id) {
+  FENIX_C_API_BEGIN
+  return member_created(group_id, member_id);
   FENIX_C_API_END
 }
 
