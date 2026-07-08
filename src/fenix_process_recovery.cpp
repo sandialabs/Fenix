@@ -56,6 +56,8 @@
 
 #include <assert.h>
 #include <sys/time.h>
+#include <chrono>
+#include <thread>
 
 #include <mpi.h>
 #ifndef MPICH_VERSION
@@ -73,6 +75,7 @@ static int __fenix_repair_ranks();
 static void __fenix_test_MPI(MPI_Comm*, int*, ...);
 static int* __fenix_get_fail_ranks(int *, int, int);
 static int __fenix_spare_rank();
+static void spare_rank_loop();
 static void __fenix_finalize_spare();
 
 static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr){
@@ -143,36 +146,7 @@ static int preinit(const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr)
 
     fenix_rt.fenix_init_flag = true;
 
-    while ( __fenix_spare_rank() == 1) {
-        int a, ret;
-        MPI_Status mpi_status;
-        {
-            util::ScopedIgnoreAndReturn opts;
-            ret = PMPI_Recv(&a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
-                            *fenix_rt.world, &mpi_status);
-        }
-        if (ret == MPI_SUCCESS) {
-            if (fenix_rt.options.verbose == 0) {
-                verbose_print("Finalize the program; rank: %d, role: %d\n",
-                              __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role);
-            }
-            __fenix_finalize_spare();
-        } else if(ret == MPI_ERR_REVOKED){
-            fenix_rt.repair_result = __fenix_repair_ranks();
-            if (fenix_rt.options.verbose == 0) {
-                verbose_print("spare rank exiting from MPI_Recv - repair ranks; rank: %d, role: %d\n",
-                              __fenix_get_current_rank(*fenix_rt.world), fenix_rt.role);
-            }
-        } else {
-#ifdef MPICH_VERSION
-            MPIX_Comm_failure_ack(*fenix_rt.world);
-#else
-            MPIX_Comm_ack_failed(*fenix_rt.world, __fenix_get_world_size(*fenix_rt.world), &a);
-#endif
-        }
-        fenix_rt.role = FENIX_ROLE_RECOVERED_RANK;
-    }
-
+    if(__fenix_spare_rank() == 1) spare_rank_loop();
     
     if(fenix_rt.role != FENIX_ROLE_RECOVERED_RANK) MPI_Comm_dup(fenix_rt.new_world, fenix_rt.user_world);
     fenix_rt.user_world_exists = true;
@@ -220,6 +194,81 @@ int __fenix_spare_rank_within(MPI_Comm refcomm)
         result = 1;
     }
     return result;
+}
+
+void spare_rank_loop() {
+    const bool yield_mode = get_option(SPARE_WAIT_MODE) == YIELD;
+    const bool sleep_mode = get_option(SPARE_WAIT_MODE) == SLEEP;
+
+    int provided_thread_level;
+    MPI_T_init_thread(MPI_THREAD_SINGLE, &provided_thread_level);
+
+    MPI_T_cvar_handle yield_cvar = MPI_T_CVAR_HANDLE_NULL;
+    bool old_yield_setting = false;
+    if (yield_mode) {
+        int idx, count;
+        int ret = MPI_T_cvar_get_index("mpi_yield_when_idle", &idx);
+        if (ret == MPI_SUCCESS) {
+            MPI_T_cvar_handle_alloc(idx, NULL, &yield_cvar, &count);
+            MPI_T_cvar_read(yield_cvar, &old_yield_setting);
+            MPI_T_cvar_write(yield_cvar, &yield_mode);
+        }
+    }
+
+    while (__fenix_spare_rank() == 1) {
+        int a, ret = MPI_SUCCESS, msg_found = true;
+        MPI_Status mpi_status;
+        {
+            util::ScopedIgnoreAndReturn opts;
+            int progress_count = 0;
+            while (sleep_mode) {
+                ret = PMPI_Iprobe(
+                    MPI_ANY_SOURCE, MPI_ANY_TAG, *fenix_rt.world, &msg_found,
+                    &mpi_status
+                );
+                if (ret == MPI_SUCCESS) {
+                    // Explicit check so older Open MPI versions still work
+                    int is_revoked;
+                    MPIX_Comm_is_revoked(*fenix_rt.world, &is_revoked);
+                    if (is_revoked) ret = MPI_ERR_REVOKED;
+                }
+
+                if (msg_found || ret != MPI_SUCCESS) break;
+                if (++progress_count >= 5) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    progress_count = 0;
+                }
+            }
+            if (ret == MPI_SUCCESS) {
+                ret = PMPI_Recv(
+                    &a, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
+                    *fenix_rt.world, &mpi_status
+                );
+            }
+        }
+        if (ret == MPI_SUCCESS) {
+            __fenix_finalize_spare();
+        } else if (ret == MPI_ERR_REVOKED) {
+            fenix_rt.repair_result = __fenix_repair_ranks();
+        } else {
+#ifdef MPICH_VERSION
+            MPIX_Comm_failure_ack(*fenix_rt.world);
+#else
+            MPIX_Comm_ack_failed(
+                *fenix_rt.world, __fenix_get_world_size(*fenix_rt.world), &a
+            );
+#endif
+        }
+    }
+
+    // Cleanup before exiting as a recovered rank
+    if (yield_cvar != MPI_T_CVAR_HANDLE_NULL) {
+        MPI_T_cvar_write(yield_cvar, &old_yield_setting);
+        MPI_T_cvar_handle_free(&yield_cvar);
+    }
+    MPI_T_finalize();
+
+    fenix_rt.role = FENIX_ROLE_RECOVERED_RANK;
 }
 
 int __fenix_create_new_world_from(MPI_Comm from_comm)
@@ -270,6 +319,7 @@ int __fenix_create_new_world(){
 int __fenix_repair_ranks()
 {
     util::ScopedIgnoreAndReturn scoped_opts;
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
     int recovery = scoped_opts.recovery.old;
     if(recovery == NOOP) return FENIX_SUCCESS;
 
@@ -624,20 +674,37 @@ int __fenix_spare_rank(){
 }
 
 int detect_failures(bool do_recovery) {
+#ifdef FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS
+    // Special handling b/c we're doing things outside the API macro
+    if (!initialized()) return FENIX_ERROR_UNINITIALIZED;
+#endif
+    // Create the IgnoreAndReturn scoped option if recovery is disabled.
+    // Doing this outside of the API macro so the function behaves as if the
+    // user had these settings on.
+    std::optional<util::ScopedIgnoreAndReturn> scoped_opts;
+    if (!do_recovery) scoped_opts.emplace();
+    const bool must_return = get_option(RESUME_MODE) == RETURN;
+
     FENIX_CPP_API_BEGIN
-    if(!fenix_rt.new_world_exists) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
+    util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
+    const bool inline_recovery = scoped_mlog.old_inline_recovery;
 
-    if (!do_recovery) {
-        util::ScopedIgnoreAndReturn scoped_opts;
-        return detect_failures(true);
+    while (true) {
+        try {
+            int flag;
+            int ret = MPI_Test(
+                &fenix_rt.check_failures_req, &flag, MPI_STATUS_IGNORE
+            );
+            fenix_assert(!flag, "DETECT_FAILURES_TAG should never be used");
+            if (ret == MPI_SUCCESS) return FENIX_SUCCESS;
+            else if (!inline_recovery) return FENIX_ERROR_PROCESS_FAILURE;
+        } catch (const CommException& e) {
+            if (!inline_recovery) {
+                if (must_return) return FENIX_ERROR_PROCESS_FAILURE;
+                else throw;
+            }
+        }
     }
-
-    int req_completed;
-    int ret = MPI_Test(
-        &fenix_rt.check_failures_req, &req_completed, MPI_STATUS_IGNORE
-    );
-    if(req_completed) FENIX_THROW(FENIX_ERROR_INTERN);
-    return ret;
     FENIX_CPP_API_END
 }
 
@@ -687,6 +754,7 @@ void __fenix_finalize_spare()
 
 void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 {
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
     fenix_rt.mpi_fail_code = *pret;
 
     if(!fenix_rt.fenix_init_flag) return;
@@ -720,16 +788,14 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
 
     default:
         // This is an error type not handled by Fenix
-        int len;
-        char errstr[MPI_MAX_ERROR_STRING];
-        MPI_Error_string(fenix_rt.mpi_fail_code, errstr, &len);
+        std::string errstr = util::mpi_error_string(fenix_rt.mpi_fail_code);
         switch (fenix_rt.settings.unhandled) {
         case ABORT:
-            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr.c_str());
             MPI_Abort(*fenix_rt.world, 1);
             break;
         case PRINT:
-            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr);
+            fprintf(stderr, "UNHANDLED ERR: %s\n", errstr.c_str());
             break;
         case SILENT:
             break;
@@ -743,6 +809,8 @@ void __fenix_test_MPI(MPI_Comm *pcomm, int *pret, ...)
         }
     }
 }
+
+int comm_revoke(MPI_Comm comm) { return MPIX_Comm_revoke(comm); }
 
 } // namespace fenix
 
@@ -765,17 +833,24 @@ int __fenix_preinit(
 
 void __fenix_postinit()
 {
+    util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
     *fenix_rt.ret_role = fenix_rt.role;
     *fenix_rt.ret_error = fenix_rt.repair_result;
 
     if(fenix_rt.new_world_exists){
         //Set up dummy irecv to use for checking for failures.
         MPI_Irecv(&fenix_rt.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
-                  1234, fenix_rt.new_world, &fenix_rt.check_failures_req);
+                  tags::DETECT_FAILURES_TAG, fenix_rt.new_world,
+                  &fenix_rt.check_failures_req);
     }
 
     if(fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
         callback_invoke_all();
+        if (fenix_rt.settings.mlog_recovery == INLINE_AUTOSYNC) {
+            for (int mlog_id : fenix_rt.mlog_order) {
+                mlog::sync(mlog_id, FENIX_MLOG_CONTINUE);
+            }
+        }
     }
 
     if (fenix_rt.options.verbose == 9) {
@@ -786,21 +861,30 @@ void __fenix_postinit()
 
 int Fenix_Finalize() {
     FENIX_C_API_BEGIN
-    int location = FENIX_FINALIZE_LOC;
-    MPIX_Comm_agree(*fenix_rt.user_world, &location);
-    if(location != FENIX_FINALIZE_LOC){
-        //Some ranks are in error recovery, so trigger error handling.
-        MPIX_Comm_revoke(*fenix_rt.user_world);
-        MPI_Barrier(*fenix_rt.user_world);
+    util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
+    bool inline_recovery = scoped_mlog.old_inline_recovery;
 
-        //In case no-jump enabled after recovery
-        return Fenix_Finalize();
-    }
+    int location = FENIX_FINALIZE_LOC;
+    do {
+        MPIX_Comm_agree(*fenix_rt.user_world, &location);
+        if(location != FENIX_FINALIZE_LOC){
+            //Some ranks are in error recovery, so trigger error handling.
+            MPIX_Comm_revoke(*fenix_rt.user_world);
+            if (inline_recovery) {
+                // If we are doing inline recovery for this function, set errors
+                // to return so we can just keep retrying this barrier.
+                util::ScopedOption(FENIX_RESUME_MODE, RETURN);
+                MPI_Barrier(*fenix_rt.user_world);
+            } else {
+                MPI_Barrier(*fenix_rt.user_world);
+            }
+        }
+    } while (location != FENIX_FINALIZE_LOC);
 
     int first_spare_rank = __fenix_get_world_size(*fenix_rt.user_world);
     int last_spare_rank = __fenix_get_world_size(*fenix_rt.world) - 1;
 
-    //If we've reached here, we will finalized regardless of further errors.
+    //If we've reached here, we will finalize regardless of further errors.
     fenix_rt.settings.recovery = IGNORE;
     fenix_rt.settings.resume = RETURN;
     while(!fenix_rt.finalized){

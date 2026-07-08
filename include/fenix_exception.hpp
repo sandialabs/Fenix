@@ -66,11 +66,12 @@
 namespace fenix {
 
 struct CommException : public std::exception {
-  CommException(MPI_Comm comm, int err)
-    : repaired_comm(comm), fenix_err(err) {};
-    
+  CommException(MPI_Comm comm, int fenix_error, int mpi_error)
+    : repaired_comm(comm), fenix_err(fenix_error), mpi_err(mpi_error) {};
+
   MPI_Comm repaired_comm;
   const int fenix_err;
+  const int mpi_err;
 };
 
 struct RuntimeException : public std::exception {

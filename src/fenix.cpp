@@ -196,6 +196,8 @@ void set_option(SettingName setting, unsigned option) {
     SET_OPTION_CASE(RESUME, resume);
     SET_OPTION_CASE(UNHANDLED, unhandled);
     SET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
+    SET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
+    SET_OPTION_CASE(SPARE_WAIT, spare_wait);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -212,6 +214,8 @@ unsigned get_option(SettingName setting) {
     GET_OPTION_CASE(RESUME, resume);
     GET_OPTION_CASE(UNHANDLED, unhandled);
     GET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
+    GET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
+    GET_OPTION_CASE(SPARE_WAIT, spare_wait);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -219,7 +223,9 @@ unsigned get_option(SettingName setting) {
 
 void throw_exception() {
   assert(initialized());
-  throw CommException(*fenix_rt.user_world, *fenix_rt.ret_error);
+  throw CommException(
+    *fenix_rt.user_world, *fenix_rt.ret_error, MPI_ERR_UNKNOWN
+  );
 }
 
 Fenix_Rank_role role() {
@@ -252,6 +258,19 @@ const DataSubset& SUBSET_FULL      = SUBSET_FULL_IMPL;
 const DataSubset& SUBSET_EMPTY     = SUBSET_EMPTY_IMPL;
 const DataSubset& SUBSET_PRESTAGED = SUBSET_PRESTAGED_IMPL;
 DataSubset SUBSET_IGNORE           = SUBSET_EMPTY;
+
+int group_create(int group_id, GroupCreateArgs args) {
+  FENIX_CPP_API_BEGIN
+  if (args.comm == MPI_COMM_NULL) args.comm = *fenix_rt.user_world;
+  int ignore;
+  if (args.flag == nullptr) args.flag = &ignore;
+  return group_create(
+    group_id, args.comm, args.start_time_stamp, args.depth, args.policy_name,
+    args.policy_value, args.flag
+  );
+  FENIX_CPP_API_END
+}
+
 } // namespace data
 
 } //namespace fenix
@@ -334,6 +353,23 @@ int Fenix_Data_commit(int group_id, int* time_stamp) {
 int Fenix_Data_commit_barrier(int group_id, int* time_stamp) {
   FENIX_C_API_BEGIN
   return commit_barrier(group_id, time_stamp);
+  FENIX_C_API_END
+}
+
+int Fenix_Data_checkpoint(
+  int group_id, const Fenix_Data_subset subset, int num_storev, int* storev_ids,
+  int* time_stamp
+) {
+  FENIX_C_API_BEGIN
+  if (num_storev == FENIX_STOREV_ALL) {
+    return checkpointv(group_id, *(DataSubset*)subset.impl, time_stamp);
+  } else {
+    std::vector<int> ids;
+    for (int i = 0; i < num_storev; i++) {
+      ids.push_back(storev_ids[i]);
+    }
+    return checkpoint(group_id, *(DataSubset*)subset.impl, ids, time_stamp);
+  }
   FENIX_C_API_END
 }
 
@@ -424,5 +460,62 @@ int Fenix_Data_group_delete(int group_id) {
 int Fenix_Data_member_delete(int group_id, int member_id) {
   FENIX_C_API_BEGIN
   return member_delete(group_id, member_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_create(int mlog_id, MPI_Comm* comm, int depth) {
+  FENIX_C_API_BEGIN
+  return mlog::create(mlog_id, *comm, depth);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_activate(int mlog_id) {
+  FENIX_C_API_BEGIN
+  return mlog::activate(mlog_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_active(int* mlog_id) {
+  FENIX_C_API_BEGIN
+  *mlog_id = mlog::active();
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_begin_region(int mlog_id, int region_id) {
+  FENIX_C_API_BEGIN
+  return mlog::begin_region(mlog_id, region_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_activate_region(int mlog_id, int region_id) {
+  FENIX_C_API_BEGIN
+  return mlog::activate(mlog_id, region_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_sync(int mlog_id, int region_id) {
+  FENIX_C_API_BEGIN
+  return mlog::sync(mlog_id, region_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id) {
+  FENIX_C_API_BEGIN
+  return mlog::stage(mlog_id, group_id, member_id);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_lrestore(
+  int mlog_id, int group_id, int member_id, int time_stamp
+) {
+  FENIX_C_API_BEGIN
+  return mlog::lrestore(mlog_id, group_id, member_id, time_stamp);
+  FENIX_C_API_END
+}
+
+int Fenix_Mlog_delete(int mlog_id) {
+  FENIX_C_API_BEGIN
+  return mlog::mlog_delete(mlog_id);
   FENIX_C_API_END
 }

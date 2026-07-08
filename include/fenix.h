@@ -121,6 +121,10 @@ typedef enum {
     FENIX_ERROR_CANCELLED,
     FENIX_ERROR_INVALID_SETTING_NAME,
     FENIX_ERROR_INVALID_SETTING_OPTION,
+    FENIX_ERROR_INVALID_MLOGID,
+    FENIX_ERROR_MLOG_EXISTS,
+    FENIX_ERROR_MLOG_LIBRARY_UNAVAILABLE,
+    FENIX_ERROR_PROCESS_FAILURE,
     //Warnings are positive
     FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
     FENIX_WARNING_PARTIAL_RESTORE,
@@ -129,7 +133,7 @@ typedef enum {
 
 //!@internal @brief Agreement code for error handler
 #define FENIX_ERRHANDLER_LOC		      1
-//!@internal @brief Agreement code for finalize
+//!@internal @brief Agreement code for finalizet
 #define FENIX_FINALIZE_LOC		      2
 //!@internal @brief Agreement code for data commit barrier
 #define FENIX_DATA_COMMIT_BARRIER_LOC	      4
@@ -174,6 +178,10 @@ typedef enum {
     FENIX_UNHANDLED_MODE,
     //!See #Fenix_Callback_exception_mode
     FENIX_CALLBACK_EXCEPTION_MODE,
+    //!See #Fenix_Mlog_recovery_mode
+    FENIX_MLOG_RECOVERY_MODE,
+    //!See #Fenix_Spare_wait_mode
+    FENIX_SPARE_WAIT_MODE,
 
     //!Not a valid option.
     FENIX_SETTING_NAME_MAXCODE
@@ -200,6 +208,27 @@ typedef enum {
     FENIX_RECOVERY_MODE_MAXCODE
 } Fenix_Recovery_mode;
 
+typedef enum {
+    //!All message logging recovery is manual
+    FENIX_MLOG_RECOVERY_MANUAL,
+    /**
+     * @brief Automatically repeats failed, logged MPI operations without
+     *        disrupting normal application control flow.
+     * 
+     * User is responsible for handling any recovery steps in Fenix callbacks.
+     */
+    FENIX_MLOG_RECOVERY_INLINE,
+    /**
+     * @brief As INLINE, but automatically sync logs with FENIX_MLOG_CONTINUE.
+     * 
+     * Invoked after post-recovery callbacks, immediately before resuming.
+     * Invoked regardless of the logged-or-not status of the failing message.
+     */
+    FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC,
+
+    //!Not a valid option
+    FENIX_MLOG_RECOVERY_MODE_MAXCODE
+} Fenix_Mlog_recovery_mode;
 /**
  * @brief Options for passing control back to application after recovery.
  */
@@ -241,6 +270,22 @@ typedef enum {
     //!Not a valid option
     FENIX_UNHANDLED_MODE_MAXCODE
 } Fenix_Unhandled_mode;
+
+/**
+ * @brief Options for how spare ranks wait to be needed. Must be set before
+ * Fenix_Init to take effect.
+ */
+typedef enum {
+    //!Busy wait, consuming CPU time in exchange for faster response
+    FENIX_SPARE_WAIT_BUSY,
+    //!Tell MPI to yield this thread while waiting (if supported, else busy wait)
+    FENIX_SPARE_WAIT_YIELD,
+    //!Sleep 100ms between checks to see if this thread is needed for recovery
+    FENIX_SPARE_WAIT_SLEEP,
+
+    //!Not a valid option
+    FENIX_SPARE_WAIT_MODE_MAXCODE
+} Fenix_Spare_wait_mode;
 
 /**
  * @brief Options for dealing with CommExceptions generated in callbacks
@@ -384,7 +429,9 @@ int Fenix_get_option(Fenix_Setting_name setting, unsigned* option);
  * callback data.
  *
  * Callbacks will only be invoked by survivor ranks, since spare ranks or respawned ranks had no way
- * to register them before a failure. 
+ * to register them before a failure.
+ *
+ * Any active mlog will be deactivated for the duration of callbacks.
  *
  * @param[in] recover the callback function to register.
  * @param[in] callback_data The user-provided data which will be passed to the callback.
@@ -408,10 +455,28 @@ int Fenix_Callback_invoke_all();
 
 /**
  * @brief Check for any failed ranks
+ * @qualifier local
  *
- * @param[in] do_recovery If true, Fenix will attempt to recover from any detected failures.
- *   Else, it will ignore any failures and simply return the MPI return code.
- * @return MPI_SUCCESS if no failures were detected, else the MPI return code.
+ * This function is a local best-effort check for detecting any failed ranks. It
+ * does not perform communication, and does not guarantee a consistent view
+ * across ranks in the way an MPI_Comm_agree would. This function's goal is to
+ * allow applications with long periods of compute between communication to
+ * more quickly respond to failures during those periods of compute.
+ *
+ * If recovery is enabled, this will behave exactly as a failed MPI operation.
+ * Otherwise, this function behaves as if #FENIX_RECOVERY_IGNORE and
+ * #FENIX_RESUME_RETURN are set and returns FENIX_ERROR_PROCESS_FAILURE
+ * if any rank failures are detected on the resilient communicator provided by
+ * Fenix.
+ *
+ * If recovery is enabled and inline recovery is active (see
+ * #Fenix_Mlog_activate), this function supports inline recovery. In this case,
+ * any detected errors are recovered but the #FENIX_RESUME_MODE is ignored. The
+ * function will automatically replay after recovery until no failures are
+ * detected.
+ *
+ * @param[in] do_recovery Whether to enable recovery for this function.
+ * @returnstatus
  */
 int Fenix_Process_detect_failures(int do_recovery);
 
@@ -459,6 +524,10 @@ int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
  * recover from failures (and therefore are still reserved by Fenix and kept inside #Fenix_Init) will call 
  * \c MPI_Finalize and exit when all active ranks have called \c Fenix_Finalize.
  *
+ * Supports inline recovery when it is active (see #Fenix_Mlog_activate). In
+ * this case, a rank will not leave this function until success (or an error
+ * with the message logs).
+ *
  * **Advice**: Sometimes users may want to remove ranks proactively from the execution, for example because
  * monitoring data shows that failure of a rank is imminent or that a rank is executing un-manageably slowly.
  * This can be accomplished by calling \c exit on the targeted ranks, followed by an invocation of MPI_Barrier.
@@ -488,6 +557,7 @@ int Fenix_Finalize();
 #define FENIX_DATA_SNAPSHOT_ALL              -2
 #define FENIX_RESIZEABLE                      0
 #define FENIX_DATA_SUBSET_CREATED             2
+#define FENIX_STOREV_ALL                     -1
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID     13
 #define FENIX_DATA_POLICY_IMR                FENIX_DATA_POLICY_IN_MEMORY_RAID
@@ -509,7 +579,7 @@ typedef struct {
  * Must be initialized (via #Fenix_Data_subset_create or
  * #Fenix_Data_subset_createv) before using as an input parameter.
  *
- * Must be uninitialized or freed (#Fenix_Data_subset_free) before using as an
+ * Must be uninitialized or deleted (#Fenix_Data_subset_delete) before using as an
  * output parameter to avoid data leaks.
  */
 typedef struct {
@@ -631,7 +701,7 @@ int Fenix_Data_test(Fenix_Request request, int *flag);
 
 /**
  * @brief Serialize a group member's data into the member's local store.
- * 
+ *
  * A store operation can broken into two parts: locally staging the data within
  * Fenix, then policy-specific operations to make the data resilient to faults.
  * This function performs ONLY the first part. Applications should subsequently
@@ -725,6 +795,33 @@ int Fenix_Data_commit(int group_id, int *time_stamp);
  * @returnstatus
  */
 int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
+
+/**
+ * @brief Store all members of a group and then commit that group.
+ * @qualifier collective
+ *
+ * Stores each member in order of their creation in the group. Equivalent to
+ * invoking #Fenix_Data_member_store with the specified subset. If a member's
+ * id is listed in storev_ids, this is instead equivalent to invoking
+ * #Fenix_Data_member_storev.
+ *
+ * After storing, equivalent to invoking #Fenix_Data_commit.
+ *
+ * This function supports inline recovery when it is active (see
+ * #Fenix_Mlog_activate).
+ *
+ * @param[in] group_id The group to checkpoint
+ * @param[in] subset The subset of each member to store.
+ * @param[in] num_storev The size of the storev_ids array, or
+ *                       FENIX_STOREV_ALL.
+ * @param[in] storev_ids Array of member ids to store as storev.
+ *                       May be null if num_storev is zero or
+ *                       FENIX_STOREV_ALL.
+ * @param[out] time_stamp Pointer to store the time stamp of the commit to, or
+ *                        FENIX_TIME_STAMP_IGNORE.
+ */
+int Fenix_Data_checkpoint(int group_id, const Fenix_Data_subset subset,
+                          int num_storev, int* storev_ids, int* time_stamp);
 
 //!@unimplemented Block until all ranks in the group have reached this point.
 int Fenix_Data_barrier(int group_id);
@@ -887,8 +984,8 @@ int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename,
 /**
  * @brief Set the value of a member's attribute.
  *
- * Valid names are #FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, #FENIX_DATA_MEMBER_ATTRIBUTE_COUNT,
- * and #FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE.
+ * Valid names are FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT,
+ * and FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE.
  *
  * The COUNT and DATATYPE attributes may only be set before the first store operation.
  * Contrary to the Fenix specification, returning to #Fenix_Init after a failure does not 
@@ -932,6 +1029,139 @@ int Fenix_Data_group_delete(int group_id);
  * @returnstatus
  */
 int Fenix_Data_member_delete(int group_id, int member_id);
+/**@}*/
+
+/**
+ * @defgroup Mlog Message Logging
+ * @brief Functions for logging and replaying MPI messages after faults
+ *
+ * @{
+ */
+
+#define FENIX_MLOG_NONE     -1
+#define FENIX_MLOG_CONTINUE -1
+
+/**
+ * @brief Create a new message logger
+ * @qualifier local
+ *
+ * @param[in] mlog_id A unique identifier (>= 0) for this message logger
+ * @param[in] comm The MPI_Comm to log messages from.
+ *            Must be repaired after failures.
+ * @param[in] depth Number of regions to keep in logs at once.
+ *            Older regions will be deleted automatically.
+ * @returnstatus
+ */
+int Fenix_Mlog_create(int mlog_id, MPI_Comm* comm, int depth);
+
+/**
+ * @brief Active a given mlog, deactivating any previously active mlog.
+ * @qualifier local
+ *
+ * Only the active mlog can log messages. If any errors occur, no mlog will be
+ * active (even if one was active before).
+ *
+ * Fenix functions will not be logged, regardless of any active mlog. However,
+ * some functions may support inline recovery if it is active. These functions
+ * will specify for themselves if they support inline recovery. There are three
+ * conditions for inline recovery to be active:
+ *   1. FENIX_MLOG_RECOVERY_MODE is not FENIX_MLOG_RECOVERY_MANUAL
+ *   2. FENIX_RECOVERY_MODE is not FENIX_RECOVERY_IGNORE
+ *   3. An mlog is active.
+ *
+ * @param[in] mlog_id The log to activate. May be FENIX_MLOG_NONE.
+ * @returnstatus
+ */
+int Fenix_Mlog_activate(int mlog_id);
+
+/**
+ * @brief Get the currently active message log
+ * @qualifier local
+ *
+ * @param[out] mlog_id The active log, may be FENIX_MLOG_NONE
+ * @returnstatus
+ */
+int Fenix_Mlog_active(int* mlog_id);
+
+/**
+ * @brief Set the region of the given message logger.
+ * @qualifier local
+ *
+ * @param[in] mlog_id The logger to set the region of
+ * @param[in] region_id The region ID to set
+ *            Must be positive and greater than current region_id (may equal
+ *            current region_id if no messages have been logged in the region)
+ * @returnstatus
+ */
+int Fenix_Mlog_begin_region(int mlog_id, int region_id);
+
+/**
+ * @brief Activate the mlog and begin the region
+ * @qualifier local
+ *
+ * This helper function is equivalent to:
+ *   Fenix_Mlog_activate(mlog_id);
+ *   Fenix_Mlog_begin_region(mlog_id, region_id);
+ *
+ * @param[in] mlog_id The logger to activate and set the region of
+ * @param[in] region_id The region ID to set, with the same semantics as
+ *            #Fenix_Mlog_begin_region
+ * @returnstatus
+ */
+int Fenix_Mlog_activate_region(int mlog_id, int region_id);
+
+/**
+ * @brief Synchronize messages across ranks each starting at their given region
+ * @qualifier collective
+ *
+ * Ranks recovering to later states will replay messages to ranks recovering to
+ * earlier states.
+ *
+ * @param[in] mlog_id The logger to sync
+ * @param[in] region_id The region that this rank will begin at.
+ *            May be FENIX_MLOG_CONTINUE, in which case this rank will recover
+ *            to its latest region's latest message state (instead of restarting
+ *            the region)
+ * @returnstatus
+ */
+int Fenix_Mlog_sync(int mlog_id, int region_id);
+
+/**
+ * @brief Stage an mlog's data into a Fenix data member
+ * @qualifier local
+ *
+ * @param[in] mlog_id   The mlog to stage.
+ * @param[in] group_id  The group to stage into.
+ * @param[in] member_id The member to stage into.
+ *                      The member does not have to already exist.
+ *                      If the member already exists, it must have been created
+ *                      with size FENIX_RESIZEABLE and datatype MPI_BYTE
+ * @returnstatus
+ */
+int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id);
+
+/**
+ * @brief Restore an mlog from a Fenix data member's local snapshot
+ * @qualifier local
+ *
+ * @param[in] mlog_id    The mlog to restore.
+ * @param[in] group_id   The group to restore from.
+ * @param[in] member_id  The member to restore from.
+ * @param[in] time_stamp The time stamp of the snapshot to restore from.
+ * @returnstatus
+ */
+int Fenix_Mlog_lrestore(int mlog_id, int group_id, int member_id,
+                        int time_stamp);
+
+/**
+ * @brief Delete an mlog
+ * @qualifier local
+ *
+ * @param[in] mlog_id The mlog to delete
+ * @returnstatus
+ */
+int Fenix_Mlog_delete(int mlog_id);
+
 /**@}*/
 
 #if defined(c_plusplus) || defined(__cplusplus)

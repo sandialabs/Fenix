@@ -56,7 +56,8 @@
 #ifndef __FENIX_DATA_GROUP_H__
 #define __FENIX_DATA_GROUP_H__
 
-#include <map>
+#include <unordered_map>
+#include <vector>
 #include <source_location>
 
 #include <mpi.h>
@@ -83,7 +84,9 @@ struct fenix_group_t {
     int timestamp;
     int depth;
     int policy_name;
-    std::map<int, fenix_member_entry_t> members;
+    std::unordered_map<int, fenix_member_entry_t> members;
+    // Kept in order of creation
+    std::vector<int> member_order;
 
     std::vector<int> get_member_ids();
     //Search for id, returning null if not found.
