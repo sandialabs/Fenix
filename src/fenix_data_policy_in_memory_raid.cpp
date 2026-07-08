@@ -202,6 +202,8 @@ void Member::stage(const DataSubset& subset){
    subset.copy_data(e.elm_size, e.elm_max_count, mentry.user_data, e.buf);
 }
 
+void Member::unstage() { entries.back().reset(); }
+
 tasks::Task<int> Member::istorev(const DataSubset& subset){
    if (subset == SUBSET_PRESTAGED) {
       Entry& e = entries.back();
@@ -528,9 +530,6 @@ int ParityMember::restore_impl(){
 int Member::lrestore(
    char* target, int max_restore, int timestamp, DataSubset& recovered
 ){
-   //Restoring always clears the commit buffer
-   entries.back().reset();
-
    int end = 0;
    if(timestamp == FENIX_DATA_SNAPSHOT_LATEST){
       if(entries[entries.size()-2].timestamp >= 0){
@@ -749,6 +748,12 @@ void Group::member_stage(int member_id, const DataSubset& subset) {
    auto iter = member_data.find(member_id);
    if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
    iter->second->stage(subset);
+}
+
+void Group::member_unstage(int member_id) {
+   auto iter = member_data.find(member_id);
+   if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+   iter->second->unstage();
 }
 
 int Group::member_store(int member_id, const DataSubset& subset){

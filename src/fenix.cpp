@@ -294,6 +294,20 @@ int Fenix_Data_member_create(
   FENIX_C_API_END
 }
 
+int Fenix_Data_member_stage(
+  int group_id, int member_id, const Fenix_Data_subset subset
+) {
+  FENIX_C_API_BEGIN
+  return member_stage(group_id, member_id, *(DataSubset*)subset.impl);
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_unstage(int group_id, int member_id) {
+  FENIX_C_API_BEGIN
+  return member_unstage(group_id, member_id);
+  FENIX_C_API_END
+}
+
 int Fenix_Data_member_store(
   int group_id, int member_id, const Fenix_Data_subset subset
 ) {

@@ -720,6 +720,17 @@ int Fenix_Data_member_stage(int group_id, int member_id,
                             const Fenix_Data_subset subset_specifier);
 
 /**
+ * @brief Clear all uncommitted staged and stored data from this member.
+ *
+ * Possibly useful following a failure between storing and committing data.
+ * Most of the time, applications can simply overwrite any old data.
+ *
+ * @param group_id All ranks must provide the same group_id
+ * @param member_id All ranks must provide the same member_id
+ */
+int Fenix_Data_member_unstage(int group_id, int member_id);
+
+/**
  * @brief Store a particular group member into the group's resilient storage space, in uncommitted storage.
  * @qualifier collective
  *
