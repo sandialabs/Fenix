@@ -66,35 +66,39 @@
 #ifdef MPI_VERSION
 #define FENIX_ABORT()                                                          \
   do {                                                                         \
-    int mpi_is_init;                                                           \
-    MPI_Initialized(&mpi_is_init);                                             \
-    if (mpi_is_init) MPI_Abort(MPI_COMM_WORLD, 1);                             \
+    int mpi_is_init_;                                                          \
+    MPI_Initialized(&mpi_is_init_);                                            \
+    if (mpi_is_init_) MPI_Abort(MPI_COMM_WORLD, 1);                            \
     abort();                                                                   \
   } while (0)
 #else
 #define FENIX_ABORT() abort()
 #endif
 
-// Helpers needing to support printing w/o any user-supplied format args
-// Supports up to 10 args
-// Functions should be named base_name_s for 1 args or base_name_a otherwise
-#define FN_SUFF_I(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, NAME, ...) NAME
-#define FN_SUFF(...)                                                           \
-  FN_SUFF_I(__VA_ARGS__, _a, _a, _a, _a, _a, _a, _a, _a, _a, _s)
-#define FN_SUFF_MERGE_IMPL(fn, suff) fn##suff
-#define FN_SUFF_MERGE(fn, suff) FN_SUFF_MERGE_IMPL(fn, suff)
-#define FN_NAME(base_name, ...) FN_SUFF_MERGE(base_name, FN_SUFF(__VA_ARGS__))
+#define traced_print_impl(file, fmt, ...)                                      \
+  fprintf(                                                                     \
+    file, "%s:%d %s(): " fmt "\n", __FILE__, __LINE__,                         \
+    __func__ __VA_OPT__(, ) __VA_ARGS__                                        \
+  )
 
-#define TRACE_PRINT_FMT "%s:%d %s(): "
-#define TRACE_PRINT_ARG __FILE__, __LINE__, __func__
+#ifdef MPI_VERSION
+#define traced_print(f, fmt, ...)                                              \
+  do {                                                                         \
+    int mpi_is_init_;                                                          \
+    MPI_Initialized(&mpi_is_init_);                                            \
+    if (mpi_is_init_) {                                                        \
+      int rank_;                                                               \
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank_);                                   \
+      traced_print_impl(f, "rank %d: " fmt, rank_ __VA_OPT__(, ) __VA_ARGS__); \
+    } else {                                                                   \
+      traced_print_impl(f, fmt __VA_OPT__(, ) __VA_ARGS__);                    \
+    }                                                                          \
+  } while (0)
+#else
+#define traced_print(...) traced_print_impl(__VA_ARGS__)
+#endif
 
-#define traced_print_s(file, fmt)                                              \
-  fprintf(file, TRACE_PRINT_FMT fmt "\n", TRACE_PRINT_ARG)
-#define traced_print_a(file, fmt, ...)                                         \
-  fprintf(file, TRACE_PRINT_FMT fmt "\n", TRACE_PRINT_ARG, __VA_ARGS__)
-#define traced_print(file, ...)                                                \
-  FN_NAME(traced_print, __VA_ARGS__)(file, __VA_ARGS__)
-
+#define error_print(...) traced_print(stderr, __VA_ARGS__)
 #define debug_print(...) traced_print(stderr, __VA_ARGS__)
 #define verbose_print(...) traced_print(stdout, __VA_ARGS__)
 
@@ -102,21 +106,19 @@
 //regardless of what surrounding code is
 #define fatal_print(...)                                                       \
   do {                                                                         \
-    traced_print(stderr, __VA_ARGS__);                                         \
-    traced_print(stderr, "Fenix aborting due to fatal error!");                \
+    __VA_OPT__(error_print(__VA_ARGS__);)                                      \
+    error_print("Fenix aborting due to fatal error!");                         \
     FENIX_ABORT();                                                             \
   } while (0)
 
-#define fenix_assert_a(predicate, ...)                                         \
+#define fenix_assert_impl(predicate, ...)                                      \
   do {                                                                         \
     if (!(predicate)) {                                                        \
-      fatal_print(__VA_ARGS__);                                                \
+      error_print("internal error, failed assertion (%s)", #predicate);        \
+      __VA_OPT__(error_print(__VA_ARGS__);)                                    \
+      fatal_print();                                                           \
     }                                                                          \
   } while (0)
-#define fenix_assert_s(predicate)                                              \
-  fenix_assert_a(                                                              \
-    predicate, "internal error, failed assertion (%s)", #predicate             \
-  );
 
 #ifdef NDEBUG
 //Disable assertions when NDEBUG
@@ -124,7 +126,7 @@
   do {                                                                         \
   } while (0)
 #else
-#define fenix_assert(...) FN_NAME(fenix_assert, __VA_ARGS__)(__VA_ARGS__)
+#define fenix_assert(...) fenix_assert_impl(__VA_ARGS__)
 #endif
 
 typedef struct __fenix_debug_opt_t {
