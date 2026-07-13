@@ -8,7 +8,7 @@
 #include "fenix_ext.hpp"
 #include "fenix/logging/comm_log.h"
 
-#define CONSISTENCY_TAG            22234652
+#define CONSISTENCY_TAG 22234652
 #define COLLECTIVE_CONSISTENCY_TAG 22234653
 
 namespace fenix::mlog {

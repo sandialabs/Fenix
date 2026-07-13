@@ -32,11 +32,11 @@ class OpLog {
   MPI_Request* req() const { return m_req; }
   int idx() const { return m_idx; }
 
-  OpLog(const OpLog&) = delete;
+  OpLog(const OpLog&)            = delete;
   OpLog& operator=(const OpLog&) = delete;
 
   virtual void serialize_impl(std::ostream& o) const = 0;
-  virtual std::string str() const = 0;
+  virtual std::string str() const                    = 0;
 
  protected:
   OpLog() : m_idx(-1) {}
@@ -64,7 +64,7 @@ class OpLog {
 
  private:
   mutable MPI_Request req_obj = MPI_REQUEST_NULL;
-  mutable MPI_Request* m_req = &req_obj;
+  mutable MPI_Request* m_req  = &req_obj;
 };
 
 template <auto MPIFunction>
@@ -95,17 +95,17 @@ class MPIBuffer {
   MPIBuffer() = default;
 
   // No copying, move-only
-  MPIBuffer(const MPIBuffer&) = delete;
+  MPIBuffer(const MPIBuffer&)              = delete;
   MPIBuffer& operator=(const MPIBuffer& o) = delete;
   MPIBuffer(MPIBuffer&& o) { *this = std::move(o); }
   MPIBuffer& operator=(MPIBuffer&& o) {
-    m_count = o.m_count;
-    o.m_count = 0;
-    m_type = o.m_type;
-    o.m_type = MPI_DATATYPE_NULL;
+    m_count      = o.m_count;
+    o.m_count    = 0;
+    m_type       = o.m_type;
+    o.m_type     = MPI_DATATYPE_NULL;
     internal_buf = std::move(o.internal_buf);
-    user_buf = o.user_buf;
-    o.user_buf = nullptr;
+    user_buf     = o.user_buf;
+    o.user_buf   = nullptr;
     return *this;
   }
 
@@ -193,7 +193,7 @@ class MPIBuffer {
   // operations. In that case, we don't serialize the data
   mutable bool garbage_data = false;
 
-  int m_count = 0;
+  int m_count         = 0;
   MPI_Datatype m_type = MPI_DATATYPE_NULL;
 };
 

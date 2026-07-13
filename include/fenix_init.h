@@ -64,8 +64,9 @@
 extern "C" {
 #endif
 
-int __fenix_preinit(int *, MPI_Comm, MPI_Comm *, int *, char ***, int, int *, jmp_buf *);
-
+int __fenix_preinit(
+  int*, MPI_Comm, MPI_Comm*, int*, char***, int, int*, jmp_buf*
+);
 
 void __fenix_postinit();
 

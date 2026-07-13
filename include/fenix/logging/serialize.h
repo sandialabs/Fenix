@@ -161,8 +161,7 @@ void read(std::istream& s, MPI_Op& d);
 template <typename T>
 struct writable {
   static constexpr bool value = Serializable<T> ||
-                                std::is_same_v<T, MPI_Datatype> ||
-                                std::is_same_v<T, MPI_Op>;
+    std::is_same_v<T, MPI_Datatype> || std::is_same_v<T, MPI_Op>;
 };
 template <template <typename...> typename Base, typename T, typename... Args>
 struct writable<Base<T, Args...>> {
@@ -173,14 +172,12 @@ struct writable<Base<T, Args...>> {
 template <typename T>
 struct readable {
   static constexpr bool value = Deserializable<T> ||
-                                std::is_same_v<T, MPI_Datatype> ||
-                                std::is_same_v<T, MPI_Op>;
+    std::is_same_v<T, MPI_Datatype> || std::is_same_v<T, MPI_Op>;
 };
 template <template <typename...> typename Base, typename T, typename... Args>
 struct readable<Base<T, Args...>> {
   static constexpr bool value = DeserializableVector<T> ||
-                                DeserializableSet<T> ||
-                                DeserializableOptional<T>;
+    DeserializableSet<T> || DeserializableOptional<T>;
 };
 
 template <typename T>

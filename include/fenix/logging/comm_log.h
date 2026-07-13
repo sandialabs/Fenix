@@ -30,7 +30,7 @@ struct CRegion {
   bool fresh() const { return empty() && first == 0; }
   std::string str() const {
     return "Region " + std::to_string(id) + " [" + std::to_string(first) + "," +
-           std::to_string(next) + ")";
+      std::to_string(next) + ")";
   }
 };
 
@@ -96,8 +96,8 @@ struct CommLog {
 
   std::string str(bool with_region = false) const {
     return "Rank " + std::to_string(m_rank) +
-           " (active=" + std::to_string(active_region) + ")" +
-           (with_region ? " " + region().str() : "");
+      " (active=" + std::to_string(active_region) + ")" +
+      (with_region ? " " + region().str() : "");
   }
 
  private:

@@ -49,7 +49,7 @@ struct Region {
   auto operator==(const int& i) const { return id == i; }
   std::string str() const {
     return "Region " + std::to_string(id) + " (send:" + send.str() +
-           ",recv:" + recv.str() + ")";
+      ",recv:" + recv.str() + ")";
   }
 };
 
@@ -106,8 +106,8 @@ struct RankLog {
 
  public:
   Region& cur_region = regions.back();
-  int& next_send = cur_region.send.next;
-  int& next_recv = cur_region.recv.next;
+  int& next_send     = cur_region.send.next;
+  int& next_recv     = cur_region.recv.next;
 };
 } //namespace fenix::logging
 #endif

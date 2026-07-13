@@ -26,7 +26,7 @@ class BcastLog : public CollectiveLog {
   BcastLog& operator=(BcastLog&& o) {
     CollectiveLog::operator=(std::move(o));
     root = o.root;
-    buf = std::move(o.buf);
+    buf  = std::move(o.buf);
     return *this;
   }
 

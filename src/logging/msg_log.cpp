@@ -78,10 +78,10 @@ void write(std::ostream& s, const MPI_Datatype& d) {
 void write(std::ostream& s, const MPI_Op& o) { write<int>(s, mpi_ops.find(o)); }
 void read(std::istream& s, MPI_Datatype& d) {
   int id = read<int>(s);
-  d = mpi_types.find(id);
+  d      = mpi_types.find(id);
 }
 void read(std::istream& s, MPI_Op& o) {
   int id = read<int>(s);
-  o = mpi_ops.find(id);
+  o      = mpi_ops.find(id);
 }
 } //namespace fenix::logging::serialize

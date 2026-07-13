@@ -66,8 +66,8 @@
 #define MPI_ERR_PROC_FAILED MPIX_ERR_PROC_FAILED
 #endif
 
-#if defined(MPIX_ERR_PROC_FAILED_PENDING) && \
-    !defined(MPI_ERR_PROC_FAILED_PENDING)
+#if defined(MPIX_ERR_PROC_FAILED_PENDING) &&                                   \
+  !defined(MPI_ERR_PROC_FAILED_PENDING)
 #define MPI_ERR_PROC_FAILED_PENDING MPIX_ERR_PROC_FAILED_PENDING
 #endif
 
@@ -92,51 +92,53 @@ extern "C" {
  * @{
  */
 typedef enum {
-    FENIX_SUCCESS = 0,
-    // Error values are negative
-    FENIX_ERROR_UNINITIALIZED = -100,
-    FENIX_ERROR_NOCATEGORY,
-    FENIX_ERROR_CALLBACK_NOT_REGISTERED,
-    FENIX_ERROR_GROUP_CREATE,
-    FENIX_ERROR_MEMBER_CREATE,
-    FENIX_ERROR_MEMBER_EXISTS,
-    FENIX_ERROR_COMMIT_BARRIER,
-    FENIX_ERROR_INVALID_GROUPID,
-    FENIX_ERROR_INVALID_MEMBERID,
-    FENIX_ERROR_INVALID_LOGIC_CALL,
-    FENIX_ERROR_INVALID_POLICY_NAME,
-    FENIX_ERROR_INVALID_TIMESTAMP,
-    FENIX_ERROR_INVALID_TIMESTART,
-    FENIX_ERROR_INVALID_DEPTH,
-    FENIX_ERROR_INVALID_ATTRIBUTE_NAME,
-    FENIX_ERROR_INVALID_ATTRIBUTE_VALUE,
-    FENIX_ERROR_INVALID_POSITION,
-    FENIX_ERROR_DATA_WAIT,
-    FENIX_ERROR_SUBSET_NUM_BLOCKS,
-    FENIX_ERROR_SUBSET_START_OFFSET,
-    FENIX_ERROR_SUBSET_END_OFFSET,
-    FENIX_ERROR_SUBSET_STRIDE,
-    FENIX_ERROR_NODATA_FOUND,
-    FENIX_ERROR_INTERN,
-    FENIX_ERROR_CANCELLED,
-    FENIX_ERROR_INVALID_SETTING_NAME,
-    FENIX_ERROR_INVALID_SETTING_OPTION,
-    FENIX_ERROR_INVALID_MLOGID,
-    FENIX_ERROR_MLOG_EXISTS,
-    FENIX_ERROR_MLOG_LIBRARY_UNAVAILABLE,
-    FENIX_ERROR_PROCESS_FAILURE,
-    //Warnings are positive
-    FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
-    FENIX_WARNING_PARTIAL_RESTORE,
+  FENIX_SUCCESS = 0,
+
+  // Error values are negative
+  FENIX_ERROR_UNINITIALIZED = -100,
+  FENIX_ERROR_NOCATEGORY,
+  FENIX_ERROR_CALLBACK_NOT_REGISTERED,
+  FENIX_ERROR_GROUP_CREATE,
+  FENIX_ERROR_MEMBER_CREATE,
+  FENIX_ERROR_MEMBER_EXISTS,
+  FENIX_ERROR_COMMIT_BARRIER,
+  FENIX_ERROR_INVALID_GROUPID,
+  FENIX_ERROR_INVALID_MEMBERID,
+  FENIX_ERROR_INVALID_LOGIC_CALL,
+  FENIX_ERROR_INVALID_POLICY_NAME,
+  FENIX_ERROR_INVALID_TIMESTAMP,
+  FENIX_ERROR_INVALID_TIMESTART,
+  FENIX_ERROR_INVALID_DEPTH,
+  FENIX_ERROR_INVALID_ATTRIBUTE_NAME,
+  FENIX_ERROR_INVALID_ATTRIBUTE_VALUE,
+  FENIX_ERROR_INVALID_POSITION,
+  FENIX_ERROR_DATA_WAIT,
+  FENIX_ERROR_SUBSET_NUM_BLOCKS,
+  FENIX_ERROR_SUBSET_START_OFFSET,
+  FENIX_ERROR_SUBSET_END_OFFSET,
+  FENIX_ERROR_SUBSET_STRIDE,
+  FENIX_ERROR_NODATA_FOUND,
+  FENIX_ERROR_INTERN,
+  FENIX_ERROR_CANCELLED,
+  FENIX_ERROR_INVALID_SETTING_NAME,
+  FENIX_ERROR_INVALID_SETTING_OPTION,
+  FENIX_ERROR_INVALID_MLOGID,
+  FENIX_ERROR_MLOG_EXISTS,
+  FENIX_ERROR_MLOG_LIBRARY_UNAVAILABLE,
+  FENIX_ERROR_PROCESS_FAILURE,
+
+  //Warnings are positive
+  FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
+  FENIX_WARNING_PARTIAL_RESTORE,
 } Fenix_Return_codes;
 /**@}*/
 
 //!@internal @brief Agreement code for error handler
-#define FENIX_ERRHANDLER_LOC		      1
+#define FENIX_ERRHANDLER_LOC 1
 //!@internal @brief Agreement code for finalizet
-#define FENIX_FINALIZE_LOC		      2
+#define FENIX_FINALIZE_LOC 2
 //!@internal @brief Agreement code for data commit barrier
-#define FENIX_DATA_COMMIT_BARRIER_LOC	      4
+#define FENIX_DATA_COMMIT_BARRIER_LOC 4
 
 /**
  * @defgroup ProcessRecovery Process Recovery
@@ -147,7 +149,7 @@ typedef enum {
 
 /**
  * @brief All possible roles returned by Fenix_Init
- * 
+ *
  * Describes the current process's state in reference
  * to process recovery.
  *
@@ -158,117 +160,117 @@ typedef enum {
  * failure recovery process.
  */
 typedef enum {
-    //!No failures have occurred yet
-    FENIX_ROLE_INITIAL_RANK = 0,
-    //!This rank was a spare before the most recent failure, or was just spawned
-    FENIX_ROLE_RECOVERED_RANK = 1,
-    //!This rank was not a spare before the most recent failure
-    FENIX_ROLE_SURVIVOR_RANK = 2
+  //!No failures have occurred yet
+  FENIX_ROLE_INITIAL_RANK   = 0,
+  //!This rank was a spare before the most recent failure, or was just spawned
+  FENIX_ROLE_RECOVERED_RANK = 1,
+  //!This rank was not a spare before the most recent failure
+  FENIX_ROLE_SURVIVOR_RANK  = 2
 } Fenix_Rank_role;
 
 /**
  * @brief Global Fenix settings.
  */
 typedef enum {
-    //!See #Fenix_Recovery_mode
-    FENIX_RECOVERY_MODE,
-    //!See #Fenix_Resume_mode
-    FENIX_RESUME_MODE,
-    //!See #Fenix_Unhandled_mode
-    FENIX_UNHANDLED_MODE,
-    //!See #Fenix_Callback_exception_mode
-    FENIX_CALLBACK_EXCEPTION_MODE,
-    //!See #Fenix_Mlog_recovery_mode
-    FENIX_MLOG_RECOVERY_MODE,
-    //!See #Fenix_Spare_wait_mode
-    FENIX_SPARE_WAIT_MODE,
+  //!See #Fenix_Recovery_mode
+  FENIX_RECOVERY_MODE,
+  //!See #Fenix_Resume_mode
+  FENIX_RESUME_MODE,
+  //!See #Fenix_Unhandled_mode
+  FENIX_UNHANDLED_MODE,
+  //!See #Fenix_Callback_exception_mode
+  FENIX_CALLBACK_EXCEPTION_MODE,
+  //!See #Fenix_Mlog_recovery_mode
+  FENIX_MLOG_RECOVERY_MODE,
+  //!See #Fenix_Spare_wait_mode
+  FENIX_SPARE_WAIT_MODE,
 
-    //!Not a valid option.
-    FENIX_SETTING_NAME_MAXCODE
+  //!Not a valid option.
+  FENIX_SETTING_NAME_MAXCODE
 } Fenix_Setting_name;
 
 /**
  * @brief Options for recovering after a failed rank is detected
  */
 typedef enum {
-    //!Do not repair communicator, immediately resume per #FENIX_RESUME_MODE
-    FENIX_RECOVERY_IGNORE,
-    /**
-     * @brief Do not repair communicator, otherwise behave normally
-     *
-     * This includes calling the PRE_RECOVERY and POST_RECOVERY callbacks
-     */
-    FENIX_RECOVERY_NOOP,
-    //!Repair the communicator with spares or by shrinking
-    FENIX_RECOVERY_REPAIR,
-    //!@unimplemented As REPAIR, but attempt to respawn failed processes
-    FENIX_RECOVERY_SPAWN,
+  //!Do not repair communicator, immediately resume per #FENIX_RESUME_MODE
+  FENIX_RECOVERY_IGNORE,
+  /**
+   * @brief Do not repair communicator, otherwise behave normally
+   *
+   * This includes calling the PRE_RECOVERY and POST_RECOVERY callbacks
+   */
+  FENIX_RECOVERY_NOOP,
+  //!Repair the communicator with spares or by shrinking
+  FENIX_RECOVERY_REPAIR,
+  //!@unimplemented As REPAIR, but attempt to respawn failed processes
+  FENIX_RECOVERY_SPAWN,
 
-    //!Not a valid option
-    FENIX_RECOVERY_MODE_MAXCODE
+  //!Not a valid option
+  FENIX_RECOVERY_MODE_MAXCODE
 } Fenix_Recovery_mode;
 
 typedef enum {
-    //!All message logging recovery is manual
-    FENIX_MLOG_RECOVERY_MANUAL,
-    /**
-     * @brief Automatically repeats failed, logged MPI operations without
-     *        disrupting normal application control flow.
-     * 
-     * User is responsible for handling any recovery steps in Fenix callbacks.
-     */
-    FENIX_MLOG_RECOVERY_INLINE,
-    /**
-     * @brief As INLINE, but automatically sync logs with FENIX_MLOG_CONTINUE.
-     * 
-     * Invoked after post-recovery callbacks, immediately before resuming.
-     * Invoked regardless of the logged-or-not status of the failing message.
-     */
-    FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC,
+  //!All message logging recovery is manual
+  FENIX_MLOG_RECOVERY_MANUAL,
+  /**
+   * @brief Automatically repeats failed, logged MPI operations without
+   *        disrupting normal application control flow.
+   *
+   * User is responsible for handling any recovery steps in Fenix callbacks.
+   */
+  FENIX_MLOG_RECOVERY_INLINE,
+  /**
+   * @brief As INLINE, but automatically sync logs with FENIX_MLOG_CONTINUE.
+   *
+   * Invoked after post-recovery callbacks, immediately before resuming.
+   * Invoked regardless of the logged-or-not status of the failing message.
+   */
+  FENIX_MLOG_RECOVERY_INLINE_AUTOSYNC,
 
-    //!Not a valid option
-    FENIX_MLOG_RECOVERY_MODE_MAXCODE
+  //!Not a valid option
+  FENIX_MLOG_RECOVERY_MODE_MAXCODE
 } Fenix_Mlog_recovery_mode;
 /**
  * @brief Options for passing control back to application after recovery.
  */
 typedef enum {
-    /**
-     * @brief Return to Fenix_Init via longjmp (default)
-     *
-     * The value of variables set before the longjmp are subject to undefined
-     * behavior from compiler optimizations. To ensure expected behavior, it is
-     * recommended that any variables that will be used across the longjmp are
-     * declared as volatile, are heap allocated, or are global in scope.
-     *
-     * For C++ applications, whether stack variables are automatically
-     * destructed when leaving stack frames via longjmp is undefined. For this
-     * reason and the above, it is highly recommended to instead use
-     * #FENIX_RESUME_THROW for C++ applications.
-     */
-    FENIX_RESUME_JUMP,
-    //!Return the error code inline
-    FENIX_RESUME_RETURN,
-    //!Throw a fenix::CommException
-    FENIX_RESUME_THROW,
+  /**
+   * @brief Return to Fenix_Init via longjmp (default)
+   *
+   * The value of variables set before the longjmp are subject to undefined
+   * behavior from compiler optimizations. To ensure expected behavior, it is
+   * recommended that any variables that will be used across the longjmp are
+   * declared as volatile, are heap allocated, or are global in scope.
+   *
+   * For C++ applications, whether stack variables are automatically
+   * destructed when leaving stack frames via longjmp is undefined. For this
+   * reason and the above, it is highly recommended to instead use
+   * #FENIX_RESUME_THROW for C++ applications.
+   */
+  FENIX_RESUME_JUMP,
+  //!Return the error code inline
+  FENIX_RESUME_RETURN,
+  //!Throw a fenix::CommException
+  FENIX_RESUME_THROW,
 
-    //!Not a valid option
-    FENIX_RESUME_MODE_MAXCODE
+  //!Not a valid option
+  FENIX_RESUME_MODE_MAXCODE
 } Fenix_Resume_mode;
 
 /**
  * @brief Options for dealing with 'unhandled' errors, e.g. invalid rank IDs
  */
 typedef enum {
-    //!Ignore unhandled errors
-    FENIX_UNHANDLED_SILENT,
-    //!Print error and continue without handling
-    FENIX_UNHANDLED_PRINT,
-    //!Print error and abort Fenix's world (default)
-    FENIX_UNHANDLED_ABORT,
+  //!Ignore unhandled errors
+  FENIX_UNHANDLED_SILENT,
+  //!Print error and continue without handling
+  FENIX_UNHANDLED_PRINT,
+  //!Print error and abort Fenix's world (default)
+  FENIX_UNHANDLED_ABORT,
 
-    //!Not a valid option
-    FENIX_UNHANDLED_MODE_MAXCODE
+  //!Not a valid option
+  FENIX_UNHANDLED_MODE_MAXCODE
 } Fenix_Unhandled_mode;
 
 /**
@@ -276,28 +278,28 @@ typedef enum {
  * Fenix_Init to take effect.
  */
 typedef enum {
-    //!Busy wait, consuming CPU time in exchange for faster response
-    FENIX_SPARE_WAIT_BUSY,
-    //!Tell MPI to yield this thread while waiting (if supported, else busy wait)
-    FENIX_SPARE_WAIT_YIELD,
-    //!Sleep 100ms between checks to see if this thread is needed for recovery
-    FENIX_SPARE_WAIT_SLEEP,
+  //!Busy wait, consuming CPU time in exchange for faster response
+  FENIX_SPARE_WAIT_BUSY,
+  //!Tell MPI to yield this thread while waiting (if supported, else busy wait)
+  FENIX_SPARE_WAIT_YIELD,
+  //!Sleep 100ms between checks to see if this thread is needed for recovery
+  FENIX_SPARE_WAIT_SLEEP,
 
-    //!Not a valid option
-    FENIX_SPARE_WAIT_MODE_MAXCODE
+  //!Not a valid option
+  FENIX_SPARE_WAIT_MODE_MAXCODE
 } Fenix_Spare_wait_mode;
 
 /**
  * @brief Options for dealing with CommExceptions generated in callbacks
  */
 typedef enum {
-    //!CommExceptions are allowed to propagate out of callbacks
-    FENIX_CALLBACK_EXCEPTION_RETHROW,
-    //!CommExceptions from callbacks are squashed
-    FENIX_CALLBACK_EXCEPTION_SQUASH,
+  //!CommExceptions are allowed to propagate out of callbacks
+  FENIX_CALLBACK_EXCEPTION_RETHROW,
+  //!CommExceptions from callbacks are squashed
+  FENIX_CALLBACK_EXCEPTION_SQUASH,
 
-    //!Not a valid option
-    FENIX_CALLBACK_EXCEPTION_MODE_MAXCODE
+  //!Not a valid option
+  FENIX_CALLBACK_EXCEPTION_MODE_MAXCODE
 } Fenix_Callback_exception_mode;
 
 /**
@@ -364,28 +366,28 @@ typedef enum {
 
 //!@internal
 #define Fenix_Init(_role, _comm, _newcomm, _argc, _argv, _spare_ranks, _err)   \
-    {                                                                          \
-        static jmp_buf bufjmp;                                                 \
-        *(_role) = __fenix_preinit(                                            \
-            _role, _comm, _newcomm, _argc, _argv, _spare_ranks, _err, &bufjmp  \
-        );                                                                     \
-        setjmp(bufjmp);                                                        \
-        __fenix_postinit();                                                    \
-    }
+  {                                                                            \
+    static jmp_buf bufjmp;                                                     \
+    *(_role) = __fenix_preinit(                                                \
+      _role, _comm, _newcomm, _argc, _argv, _spare_ranks, _err, &bufjmp        \
+    );                                                                         \
+    setjmp(bufjmp);                                                            \
+    __fenix_postinit();                                                        \
+  }
 
 /**
  * @brief Sets flag to true if Fenix_Init has been called, else false.
  * @param[out] flag Pointer to the flag to be set.
  * @returnstatus
  */
-int Fenix_Initialized(int *flag);
+int Fenix_Initialized(int* flag);
 
 /**
  * @brief Sets flag to true if Fenix_Finalize has been called, else false.
  * @param[out] flag Pointer to the flag to be set.
  * @returnstatus
  */
-int Fenix_Finalized(int *flag);
+int Fenix_Finalized(int* flag);
 
 /**
  * @brief Configure a global Fenix setting.
@@ -419,17 +421,18 @@ int Fenix_get_option(Fenix_Setting_name setting, unsigned* option);
 /**
  * @brief Register a callback to be invoked after failure process recovery.
  *
- * This function registers a callback to be invoked after a failure has been recovered by Fenix, 
- * and right before resuming application execution (e.g. returning from #Fenix_Init by default).
- * If this function is called more than once, the different callbacks will be called in the 
- * reverse order that they were registered (i.e. as a callback stack).
+ * This function registers a callback to be invoked after a failure has been
+ * recovered by Fenix, and right before resuming application execution (e.g.
+ * returning from #Fenix_Init by default). If this function is called more than
+ * once, the different callbacks will be called in the reverse order that they
+ * were registered (i.e. as a callback stack).
  *
- * Callback functions are passed the newly-repaired resilient communicator, the error code returned
- * by MPI in the communication action which caused a failure recovery, and the user-provided \c void*
- * callback data.
+ * Callback functions are passed the newly-repaired resilient communicator, the
+ * error code returned by MPI in the communication action which caused a failure
+ * recovery, and the user-provided \c void* callback data.
  *
- * Callbacks will only be invoked by survivor ranks, since spare ranks or respawned ranks had no way
- * to register them before a failure.
+ * Callbacks will only be invoked by survivor ranks, since spare ranks or
+ * respawned ranks had no way to register them before a failure.
  *
  * Any active mlog will be deactivated for the duration of callbacks.
  *
@@ -438,8 +441,9 @@ int Fenix_get_option(Fenix_Setting_name setting, unsigned* option);
  *
  * @returnstatus
  */
-int Fenix_Callback_register(void (*recover)(MPI_Comm, int, void *),
-                            void *callback_data);
+int Fenix_Callback_register(
+  void (*recover)(MPI_Comm, int, void*), void* callback_data
+);
 
 /**
  * @brief Pop the most recently registered callback from the callback stack.
@@ -481,10 +485,10 @@ int Fenix_Callback_invoke_all();
 int Fenix_Process_detect_failures(int do_recovery);
 
 //!@unimplemented Returns the number of ranks with a given #Fenix_Rank_role
-int Fenix_get_number_of_ranks_with_role(int, int *);
+int Fenix_get_number_of_ranks_with_role(int, int*);
 
 //!@unimplemented Returns the #Fenix_Rank_role for a given rank
-int Fenix_get_rank_role(MPI_Comm comm, int rank, int *role);
+int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role);
 
 //!@brief Returns this rank's #Fenix_Rank_role
 Fenix_Rank_role Fenix_get_role();
@@ -509,35 +513,38 @@ int Fenix_Process_fail_list(int** fail_list);
  * @return True if the request was cancelled or has unknown completion status,
  *         false if it completed successfully.
  */
-int Fenix_check_cancelled(MPI_Request *request, MPI_Status *status);
-
+int Fenix_check_cancelled(MPI_Request* request, MPI_Status* status);
 
 /**
  * @brief Clean up Fenix state. Each active rank must call \c Fenix_Finalize before exiting.
- * 
- * This function cleans up all Fenix state, if any. If an MPI program using the Fenix library terminates
- * normally (i.e. not due to a call to \c MPI_Abort, or an unrecoverable error) then each rank must call
- * \c Fenix_Finalize before it exits. It must be called before \c MPI_Finalize, and after #Fenix_Init.
- * There shall be no function calls after this function, except #Fenix_Initialized.
  *
- * As noted in the description of #Fenix_Init, all spare ranks that have not been used to
- * recover from failures (and therefore are still reserved by Fenix and kept inside #Fenix_Init) will call 
+ * This function cleans up all Fenix state, if any. If an MPI program using the
+ * Fenix library terminates normally (i.e. not due to a call to \c MPI_Abort, or
+ * an unrecoverable error) then each rank must call
+ * \c Fenix_Finalize before it exits. It must be called before \c MPI_Finalize,
+ * and after #Fenix_Init. There shall be no function calls after this function,
+ * except #Fenix_Initialized.
+ *
+ * As noted in the description of #Fenix_Init, all spare ranks that have not
+ * been used to recover from failures (and therefore are still reserved by Fenix
+ * and kept inside #Fenix_Init) will call
  * \c MPI_Finalize and exit when all active ranks have called \c Fenix_Finalize.
  *
  * Supports inline recovery when it is active (see #Fenix_Mlog_activate). In
  * this case, a rank will not leave this function until success (or an error
  * with the message logs).
  *
- * **Advice**: Sometimes users may want to remove ranks proactively from the execution, for example because
- * monitoring data shows that failure of a rank is imminent or that a rank is executing un-manageably slowly.
- * This can be accomplished by calling \c exit on the targeted ranks, followed by an invocation of MPI_Barrier.
- * The removed ranks will be reported as failed and error handling will progress appropriately. No calls to finalize
- * are needed in this case.
+ * **Advice**: Sometimes users may want to remove ranks proactively from the
+ * execution, for example because monitoring data shows that failure of a rank
+ * is imminent or that a rank is executing un-manageably slowly. This can be
+ * accomplished by calling \c exit on the targeted ranks, followed by an
+ * invocation of MPI_Barrier. The removed ranks will be reported as failed and
+ * error handling will progress appropriately. No calls to finalize are needed
+ * in this case.
  */
 int Fenix_Finalize();
 
 /**@}*/
-
 
 /**
  * @defgroup DataRecovery Data Recovery
@@ -546,21 +553,21 @@ int Fenix_Finalize();
  *
  * @{
  */
-#define FENIX_DATA_GROUP_WORLD_ID            10
-#define FENIX_GROUP_ID_MAX                   11
-#define FENIX_DATA_MEMBER_ALL                -1
-#define FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER   11
-#define FENIX_DATA_MEMBER_ATTRIBUTE_COUNT    12
+#define FENIX_DATA_GROUP_WORLD_ID 10
+#define FENIX_GROUP_ID_MAX 11
+#define FENIX_DATA_MEMBER_ALL -1
+#define FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER 11
+#define FENIX_DATA_MEMBER_ATTRIBUTE_COUNT 12
 #define FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE 13
-#define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE     14
-#define FENIX_DATA_SNAPSHOT_LATEST           -1
-#define FENIX_DATA_SNAPSHOT_ALL              -2
-#define FENIX_RESIZEABLE                      0
-#define FENIX_DATA_SUBSET_CREATED             2
-#define FENIX_STOREV_ALL                     -1
+#define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE 14
+#define FENIX_DATA_SNAPSHOT_LATEST -1
+#define FENIX_DATA_SNAPSHOT_ALL -2
+#define FENIX_RESIZEABLE 0
+#define FENIX_DATA_SUBSET_CREATED 2
+#define FENIX_STOREV_ALL -1
 
-#define FENIX_DATA_POLICY_IN_MEMORY_RAID     13
-#define FENIX_DATA_POLICY_IMR                FENIX_DATA_POLICY_IN_MEMORY_RAID
+#define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
+#define FENIX_DATA_POLICY_IMR FENIX_DATA_POLICY_IN_MEMORY_RAID
 
 #define FENIX_TIME_STAMP_IGNORE NULL
 
@@ -568,10 +575,9 @@ int Fenix_Finalize();
  * @unimplemented As MPI_Request, but for Fenix asynchronous data recovery calls
  */
 typedef struct {
-    MPI_Request mpi_send_req;
-    MPI_Request mpi_recv_req;
+  MPI_Request mpi_send_req;
+  MPI_Request mpi_recv_req;
 } Fenix_Request;
-
 
 /**
  * @brief Represents a data subset that can be stored/recovered
@@ -579,14 +585,13 @@ typedef struct {
  * Must be initialized (via #Fenix_Data_subset_create or
  * #Fenix_Data_subset_createv) before using as an input parameter.
  *
- * Must be uninitialized or deleted (#Fenix_Data_subset_delete) before using as an
- * output parameter to avoid data leaks.
+ * Must be uninitialized or deleted (#Fenix_Data_subset_delete) before using as
+ * an output parameter to avoid data leaks.
  */
 typedef struct {
-    //!@internal @brief pointer to a fenix::DataSubset object
-    void* impl;
+  //!@internal @brief pointer to a fenix::DataSubset object
+  void* impl;
 } Fenix_Data_subset;
-
 
 //!@brief A standin for checkpointing/recovering the full member's data
 extern const Fenix_Data_subset FENIX_DATA_SUBSET_FULL;
@@ -603,36 +608,38 @@ extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
  * @brief Create a Data Group
  * @qualifier collective
  *
- * If a group with this group_id was already created in the past and has not been deleted, the 
- * parameters of this call are ignored and this function simply serves to coordinate with any 
- * ranks that have not yet created this group (e.g. due to a failure).
+ * If a group with this group_id was already created in the past and has not
+ * been deleted, the parameters of this call are ignored and this function
+ * simply serves to coordinate with any ranks that have not yet created this
+ * group (e.g. due to a failure).
  *
- * All calling ranks must pass the same values for the parameters \c group_id, \c comm,
- * \c start_time_stamp, \c policy_name, and \c policy_value.
+ * All calling ranks must pass the same values for the parameters \c group_id,
+ * \c comm, \c start_time_stamp, \c policy_name, and \c policy_value.
  *
  * @param group_id A unique identifier to this group.
  * @param comm A resilient communicator on which the group is formed.
  * @param start_time_stamp The time_stamp to be used for the first commit in this group.
  * @param depth
  * @parblock
- * The number of successive snapshots of this group that are retained by Fenix, in 
- * addition to the most recent one, and that can be recovered by calling Fenix data member
- * restore functions.
- * 
- * For example, a depth of 0 means Fenix will keep only the necessary data to restore the
- * most recent snapshot, freeing or overwriting older snapshots automatically. A depth
- * of -1 is currently not supported, but would ordinarily indicate that no snapshots should
- * be removed automatically.
+ * The number of successive snapshots of this group that are retained by Fenix,
+ * in addition to the most recent one, and that can be recovered by calling
+ * Fenix data member restore functions.
+ *
+ * For example, a depth of 0 means Fenix will keep only the necessary data to
+ * restore the most recent snapshot, freeing or overwriting older snapshots
+ * automatically. A depth of -1 is currently not supported, but would ordinarily
+ * indicate that no snapshots should be removed automatically.
  * @endparblock
  * @param policy_name Currently, may only be FENIX_DATA_POLICY_IN_MEMORY_RAID
- * @param policy_value Pointer to data passed along to the policy. 
+ * @param policy_value Pointer to data passed along to the policy.
  *   See the specific policy for more information.
  * @param flag pointer to store policy-specific status or errors
  * @return FENIX_SUCCESS, or an error value.
  */
-int Fenix_Data_group_create(int group_id, MPI_Comm comm, int start_time_stamp,
-                            int depth, int policy_name, void* policy_value,
-                            int* flag);
+int Fenix_Data_group_create(
+  int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy_name,
+  void* policy_value, int* flag
+);
 
 /**
  * @brief Query if a data group exists on this rank
@@ -645,28 +652,32 @@ int Fenix_Data_group_created(int group_id);
 
 /**
  * @brief Create a data member for store/restore operations
- * @qualifier collective 
+ * @qualifier collective
  * @qualifier local
  *
- * All calling ranks in the group's communicator must pass the same values for the parameters
+ * All calling ranks in the group's communicator must pass the same values for
+ * the parameters
  * \c member_id, \c datatype, and \c group_id.
  *
  * @param group_id Identifier to a data group within which to create the member.
- * @param member_id An integer unique within the data group that identifies the data in 
- *        \c source_buffer. Must be nonnegative and less than FENIX_MEMBER_ID_MAX, which is 
- *        guaranteed to be at least 2^30.
- * @param buffer Address of the data to be copied to redundant storage maintained by Fenix.
- *        Note that this parameter may also be specified using #Fenix_Data_member_attr_set, which
- *        is critical for non-survivor ranks after a failure which will have an invalid address
- *        which was generated on the failed rank and must update.
- * @param count The maximum number of contiguous elements of type \c datatype of the data to be
- *        stored. A value of FENIX_RESIZEABLE allows this member to have a varying data size.
+ * @param member_id An integer unique within the data group that identifies the
+ *        data in \c source_buffer. Must be nonnegative and less than
+ *        FENIX_MEMBER_ID_MAX, which is guaranteed to be at least 2^30.
+ * @param buffer Address of the data to be copied to redundant storage
+ *        maintained by Fenix. Note that this parameter may also be specified
+ *        using #Fenix_Data_member_attr_set, which is critical for non-survivor
+ *        ranks after a failure which will have an invalid address which was
+ *        generated on the failed rank and must update.
+ * @param count The maximum number of contiguous elements of type \c datatype of
+ *        the data to be stored. A value of FENIX_RESIZEABLE allows this member
+ *        to have a varying data size.
  * @param datatype The MPI_Datatype of the elements in \c source_buffer
  *
  * @return FENIX_SUCCESS, or an error value.
  */
-int Fenix_Data_member_create(int group_id, int member_id, void *buffer,
-                             int count, MPI_Datatype datatype);
+int Fenix_Data_member_create(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
 
 /**
  * @brief Query if a data member exists on this rank
@@ -680,24 +691,25 @@ int Fenix_Data_member_created(int group_id, int member_id);
 
 /**
  * @brief Get the storage policy of a data group
- * 
+ *
  * @param group_id Identified to the data group to query
  * @param policy_name The identifier of the policy name of the data group.
- * @param policy_value A location within which to store the policy_values this group's
- *        policy was configured with.
+ * @param policy_value A location within which to store the policy_values this
+ *        group's policy was configured with.
  * @param flag A location set to true if a policy value was extracted, else false.
  * @return FENIX_SUCCESS, or an error value.
  */
-int Fenix_Data_group_get_redundancy_policy(int group_id, int* policy_name,
-                                           void *policy_value, int *flag);
+int Fenix_Data_group_get_redundancy_policy(
+  int group_id, int* policy_name, void* policy_value, int* flag
+);
 
-//!@unimplemented Block on completion of the store operation specified by the request.
+//!@unimplemented Block on completion of the store operation specified by the
+//! request.
 int Fenix_Data_wait(Fenix_Request request);
 
-
-//!@unimplemented Query completion of the store operation specified by the request.
-int Fenix_Data_test(Fenix_Request request, int *flag);
-
+//!@unimplemented Query completion of the store operation specified by the
+//! request.
+int Fenix_Data_test(Fenix_Request request, int* flag);
 
 /**
  * @brief Serialize a group member's data into the member's local store.
@@ -716,39 +728,49 @@ int Fenix_Data_test(Fenix_Request request, int *flag);
  *        FENIX_DATA_SUBSET_PRESTAGED is invalid.
  * @returnstatus
  **/
-int Fenix_Data_member_stage(int group_id, int member_id,
-                            const Fenix_Data_subset subset_specifier);
+int Fenix_Data_member_stage(
+  int group_id, int member_id, const Fenix_Data_subset subset_specifier
+);
 
 /**
- * @brief Store a particular group member into the group's resilient storage space, in uncommitted storage.
+ * @brief Store a particular group member into the group's resilient storage
+ *  space, in uncommitted storage.
+ *
  * @qualifier collective
  *
- * The user can safely modify the member's data buffer after this call, as the current state is copied immediately.
- * Multiple calls may be used to incrementally store data (using subset_specifiers), or overwrite old data prior to a commit.
+ * The user can safely modify the member's data buffer after this call, as the
+ * current state is copied immediately. Multiple calls may be used to
+ * incrementally store data (using subset_specifiers), or overwrite old data
+ * prior to a commit.
  *
  * @param group_id All ranks must provide the same group_id
  * @param member_id All ranks must provide the same member_id
  * @param subset_specifier Which subset of the data to store.
- *        If this member was created with size FENIX_RESIZEABLE, FENIX_DATA_SUBSET_ALL is an invalid input.
+ *        If this member was created with size FENIX_RESIZEABLE,
+ * FENIX_DATA_SUBSET_ALL is an invalid input.
  * @return FENIX_SUCCESS, or an error value.
  */
-int Fenix_Data_member_store(int group_id, int member_id,
-                            const Fenix_Data_subset subset_specifier);
+int Fenix_Data_member_store(
+  int group_id, int member_id, const Fenix_Data_subset subset_specifier
+);
 
-
-//!@unimplemented As [store](#Fenix_Data_member_store), but subsets may vary rank-to-rank.
-int Fenix_Data_member_storev(int group_id, int member_id,
-                             const Fenix_Data_subset subset_specifier);
+//!@unimplemented As [store](#Fenix_Data_member_store), but subsets may vary
+//!rank-to-rank.
+int Fenix_Data_member_storev(
+  int group_id, int member_id, const Fenix_Data_subset subset_specifier
+);
 
 //!@unimplemented As [store](#Fenix_Data_member_store), but asynchronous.
-int Fenix_Data_member_istore(int group_id, int member_id,
-                             const Fenix_Data_subset subset_specifier,
-                             Fenix_Request *request);
+int Fenix_Data_member_istore(
+  int group_id, int member_id, const Fenix_Data_subset subset_specifier,
+  Fenix_Request* request
+);
 
 //!@unimplemented As [istore](#Fenix_Data_member_istore), but asynchronous.
-int Fenix_Data_member_istorev(int group_id, int member_id,
-                              const Fenix_Data_subset subset_specifier,
-                              Fenix_Request *request);
+int Fenix_Data_member_istorev(
+  int group_id, int member_id, const Fenix_Data_subset subset_specifier,
+  Fenix_Request* request
+);
 
 /**
  * @brief Commit stored data members to the group's next snapshot.
@@ -757,21 +779,23 @@ int Fenix_Data_member_istorev(int group_id, int member_id,
  *
  * This function is used to freeze the current state of a data group,
  * together with all its application data that has been stored in Fenix’
- * redundant storage, and label it with a time stamp, thus creating a 
- * snapshot of the stored application data. Only data that has been 
- * committed is eligible for recovery through #Fenix_Data_member_restore. 
- * An application needs to call #Fenix_Data_wait for all pending asynchronous 
- * [Fenix_Data_member_istore(v)](@ref Fenix_Data_member_istore) operations 
+ * redundant storage, and label it with a time stamp, thus creating a
+ * snapshot of the stored application data. Only data that has been
+ * committed is eligible for recovery through #Fenix_Data_member_restore.
+ * An application needs to call #Fenix_Data_wait for all pending asynchronous
+ * [Fenix_Data_member_istore(v)](@ref Fenix_Data_member_istore) operations
  * in the group before committing.
  *
  * @param[in] group_id The group to commit
  * @param[out] time_stamp The time stamp of the new snapshot
  * @returnstatus
  */
-int Fenix_Data_commit(int group_id, int *time_stamp);
+int Fenix_Data_commit(int group_id, int* time_stamp);
 
 /**
- * @brief As [commit](#Fenix_Data_commit), but ensures a globally consistent commit.
+ * @brief As [commit](#Fenix_Data_commit), but ensures a globally consistent
+ * commit.
+ *
  * @qualifier collective
  *
  * This function does not function as a traditional barrier.
@@ -783,7 +807,7 @@ int Fenix_Data_commit(int group_id, int *time_stamp);
  * @param[out] time_stamp The time stamp of the new snapshot
  * @returnstatus
  */
-int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
+int Fenix_Data_commit_barrier(int group_id, int* time_stamp);
 
 /**
  * @brief Store all members of a group and then commit that group.
@@ -809,8 +833,10 @@ int Fenix_Data_commit_barrier(int group_id, int *time_stamp);
  * @param[out] time_stamp Pointer to store the time stamp of the commit to, or
  *                        FENIX_TIME_STAMP_IGNORE.
  */
-int Fenix_Data_checkpoint(int group_id, const Fenix_Data_subset subset,
-                          int num_storev, int* storev_ids, int* time_stamp);
+int Fenix_Data_checkpoint(
+  int group_id, const Fenix_Data_subset subset, int num_storev, int* storev_ids,
+  int* time_stamp
+);
 
 //!@unimplemented Block until all ranks in the group have reached this point.
 int Fenix_Data_barrier(int group_id);
@@ -819,16 +845,16 @@ int Fenix_Data_barrier(int group_id);
  * @brief Restore the data of a group member from a snapshot.
  * @qualifier collective
  *
- * All ranks in the group’s resilient communicator must pass the 
+ * All ranks in the group’s resilient communicator must pass the
  * same values for the parameters group_id, member_id, and time_stamp.
  * This function is used to retrieve data from consistent snapshot
- * members. This function can only be used if the size of the 
+ * members. This function can only be used if the size of the
  * communicator used to store the data is the same as that at the time
  * of data recovery (this implies non-shrinking communicator recovery
  * in case of a rank loss).
  *
  * If the size of the buffer needing to receive the recovery data is
- * unknown for a particular rank, it can be queried using 
+ * unknown for a particular rank, it can be queried using
  * #Fenix_Data_member_attr_get.
  *
  * @param[in] group_id The group to restore from
@@ -839,8 +865,10 @@ int Fenix_Data_barrier(int group_id);
  * @param[out] found_data The subset of the data that was found in the snapshot
  * @returnstatus
  */
-int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer,
-                              int max_count, int time_stamp, Fenix_Data_subset* found_data);
+int Fenix_Data_member_restore(
+  int group_id, int member_id, void* target_buffer, int max_count,
+  int time_stamp, Fenix_Data_subset* found_data
+);
 
 /**
  * @brief Local-only version of Fenix_Data_member_restore
@@ -856,22 +884,26 @@ int Fenix_Data_member_restore(int group_id, int member_id, void *target_buffer,
  * @param[out] found_data The subset of the data that was found in the snapshot
  * @returnstatus
  */
-int Fenix_Data_member_lrestore(int group_id, int member_id, void *target_buffer,
-                              int max_count, int time_stamp, Fenix_Data_subset* found_data);
+int Fenix_Data_member_lrestore(
+  int group_id, int member_id, void* target_buffer, int max_count,
+  int time_stamp, Fenix_Data_subset* found_data
+);
 
-//!@unimplemented As #Fenix_Data_member_restore, but restores from a specific rank's data.
-int Fenix_Data_member_restore_from_rank(int group_id, int member_id, void *data,
-                                        int max_count, int time_stamp,
-                                        Fenix_Data_subset* found_data, int source_rank);
+//!@unimplemented As #Fenix_Data_member_restore, but restores from a specific
+//!rank's data.
+int Fenix_Data_member_restore_from_rank(
+  int group_id, int member_id, void* data, int max_count, int time_stamp,
+  Fenix_Data_subset* found_data, int source_rank
+);
 
 /**
  * @brief Create a data subset for use in store operations.
  *
- * Creates a subset based on num_blocks pairs of 
- * {start_offset,end_offset}, 
- * {start_offset+stride,end_offset+stride}, 
+ * Creates a subset based on num_blocks pairs of
+ * {start_offset,end_offset},
+ * {start_offset+stride,end_offset+stride},
  * {start_offset+2*stride,end_offset+2*stride},
- * etc. 
+ * etc.
  *
  * The value of start_offset must be smaller than or equal
  * to the value of end_offset to indicate non-negative block
@@ -881,14 +913,17 @@ int Fenix_Data_member_restore_from_rank(int group_id, int member_id, void *data,
  * to free memory.
  *
  * @param[in] num_blocks The number of contiguous data blocks.
- * @param[in] start_offset The index of the first element in the first data block.
+ * @param[in] start_offset The index of the first element in the first data
+ *                         block.
  * @param[in] end_offset The index of the last element in the first data block.
  * @param[in] stride Regular shift between successive data blocks.
  * @param[out] subset_specifier The created subset.
  * @returnstatus
  */
-int Fenix_Data_subset_create(int num_blocks, int start_offset, int end_offset,
-                             int stride, Fenix_Data_subset *subset_specifier);
+int Fenix_Data_subset_create(
+  int num_blocks, int start_offset, int end_offset, int stride,
+  Fenix_Data_subset* subset_specifier
+);
 
 /**
  * @brief As #Fenix_Data_subset_create, but with varying start and end offsets.
@@ -902,13 +937,16 @@ int Fenix_Data_subset_create(int num_blocks, int start_offset, int end_offset,
  * to free memory.
  *
  * @param[in] num_blocks The number of contiguous data blocks.
- * @param[in] array_start_offsets The index of the first element in each data block.
- * @param[in] array_end_offsets The index of the last element in each data block.
+ * @param[in] array_start_offsets The index of the first element in each data
+ *            block.
+ * @param[in] array_end_offsets The index of the last element in each data
+ *            block.
  * @param[out] subset_specifier The created subset.
  */
-int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets,
-                              int *array_end_offsets,
-                              Fenix_Data_subset *subset_specifier);
+int Fenix_Data_subset_createv(
+  int num_blocks, int* array_start_offsets, int* array_end_offsets,
+  Fenix_Data_subset* subset_specifier
+);
 
 /**
  * @brief Delete a data subset.
@@ -918,7 +956,7 @@ int Fenix_Data_subset_createv(int num_blocks, int *array_start_offsets,
  * @param[in] subset_specifier The subset to delete.
  * @returnstatus
  */
-int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier);
+int Fenix_Data_subset_delete(Fenix_Data_subset* subset_specifier);
 
 /**
  * @brief Get the number of members in a data group.
@@ -926,7 +964,9 @@ int Fenix_Data_subset_delete(Fenix_Data_subset *subset_specifier);
  * @param[in] group_id The group to query
  * @param[out] number_of_members Number of members in the group
  */
-int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members);
+int Fenix_Data_group_get_number_of_members(
+  int group_id, int* number_of_members
+);
 
 /**
  * @brief Get member ID based on member index
@@ -937,8 +977,9 @@ int Fenix_Data_group_get_number_of_members(int group_id, int *number_of_members)
  * @param[out] member_id The member id at this index in the group
  * @param[in] position The position to check, [0, number_of_members)
  */
-int Fenix_Data_group_get_member_at_position(int group_id, int *member_id,
-                                            int position);
+int Fenix_Data_group_get_member_at_position(
+  int group_id, int* member_id, int position
+);
 
 /**
  * @brief Get the number of locally-available snapshots in a data group.
@@ -949,8 +990,9 @@ int Fenix_Data_group_get_member_at_position(int group_id, int *member_id,
  * @param[out] number_of_snapshots The number of snapshots in the group
  * @returnstatus
  */
-int Fenix_Data_group_get_number_of_snapshots(int group_id,
-                                             int *number_of_snapshots);
+int Fenix_Data_group_get_number_of_snapshots(
+  int group_id, int* number_of_snapshots
+);
 
 /**
  * @brief Get the time stamp of a snapshot at a given index.
@@ -959,26 +1001,30 @@ int Fenix_Data_group_get_number_of_snapshots(int group_id,
  * (e.g. the most recent available snapshot has position=0).
  *
  * @param[in] group_id The group to query
- * @param[in] position The index of the snapshot, which must be [0, number_of_snapshots)
+ * @param[in] position The index of the snapshot, which must be
+ *            [0, number_of_snapshots)
  * @param[out] time_stamp The time stamp of the snapshot
  *
  */
-int Fenix_Data_group_get_snapshot_at_position(int group_id, int position,
-                                              int *time_stamp);
+int Fenix_Data_group_get_snapshot_at_position(
+  int group_id, int position, int* time_stamp
+);
 
 //!@unimplemented Get the value of a member's attribute.
-int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename,
-                               void *attributevalue, int *flag, int source_rank);
+int Fenix_Data_member_attr_get(
+  int group_id, int member_id, int attributename, void* attributevalue,
+  int* flag, int source_rank
+);
 
 /**
  * @brief Set the value of a member's attribute.
  *
- * Valid names are FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT,
- * and FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE.
+ * Valid names are FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
+ * FENIX_DATA_MEMBER_ATTRIBUTE_COUNT, and FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE.
  *
- * The COUNT and DATATYPE attributes may only be set before the first store operation.
- * Contrary to the Fenix specification, returning to #Fenix_Init after a failure does not 
- * allow the user to set these attributes again.
+ * The COUNT and DATATYPE attributes may only be set before the first store
+ * operation. Contrary to the Fenix specification, returning to #Fenix_Init
+ * after a failure does not allow the user to set these attributes again.
  *
  * @param[in] group_id The group to update
  * @param[in] member_id The member to update
@@ -987,13 +1033,15 @@ int Fenix_Data_member_attr_get(int group_id, int member_id, int attributename,
  * @param[out] flag Set to true if the attribute was set, else false
  * @returnstatus
  */
-int Fenix_Data_member_attr_set(int group_id, int member_id, int attribute_name,
-                               void *attribute_value, int *flag);
+int Fenix_Data_member_attr_set(
+  int group_id, int member_id, int attribute_name, void* attribute_value,
+  int* flag
+);
 
 /**
  * @brief Delete a snapshot from a data group.
  * @qualifier local
- * 
+ *
  * @param[in] group_id The group to delete from
  * @param[in] time_stamp The time stamp of the snapshot to delete
  * @returnstatus
@@ -1027,7 +1075,7 @@ int Fenix_Data_member_delete(int group_id, int member_id);
  * @{
  */
 
-#define FENIX_MLOG_NONE     -1
+#define FENIX_MLOG_NONE -1
 #define FENIX_MLOG_CONTINUE -1
 
 /**
@@ -1122,9 +1170,9 @@ int Fenix_Mlog_sync(int mlog_id, int region_id);
  * @param[in] mlog_id   The mlog to stage.
  * @param[in] group_id  The group to stage into.
  * @param[in] member_id The member to stage into.
- *                      The member does not have to already exist.
- *                      If the member already exists, it must have been created
- *                      with size FENIX_RESIZEABLE and datatype MPI_BYTE
+ *            The member does not have to already exist.
+ *            If the member already exists, it must have been created with size
+ *            FENIX_RESIZEABLE and datatype MPI_BYTE
  * @returnstatus
  */
 int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id);
@@ -1139,8 +1187,9 @@ int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id);
  * @param[in] time_stamp The time stamp of the snapshot to restore from.
  * @returnstatus
  */
-int Fenix_Mlog_lrestore(int mlog_id, int group_id, int member_id,
-                        int time_stamp);
+int Fenix_Mlog_lrestore(
+  int mlog_id, int group_id, int member_id, int time_stamp
+);
 
 /**
  * @brief Delete an mlog
