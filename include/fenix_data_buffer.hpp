@@ -85,6 +85,12 @@ class DataBuffer {
     return *this;
   }
 
+  void take_ownership(char* new_buf, size_t new_size) {
+    free_buf();
+    buf       = new_buf;
+    user_size = alloc_size = new_size;
+  }
+
   // Simple resize without overallocating.
   // No ammortized growth cost, but we don't need it for our usage
   void resize(size_t new_size);

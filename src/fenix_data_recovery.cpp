@@ -134,6 +134,15 @@ int member_stage(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_END
 }
 
+int member_stage_inplace(
+  int groupid, int memberid, void* buf, const DataSubset& specifier
+) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_stage_inplace(memberid, buf, specifier);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
 // Quick little helper function for the 4 kinds of stores
 template <auto Func, typename... Args>
 static int store(int groupid, int memberid, Args&&... args) {

@@ -189,12 +189,29 @@ bool Member::snapshot_delete(int timestamp) {
 }
 
 void Member::stage(const DataSubset& subset) {
-  if (subset == SUBSET_PRESTAGED)
-    FENIX_THROW("Cannot stage FENIX_DATA_SUBSET_PRESTAGED");
+  if (subset == SUBSET_PRESTAGED) FENIX_THROW("Cannot stage SUBSET_PRESTAGED");
 
   Entry& e = entries.back();
+  if (e.elm_max_count == 0 && subset == SUBSET_FULL)
+    FENIX_THROW("Cannot stage SUBSET_FULL to FENIX_RESIZEABLE member");
+
   e.add_and_fit(subset);
   subset.copy_data(e.elm_size, e.elm_max_count, mentry.user_data, e.buf);
+}
+
+void Member::stage_inplace(void* buf, const DataSubset& subset) {
+  if (subset == SUBSET_PRESTAGED) FENIX_THROW("Cannot stage SUBSET_PRESTAGED");
+
+  Entry& e = entries.back();
+  if (e.elm_max_count == 0 && subset == SUBSET_FULL)
+    FENIX_THROW("Cannot stage SUBSET_FULL to FENIX_RESIZEABLE member");
+
+  int count = subset.max_count();
+  if (subset == SUBSET_FULL) count = e.elm_max_count;
+  else if (count > e.elm_max_count) count = e.elm_max_count;
+
+  e.buf.take_ownership(buf, count * e.elm_size);
+  e.region = subset;
 }
 
 tasks::Task<int> Member::istorev(const DataSubset& subset) {
@@ -740,6 +757,14 @@ void Group::member_stage(int member_id, const DataSubset& subset) {
   auto iter = member_data.find(member_id);
   if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
   iter->second->stage(subset);
+}
+
+void Group::member_stage_inplace(
+  int member_id, void* buf, const DataSubset& subset
+) {
+  auto iter = member_data.find(member_id);
+  if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  iter->second->stage_inplace(buf, subset);
 }
 
 int Group::member_store(int member_id, const DataSubset& subset) {

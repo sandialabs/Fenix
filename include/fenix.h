@@ -733,6 +733,30 @@ int Fenix_Data_member_stage(
 );
 
 /**
+ * @brief As #Fenix_Data_member_stage, but takes ownership of buf to possibly
+ * avoid a copy.
+ *
+ * Fenix takes this \c buf as the new location to stage all data to. Any prior
+ * staged but uncommitted data is lost. Even if \c subset is not contiguous or
+ * begins after 0, \c buf must contain all elements from 0 to the maximum of
+ * (member's count, subset's end). Elements not belonging to the subset may be
+ * written to with subsequent calls to #Fenix_Data_member_stage.
+ *
+ * There is no guarantee that the pointer to buf will remain valid after this
+ * call. Fenix may overwrite, reallocate, or free this buffer at any time,
+ * including before returning from this function.
+ *
+ * @param group_id All ranks must provide the same group_id
+ * @param member_id All ranks must provide the same member_id
+ * @param buf The data buffer which Fenix will take ownership of
+ * @param subset Which subset of the data to stage. See #Fenix_Data_member_stage
+ * @returnstatus
+ */
+int Fenix_Data_member_stage_inplace(
+  int group_id, int member_id, void* buf, const Fenix_Data_subset subset
+);
+
+/**
  * @brief Store a particular group member into the group's resilient storage
  *  space, in uncommitted storage.
  *
