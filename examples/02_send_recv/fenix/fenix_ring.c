@@ -158,9 +158,12 @@ int main(int argc, char **argv) {
   } else {
     int out_flag = 0;
     
-    Fenix_Data_member_restore(my_group, 777, outmsg, kCount, 2, NULL);
-    Fenix_Data_member_restore(my_group, 778, x, 4, 1, NULL);
-    Fenix_Data_member_restore(my_group, 779, inmsg, kCount, 1, NULL);
+    Fenix_Data_member_restore(my_group, 777, outmsg, kCount,
+        FENIX_DATA_SNAPSHOT_LATEST, FENIX_DATA_SUBSET_IGNORE);
+    Fenix_Data_member_restore(my_group, 778, x, 4,
+        FENIX_DATA_SNAPSHOT_LATEST, FENIX_DATA_SUBSET_IGNORE);
+    Fenix_Data_member_restore(my_group, 779, inmsg, kCount,
+        FENIX_DATA_SNAPSHOT_LATEST, FENIX_DATA_SUBSET_IGNORE);
     fprintf(stderr, "Did restore on node %d\n", rank);
     
     Fenix_Data_member_attr_set(my_group, 777, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
