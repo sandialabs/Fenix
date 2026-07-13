@@ -64,46 +64,75 @@
 #include "fenix/tasks/forward.hpp"
 
 namespace fenix {
-namespace detail {
 
-template <typename T>
-struct UninitializedCharAllocator : public std::allocator<T> {
-  UninitializedCharAllocator() noexcept {};
-  template <typename U>
-  UninitializedCharAllocator(const U& other) noexcept {};
-
-  using value_type = T;
-  void construct(char*) {};
-
-  template <typename U>
-  struct rebind {
-    using other = UninitializedCharAllocator<U>;
-  };
-};
-
-using BufferVec = std::vector<char, UninitializedCharAllocator<char>>;
-
-}
-
-class DataBuffer : public detail::BufferVec {
+class DataBuffer {
  public:
-  using BufferVec = detail::BufferVec;
-  using MPITask   = tasks::mpi::MPITask;
+  using MPITask = tasks::mpi::MPITask;
 
-  //Set to new size, possibly discarding old data
+  DataBuffer() = default;
+  explicit DataBuffer(size_t init_size) { resize(init_size); }
+
+  ~DataBuffer() { free_buf(); }
+
+  DataBuffer(const DataBuffer& o) = delete;
+
+  DataBuffer(DataBuffer&& o) { *this = std::move(o); }
+  DataBuffer& operator=(DataBuffer&& o) {
+    if (&o == this) return *this;
+    free_buf();
+    *this = o;
+    o.release_buf();
+    return *this;
+  }
+
+  // Simple resize without overallocating.
+  // No ammortized growth cost, but we don't need it for our usage
+  void resize(size_t new_size);
+  void shrink_to_fit();
+  void clear() { resize(0); }
+
+  // Set to new size, discarding old data if reallocation is needed
   void reset(size_t new_size = 0) {
-    //Clear first, to be sure any re-allocations don't actually move data
-    clear();
+    resize(0);
     resize(new_size);
   }
 
+  void reserve(size_t new_size) {
+    size_t old_size = user_size;
+    resize(new_size);
+    resize(old_size);
+  }
+
+  char* data() { return buf; }
+  const char* data() const { return buf; }
+  size_t size() const { return user_size; }
+
   MPITask send(int dst, int tag, MPI_Comm comm);
 
-  //Recv n bytes
+  // Recv n bytes
   MPITask recv(int n, int src, int tag, MPI_Comm comm);
 
-  //Recv an unknown amount of data and resize to fit
+  // Recv an unknown amount of data and resize to fit
   MPITask recv_unknown(int src, int tag, MPI_Comm comm);
+
+ private:
+  char* buf        = nullptr;
+  size_t user_size = 0, alloc_size = 0;
+
+  DataBuffer& operator=(const DataBuffer& o) {
+    this->buf        = o.buf;
+    this->user_size  = o.user_size;
+    this->alloc_size = o.alloc_size;
+    return *this;
+  }
+  void free_buf() {
+    free(buf);
+    release_buf();
+  }
+  void release_buf() {
+    buf       = nullptr;
+    user_size = alloc_size = 0;
+  }
 };
 
 } // namespace fenix

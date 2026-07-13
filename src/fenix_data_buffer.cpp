@@ -55,11 +55,46 @@
 */
 
 #include "fenix_data_buffer.hpp"
+#include "fenix_opt.hpp"
 #include "fenix/tasks/mpi.hpp"
+
+#include <cstdlib>
 
 using namespace fenix::tasks::mpi;
 
 namespace fenix {
+
+void DataBuffer::resize(size_t new_size) {
+  if (new_size <= alloc_size) {
+    user_size = new_size;
+  } else {
+    shrink_to_fit();
+
+    char* new_buf = (char*)realloc(buf, new_size);
+    if (new_buf == nullptr) {
+      error_print(
+        "unable to resize buffer to %llu bytes", (unsigned long long)new_size
+      );
+      free_buf();
+      abort();
+    } else {
+      buf       = new_buf;
+      user_size = alloc_size = new_size;
+    }
+  }
+}
+
+void DataBuffer::shrink_to_fit() {
+  if (user_size == 0) {
+    free_buf();
+  } else if (user_size < alloc_size) {
+    char* new_buf = (char*)realloc(buf, user_size);
+    fenix_assert(new_buf != nullptr);
+    buf        = new_buf;
+    alloc_size = user_size;
+  }
+}
+
 MPITask DataBuffer::send(int dst, int tag, MPI_Comm comm) {
   return tasks::mpi::send(data(), size(), MPI_BYTE, dst, tag, comm);
 }
