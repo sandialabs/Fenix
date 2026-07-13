@@ -64,16 +64,17 @@
 namespace fenix::data {
 
 fenix_group_t* new_group(
-   int groupid, MPI_Comm comm, int timestart, int depth, int policy_name,
-   void* policy_value, int* flag
+  int groupid, MPI_Comm comm, int timestart, int depth, int policy_name,
+  void* policy_value, int* flag
 ) {
-   switch(policy_name){
-      case FENIX_DATA_POLICY_IN_MEMORY_RAID:
-         return new imr::Group(
-            groupid, comm, timestart, depth, (int*)policy_value, flag
-         );
-      default: FENIX_THROW(FENIX_ERROR_INVALID_POLICY_NAME);
-   }
+  switch (policy_name) {
+  case FENIX_DATA_POLICY_IN_MEMORY_RAID:
+    return new imr::Group(
+      groupid, comm, timestart, depth, (int*)policy_value, flag
+    );
+  default:
+    FENIX_THROW(FENIX_ERROR_INVALID_POLICY_NAME);
+  }
 }
 
 }

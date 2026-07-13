@@ -50,3 +50,7 @@ BreakTemplateDeclarations: Leave
 
 # Ignore whitespace "issues" in sendrecvs
 WhitespaceSensitiveMacros: [MPI_Sendrecv, MPI_Isendrecv, sendrecv]
+
+# Multiline operands (+, -, &&, etc.) are not indented to align with the equal
+# sign
+AlignOperands: DontAlign

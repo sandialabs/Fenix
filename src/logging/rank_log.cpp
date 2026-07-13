@@ -32,7 +32,7 @@ void RankLog::serialize(std::ostream& o) const {
 
 std::string RankLog::str() const {
   return comm_log.str() + " Log " + std::to_string(rank) + " " +
-         cur_region.str();
+    cur_region.str();
 }
 
 void RankLog::reset_consistency(int target_region) {

@@ -24,7 +24,7 @@ class CollectiveLogHolder {
   CollectiveLogHolder() = default;
   CollectiveLogHolder(CollectiveLogHolder&& o) { *this = std::move(o); }
   CollectiveLogHolder& operator=(CollectiveLogHolder&& o) {
-    log = std::move(o.log);
+    log     = std::move(o.log);
     variant = std::move(o.variant);
     return *this;
   }

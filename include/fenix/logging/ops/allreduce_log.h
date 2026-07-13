@@ -21,7 +21,7 @@ class AllreduceLog : public CollectiveLog {
   AllreduceLog(AllreduceLog&& o) { *this = std::move(o); }
   AllreduceLog& operator=(AllreduceLog&& o) {
     CollectiveLog::operator=(std::move(o));
-    op = o.op;
+    op   = o.op;
     sbuf = std::move(o.sbuf);
     rbuf = std::move(o.rbuf);
     return *this;

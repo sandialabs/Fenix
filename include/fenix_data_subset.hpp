@@ -73,165 +73,169 @@ namespace detail {
 struct DataRegionIterator;
 
 struct DataRegion {
-    static constexpr size_t MAX = std::numeric_limits<size_t>::max();
+  static constexpr size_t MAX = std::numeric_limits<size_t>::max();
 
-    DataRegion(std::pair<size_t, size_t> b)
-        : DataRegion(b, 0, MAX) { };
-    DataRegion(std::pair<size_t, size_t> b, size_t m_reps, size_t m_stride)
-        : start(b.first),
-          end((b.second!=MAX && b.second+1==b.first+m_stride) ?
-                  b.second+m_reps*m_stride : b.second),
-          reps((b.second==MAX || b.second+1==b.first+m_stride) ? 0 : m_reps),
-          stride(reps == 0 ? MAX : m_stride)
-    {
-        fenix_assert(start <= end);
-        fenix_assert(stride != MAX || reps == 0);
-        fenix_assert(reps == 0 || start+stride > end);
-    };
+  DataRegion(std::pair<size_t, size_t> b) : DataRegion(b, 0, MAX) {};
+  DataRegion(std::pair<size_t, size_t> b, size_t m_reps, size_t m_stride)
+    : start(b.first),
+      end(
+        (b.second != MAX && b.second + 1 == b.first + m_stride)
+          ? b.second + m_reps * m_stride : b.second
+      ),
+      reps(
+        (b.second == MAX || b.second + 1 == b.first + m_stride) ? 0 : m_reps
+      ),
+      stride(reps == 0 ? MAX : m_stride) {
+    fenix_assert(start <= end);
+    fenix_assert(stride != MAX || reps == 0);
+    fenix_assert(reps == 0 || start + stride > end);
+  };
 
-    //Overall range of this region.
-    std::pair<size_t, size_t> range() const;
+  //Overall range of this region.
+  std::pair<size_t, size_t> range() const;
 
-    //Count of elements contained in this region
-    size_t count() const;
+  //Count of elements contained in this region
+  size_t count() const;
 
-    bool operator==(const DataRegion& other) const;
-    bool operator!=(const DataRegion& other) const;
+  bool operator==(const DataRegion& other) const;
+  bool operator!=(const DataRegion& other) const;
 
-    //Order based on start
-    bool operator<(const DataRegion& other) const;
+  //Order based on start
+  bool operator<(const DataRegion& other) const;
 
-    //Return true if these regions intersect
-    bool operator&&(const DataRegion& other) const;
+  //Return true if these regions intersect
+  bool operator&&(const DataRegion& other) const;
 
-    //Returns intersection of two regions. Not defined when both regions are strided.
-    std::set<DataRegion> operator&(const DataRegion& other) const;
-    
-    //This region w/o the overlap with other
-    std::set<DataRegion> operator-(const DataRegion& other) const;
+  //Returns intersection of two regions. Not defined when both regions are
+  //strided.
+  std::set<DataRegion> operator&(const DataRegion& other) const;
 
-    //Get a region that is a single repetition of this one's, with bounds check
-    DataRegion get_rep(size_t n) const;
-    //As above, but multiple repetitions
-    DataRegion get_reps(size_t first, size_t last) const;
+  //This region w/o the overlap with other
+  std::set<DataRegion> operator-(const DataRegion& other) const;
 
-    //For a strided region, returns region between repetitions
-    //Undefined for an unstrided region.
-    DataRegion inverted() const;
+  //Get a region that is a single repetition of this one's, with bounds check
+  DataRegion get_rep(size_t n) const;
+  //As above, but multiple repetitions
+  DataRegion get_reps(size_t first, size_t last) const;
 
-    std::optional<DataRegion> try_merge(const DataRegion& other) const;
+  //For a strided region, returns region between repetitions
+  //Undefined for an unstrided region.
+  DataRegion inverted() const;
 
-    std::string str() const;
+  std::optional<DataRegion> try_merge(const DataRegion& other) const;
 
-    //Inclusive region bounds.
-    size_t start, end;
+  std::string str() const;
 
-    //Number of times to repeat this after the first
-    size_t reps;
+  //Inclusive region bounds.
+  size_t start, end;
 
-    //Distance between starts of each repetition
-    size_t stride;
+  //Number of times to repeat this after the first
+  size_t reps;
+
+  //Distance between starts of each repetition
+  size_t stride;
 };
 } // namespace detail
 
 struct DataSubset {
-    static constexpr size_t MAX = detail::DataRegion::MAX;
+  static constexpr size_t MAX = detail::DataRegion::MAX;
 
-    enum SubsetType {
-        BasicSubset,
-        PrestagedSubset,
-    };
+  enum SubsetType {
+    BasicSubset,
+    PrestagedSubset,
+  };
 
-    //DataSubset(const DataSubset&) = default;
-    //DataSubset(DataSubset&&) = default;
-    //Empty
-    DataSubset() = default;
-    //[0, end]
-    explicit DataSubset(size_t end);
-    //[bounds.first, bounds.second]
-    DataSubset(std::pair<size_t, size_t> bounds);
-    //[b.first, b.second], ..., [b.first+stride*(n-1), b.second+stride*(n-1)]
-    DataSubset(std::pair<size_t, size_t> b, size_t n, size_t stride);
-    //[bounds[0].first, bounds[0].second], ...
-    DataSubset(std::vector<std::pair<size_t, size_t>> bounds);
-    //[first[0], second[0]], ... [first[n-1], second[n-1]]
-    DataSubset(int n, int* first, int* second);
-    //Merge two subsets
-    DataSubset(const DataSubset& a, const DataSubset& b);
-    //Create from serialized subset object
-    DataSubset(const DataBuffer& buf);
-    explicit DataSubset(SubsetType special_type) : type(special_type) { };
+  //DataSubset(const DataSubset&) = default;
+  //DataSubset(DataSubset&&) = default;
+  //Empty
+  DataSubset() = default;
+  //[0, end]
+  explicit DataSubset(size_t end);
+  //[bounds.first, bounds.second]
+  DataSubset(std::pair<size_t, size_t> bounds);
+  //[b.first, b.second], ..., [b.first+stride*(n-1), b.second+stride*(n-1)]
+  DataSubset(std::pair<size_t, size_t> b, size_t n, size_t stride);
+  //[bounds[0].first, bounds[0].second], ...
+  DataSubset(std::vector<std::pair<size_t, size_t>> bounds);
+  //[first[0], second[0]], ... [first[n-1], second[n-1]]
+  DataSubset(int n, int* first, int* second);
+  //Merge two subsets
+  DataSubset(const DataSubset& a, const DataSubset& b);
+  //Create from serialized subset object
+  DataSubset(const DataBuffer& buf);
+  explicit DataSubset(SubsetType special_type) : type(special_type) {};
 
-    DataSubset operator+(const DataSubset& other) const;
-    DataSubset& operator+=(const DataSubset& other);
-    
-    DataSubset operator+(const Fenix_Data_subset& other) const;
-    DataSubset& operator+=(const Fenix_Data_subset& other);
+  DataSubset operator+(const DataSubset& other) const;
+  DataSubset& operator+=(const DataSubset& other);
 
-    DataSubset operator-(const DataSubset& other) const;
-    bool operator==(const DataSubset& other) const;
-    bool operator!=(const DataSubset& other) const;
+  DataSubset operator+(const Fenix_Data_subset& other) const;
+  DataSubset& operator+=(const Fenix_Data_subset& other);
 
-    bool empty() const;
+  DataSubset operator-(const DataSubset& other) const;
+  bool operator==(const DataSubset& other) const;
+  bool operator!=(const DataSubset& other) const;
 
-    //Overall range of this subset
-    std::pair<size_t, size_t> range() const;
-    //Equivalent to range().first and range().second, possibly more performant
-    size_t start() const;
-    size_t end() const;
+  bool empty() const;
 
-    //Count of elements in this subset from [0, max_index]
-    //Returns 0 if max_index==end()==MAX
-    size_t count(size_t max_index) const;
+  //Overall range of this subset
+  std::pair<size_t, size_t> range() const;
+  //Equivalent to range().first and range().second, possibly more performant
+  size_t start() const;
+  size_t end() const;
 
-    //Count of elements in this subset if it were full [0, end()]
-    //Returns 0 if end()==MAX
-    size_t max_count() const;
+  //Count of elements in this subset from [0, max_index]
+  //Returns 0 if max_index==end()==MAX
+  size_t count(size_t max_index) const;
 
-    //Serialize this subset object into buf
-    //Will resize buf to fit exactly.
-    void serialize(DataBuffer& buf) const;
-   
-    //Will reset dst to fit
-    void serialize_data(
-        size_t elm_size, const DataBuffer& src, DataBuffer& dst
-    ) const;
-    //If dst.size()==0, will resize dst to fit
-    void deserialize_data(
-        size_t elm_size, const DataBuffer& src, DataBuffer& dst
-    ) const;
+  //Count of elements in this subset if it were full [0, end()]
+  //Returns 0 if end()==MAX
+  size_t max_count() const;
 
-    //If src_len == 0, will assume src is a large as needed
-    //Will resize dst if too small
-    void copy_data(
-        const size_t elm_size, const size_t src_len, const char* src, DataBuffer& dst
-    ) const;
-    //If dst_len == 0, will assume dst is as large as needed
-    void copy_data(
-        const size_t elm_size, const DataBuffer& src, const size_t dst_len,
-        char* dst
-    ) const;
-    
-    //Whether this subset includes the element at index idx
-    bool includes(size_t idx) const;
-    //Whether this subset includes the entire range [0, end] without gaps
-    bool includes_all(size_t end) const;
+  //Serialize this subset object into buf
+  //Will resize buf to fit exactly.
+  void serialize(DataBuffer& buf) const;
 
-    //Return equivalent of regions & [0, max_index]
-    std::set<detail::DataRegion> bounded_regions(size_t max_index) const;
-    //As above, but regions & [start, end]
-    std::set<detail::DataRegion> bounded_regions(size_t start, size_t end) const;
+  //Will reset dst to fit
+  void serialize_data(
+    size_t elm_size, const DataBuffer& src, DataBuffer& dst
+  ) const;
+  //If dst.size()==0, will resize dst to fit
+  void deserialize_data(
+    size_t elm_size, const DataBuffer& src, DataBuffer& dst
+  ) const;
 
-    std::string str() const;
+  //If src_len == 0, will assume src is a large as needed
+  //Will resize dst if too small
+  void copy_data(
+    const size_t elm_size, const size_t src_len, const char* src,
+    DataBuffer& dst
+  ) const;
+  //If dst_len == 0, will assume dst is as large as needed
+  void copy_data(
+    const size_t elm_size, const DataBuffer& src, const size_t dst_len,
+    char* dst
+  ) const;
 
-    //Individual data regions in this subset
-    std::set<detail::DataRegion> regions;
+  //Whether this subset includes the element at index idx
+  bool includes(size_t idx) const;
+  //Whether this subset includes the entire range [0, end] without gaps
+  bool includes_all(size_t end) const;
 
-    SubsetType type = BasicSubset;
+  //Return equivalent of regions & [0, max_index]
+  std::set<detail::DataRegion> bounded_regions(size_t max_index) const;
+  //As above, but regions & [start, end]
+  std::set<detail::DataRegion> bounded_regions(size_t start, size_t end) const;
 
-  private:
-    //merge immediately adjacent regions to simplify
-    void merge_regions();
+  std::string str() const;
+
+  //Individual data regions in this subset
+  std::set<detail::DataRegion> regions;
+
+  SubsetType type = BasicSubset;
+
+ private:
+  //merge immediately adjacent regions to simplify
+  void merge_regions();
 };
 } // namespace fenix
 #endif // __FENIX_DATA_SUBSET_HPP_

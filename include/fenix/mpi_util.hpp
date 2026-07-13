@@ -72,7 +72,7 @@ enum Tag {
 };
 
 // MPI Standard guarantees tags below 2^15 are valid
-static_assert(FENIX_TAG_MAX < 1<<15);
+static_assert(FENIX_TAG_MAX < (1 << 15));
 
 } // namespace fenix::tags
 
@@ -80,10 +80,10 @@ namespace fenix::util {
 
 inline std::string mpi_error_string(int errcode) {
   std::string ret;
-  ret.resize(MPI_MAX_ERROR_STRING+1);
+  ret.resize(MPI_MAX_ERROR_STRING + 1);
   int len;
   MPI_Error_string(errcode, &ret[0], &len);
-  ret.resize(len+1);
+  ret.resize(len + 1);
   return ret;
 }
 

@@ -25,7 +25,7 @@ class ReduceLog : public CollectiveLog {
   ReduceLog& operator=(ReduceLog&& o) {
     CollectiveLog::operator=(std::move(o));
     root = o.root;
-    op = o.op;
+    op   = o.op;
     sbuf = std::move(o.sbuf);
     rbuf = std::move(o.rbuf);
     return *this;
@@ -53,7 +53,7 @@ class ReduceLog : public CollectiveLog {
   int begin(MPI_Comm c) const override {
     req_free();
     void* recv = root == util::comm_rank(c) ? rbuf.buf() : nullptr;
-    int ret = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
+    int ret    = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
     if (ret == MPI_SUCCESS) ret = PMPI_Wait(req(), MPI_STATUS_IGNORE);
     // Release references to any user buffers if we get this far
     rbuf.release_user_buf();
@@ -63,7 +63,7 @@ class ReduceLog : public CollectiveLog {
   void replay(MPI_Comm c) const override {
     req_free();
     void* recv = root == util::comm_rank(c) ? rbuf.buf() : nullptr;
-    int ret = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
+    int ret    = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
     fenix_assert(
       ret == MPI_SUCCESS, "Non-process MPI error during collective replay\n"
     );

@@ -60,10 +60,9 @@
 
 namespace fenix::data {
 
-fenix_member_entry_packet_t
-fenix_member_entry_t::to_packet(){
+fenix_member_entry_packet_t fenix_member_entry_t::to_packet() {
   fenix_member_entry_packet_t to_ret;
-  to_ret.memberid = memberid;
+  to_ret.memberid      = memberid;
   to_ret.datatype_size = datatype_size;
   to_ret.current_count = current_count;
   return to_ret;
@@ -71,11 +70,13 @@ fenix_member_entry_t::to_packet(){
 
 fenix_member_entry_t::fenix_member_entry_t(
   int id, void* data, int count, MPI_Datatype datatype
-) : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) { };
+)
+  : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) {};
 
 fenix_member_entry_t::fenix_member_entry_t(
   int id, void* data, int count, int dsize
-) : memberid(id), user_data((char*)data), current_count(count),
-    datatype_size(dsize) { };
+)
+  : memberid(id), user_data((char*)data), current_count(count),
+    datatype_size(dsize) {};
 
 } //namespace fenix::data

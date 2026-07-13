@@ -93,8 +93,8 @@ struct RuntimeException : public std::exception {
 
   // file:line function error_string
   std::string to_string(int depth = 0) const noexcept {
-    std::string_view f = location.file_name();
-    std::string l = std::to_string(location.line());
+    std::string_view f  = location.file_name();
+    std::string l       = std::to_string(location.line());
     std::string_view fn = location.function_name();
 
     std::string ret;
@@ -102,9 +102,9 @@ struct RuntimeException : public std::exception {
       3 + depth * 2 + f.size() + l.size() + fn.size() + error_string.size()
     );
     ret.assign(" ", depth * 2);
-    ret += f;  ret += ":";
-    ret += l;  ret += " ";
-    ret += fn; ret += " ";
+    (ret += f) += ":";
+    (ret += l) += " ";
+    (ret += fn) += " ";
     ret += error_string;
     return ret;
   }

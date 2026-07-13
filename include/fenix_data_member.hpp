@@ -62,22 +62,22 @@ namespace fenix::data {
 struct fenix_group_t;
 
 struct fenix_member_entry_packet_t {
-    int memberid;
-    int datatype_size;
-    int current_count;
+  int memberid;
+  int datatype_size;
+  int current_count;
 };
 
 struct fenix_member_entry_t {
-    fenix_member_entry_t() = default;
-    fenix_member_entry_t(int id, void* data, int count, MPI_Datatype datatype);
-    fenix_member_entry_t(int id, void* data, int count, int datatype_size);
+  fenix_member_entry_t() = default;
+  fenix_member_entry_t(int id, void* data, int count, MPI_Datatype datatype);
+  fenix_member_entry_t(int id, void* data, int count, int datatype_size);
 
-    fenix_member_entry_packet_t to_packet();
+  fenix_member_entry_packet_t to_packet();
 
-    int memberid = -1;
-    char *user_data = nullptr;
-    int current_count;
-    int datatype_size;
+  int memberid    = -1;
+  char* user_data = nullptr;
+  int current_count;
+  int datatype_size;
 };
 
 } // namespace fenix::data

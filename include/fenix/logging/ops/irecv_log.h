@@ -13,18 +13,18 @@ struct IrecvLog {
   IrecvLog(void* b, int c, MPI_Datatype d, int t, MPI_Request* r)
     : buf(b), count(c), datatype(d), tag(t), request(r) {}
   IrecvLog& operator=(const IrecvLog& o) {
-    buf = o.buf;
-    count = o.count;
+    buf      = o.buf;
+    count    = o.count;
     datatype = o.datatype;
-    tag = o.tag;
-    request = o.request;
+    tag      = o.tag;
+    request  = o.request;
     return *this;
   }
 
   void* buf = nullptr;
   int count = -1;
   MPI_Datatype datatype;
-  int tag = -1;
+  int tag              = -1;
   MPI_Request* request = nullptr;
 
   int irecv(int src, MPI_Comm comm) {
