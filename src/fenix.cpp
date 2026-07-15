@@ -498,20 +498,6 @@ int Fenix_Mlog_sync(int mlog_id, int region_id) {
   FENIX_C_API_END
 }
 
-int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id) {
-  FENIX_C_API_BEGIN
-  return mlog::stage(mlog_id, group_id, member_id);
-  FENIX_C_API_END
-}
-
-int Fenix_Mlog_lrestore(
-  int mlog_id, int group_id, int member_id, int time_stamp
-) {
-  FENIX_C_API_BEGIN
-  return mlog::lrestore(mlog_id, group_id, member_id, time_stamp);
-  FENIX_C_API_END
-}
-
 int Fenix_Mlog_delete(int mlog_id) {
   FENIX_C_API_BEGIN
   return mlog::mlog_delete(mlog_id);

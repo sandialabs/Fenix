@@ -62,6 +62,7 @@
 #include "fenix_data_buffer.hpp"
 
 #include <cstring>
+#include <cstdio>
 
 namespace fenix {
 namespace detail {
@@ -543,7 +544,8 @@ DataSubset DataSubset::operator+(const Fenix_Data_subset& other) const {
 }
 
 DataSubset& DataSubset::operator+=(const DataSubset& other) {
-  fenix_assert(type == BasicSubset && other.type == BasicSubset);
+  fenix_assert(type == BasicSubset);
+  fenix_assert(other.type == BasicSubset);
   *this = *this + other;
   return *this;
 }
@@ -659,6 +661,20 @@ size_t DataSubset::end() const {
   return ret;
 }
 
+DataSubset DataSubset::bounded(size_t max_idx) const {
+  DataSubset ret = {};
+  ret.regions    = bounded_regions(max_idx);
+  return ret;
+}
+
+DataSubset& DataSubset::bound(size_t max_idx) {
+  if (max_idx == MAX) return *this;
+  if (empty()) return *this;
+  if (end() <= max_idx) return *this;
+  regions = bounded_regions(max_idx);
+  return *this;
+}
+
 std::set<DataRegion> DataSubset::bounded_regions(size_t max_idx) const {
   return bounded_regions(0, max_idx);
 }
@@ -667,6 +683,9 @@ std::set<DataRegion> DataSubset::bounded_regions(
   size_t start, size_t end
 ) const {
   fenix_assert(type == BasicSubset);
+  if (empty()) return {};
+  if (this->start() >= start && this->end() <= end) return regions;
+
   std::set<DataRegion> ret;
   DataRegion bounds({start, end});
   for (const auto& r : regions) {
@@ -753,7 +772,8 @@ void DataSubset::deserialize_data(
 }
 
 void DataSubset::copy_data(
-  const size_t elm_size, const size_t src_len, const char* src, DataBuffer& dst
+  const size_t elm_size, const size_t src_len, char* src, DataBuffer& dst,
+  SerializeFileFunc& serializer
 ) const {
   fenix_assert(type == BasicSubset);
   if (regions.empty()) return;
@@ -767,19 +787,34 @@ void DataSubset::copy_data(
   if (dst.size() < (max_elm + 1) * elm_size)
     dst.resize((max_elm + 1) * elm_size);
 
+  FILE* fp;
+  if (serializer) {
+    fp = fmemopen(dst.data(), (max_elm + 1) * elm_size, "w");
+    fenix_assert(fp != nullptr);
+  }
+
   for (const auto& b : BlockIter(bounded_regions(max_elm))) {
     size_t start = b.start * elm_size;
-    size_t len   = (b.end - b.start + 1) * elm_size;
+    size_t count = b.end - b.start + 1;
+    size_t len   = count * elm_size;
 
     fenix_assert(src_len == 0 || (start + len) / elm_size <= src_len);
     fenix_assert(start + len <= dst.size());
 
-    memcpy(dst.data() + start, src + start, len);
+    if (!serializer) {
+      memcpy(dst.data() + start, src + start, len);
+    } else {
+      fseek(fp, start, SEEK_SET);
+      serializer(fp, FENIX_SERIALIZE, src, b.start, count);
+    }
   }
+
+  if (serializer) fclose(fp);
 }
 
 void DataSubset::copy_data(
-  const size_t elm_size, const DataBuffer& src, const size_t dst_len, char* dst
+  const size_t elm_size, DataBuffer& src, const size_t dst_len, char* dst,
+  SerializeFileFunc& serializer
 ) const {
   fenix_assert(type == BasicSubset);
   if (regions.empty()) return;
@@ -791,15 +826,29 @@ void DataSubset::copy_data(
 
   size_t max_elm = std::min(dst_len ? dst_len - 1 : end(), src.size());
 
+  FILE* fp;
+  if (serializer) {
+    fp = fmemopen(src.data(), (max_elm + 1) * elm_size, "r");
+    fenix_assert(fp != nullptr);
+  }
+
   for (const auto& b : BlockIter(bounded_regions(max_elm))) {
     size_t start = b.start * elm_size;
-    size_t len   = (b.end - b.start + 1) * elm_size;
+    size_t count = (b.end - b.start + 1);
+    size_t len   = count * elm_size;
 
     fenix_assert(dst_len == 0 || (start + len) / elm_size <= dst_len);
     fenix_assert(start + len <= src.size());
 
-    memcpy(dst + start, src.data() + start, len);
+    if (!serializer) {
+      memcpy(dst + start, src.data() + start, len);
+    } else {
+      fseek(fp, start, SEEK_SET);
+      serializer(fp, FENIX_DESERIALIZE, dst, b.start, count);
+    }
   }
+
+  if (serializer) fclose(fp);
 }
 
 bool DataSubset::includes(size_t idx) const {

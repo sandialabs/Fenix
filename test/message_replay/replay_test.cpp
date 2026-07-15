@@ -106,6 +106,8 @@ void check_inject_failure(State& state, int app_ranks) {
 }
 
 int main(int argc, char** argv) {
+  namespace data = fenix::data;
+  namespace mlog = fenix::mlog;
   using namespace fenix::data;
   MPI_Init(&argc, &argv);
 
@@ -116,7 +118,7 @@ int main(int argc, char** argv) {
 
   // Hold on to checkpoint_iterations * 2 regions at once, to be sure we can
   // replay any failed rank's collective messages
-  fenix::mlog::create(mlogs, res_world, checkpoint_iterations * 2);
+  mlog::create(mlogs, res_world, checkpoint_iterations * 2);
 
   // Grab basic MPI info
   int n_ranks, rank;
@@ -133,21 +135,27 @@ int main(int argc, char** argv) {
     state.rank      = rank;
     state.iteration = 0;
 
-    fenix::data::group_create(group);
-    fenix::data::member_create(group, state_member, &state, 2, MPI_INT);
-    fenix::data::member_stage(group, state_member);
-    fenix::mlog::stage(mlogs, group, mlogs_member);
-    fenix::data::member_store(group, SUBSET_PRESTAGED);
-    fenix::data::commit_barrier(group);
+    data::group_create(group);
+    data::member_create(group, state_member, &state, 2, MPI_INT);
+    mlog::create_data_member(mlogs, group, mlogs_member);
+
+    data::member_store(group);
+    data::commit_barrier(group);
   } else {
     // Recovered ranks just recover from the checkpoint instead
     while (true) {
       try {
-        fenix::data::group_create(group);
-        fenix::data::member_restore(group, state_member, &state, 2);
-        fenix::data::member_restore(group, mlogs_member, nullptr, 0);
-        fenix::mlog::lrestore(mlogs, group, mlogs_member);
-        fenix::mlog::sync(mlogs, state.iteration);
+        data::group_create(group);
+
+        if (!data::member_created(group, state_member))
+          data::member_create(group, state_member, &state, 2, MPI_INT);
+        data::member_restore(group, state_member);
+
+        if (!data::member_created(group, mlogs_member))
+          mlog::create_data_member(mlogs, group, mlogs_member);
+        data::member_restore(group, mlogs_member);
+
+        mlog::sync(mlogs, state.iteration);
       } catch (fenix::CommException& error) {
         continue;
       }
@@ -166,9 +174,9 @@ int main(int argc, char** argv) {
   fenix::callback_register([&](MPI_Comm repaired_comm, int mpi_err) {
     assert(fenix::error() == FENIX_SUCCESS);
 
-    fenix::data::group_create(group);
-    fenix::data::member_restore(group, state_member, NULL, 0);
-    fenix::data::member_restore(group, mlogs_member, NULL, 0);
+    data::group_create(group);
+    data::member_restore(group, state_member, NULL, 0);
+    data::member_restore(group, mlogs_member, NULL, 0);
 
     printf(
       "Rank %d continuing inline at iteration %d\n", state.rank, state.iteration
@@ -180,7 +188,7 @@ int main(int argc, char** argv) {
     check_inject_failure(state, n_ranks);
 
     // Enable logging on mlogs and start region i
-    fenix::mlog::activate(mlogs, i);
+    mlog::activate(mlogs, i);
 
 #ifdef FENIX_STENCIL_ENABLE_BARRIERS
     if (i % barrier_iterations == 0) {
@@ -236,11 +244,9 @@ int main(int argc, char** argv) {
     std::this_thread::sleep_for(std::chrono::milliseconds(iteration_work_ms));
 
     if (state.iteration % checkpoint_iterations == 0) {
-      fenix::data::member_stage(group, state_member);
-      fenix::mlog::stage(mlogs, group, mlogs_member);
       // With an active log and inline recovery enabled, checkpoint will
       // recover inline automatically.
-      fenix::data::checkpoint(group, SUBSET_PRESTAGED, {mlogs_member});
+      data::checkpoint(group, SUBSET_FULL, {mlogs_member});
     }
   }
 

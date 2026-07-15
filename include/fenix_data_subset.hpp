@@ -140,6 +140,10 @@ struct DataRegion {
 struct DataSubset {
   static constexpr size_t MAX = detail::DataRegion::MAX;
 
+  // Redeclaring here to avoid cyclic dependency
+  using SerializeFileFunc = std::function<void(FILE*, int, void*, int, int)>;
+  static inline SerializeFileFunc DEFAULT_SERIALIZER = nullptr;
+
   enum SubsetType {
     BasicSubset,
     PrestagedSubset,
@@ -207,19 +211,25 @@ struct DataSubset {
   //If src_len == 0, will assume src is a large as needed
   //Will resize dst if too small
   void copy_data(
-    const size_t elm_size, const size_t src_len, const char* src,
-    DataBuffer& dst
+    const size_t elm_size, const size_t src_len, char* src, DataBuffer& dst,
+    SerializeFileFunc& serializer = DEFAULT_SERIALIZER
   ) const;
   //If dst_len == 0, will assume dst is as large as needed
   void copy_data(
-    const size_t elm_size, const DataBuffer& src, const size_t dst_len,
-    char* dst
+    const size_t elm_size, DataBuffer& src, const size_t dst_len, char* dst,
+    SerializeFileFunc& serializer = DEFAULT_SERIALIZER
   ) const;
 
   //Whether this subset includes the element at index idx
   bool includes(size_t idx) const;
   //Whether this subset includes the entire range [0, end] without gaps
   bool includes_all(size_t end) const;
+
+  //Return a DataSubset consisting of bounded_regions(max_index)
+  DataSubset bounded(size_t max_index) const;
+
+  //Bound this subset in place
+  DataSubset& bound(size_t max_index);
 
   //Return equivalent of regions & [0, max_index]
   std::set<detail::DataRegion> bounded_regions(size_t max_index) const;

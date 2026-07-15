@@ -120,6 +120,17 @@ int member_create(
   FENIX_CPP_API_END
 }
 
+int member_create(
+  int groupid, int memberid, void* data, int count, MPI_Datatype datatype,
+  SerializeFileFunc serializer
+) {
+  FENIX_CPP_API_BEGIN
+  return find_group(groupid)->member_create(
+    memberid, data, count, datatype, serializer
+  );
+  FENIX_CPP_API_END
+}
+
 bool member_created(int group_id, int member_id) {
   FENIX_CPP_API_BEGIN
   auto group = search_group(group_id);
@@ -291,6 +302,17 @@ int member_restore(
   DataSubset& data_found
 ) {
   FENIX_CPP_API_BEGIN
+  auto g = find_group(groupid);
+  if (data == FENIX_DATA_RESTORE_INPLACE) {
+    auto m = g->search_member(memberid);
+    if (m) {
+      data = m->user_data;
+    } else if (maxcount > 0) {
+      // Cannot restore this data without knowing where to put it
+      FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+    }
+  }
+
   data_found = {};
   return find_group(groupid)->member_restore(
     memberid, data, maxcount, timestamp, data_found

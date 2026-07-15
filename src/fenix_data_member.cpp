@@ -70,13 +70,16 @@ fenix_member_entry_packet_t fenix_member_entry_t::to_packet() {
 
 fenix_member_entry_t::fenix_member_entry_t(
   int id, void* data, int count, MPI_Datatype datatype
-)
-  : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) {};
+) : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) {};
+
+fenix_member_entry_t::fenix_member_entry_t(
+  int id, void* data, int count, MPI_Datatype datatype, SerializeFileFunc& s
+) : memberid(id), user_data((char*)data), current_count(count),
+    datatype_size(__fenix_get_size(datatype)), serializer(s) {};
 
 fenix_member_entry_t::fenix_member_entry_t(
   int id, void* data, int count, int dsize
-)
-  : memberid(id), user_data((char*)data), current_count(count),
+) : memberid(id), user_data((char*)data), current_count(count),
     datatype_size(dsize) {};
 
 } //namespace fenix::data

@@ -70,6 +70,9 @@ struct fenix_member_entry_packet_t {
 struct fenix_member_entry_t {
   fenix_member_entry_t() = default;
   fenix_member_entry_t(int id, void* data, int count, MPI_Datatype datatype);
+  fenix_member_entry_t(
+    int id, void* data, int count, MPI_Datatype datatype, SerializeFileFunc& s
+  );
   fenix_member_entry_t(int id, void* data, int count, int datatype_size);
 
   fenix_member_entry_packet_t to_packet();
@@ -78,6 +81,8 @@ struct fenix_member_entry_t {
   char* user_data = nullptr;
   int current_count;
   int datatype_size;
+
+  SerializeFileFunc serializer = nullptr;
 };
 
 } // namespace fenix::data

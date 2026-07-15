@@ -59,6 +59,7 @@
 
 #include <mpi.h>
 #include <setjmp.h>
+#include <stdio.h>
 
 #include "fenix_init.h"
 
@@ -562,9 +563,13 @@ int Fenix_Finalize();
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE 14
 #define FENIX_DATA_SNAPSHOT_LATEST -1
 #define FENIX_DATA_SNAPSHOT_ALL -2
+#define FENIX_DATA_RESTORE_INPLACE NULL
+#define FENIX_DATA_RESTORE_FULL INT_MAX
 #define FENIX_RESIZEABLE 0
 #define FENIX_DATA_SUBSET_CREATED 2
 #define FENIX_STOREV_ALL -1
+#define FENIX_SERIALIZE -2
+#define FENIX_DESERIALIZE -3
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
 #define FENIX_DATA_POLICY_IMR FENIX_DATA_POLICY_IN_MEMORY_RAID
@@ -603,6 +608,36 @@ extern const Fenix_Data_subset FENIX_DATA_SUBSET_EMPTY;
 extern const Fenix_Data_subset FENIX_DATA_SUBSET_PRESTAGED;
 
 extern Fenix_Data_subset* FENIX_DATA_SUBSET_IGNORE;
+
+/**
+ * @brief Serializer function type for file-serializable data members.
+ *
+ * Arguments are:
+ *   FILE* fp:      memory-backed file pointer to (de)serialize into
+ *   int direction: one of FENIX_SERIALIZE or FENIX_DESERIALIZE
+ *   void* buf:     pointer to user buffer
+ *   int offset:    first index to be (de)serialized
+ *   int count:     number of entries to (de)serialize, or FENIX_RESIZEABLE
+ *   void* context: pointer to user-defined context
+ *
+ * Fenix will invoke this function to (de)serialize the data of a member.
+ * Will be invoked once per contiguous data region to be (de)serialized.
+ *
+ * When \c direction=FENIX_SERIALIZE, \c fp is write-only and \c buf is the
+ * data member's buffer (as FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER). Function should
+ * write data values [\c offset, \c offset+count) directly into \c fp. Will be
+ * invoked with \c offset=0 and \c count=FENIX_RESIZEABLE if staging
+ * FENIX_DATA_SUBSET_FULL of a member of size FENIX_RESIZEABLE, which indicates
+ * that all data should be serialized.
+ *
+ * When \c direction=FENIX_DESERIALIZE, \c fp is read-only and \c buf is the
+ * target buffer of the restore or lrestore operation being completed. Function
+ * should read data values [\c offset, \c offset+count) directly from \c fp.
+ *
+ * The user should not manipulate the file's position indicator in any way other
+ * than directly writing/reading to/from the file.
+ */
+typedef void (*Fenix_Serialize_file_fn)(FILE*, int, void*, int, int, void*);
 
 /**
  * @brief Create a Data Group
@@ -677,6 +712,14 @@ int Fenix_Data_group_created(int group_id);
  */
 int Fenix_Data_member_create(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
+
+/**
+ * @brief Create a data member to be (de)serialized with a file pointer
+ */
+int Fenix_Data_member_fcreate(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
+  Fenix_Serialize_file_fn serializer, void* ctx
 );
 
 /**
@@ -1188,32 +1231,16 @@ int Fenix_Mlog_activate_region(int mlog_id, int region_id);
 int Fenix_Mlog_sync(int mlog_id, int region_id);
 
 /**
- * @brief Stage an mlog's data into a Fenix data member
+ * @brief Create a data member that can be used to stage/restore this mlog
  * @qualifier local
  *
- * @param[in] mlog_id   The mlog to stage.
- * @param[in] group_id  The group to stage into.
- * @param[in] member_id The member to stage into.
- *            The member does not have to already exist.
- *            If the member already exists, it must have been created with size
- *            FENIX_RESIZEABLE and datatype MPI_BYTE
+ * @param[in] mlog_id   The mlog to link to this data member
+ * @param[in] group_id  The data group to create the member within
+ * @param[in] member_id The ID to create the member as
  * @returnstatus
- */
-int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id);
-
-/**
- * @brief Restore an mlog from a Fenix data member's local snapshot
- * @qualifier local
  *
- * @param[in] mlog_id    The mlog to restore.
- * @param[in] group_id   The group to restore from.
- * @param[in] member_id  The member to restore from.
- * @param[in] time_stamp The time stamp of the snapshot to restore from.
- * @returnstatus
  */
-int Fenix_Mlog_lrestore(
-  int mlog_id, int group_id, int member_id, int time_stamp
-);
+int Fenix_Mlog_create_data_member(int mlog_id, int group_id, int member_id);
 
 /**
  * @brief Delete an mlog

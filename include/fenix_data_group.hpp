@@ -94,6 +94,10 @@ struct fenix_group_t {
     int id, std::source_location loc = std::source_location::current()
   );
   int member_create(int id, void* data, int count, MPI_Datatype datatype);
+  int member_create(
+    int id, void* data, int count, MPI_Datatype datatype,
+    SerializeFileFunc& serializer
+  );
   int member_create(int id, void* data, int count, int datatype_size);
   int member_delete(int memberid);
 

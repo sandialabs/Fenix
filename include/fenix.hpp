@@ -212,6 +212,14 @@ int member_create(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
 );
 
+//!@brief As #Fenix_Serialize_file_fn without the void* context pointer.
+using SerializeFileFunc = std::function<void(FILE*, int, void*, int, int)>;
+
+int member_create(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
+  SerializeFileFunc serializer
+);
+
 //@!brief Overload of #Fenix_Data_member_created
 bool member_created(int group_id, int member_id);
 
@@ -270,15 +278,18 @@ inline int member_istorev(
 
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
-  int group_id, int member_id, void* target_buffer, int max_length,
-  int time_stamp         = FENIX_DATA_SNAPSHOT_LATEST,
+  int group_id, int member_id, void* target_buffer = FENIX_DATA_RESTORE_INPLACE,
+  int max_length         = FENIX_DATA_RESTORE_FULL,
+  int time_stamp         = FENIX_DATA_SNAPSHOT_ALL,
   DataSubset& data_found = SUBSET_IGNORE
 );
 
 //!@brief Overload of #Fenix_Data_member_lrestore
 int member_lrestore(
-  int group_id, int member_id, void* target_buffer, int max_length,
-  int time_stamp, DataSubset& data_found
+  int group_id, int member_id, void* target_buffer = FENIX_DATA_RESTORE_INPLACE,
+  int max_length         = FENIX_DATA_RESTORE_FULL,
+  int time_stamp         = FENIX_DATA_SNAPSHOT_ALL,
+  DataSubset& data_found = SUBSET_IGNORE
 );
 
 //!@brief overload of #Fenix_Data_commit
@@ -341,14 +352,8 @@ int activate(int mlog_id, int region_id);
 //@brief Overload of #Fenix_Mlog_sync
 int sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE);
 
-//@brief Overload of #Fenix_Mlog_stage
-int stage(int mlog_id, int group_id, int member_id);
-
-//@brief Overload of #Fenix_Mlog_lrestore
-int lrestore(
-  int mlog_id, int group_id, int member_id,
-  int time_stamp = FENIX_DATA_SNAPSHOT_LATEST
-);
+//@brief Overload of #Fenix_Mlog_create_data_member
+int create_data_member(int mlog_id, int group_id, int member_id);
 
 //@brief Overload of #Fenix_Mlog_delete
 int mlog_delete(int mlog_id);

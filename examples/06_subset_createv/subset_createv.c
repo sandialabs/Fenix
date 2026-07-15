@@ -130,7 +130,9 @@ int main(int argc, char **argv) {
     Fenix_Data_commit(my_group, NULL);
   } else {
     fprintf(stderr, "Doing restore on rank %d\n", rank);
-    Fenix_Data_member_restore(my_group, 777, subset, kCount, 1, NULL);
+    Fenix_Data_member_restore(
+        my_group, 777, subset, kCount, FENIX_DATA_SNAPSHOT_ALL, NULL
+    );
     fprintf(stderr, "Finished restore on rank %d\n", rank);
     recovered = 1;
 

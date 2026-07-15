@@ -77,74 +77,41 @@ int sync(int mlog_id, int region_id) {
   FENIX_CPP_API_END
 }
 
-int stage(int mlog_id, int group_id, int member_id) {
-  FENIX_CPP_API_BEGIN
-  using namespace fenix::data;
-  auto mlog  = find_mlog(mlog_id);
-  auto group = find_group(group_id);
-
-  auto member = group->search_member(member_id);
-  if (!member) {
-    member_create(group_id, member_id, nullptr, FENIX_RESIZEABLE, MPI_BYTE);
-    member = group->find_member(member_id);
-  } else if (member->current_count != FENIX_RESIZEABLE) {
-    FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
-  } else if (member->datatype_size != 1) {
-    FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
-  }
-
+static void stage_mlog(FILE* fp, int mlog_id) {
+  // TODO: Support a stream-based serializer to improve performance in cases
+  // like this
   std::stringstream o;
-  mlog->serialize(o);
-
-  void* ptr = (void*)o.view().data();
-
-  int flag;
-  Fenix_Data_member_attr_set(
-    group_id, member_id, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
-    (void*)o.view().data(), &flag
-  );
-
-  return member_stage(
-    group_id, member_id, DataSubset(static_cast<int>(o.tellp()) - 1)
-  );
-  FENIX_CPP_API_END
+  find_mlog(mlog_id)->serialize(o);
+  fwrite(o.view().data(), o.view().length(), 1, fp);
 }
 
-int lrestore(int mlog_id, int group_id, int member_id, int time_stamp) {
-  FENIX_CPP_API_BEGIN
-  using namespace fenix::data;
-  auto mlog  = find_mlog(mlog_id);
-  auto group = find_group(group_id);
+static void restore_mlog(FILE* fp, int mlog_id, int nbytes) {
+  std::string buf(static_cast<std::string::size_type>(nbytes), ' ');
+  fread(&buf[0], nbytes, 1, fp);
 
-  auto member = group->find_member(member_id);
-  if (member->current_count != FENIX_RESIZEABLE) {
-    FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
-  } else if (member->datatype_size != 1) {
-    FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
-  }
+  std::stringstream i(std::move(buf));
 
-  DataSubset subset;
-  int ret = group->member_lrestore(member_id, nullptr, 0, time_stamp, subset);
-  if (ret != FENIX_SUCCESS) {
-    throw RuntimeException(ret, "fenix::mlog::lrestore failed");
-  }
+  auto mlog     = find_mlog(mlog_id);
+  auto new_mlog = std::make_shared<CommLog>(mlog->comm, i);
 
-  // Initialize a long enough buffer string
-  int len = subset.max_count();
-  std::string buf(static_cast<std::string::size_type>(len), ' ');
-  ret = group->member_lrestore(member_id, &buf[0], len, time_stamp, subset);
-  if (ret != FENIX_SUCCESS) {
-    throw RuntimeException(ret, "fenix::mlog::lrestore failed");
-  }
-
-  std::istringstream i(std::move(buf));
-  assert(i.view().size() == len);
-
-  auto new_mlog           = std::make_shared<CommLog>(mlog->comm, i);
   fenix_rt.mlogs[mlog_id] = new_mlog;
   if (fenix_rt.active_mlog == mlog) fenix_rt.active_mlog = new_mlog;
+}
 
-  return FENIX_SUCCESS;
+int create_data_member(int mlog_id, int group_id, int member_id) {
+  FENIX_CPP_API_BEGIN
+  return data::member_create(
+    group_id, member_id, nullptr, FENIX_RESIZEABLE, MPI_BYTE,
+    [mlog_id](FILE* fp, int direction, void* buf, int offset, int count) {
+      if (direction == FENIX_SERIALIZE) {
+        fenix_assert(offset == 0 && count == FENIX_RESIZEABLE && !buf);
+        stage_mlog(fp, mlog_id);
+      } else {
+        fenix_assert(offset == 0 && !buf);
+        restore_mlog(fp, mlog_id, count);
+      }
+    }
+  );
   FENIX_CPP_API_END
 }
 
