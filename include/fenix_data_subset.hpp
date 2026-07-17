@@ -65,6 +65,7 @@
 #include <optional>
 #include <limits>
 #include <string>
+#include <variant>
 
 namespace fenix {
 
@@ -142,7 +143,10 @@ struct DataSubset {
 
   // Redeclaring here to avoid cyclic dependency
   using SerializeFileFunc = std::function<void(FILE*, int, void*, int, int)>;
-  static inline SerializeFileFunc DEFAULT_SERIALIZER = nullptr;
+  using SerializeStreamFunc =
+    std::function<void(std::iostream&, int, void*, int, int)>;
+  using SerializeFunc = std::variant<SerializeFileFunc, SerializeStreamFunc>;
+  using Serializer    = std::optional<SerializeFunc>;
 
   enum SubsetType {
     BasicSubset,
@@ -208,16 +212,22 @@ struct DataSubset {
     size_t elm_size, const DataBuffer& src, DataBuffer& dst
   ) const;
 
-  //If src_len == 0, will assume src is a large as needed
-  //Will resize dst if too small
+  //Serialize data into dst buffer
+  //If src_len == 0, will assume src is a large as needed. May resize dst.
   void copy_data(
-    const size_t elm_size, const size_t src_len, char* src, DataBuffer& dst,
-    SerializeFileFunc& serializer = DEFAULT_SERIALIZER
+    const size_t elm_size, const size_t src_len, char* src, DataBuffer& dst
   ) const;
+  void copy_data(
+    const size_t, const size_t, char*, DataBuffer&, Serializer&
+  ) const;
+
+  //Deserialize data from src buffer
   //If dst_len == 0, will assume dst is as large as needed
   void copy_data(
-    const size_t elm_size, DataBuffer& src, const size_t dst_len, char* dst,
-    SerializeFileFunc& serializer = DEFAULT_SERIALIZER
+    const size_t elm_size, DataBuffer& src, const size_t dst_len, char* dst
+  ) const;
+  void copy_data(
+    const size_t, DataBuffer&, const size_t, char*, Serializer&
   ) const;
 
   //Whether this subset includes the element at index idx

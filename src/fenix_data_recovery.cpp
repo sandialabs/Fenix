@@ -60,6 +60,7 @@
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
 #include "fenix_data_subset.hpp"
+#include "fenix/data/mstream.hpp"
 
 #include <cassert>
 
@@ -122,7 +123,7 @@ int member_create(
 
 int member_create(
   int groupid, int memberid, void* data, int count, MPI_Datatype datatype,
-  SerializeFileFunc serializer
+  SerializeFunc serializer
 ) {
   FENIX_CPP_API_BEGIN
   return find_group(groupid)->member_create(

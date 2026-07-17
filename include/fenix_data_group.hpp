@@ -95,8 +95,7 @@ struct fenix_group_t {
   );
   int member_create(int id, void* data, int count, MPI_Datatype datatype);
   int member_create(
-    int id, void* data, int count, MPI_Datatype datatype,
-    SerializeFileFunc& serializer
+    int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
   );
   int member_create(int id, void* data, int count, int datatype_size);
   int member_delete(int memberid);

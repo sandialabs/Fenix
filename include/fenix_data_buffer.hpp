@@ -87,8 +87,17 @@ class DataBuffer {
 
   void take_ownership(char* new_buf, size_t new_size) {
     free_buf();
-    buf       = new_buf;
-    user_size = alloc_size = new_size;
+    buf        = new_buf;
+    user_size  = new_size;
+    alloc_size = new_size;
+  }
+
+  void take_ownership_mmapped(char* new_buf, size_t new_size) {
+    free_buf();
+    buf         = new_buf;
+    user_size   = new_size;
+    alloc_size  = new_size;
+    mmap_buffer = true;
   }
 
   // Simple resize without overallocating.
@@ -122,23 +131,26 @@ class DataBuffer {
   MPITask recv_unknown(int src, int tag, MPI_Comm comm);
 
  private:
-  char* buf        = nullptr;
-  size_t user_size = 0, alloc_size = 0;
+  char* buf         = nullptr;
+  size_t user_size  = 0;
+  size_t alloc_size = 0;
+  bool mmap_buffer  = false;
 
   DataBuffer& operator=(const DataBuffer& o) {
-    this->buf        = o.buf;
-    this->user_size  = o.user_size;
-    this->alloc_size = o.alloc_size;
+    this->buf         = o.buf;
+    this->user_size   = o.user_size;
+    this->alloc_size  = o.alloc_size;
+    this->mmap_buffer = o.mmap_buffer;
     return *this;
   }
-  void free_buf() {
-    free(buf);
-    release_buf();
-  }
+  void free_buf();
   void release_buf() {
-    buf       = nullptr;
-    user_size = alloc_size = 0;
+    buf         = nullptr;
+    user_size   = 0;
+    alloc_size  = 0;
+    mmap_buffer = false;
   }
+  void realloc_buf(size_t new_size);
 };
 
 } // namespace fenix

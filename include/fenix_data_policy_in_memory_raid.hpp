@@ -148,6 +148,10 @@ struct Member {
 
   DataBuffer& send_buf;
   DataBuffer& recv_buf;
+
+ private:
+  void stage_resizeable(const DataSubset& subset, SerializeFileFunc& f);
+  void stage_resizeable(const DataSubset& subset, SerializeStreamFunc& f);
 };
 
 struct BuddyMember : public Member {

@@ -60,6 +60,7 @@
 #include "fenix_util.hpp"
 #include "fenix_data_subset.hpp"
 #include "fenix_data_buffer.hpp"
+#include "fenix/data/mstream.hpp"
 
 #include <cstring>
 #include <cstdio>
@@ -255,8 +256,7 @@ std::set<DataRegion> DataRegion::operator-(const DataRegion& b) const {
         auto middle_valid  = a.get_rep(1) & inv;
         for (auto block : middle_valid) {
           fenix_assert(!block.reps);
-          mid.insert(
-            DataRegion({block.start, block.end}, a.reps - 2, b.stride)
+          mid.insert(DataRegion({block.start, block.end}, a.reps - 2, b.stride)
           );
         }
       }
@@ -771,84 +771,122 @@ void DataSubset::deserialize_data(
   fenix_assert(ptr == src.data() + src.size());
 }
 
-void DataSubset::copy_data(
-  const size_t elm_size, const size_t src_len, char* src, DataBuffer& dst,
-  SerializeFileFunc& serializer
-) const {
-  fenix_assert(type == BasicSubset);
-  if (regions.empty()) return;
+// Returns {bytes_offset, elements_count}
+static inline std::pair<size_t, size_t> get_copy_range(
+  const DataRegion& b, size_t elm_size, size_t byte_max
+) {
+  size_t start = b.start * elm_size;
+  size_t count = b.end - b.start + 1;
+  fenix_assert(start + count * elm_size <= byte_max);
+  return {start, count};
+}
+
+static void copy_impl(
+  const DataSubset* subset, size_t elm_bytes, size_t copy_bytes, char* src,
+  char* dst
+) {
+  size_t max_elm = copy_bytes / elm_bytes - 1;
+  for (const auto& b : BlockIter(subset->bounded_regions(max_elm))) {
+    auto [start, count] = get_copy_range(b, elm_bytes, copy_bytes);
+    memcpy(dst + start, src + start, count * elm_bytes);
+  }
+}
+static void copy_impl(
+  const DataSubset* subset, size_t elm_bytes, size_t copy_bytes, char* src,
+  char* dst, data::SerializeFileFunc& serializer, int dir
+) {
+  const bool deser = dir == FENIX_DESERIALIZE;
+  char* file_buf   = deser ? src : dst;
+  char* user_buf   = deser ? dst : src;
+
+  FILE* fp = fmemopen(file_buf, copy_bytes, deser ? "r" : "w");
+  fenix_assert(fp != nullptr);
+
+  size_t max_elm = copy_bytes / elm_bytes - 1;
+  for (const auto& b : BlockIter(subset->bounded_regions(max_elm))) {
+    auto [start, count] = get_copy_range(b, elm_bytes, copy_bytes);
+    fseek(fp, start, SEEK_SET);
+    serializer(fp, dir, user_buf, b.start, count);
+  }
+
+  fclose(fp);
+}
+static void copy_impl(
+  const DataSubset* subset, size_t elm_bytes, size_t copy_bytes, char* src,
+  char* dst, data::SerializeStreamFunc& serializer, int dir
+) {
+  const bool deser = dir == FENIX_DESERIALIZE;
+  char* strm_buf   = deser ? src : dst;
+  char* user_buf   = deser ? dst : src;
+
+  data::MStream stream(strm_buf, copy_bytes);
+
+  size_t max_elm = copy_bytes / elm_bytes - 1;
+  for (const auto& b : BlockIter(subset->bounded_regions(max_elm))) {
+    auto [offset, count] = get_copy_range(b, elm_bytes, copy_bytes);
+    stream.seekg(offset);
+    stream.seekp(offset);
+    serializer(stream, dir, user_buf, b.start, count);
+  }
+}
+static inline void copy_impl(
+  const DataSubset* sub, size_t e, size_t c, char* sb, char* db,
+  DataSubset::Serializer& s, int dir
+) {
+  if (!s) copy_impl(sub, e, c, sb, db);
+  else if (s->index() == 0)
+    copy_impl(sub, e, c, sb, db, std::get<0>(s.value()), dir);
+  else if (s->index() == 1)
+    copy_impl(sub, e, c, sb, db, std::get<1>(s.value()), dir);
+  else fatal_print("Unknown serializer type %d\n", (int)s->index());
+}
+
+static inline size_t max_copy_bytes(
+  const DataSubset* s, size_t bound_len, size_t elm_bytes
+) {
   fenix_assert(
-    src_len != 0 || end() != MAX,
+    bound_len != 0 || s->end() != DataSubset::MAX,
     "must specify either a maximum element count or provide a limited-bounds "
     "data subset"
   );
-
-  size_t max_elm = src_len ? src_len - 1 : end();
-  if (dst.size() < (max_elm + 1) * elm_size)
-    dst.resize((max_elm + 1) * elm_size);
-
-  FILE* fp;
-  if (serializer) {
-    fp = fmemopen(dst.data(), (max_elm + 1) * elm_size, "w");
-    fenix_assert(fp != nullptr);
-  }
-
-  for (const auto& b : BlockIter(bounded_regions(max_elm))) {
-    size_t start = b.start * elm_size;
-    size_t count = b.end - b.start + 1;
-    size_t len   = count * elm_size;
-
-    fenix_assert(src_len == 0 || (start + len) / elm_size <= src_len);
-    fenix_assert(start + len <= dst.size());
-
-    if (!serializer) {
-      memcpy(dst.data() + start, src + start, len);
-    } else {
-      fseek(fp, start, SEEK_SET);
-      serializer(fp, FENIX_SERIALIZE, src, b.start, count);
-    }
-  }
-
-  if (serializer) fclose(fp);
+  return (bound_len ? bound_len : s->end() + 1) * elm_bytes;
 }
 
 void DataSubset::copy_data(
-  const size_t elm_size, DataBuffer& src, const size_t dst_len, char* dst,
-  SerializeFileFunc& serializer
+  const size_t elm_bytes, const size_t src_len, char* src, DataBuffer& dst,
+  Serializer& s
 ) const {
   fenix_assert(type == BasicSubset);
   if (regions.empty()) return;
-  fenix_assert(
-    dst_len != 0 || end() != MAX,
-    "must specify either a maximum element count or provide a limited-bounds "
-    "data subset"
-  );
 
-  size_t max_elm = std::min(dst_len ? dst_len - 1 : end(), src.size());
+  size_t copy_bytes = max_copy_bytes(this, src_len, elm_bytes);
+  if (dst.size() < copy_bytes) dst.resize(copy_bytes);
 
-  FILE* fp;
-  if (serializer) {
-    fp = fmemopen(src.data(), (max_elm + 1) * elm_size, "r");
-    fenix_assert(fp != nullptr);
-  }
+  copy_impl(this, elm_bytes, copy_bytes, src, dst.data(), s, FENIX_SERIALIZE);
+}
+void DataSubset::copy_data(
+  const size_t elm_size, const size_t src_len, char* src, DataBuffer& dst
+) const {
+  Serializer s = {};
+  copy_data(elm_size, src_len, src, dst, s);
+}
 
-  for (const auto& b : BlockIter(bounded_regions(max_elm))) {
-    size_t start = b.start * elm_size;
-    size_t count = (b.end - b.start + 1);
-    size_t len   = count * elm_size;
+void DataSubset::copy_data(
+  const size_t elm_bytes, DataBuffer& src, const size_t dst_len, char* dst,
+  Serializer& s
+) const {
+  fenix_assert(type == BasicSubset);
+  fenix_assert(src.size() % elm_bytes == 0);
 
-    fenix_assert(dst_len == 0 || (start + len) / elm_size <= dst_len);
-    fenix_assert(start + len <= src.size());
-
-    if (!serializer) {
-      memcpy(dst + start, src.data() + start, len);
-    } else {
-      fseek(fp, start, SEEK_SET);
-      serializer(fp, FENIX_DESERIALIZE, dst, b.start, count);
-    }
-  }
-
-  if (serializer) fclose(fp);
+  size_t copy_bytes =
+    std::min(src.size(), max_copy_bytes(this, dst_len, elm_bytes));
+  copy_impl(this, elm_bytes, copy_bytes, src.data(), dst, s, FENIX_DESERIALIZE);
+}
+void DataSubset::copy_data(
+  const size_t elm_size, DataBuffer& src, const size_t dst_len, char* dst
+) const {
+  Serializer s = {};
+  copy_data(elm_size, src, dst_len, dst, s);
 }
 
 bool DataSubset::includes(size_t idx) const {

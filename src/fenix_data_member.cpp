@@ -73,7 +73,7 @@ fenix_member_entry_t::fenix_member_entry_t(
 ) : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) {};
 
 fenix_member_entry_t::fenix_member_entry_t(
-  int id, void* data, int count, MPI_Datatype datatype, SerializeFileFunc& s
+  int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
 ) : memberid(id), user_data((char*)data), current_count(count),
     datatype_size(__fenix_get_size(datatype)), serializer(s) {};
 

@@ -61,6 +61,8 @@
 #include <functional>
 #include <vector>
 #include <optional>
+#include <variant>
+
 #include "fenix.h"
 #include "fenix_exception.hpp"
 #include "fenix_data_subset.hpp"
@@ -214,10 +216,15 @@ int member_create(
 
 //!@brief As #Fenix_Serialize_file_fn without the void* context pointer.
 using SerializeFileFunc = std::function<void(FILE*, int, void*, int, int)>;
+//!@brief As #SerializeFileFunc using std::iostream instead of a file pointer
+using SerializeStreamFunc =
+  std::function<void(std::iostream&, int, void*, int, int)>;
+
+using SerializeFunc = std::variant<SerializeFileFunc, SerializeStreamFunc>;
 
 int member_create(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
-  SerializeFileFunc serializer
+  SerializeFunc serializer
 );
 
 //@!brief Overload of #Fenix_Data_member_created

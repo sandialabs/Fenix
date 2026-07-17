@@ -78,6 +78,7 @@
 #include "fenix_data_member.hpp"
 #include "fenix_data_policy_in_memory_raid.hpp"
 #include "fenix/tasks/mpi.hpp"
+#include "fenix/data/mstream.hpp"
 
 #define __FENIX_IMR_DEFAULT_MENTRY_NUM 10
 #define __FENIX_IMR_NO_MEMBERS 16000
@@ -204,26 +205,17 @@ void Member::stage(const DataSubset& subset) {
   Entry& e = entries.back();
   if (e.elm_max_count == 0 && subset == SUBSET_FULL) {
     // Staging when we don't know the size of the data
-    if (!mentry.serializer) FENIX_THROW(
-      "Cannot stage SUBSET_FULL to non-serializable resizeable member"
-    );
-    
-    // Serializing an unknown sized member takes special care. Use a memstream,
-    // which serves as a dynamically-sized memory-backed file pointer.
-    char* buf   = nullptr;
-    size_t size = 0;
-    FILE* fp    = open_memstream(&buf, &size);
-    fenix_assert(fp != nullptr);
-
-    // Serialize into the memstream before closing it
-    mentry.serializer(
-      fp, FENIX_SERIALIZE, mentry.user_data, 0, FENIX_RESIZEABLE
-    );
-    fclose(fp);
-
-    // Stage the final data
-    fenix_assert(size % e.elm_size == 0);
-    stage_inplace(buf, DataSubset((size / e.elm_size) - 1));
+    if (!mentry.serializer) {
+      FENIX_THROW(
+        "Cannot stage SUBSET_FULL to non-serializable resizeable member"
+      );
+    } else if (mentry.serializer->index() == 0) {
+      stage_resizeable(subset, std::get<0>(*mentry.serializer));
+    } else if (mentry.serializer->index() == 1) {
+      stage_resizeable(subset, std::get<1>(*mentry.serializer));
+    } else {
+      FENIX_THROW("Unsupported serializer for unknown serialization size");
+    }
   } else {
     // Normal case staging
     e.add_and_fit(subset);
@@ -231,6 +223,44 @@ void Member::stage(const DataSubset& subset) {
       e.elm_size, e.elm_max_count, mentry.user_data, e.buf, mentry.serializer
     );
   }
+}
+
+void Member::stage_resizeable(const DataSubset& subset, SerializeFileFunc& f) {
+  // A memstream which serves as a dynamically-sized memory-backed file pointer.
+  char* buf   = nullptr;
+  size_t size = 0;
+  FILE* fp    = open_memstream(&buf, &size);
+  fenix_assert(fp != nullptr);
+
+  // Serialize into the memstream before closing it
+  f(fp, FENIX_SERIALIZE, mentry.user_data, 0, FENIX_RESIZEABLE);
+  fclose(fp);
+
+  // Stage the final data
+  Entry& e = entries.back();
+  fenix_assert(size % e.elm_size == 0);
+  stage_inplace(buf, DataSubset((size / e.elm_size) - 1));
+}
+
+void Member::stage_resizeable(
+  const DataSubset& subset, SerializeStreamFunc& f
+) {
+  MStream strm;
+  f(strm, FENIX_SERIALIZE, mentry.user_data, 0, FENIX_RESIZEABLE);
+  auto sbuf = dynamic_cast<detail::OMmapStreamBuf*>(strm.get_buf());
+
+  size_t size = sbuf->written_len();
+  char* buf   = sbuf->release();
+
+  Entry& e = entries.back();
+  fenix_assert(size % e.elm_size == 0);
+
+#ifdef FENIX_HAVE_MREMAP
+  e.buf.take_ownership_mmapped(buf, size);
+#else
+  e.buf.take_ownership(buf, size);
+#endif
+  e.region = DataSubset((size / e.elm_size) - 1);
 }
 
 void Member::stage_inplace(void* buf, const DataSubset& subset) {
@@ -245,7 +275,7 @@ void Member::stage_inplace(void* buf, const DataSubset& subset) {
   else if (e.elm_max_count && count > e.elm_max_count) count = e.elm_max_count;
 
   e.buf.take_ownership((char*)buf, count * e.elm_size);
-  e.region = DataSubset({0, count - 1});
+  e.region = subset.bounded(count - 1);
 }
 
 tasks::Task<int> Member::istorev(const DataSubset& subset) {

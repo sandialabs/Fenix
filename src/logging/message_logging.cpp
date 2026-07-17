@@ -77,38 +77,23 @@ int sync(int mlog_id, int region_id) {
   FENIX_CPP_API_END
 }
 
-static void stage_mlog(FILE* fp, int mlog_id) {
-  // TODO: Support a stream-based serializer to improve performance in cases
-  // like this
-  std::stringstream o;
-  find_mlog(mlog_id)->serialize(o);
-  fwrite(o.view().data(), o.view().length(), 1, fp);
-}
-
-static void restore_mlog(FILE* fp, int mlog_id, int nbytes) {
-  std::string buf(static_cast<std::string::size_type>(nbytes), ' ');
-  fread(&buf[0], nbytes, 1, fp);
-
-  std::stringstream i(std::move(buf));
-
-  auto mlog     = find_mlog(mlog_id);
-  auto new_mlog = std::make_shared<CommLog>(mlog->comm, i);
-
-  fenix_rt.mlogs[mlog_id] = new_mlog;
-  if (fenix_rt.active_mlog == mlog) fenix_rt.active_mlog = new_mlog;
-}
-
 int create_data_member(int mlog_id, int group_id, int member_id) {
   FENIX_CPP_API_BEGIN
   return data::member_create(
     group_id, member_id, nullptr, FENIX_RESIZEABLE, MPI_BYTE,
-    [mlog_id](FILE* fp, int direction, void* buf, int offset, int count) {
+    [mlog_id](
+      std::iostream& strm, int direction, void* buf, int offset, int count
+    ) {
       if (direction == FENIX_SERIALIZE) {
         fenix_assert(offset == 0 && count == FENIX_RESIZEABLE && !buf);
-        stage_mlog(fp, mlog_id);
+        find_mlog(mlog_id)->serialize(strm);
       } else {
         fenix_assert(offset == 0 && !buf);
-        restore_mlog(fp, mlog_id, count);
+        auto mlog     = find_mlog(mlog_id);
+        auto new_mlog = std::make_shared<CommLog>(mlog->comm, strm);
+
+        fenix_rt.mlogs[mlog_id] = new_mlog;
+        if (fenix_rt.active_mlog == mlog) fenix_rt.active_mlog = new_mlog;
       }
     }
   );

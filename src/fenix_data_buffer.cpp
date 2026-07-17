@@ -58,6 +58,8 @@
 #include "fenix_opt.hpp"
 #include "fenix/tasks/mpi.hpp"
 
+#include <sys/mman.h>
+#include <cstring>
 #include <cstdlib>
 
 using namespace fenix::tasks::mpi;
@@ -65,34 +67,51 @@ using namespace fenix::tasks::mpi;
 namespace fenix {
 
 void DataBuffer::resize(size_t new_size) {
-  if (new_size <= alloc_size) {
-    user_size = new_size;
-  } else {
-    shrink_to_fit();
-
-    char* new_buf = (char*)realloc(buf, new_size);
-    if (new_buf == nullptr) {
-      error_print(
-        "unable to resize buffer to %llu bytes", (unsigned long long)new_size
-      );
-      free_buf();
-      abort();
-    } else {
-      buf       = new_buf;
-      user_size = alloc_size = new_size;
-    }
-  }
+  if (new_size >= alloc_size) realloc_buf(new_size);
+  user_size = new_size;
 }
 
 void DataBuffer::shrink_to_fit() {
-  if (user_size == 0) {
-    free_buf();
-  } else if (user_size < alloc_size) {
-    char* new_buf = (char*)realloc(buf, user_size);
+  if (user_size < alloc_size) realloc_buf(user_size);
+}
+
+void DataBuffer::realloc_buf(size_t new_size) {
+  if (new_size == 0) return free_buf();
+
+  char* new_buf;
+  if (mmap_buffer) {
+    new_buf = (char*)malloc(new_size);
     fenix_assert(new_buf != nullptr);
-    buf        = new_buf;
-    alloc_size = user_size;
+    size_t copy_size = user_size < new_size ? user_size : new_size;
+    memcpy(new_buf, buf, copy_size);
+    free_buf();
+  } else if (user_size == 0) {
+    free_buf();
+    new_buf = (char*)malloc(new_size);
+  } else {
+    new_buf = (char*)realloc(buf, new_size);
   }
+
+  if (new_buf == nullptr) {
+    error_print(
+      "unable to resize buffer to %llu bytes", (unsigned long long)new_size
+    );
+    free_buf();
+    abort();
+  } else {
+    buf        = new_buf;
+    alloc_size = new_size;
+    if (user_size > alloc_size) user_size = alloc_size;
+  }
+}
+
+void DataBuffer::free_buf() {
+  if (mmap_buffer) {
+    munmap(buf, alloc_size);
+  } else if (buf) {
+    free(buf);
+  }
+  release_buf();
 }
 
 MPITask DataBuffer::send(int dst, int tag, MPI_Comm comm) {
