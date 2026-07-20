@@ -111,7 +111,7 @@ bool test_copy(const DataSubset& a, DataSubset::Serializer s = {}) {
       printf("Failed to transfer index %d\n", i);
       return false;
     } else if (!a.includes(i) && out[i] != 0) {
-      printf("Incorrectly transfered index %d\n", i);
+      printf("Incorrectly transferred index %d\n", i);
       return false;
     }
   }

@@ -222,13 +222,28 @@ using SerializeStreamFunc =
 
 using SerializeFunc = std::variant<SerializeFileFunc, SerializeStreamFunc>;
 
+//!@brief Overload of #Fenix_Data_member_fcreate
 int member_create(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
+  SerializeFunc serializer
+);
+
+//!@brief Overload of #Fenix_Data_member_define
+int member_define(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
+//!@brief Overload of #Fenix_Data_member_fdefine
+int member_define(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
   SerializeFunc serializer
 );
 
 //@!brief Overload of #Fenix_Data_member_created
 bool member_created(int group_id, int member_id);
+
+int member_attr_set(
+  int group_id, int member_id, int attr, void* value, int* flag
+);
 
 //!@brief Overload of #Fenix_Data_member_stage
 int member_stage(
@@ -361,6 +376,9 @@ int sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE);
 
 //@brief Overload of #Fenix_Mlog_create_data_member
 int create_data_member(int mlog_id, int group_id, int member_id);
+
+//@brief Overload of #Fenix_Mlog_define_data_member
+int define_data_member(int mlog_id, int group_id, int member_id);
 
 //@brief Overload of #Fenix_Mlog_delete
 int mlog_delete(int mlog_id);

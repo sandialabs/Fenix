@@ -723,6 +723,30 @@ int Fenix_Data_member_fcreate(
 );
 
 /**
+ * @brief Idempotent version of #Fenix_Data_member_create
+ *
+ * If this member does not exist, behaves as #Fenix_Data_member_create.
+ * If this member does exist, updates its attributes (with the same restrictions
+ * as #Fenix_Data_member_attr_set).
+ */
+int Fenix_Data_member_define(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
+
+/**
+ * @brief Idempotent version of #Fenix_Data_member_fcreate
+ *
+ * If this member does not exist, behaves as #Fenix_Data_member_fcreate.
+ * If this member does exist, updates its attributes (with the same restrictions
+ * as #Fenix_Data_member_attr_set) and its serializer function. Note that
+ * providing a nullptr for serializer will remove any existing serializer.
+ */
+int Fenix_Data_member_fdefine(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
+  Fenix_Serialize_file_fn serializer, void* ctx
+);
+
+/**
  * @brief Query if a data member exists on this rank
  * @qualifier local
  *
@@ -1238,9 +1262,20 @@ int Fenix_Mlog_sync(int mlog_id, int region_id);
  * @param[in] group_id  The data group to create the member within
  * @param[in] member_id The ID to create the member as
  * @returnstatus
- *
  */
 int Fenix_Mlog_create_data_member(int mlog_id, int group_id, int member_id);
+
+/**
+ * @brief Define a data member that can be used to stage/restore this mlog,
+ * see #Fenix_Data_member_define.
+ * @qualifier local
+ *
+ * @param[in] mlog_id   The mlog to link to this data member
+ * @param[in] group_id  The data group to create the member within
+ * @param[in] member_id The ID to create the member as
+ * @returnstatus
+ */
+int Fenix_Mlog_define_data_member(int mlog_id, int group_id, int member_id);
 
 /**
  * @brief Delete an mlog

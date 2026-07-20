@@ -256,7 +256,8 @@ std::set<DataRegion> DataRegion::operator-(const DataRegion& b) const {
         auto middle_valid  = a.get_rep(1) & inv;
         for (auto block : middle_valid) {
           fenix_assert(!block.reps);
-          mid.insert(DataRegion({block.start, block.end}, a.reps - 2, b.stride)
+          mid.insert(
+            DataRegion({block.start, block.end}, a.reps - 2, b.stride)
           );
         }
       }

@@ -147,12 +147,12 @@ int main(int argc, char** argv) {
       try {
         data::group_create(group);
 
-        if (!data::member_created(group, state_member))
-          data::member_create(group, state_member, &state, 2, MPI_INT);
-        data::member_restore(group, state_member, &state, 2);
+        // member_define is safely idempotent, in exchange for not warning us
+        // if we are accidentally overwriting an existing member
+        data::member_define(group, state_member, &state, 2, MPI_INT);
+        mlog::define_data_member(mlogs, group, mlogs_member);
 
-        if (!data::member_created(group, mlogs_member))
-          mlog::create_data_member(mlogs, group, mlogs_member);
+        data::member_restore(group, state_member);
         data::member_restore(group, mlogs_member);
 
         mlog::sync(mlogs, state.iteration);

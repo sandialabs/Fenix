@@ -80,8 +80,9 @@ class OMmapStreamBuf : public std::streambuf {
     char* ret = nullptr;
 
 #ifdef FENIX_HAVE_MREMAP
-    ret = (char*
-    )mremap(mmap_address, claim_len, written_len(), MREMAP_MAYMOVE, nullptr);
+    ret = (char*)mremap(
+      mmap_address, claim_len, written_len(), MREMAP_MAYMOVE, nullptr
+    );
     if (ret == MAP_FAILED) fatal_print("Unexpected mremap failure");
 #else
     // We can't release the big virtual address reservation without munmaping
@@ -107,8 +108,9 @@ class OMmapStreamBuf : public std::streambuf {
 #ifdef FENIX_HAVE_MREMAP
       size_t old_claim_len = claim_len;
       grow_len(claim_len, claim_chunk_size, needed_len);
-      mmap_address = (char*
-      )mremap(mmap_address, old_claim_len, claim_len, MREMAP_MAYMOVE, nullptr);
+      mmap_address = (char*)mremap(
+        mmap_address, old_claim_len, claim_len, MREMAP_MAYMOVE, nullptr
+      );
 
       if (mmap_address == MAP_FAILED) {
         fatal_print("Out of space for serialization");
@@ -127,23 +129,6 @@ class OMmapStreamBuf : public std::streambuf {
 
     return ch;
   }
-
-  /*std::streamsize xsputn(const char* s, std::streamsize count) {
-    size_t written = 0;
-    while (written < count) {
-      size_t avail = writable_len - (pptr() - mmap_address);
-      if (avail > count - written) avail = count = written;
-
-      if (avail) {
-        memcpy(pptr(), s+written, count);
-        written += avail;
-      } else {
-        overflow(s[written]);
-        written++;
-      }
-    }
-    return count;
-  }*/
 
   pos_type seekpos(pos_type pos, std::ios_base::openmode which) {
     if (!(which & std::ios_base::out)) return 0;
