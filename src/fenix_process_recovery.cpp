@@ -213,12 +213,15 @@ void spare_rank_loop() {
         ret = PMPI_Iprobe(
           MPI_ANY_SOURCE, MPI_ANY_TAG, *fenix_rt.world, &msg_found, &mpi_status
         );
+
+#ifndef MPICH_VERSION
         if (ret == MPI_SUCCESS) {
           // Explicit check so older Open MPI versions still work
           int is_revoked;
           MPIX_Comm_is_revoked(*fenix_rt.world, &is_revoked);
           if (is_revoked) ret = MPI_ERR_REVOKED;
         }
+#endif
 
         if (msg_found || ret != MPI_SUCCESS) break;
         if (++progress_count >= 5) {

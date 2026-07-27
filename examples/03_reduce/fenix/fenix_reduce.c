@@ -80,8 +80,8 @@ int main(int argc, char** argv) {
 
   // Fenix
   int fenix_role;
-  MPI_Comm world_comm = NULL;
-  MPI_Comm new_comm = NULL;
+  MPI_Comm world_comm = MPI_COMM_NULL;
+  MPI_Comm new_comm = MPI_COMM_NULL;
   int error;
   float local_sum = 0;
   int i;
