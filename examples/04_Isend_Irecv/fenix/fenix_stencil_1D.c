@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 
   int fenix_status;
   MPI_Status status;
-  MPI_Comm world_comm = NULL;
+  MPI_Comm world_comm = MPI_COMM_NULL;
   MPI_Comm new_comm;
   int i,j;
   int error;

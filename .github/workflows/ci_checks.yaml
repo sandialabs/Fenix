@@ -13,12 +13,24 @@ jobs:
           - mpi_version: "openmpi@git.main=main"
             mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
             mpi_flags: "--allow-run-as-root;--map-by;:oversubscribe;--mca;async_mpi_finalize;1"
+            mpi_package: "openmpi"
+            mpi_git_url: ""
           - mpi_version: "openmpi@git.v5.0.x=main"
             mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
             mpi_flags: "--allow-run-as-root;--map-by;:oversubscribe;--mca;async_mpi_finalize;1"
+            mpi_package: "openmpi"
+            mpi_git_url: ""
           - mpi_version: "openmpi@git.v6.0.x=main"
             mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
             mpi_flags: "--allow-run-as-root;--map-by;:oversubscribe;--mca;async_mpi_finalize;1"
+            mpi_package: "openmpi"
+            mpi_git_url: ""
+          - mpi_version: "mpich@git.2601_ulfm=develop"
+            mpi_options: "-hwloc"
+            mpi_flags: ""
+            mpi_package: "mpich"
+            mpi_git_url: "https://github.com/hzhou/mpich.git"
+
 
     name: Test against ${{ matrix.mpi_version }}
 
@@ -29,6 +41,11 @@ jobs:
       - name: Setup Spack
         uses: spack/setup-spack@v3
 
+      - name: Overrride MPI repo
+        if: ${{ contains(matrix.mpi_git_url, 'https') }}
+        run: |
+          spack config add "packages:${{ matrix.mpi_package }}:package_attributes:git:'${{ matrix.mpi_git_url }}'"
+
       - name: Add Spack packages
         run: |
           spack -e ./test/CI add ${{ matrix.mpi_version }} ${{ matrix.mpi_options }}
@@ -38,7 +55,8 @@ jobs:
         env:
           GITHUB_USER: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: spack -e ./test/CI concretize
+        run: |
+          spack -e ./test/CI concretize
 
       - name: Install Spack packages
         env:

@@ -35,13 +35,13 @@ class ReduceLog : public CollectiveLog {
 
   ReduceLog(std::istream& i) : CollectiveLog(i) {
     serialize::read(i, root);
-    serialize::read(i, op);
+    serialize::read_op(i, op);
     serialize::read(i, sbuf);
-    rbuf = MPIBuffer::create(sbuf, sbuf);
+    rbuf = MPIBuffer::create(sbuf.count(), sbuf.type());
   }
   void serialize_impl(std::ostream& s) const override {
     serialize::write(s, root);
-    serialize::write(s, op);
+    serialize::write_op(s, op);
     serialize::write(s, sbuf);
   }
 
@@ -53,7 +53,9 @@ class ReduceLog : public CollectiveLog {
   int begin(MPI_Comm c) const override {
     req_free();
     void* recv = root == util::comm_rank(c) ? rbuf.buf() : nullptr;
-    int ret    = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
+    int ret    = PMPI_Ireduce(
+      sbuf.buf(), recv, sbuf.count(), sbuf.type(), op, root, c, req()
+    );
     if (ret == MPI_SUCCESS) ret = PMPI_Wait(req(), MPI_STATUS_IGNORE);
     // Release references to any user buffers if we get this far
     rbuf.release_user_buf();
@@ -63,7 +65,9 @@ class ReduceLog : public CollectiveLog {
   void replay(MPI_Comm c) const override {
     req_free();
     void* recv = root == util::comm_rank(c) ? rbuf.buf() : nullptr;
-    int ret    = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
+    int ret    = PMPI_Ireduce(
+      sbuf.buf(), recv, sbuf.count(), sbuf.type(), op, root, c, req()
+    );
     fenix_assert(
       ret == MPI_SUCCESS, "Non-process MPI error during collective replay\n"
     );

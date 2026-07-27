@@ -34,7 +34,15 @@ option(FENIX_SYSTEM_INC_FIX    "Attempts to force overriding any system MPI head
 option(FENIX_PROPAGATE_INC_FIX "Attempt overriding system MPI headers in linking projects" ON)
 
 if(NOT DOCS_ONLY)
+    set(MPI_DETERMINE_LIBRARY_VERSION ON)
     find_package(MPI REQUIRED)
+    if(${MPI_C_LIBRARY_VERSION_STRING} MATCHES ".*MPICH.*")
+        message(WARNING "Fenix is not currently supported on MPICH")
+        list(APPEND MPIEXEC_PREFLAGS "-disable-auto-cleanup")
+    else()
+        list(APPEND MPIEXEC_PREFLAGS "--with-ft;mpi")
+    endif()
+
 
     if(${FENIX_SYSTEM_INC_FIX})
       include(cmake/systemMPIOverride.cmake)
@@ -43,7 +51,6 @@ if(NOT DOCS_ONLY)
     add_subdirectory(src)
 
     include(CTest)
-    list(APPEND MPIEXEC_PREFLAGS "--with-ft;mpi")
 
     if(BUILD_EXAMPLES)
         add_subdirectory(examples)

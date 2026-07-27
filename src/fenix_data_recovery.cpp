@@ -60,6 +60,7 @@
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
 #include "fenix_data_subset.hpp"
+#include "fenix/mpi_util.hpp"
 
 #include <cassert>
 
@@ -116,7 +117,9 @@ int member_create(
   int groupid, int memberid, void* data, int count, MPI_Datatype datatype
 ) {
   FENIX_CPP_API_BEGIN
-  return find_group(groupid)->member_create(memberid, data, count, datatype);
+  return find_group(groupid)->member_create(
+    memberid, data, count, util::Datatype(datatype)
+  );
   FENIX_CPP_API_END
 }
 

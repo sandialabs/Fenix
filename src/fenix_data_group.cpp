@@ -112,7 +112,7 @@ fenix_member_entry_t* fenix_group_t::find_member(
 }
 
 int fenix_group_t::member_create(
-  int id, void* data, int count, MPI_Datatype datatype
+  int id, void* data, int count, util::Datatype datatype
 ) {
   auto [iter, emplaced] = members.try_emplace(id, id, data, count, datatype);
   if (!emplaced) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);

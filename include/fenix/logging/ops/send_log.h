@@ -34,7 +34,7 @@ class SendLog : public OpLog {
 
   int isend(int dst, MPI_Comm c) const {
     req_free();
-    return PMPI_Isend(buf, buf, buf, dst, tag, c, req());
+    return PMPI_Isend(buf.buf(), buf.count(), buf.type(), dst, tag, c, req());
   }
 
   std::string str() const override {

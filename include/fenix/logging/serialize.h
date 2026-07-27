@@ -150,12 +150,12 @@ void read(std::istream& s, T& t) {
 }
 
 // MPI_Datatype read/write
-void write(std::ostream& s, const MPI_Datatype& d);
-void read(std::istream& s, MPI_Datatype& d);
+void write_datatype(std::ostream& s, const MPI_Datatype& d);
+void read_datatype(std::istream& s, MPI_Datatype& d);
 
 // MPI_Op read/write
-void write(std::ostream& s, const MPI_Op& d);
-void read(std::istream& s, MPI_Op& d);
+void write_op(std::ostream& s, const MPI_Op& d);
+void read_op(std::istream& s, MPI_Op& d);
 
 // Read/write helper structs and convenience functions
 template <typename T>

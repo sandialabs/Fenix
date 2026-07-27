@@ -136,7 +136,7 @@ class MPIBuffer {
   void release_user_buf() const { user_buf = nullptr; }
 
   void serialize(std::ostream& o) const {
-    serialize::write(o, m_type);
+    serialize::write_datatype(o, m_type);
     serialize::write(o, m_count);
 
     int size = garbage_data ? 0 : internal_buf.size();
@@ -144,7 +144,7 @@ class MPIBuffer {
     if (size > 0) serialize::write(o, internal_buf.data(), size);
   }
   MPIBuffer(std::istream& i) {
-    serialize::read(i, m_type);
+    serialize::read_datatype(i, m_type);
     serialize::read(i, m_count);
 
     int size = serialize::read<int>(i);
@@ -173,8 +173,6 @@ class MPIBuffer {
   MPI_Datatype type() const { return m_type; }
 
   operator void*() const { return buf(); }
-  operator int() const { return m_count; }
-  operator MPI_Datatype() const { return m_type; }
 
  private:
   // Wrapping constructor
