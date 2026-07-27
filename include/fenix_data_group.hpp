@@ -94,6 +94,9 @@ struct fenix_group_t {
     int id, std::source_location loc = std::source_location::current()
   );
   int member_create(int id, void* data, int count, MPI_Datatype datatype);
+  int member_create(
+    int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
+  );
   int member_create(int id, void* data, int count, int datatype_size);
   int member_delete(int memberid);
 
@@ -102,8 +105,11 @@ struct fenix_group_t {
   virtual int member_delete(fenix_member_entry_t* member)             = 0;
   virtual int get_redundant_policy(int* name, void* value, int* flag) = 0;
   virtual void member_stage(int memberid, const DataSubset& subset)   = 0;
-  virtual int member_store(int memberid, const DataSubset& subset)    = 0;
-  virtual int member_storev(int memberid, const DataSubset& subset)   = 0;
+  virtual void member_stage_inplace(
+    int memberid, void* buf, const DataSubset& subset
+  )                                                                 = 0;
+  virtual int member_store(int memberid, const DataSubset& subset)  = 0;
+  virtual int member_storev(int memberid, const DataSubset& subset) = 0;
   virtual int member_istore(
     int memberid, const DataSubset& subset, Fenix_Request* req
   ) = 0;

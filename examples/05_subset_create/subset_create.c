@@ -139,7 +139,9 @@ int main(int argc, char **argv) {
         subset[index] = -2;
     }
 
-    int restore_ret = Fenix_Data_member_restore(my_group, my_member, subset, kCount, FENIX_DATA_SNAPSHOT_LATEST, NULL);
+    int restore_ret = Fenix_Data_member_restore(
+        my_group, my_member, subset, kCount, FENIX_DATA_SNAPSHOT_ALL, NULL
+    );
 
     if(restore_ret != FENIX_SUCCESS){
         fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, restore_ret);

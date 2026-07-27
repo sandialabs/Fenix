@@ -300,6 +300,53 @@ int Fenix_Data_member_create(
   FENIX_C_API_END
 }
 
+int Fenix_Data_member_fcreate(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
+  Fenix_Serialize_file_fn serializer, void* ctx
+) {
+  FENIX_C_API_BEGIN
+  return member_create(
+    group_id, member_id, buffer, count, datatype,
+    [serializer, ctx](FILE* fp, int d, void* b, int o, int c) {
+      return serializer(fp, d, b, o, c, ctx);
+    }
+  );
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_define(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+) {
+  FENIX_C_API_BEGIN
+  return member_define(group_id, member_id, buffer, count, datatype);
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_fdefine(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
+  Fenix_Serialize_file_fn serializer, void* ctx
+) {
+  FENIX_C_API_BEGIN
+  int ret = member_define(group_id, member_id, buffer, count, datatype);
+  if (ret == FENIX_SUCCESS) {
+    find_group(group_id)->find_member(member_id)->serializer.emplace(
+      [serializer, ctx](FILE* fp, int d, void* b, int o, int c) {
+        return serializer(fp, d, b, o, c, ctx);
+      }
+    );
+  }
+  return ret;
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_attr_set(
+  int groupid, int memberid, int name, void* value, int* flag
+) {
+  FENIX_C_API_BEGIN
+  return member_attr_set(groupid, memberid, name, value, flag);
+  FENIX_C_API_END
+}
+
 int Fenix_Data_member_created(int group_id, int member_id) {
   FENIX_C_API_BEGIN
   return member_created(group_id, member_id);
@@ -498,17 +545,15 @@ int Fenix_Mlog_sync(int mlog_id, int region_id) {
   FENIX_C_API_END
 }
 
-int Fenix_Mlog_stage(int mlog_id, int group_id, int member_id) {
+int Fenix_Mlog_create_data_member(int mlog_id, int group_id, int member_id) {
   FENIX_C_API_BEGIN
-  return mlog::stage(mlog_id, group_id, member_id);
+  return mlog::create_data_member(mlog_id, group_id, member_id);
   FENIX_C_API_END
 }
 
-int Fenix_Mlog_lrestore(
-  int mlog_id, int group_id, int member_id, int time_stamp
-) {
+int Fenix_Mlog_define_data_member(int mlog_id, int group_id, int member_id) {
   FENIX_C_API_BEGIN
-  return mlog::lrestore(mlog_id, group_id, member_id, time_stamp);
+  return mlog::define_data_member(mlog_id, group_id, member_id);
   FENIX_C_API_END
 }
 

@@ -115,6 +115,7 @@ struct Member {
   bool snapshot_delete(int timestamp);
 
   void stage(const DataSubset& subset);
+  void stage_inplace(void* buf, const DataSubset& subset);
 
   //Member::istore(v) copies local data and region.
   tasks::Task<int> istore(const DataSubset& subset);
@@ -147,6 +148,10 @@ struct Member {
 
   DataBuffer& send_buf;
   DataBuffer& recv_buf;
+
+ private:
+  void stage_resizeable(const DataSubset& subset, SerializeFileFunc& f);
+  void stage_resizeable(const DataSubset& subset, SerializeStreamFunc& f);
 };
 
 struct BuddyMember : public Member {
@@ -202,6 +207,9 @@ struct Group : public fenix_group_t {
   int get_redundant_policy(int* name, void* value, int* flag) override;
 
   void member_stage(int member_id, const DataSubset& subset) override;
+  void member_stage_inplace(
+    int member_id, void* buf, const DataSubset& subset
+  ) override;
 
   int member_store(int member_id, const DataSubset& subset) override;
   int member_storev(int member_id, const DataSubset& subset) override;

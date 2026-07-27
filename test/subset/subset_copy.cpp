@@ -34,11 +34,11 @@
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 // GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 // IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
@@ -62,6 +62,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <iostream>
 
 #include <fenix_data_subset.hpp>
 
@@ -69,45 +70,68 @@
 
 using namespace fenix;
 
-bool test_copy(const DataSubset& a){
-   size_t count = a.max_count();
-   if(count == 0) count = 1000;
-
-   std::vector<int> in, out;
-   in.resize(count);
-   out.resize(count);
-
-   DataBuffer buf;
-
-   for(int& i : in) i = 1;
-   for(int& i : out) i = 0;
-
-   a.copy_data(sizeof(int), count, (char*)in.data(), buf);
-   a.copy_data(sizeof(int), buf, count, (char*)out.data());
-
-   for(int i = 0; i < count; i++){
-      if(a.includes(i) && out[i] != 1){
-         printf("Failed to transfer index %d\n", i);
-         return false;
-      } else if(!a.includes(i) && out[i] != 0){
-         printf("Incorrectly transfered index %d\n", i);
-         return false;
-      }
-   }
-   
-   return true;
+void file_serializer(FILE* fp, int direction, void* b, int offset, int count) {
+  int* buf = (int*)b;
+  if (direction == FENIX_SERIALIZE) {
+    fwrite(buf + offset, sizeof(int), count, fp);
+  } else {
+    fread(buf + offset, sizeof(int), count, fp);
+  }
 }
 
-int main(int argc, char **argv)
-{
-   bool success = true;
-
-   auto subsets = get_subsets();
-   for(const auto& a : subsets){
-      success &= test_copy(a);
-   }
-
-   return success ? 0 : 1;
+void stream_serializer(
+  std::iostream& s, int direction, void* b, int offset, int count
+) {
+  int* buf = (int*)b;
+  if (direction == FENIX_SERIALIZE) {
+    s.write((char*)(buf + offset), sizeof(int) * count);
+  } else {
+    s.read((char*)(buf + offset), sizeof(int) * count);
+  }
 }
 
+bool test_copy(const DataSubset& a, DataSubset::Serializer s = {}) {
+  size_t count = a.max_count();
+  if (count == 0) count = 1000;
 
+  std::vector<int> in, out;
+  in.resize(count);
+  out.resize(count);
+
+  DataBuffer buf;
+
+  for (int& i : in) i = 1;
+  for (int& i : out) i = 0;
+
+  a.copy_data(sizeof(int), count, (char*)in.data(), buf);
+  a.copy_data(sizeof(int), buf, count, (char*)out.data());
+
+  for (int i = 0; i < count; i++) {
+    if (a.includes(i) && out[i] != 1) {
+      printf("Failed to transfer index %d\n", i);
+      return false;
+    } else if (!a.includes(i) && out[i] != 0) {
+      printf("Incorrectly transferred index %d\n", i);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+int main(int argc, char** argv) {
+  bool success = true;
+
+  auto subsets = get_subsets();
+  for (const auto& a : subsets) {
+    success &= test_copy(a);
+  }
+  for (const auto& a : subsets) {
+    success &= test_copy(a, file_serializer);
+  }
+  for (const auto& a : subsets) {
+    success &= test_copy(a, stream_serializer);
+  }
+
+  return success ? 0 : 1;
+}

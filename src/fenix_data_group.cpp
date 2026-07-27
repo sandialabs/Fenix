@@ -121,6 +121,15 @@ int fenix_group_t::member_create(
 }
 
 int fenix_group_t::member_create(
+  int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
+) {
+  auto [iter, emplaced] = members.try_emplace(id, id, data, count, datatype, s);
+  if (!emplaced) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+  member_order.push_back(id);
+  return this->member_create(&iter->second);
+}
+
+int fenix_group_t::member_create(
   int id, void* data, int count, int datatype_size
 ) {
   auto [iter, emplaced] =

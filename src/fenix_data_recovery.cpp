@@ -60,6 +60,7 @@
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
 #include "fenix_data_subset.hpp"
+#include "fenix/data/mstream.hpp"
 
 #include <cassert>
 
@@ -120,6 +121,94 @@ int member_create(
   FENIX_CPP_API_END
 }
 
+int member_create(
+  int groupid, int memberid, void* data, int count, MPI_Datatype datatype,
+  SerializeFunc serializer
+) {
+  FENIX_CPP_API_BEGIN
+  return find_group(groupid)->member_create(
+    memberid, data, count, datatype, serializer
+  );
+  FENIX_CPP_API_END
+}
+
+int member_define(
+  int groupid, int memberid, void* data, int count, MPI_Datatype datatype
+) {
+  FENIX_CPP_API_BEGIN
+  auto group  = find_group(groupid);
+  auto member = group->search_member(memberid);
+  if (!member) {
+    return member_create(groupid, memberid, data, count, datatype);
+  } else {
+    int set;
+    int ret = member_attr_set(
+      groupid, memberid, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, data, &set
+    );
+    if (ret == FENIX_SUCCESS)
+      ret = member_attr_set(
+        groupid, memberid, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT, &count, &set
+      );
+    if (ret == FENIX_SUCCESS)
+      ret = member_attr_set(
+        groupid, memberid, FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE, &datatype, &set
+      );
+    member->serializer.reset();
+    return ret;
+  }
+  FENIX_CPP_API_END
+}
+
+int member_define(
+  int groupid, int memberid, void* data, int count, MPI_Datatype datatype,
+  SerializeFunc serializer
+) {
+  FENIX_CPP_API_BEGIN
+  int ret = member_define(groupid, memberid, data, count, datatype);
+  if (ret == FENIX_SUCCESS)
+    find_group(groupid)->find_member(memberid)->serializer.emplace(serializer);
+  return ret;
+  FENIX_CPP_API_END
+}
+
+int member_attr_set(
+  int groupid, int memberid, int attr, void* value, int* flag
+) {
+  FENIX_CPP_API_BEGIN
+  auto group  = find_group(groupid);
+  auto mentry = group->find_member(memberid);
+
+  //Always pass attribute changes along to group - they might have unknown
+  //attributes or side-effects to handle from changes. They get change info
+  //before changes are made, in case they need prior state.
+  int retval = group->member_set_attribute(mentry, attr, value, flag);
+  if (retval != FENIX_SUCCESS) return retval;
+
+  switch (attr) {
+  case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
+    mentry->user_data = (char*)value;
+    break;
+  case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
+    mentry->current_count = *((int*)(value));
+    break;
+  case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE: {
+    MPI_Datatype* dtype = (MPI_Datatype*)value;
+    int dtype_size;
+    int err = MPI_Type_size(*dtype, &dtype_size);
+    if (err) throw RuntimeException("Invalid MPI_Datatype");
+
+    mentry->datatype_size = dtype_size;
+    break;
+  }
+  default:
+    // No problem, since the group policy successfully handled this
+    break;
+  }
+
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
 bool member_created(int group_id, int member_id) {
   FENIX_CPP_API_BEGIN
   auto group = search_group(group_id);
@@ -130,6 +219,15 @@ bool member_created(int group_id, int member_id) {
 int member_stage(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_BEGIN
   find_group(groupid)->member_stage(memberid, specifier);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int member_stage_inplace(
+  int groupid, int memberid, void* buf, const DataSubset& specifier
+) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_stage_inplace(memberid, buf, specifier);
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }
@@ -282,6 +380,17 @@ int member_restore(
   DataSubset& data_found
 ) {
   FENIX_CPP_API_BEGIN
+  auto g = find_group(groupid);
+  if (data == FENIX_DATA_RESTORE_INPLACE) {
+    auto m = g->search_member(memberid);
+    if (m) {
+      data = m->user_data;
+    } else if (maxcount > 0) {
+      // Cannot restore this data without knowing where to put it
+      FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+    }
+  }
+
   data_found = {};
   return find_group(groupid)->member_restore(
     memberid, data, maxcount, timestamp, data_found
@@ -341,45 +450,6 @@ int group_delete(int groupid) {
 } // namespace fenix::data
 
 using namespace fenix;
-
-int Fenix_Data_member_attr_set(
-  int groupid, int memberid, int attributename, void* attributevalue, int* flag
-) {
-  FENIX_C_API_BEGIN
-  auto group  = find_group(groupid);
-  auto mentry = group->find_member(memberid);
-
-  //Always pass attribute changes along to group - they might have unknown
-  //attributes or side-effects to handle from changes. They get change info
-  //before changes are made, in case they need prior state.
-  int retval =
-    group->member_set_attribute(mentry, attributename, attributevalue, flag);
-  if (retval != FENIX_SUCCESS) return retval;
-
-  switch (attributename) {
-  case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
-    mentry->user_data = (char*)attributevalue;
-    break;
-  case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
-    mentry->current_count = *((int*)(attributevalue));
-    break;
-  case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE: {
-    MPI_Datatype* dtype = (MPI_Datatype*)attributevalue;
-    int dtype_size;
-    int err = MPI_Type_size(*dtype, &dtype_size);
-    if (err) throw RuntimeException("Invalid MPI_Datatype");
-
-    mentry->datatype_size = dtype_size;
-    break;
-  }
-  default:
-    // No problem, since the group policy successfully handled this
-    break;
-  }
-
-  return FENIX_SUCCESS;
-  FENIX_C_API_END
-}
 
 int Fenix_Data_group_get_number_of_snapshots(int group_id, int* num_snapshots) {
   FENIX_C_API_BEGIN

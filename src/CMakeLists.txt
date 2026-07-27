@@ -8,6 +8,8 @@
 #  directory.
 #
 
+include(CheckSymbolExists)
+
 set(Fenix_SOURCES
     fenix.cpp
     fenix_opt.cpp
@@ -34,6 +36,21 @@ FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
 
 configure_file(${Fenix_INCLUDE}/fenix-config.h.in fenix-config.h @ONLY)
 
+# Set preprocessor definitions to use
+set(Fenix_DEFINE "")
+if (FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
+    set(Fenix_DEFINE "${Fenix_DEFINE} FENIX_C_CATCH_RUNTIME_EXCEPTIONS")
+endif()
+if (FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+    set(Fenix_DEFINE "${Fenix_DEFINE} FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS")
+endif()
+
+list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
+check_symbol_exists(mremap "sys/mman.h" FENIX_HAVE_MREMAP)
+if (FENIX_HAVE_MREMAP)
+    set(Fenix_DEFINE "${Fenix_DEFINE} FENIX_HAVE_MREMAP")
+endif()
+
 foreach(FENIX_LIB fenix mlog)
     target_sources(${FENIX_LIB} PUBLIC FILE_SET HEADERS
         BASE_DIRS ${Fenix_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR}
@@ -41,12 +58,8 @@ foreach(FENIX_LIB fenix mlog)
 
     target_compile_features(${FENIX_LIB} PUBLIC cxx_std_20)
     target_link_libraries(${FENIX_LIB} PUBLIC MPI::MPI_CXX)
-
-    if(FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
-        target_compile_definitions(${FENIX_LIB} PUBLIC FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
-    endif()
-    if(FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
-        target_compile_definitions(${FENIX_LIB} PUBLIC FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
+    if (NOT "${Fenix_DEFINE}" STREQUAL "")
+        target_compile_definitions(${FENIX_LIB} PUBLIC ${Fenix_DEFINE})
     endif()
 endforeach()
 
