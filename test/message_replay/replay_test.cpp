@@ -75,7 +75,7 @@ constexpr int mlogs_member = 1;
 constexpr int mlogs = 2;
 
 constexpr int app_iterations        = 100;
-constexpr int iteration_work_ms     = 10;
+constexpr int iteration_work_ms     = 1;
 constexpr int checkpoint_iterations = 10;
 
 // These are arbitrary

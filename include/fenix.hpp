@@ -73,6 +73,7 @@ using Role                    = Fenix_Rank_role;
 constexpr Role INITIAL_RANK   = FENIX_ROLE_INITIAL_RANK;
 constexpr Role RECOVERED_RANK = FENIX_ROLE_RECOVERED_RANK;
 constexpr Role SURVIVOR_RANK  = FENIX_ROLE_SURVIVOR_RANK;
+constexpr Role SPARE_RANK     = FENIX_ROLE_SPARE_RANK;
 
 using SettingName                             = Fenix_Setting_name;
 constexpr SettingName RECOVERY_MODE           = FENIX_RECOVERY_MODE;
@@ -81,6 +82,7 @@ constexpr SettingName UNHANDLED_MODE          = FENIX_UNHANDLED_MODE;
 constexpr SettingName CALLBACK_EXCEPTION_MODE = FENIX_CALLBACK_EXCEPTION_MODE;
 constexpr SettingName MLOG_RECOVERY_MODE      = FENIX_MLOG_RECOVERY_MODE;
 constexpr SettingName SPARE_WAIT_MODE         = FENIX_SPARE_WAIT_MODE;
+constexpr SettingName SPARE_FINALIZE_MODE     = FENIX_SPARE_FINALIZE_MODE;
 
 using RecoveryMode            = Fenix_Recovery_mode;
 constexpr RecoveryMode IGNORE = FENIX_RECOVERY_IGNORE;
@@ -112,6 +114,10 @@ using SpareWaitMode           = Fenix_Spare_wait_mode;
 constexpr SpareWaitMode BUSY  = FENIX_SPARE_WAIT_BUSY;
 constexpr SpareWaitMode YIELD = FENIX_SPARE_WAIT_YIELD;
 constexpr SpareWaitMode SLEEP = FENIX_SPARE_WAIT_SLEEP;
+
+using SpareFinalizeMode             = Fenix_Spare_finalize_mode;
+constexpr SpareFinalizeMode RELEASE = FENIX_SPARE_FINALIZE_RELEASE;
+constexpr SpareFinalizeMode EXIT    = FENIX_SPARE_FINALIZE_EXIT;
 
 constexpr int STOREV_ALL = FENIX_STOREV_ALL;
 

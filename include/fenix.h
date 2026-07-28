@@ -166,7 +166,9 @@ typedef enum {
   //!This rank was a spare before the most recent failure, or was just spawned
   FENIX_ROLE_RECOVERED_RANK = 1,
   //!This rank was not a spare before the most recent failure
-  FENIX_ROLE_SURVIVOR_RANK  = 2
+  FENIX_ROLE_SURVIVOR_RANK  = 2,
+  //!This rank was a spare when Fenix finalized
+  FENIX_ROLE_SPARE_RANK     = 3,
 } Fenix_Rank_role;
 
 /**
@@ -185,6 +187,8 @@ typedef enum {
   FENIX_MLOG_RECOVERY_MODE,
   //!See #Fenix_Spare_wait_mode
   FENIX_SPARE_WAIT_MODE,
+  //!See #Fenix_Spare_finalize_mode
+  FENIX_SPARE_FINALIZE_MODE,
 
   //!Not a valid option.
   FENIX_SETTING_NAME_MAXCODE
@@ -302,6 +306,20 @@ typedef enum {
   //!Not a valid option
   FENIX_CALLBACK_EXCEPTION_MODE_MAXCODE
 } Fenix_Callback_exception_mode;
+
+/**
+ * @brief Options for what spare ranks should do when Fenix_Finalize is called.
+ * Must be set before Fenix_Init to take effect.
+ */
+typedef enum {
+  //!Continue from Fenix_Init with Fenix_Rank_role FENIX_RANK_ROLE_SPARE
+  FENIX_SPARE_FINALIZE_RELEASE,
+  //!Finalize MPI and exit (default),
+  FENIX_SPARE_FINALIZE_EXIT,
+
+  //!Not a valid option
+  FENIX_SPARE_FINALIZE_MODE_MAXCODE
+} Fenix_Spare_finalize_mode;
 
 /**
  * @fn void Fenix_Init(int* role, MPI_Comm comm, MPI_Comm* newcomm, int** argc, char*** argv, int spare_ranks, int* error)
@@ -491,7 +509,12 @@ int Fenix_get_number_of_ranks_with_role(int, int*);
 //!@unimplemented Returns the #Fenix_Rank_role for a given rank
 int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role);
 
-//!@brief Returns this rank's #Fenix_Rank_role
+/**
+ * @brief Returns this rank's #Fenix_Rank_role
+ *
+ * This function may be called after Fenix_Finalize, which may be useful if
+ * FENIX_SPARE_FINALIZE_MODE is FENIX_SPARE_FINALIZE_RELEASE.
+ */
 Fenix_Rank_role Fenix_get_role();
 
 //!@brief Returns the error value from Fenix_Init or the latest recovery
