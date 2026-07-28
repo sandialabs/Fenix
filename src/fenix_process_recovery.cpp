@@ -154,7 +154,13 @@ static int preinit(
 
   fenix_rt.fenix_init_flag = true;
 
-  if (__fenix_spare_rank() == 1) spare_rank_loop();
+  if (__fenix_spare_rank() == 1) {
+    spare_rank_loop();
+    if (fenix_rt.role == FENIX_ROLE_SPARE_RANK) {
+      // Finalized as a spare rank
+      return FENIX_ROLE_SPARE_RANK;
+    }
+  }
 
   if (fenix_rt.role != FENIX_ROLE_RECOVERED_RANK)
     MPI_Comm_dup(fenix_rt.new_world, fenix_rt.user_world);
@@ -203,7 +209,7 @@ void spare_rank_loop() {
     }
   }
 
-  while (__fenix_spare_rank() == 1) {
+  while (!fenix_rt.finalized && __fenix_spare_rank() == 1) {
     int a, ret = MPI_SUCCESS, msg_found = true;
     MPI_Status mpi_status;
     {
@@ -247,6 +253,7 @@ void spare_rank_loop() {
 #endif
     }
   }
+  if (!fenix_rt.finalized) fenix_rt.role = FENIX_ROLE_RECOVERED_RANK;
 
   // Cleanup before exiting as a recovered rank
   if (yield_cvar != MPI_T_CVAR_HANDLE_NULL) {
@@ -254,8 +261,6 @@ void spare_rank_loop() {
     MPI_T_cvar_handle_free(&yield_cvar);
   }
   MPI_T_finalize();
-
-  fenix_rt.role = FENIX_ROLE_RECOVERED_RANK;
 }
 
 int __fenix_create_new_world_from(MPI_Comm from_comm) {
@@ -768,11 +773,15 @@ void __fenix_finalize_spare() {
   __fenix_data_recovery_destroy(fenix_rt.data_recovery);
 
   /* Free up any C++ data structures, reset default variables */
-  fenix_rt = {};
+  SpareFinalizeMode mode = fenix_rt.settings.spare_finalize;
+  fenix_rt               = {};
+  fenix_rt.finalized     = true;
+  fenix_rt.role          = FENIX_ROLE_SPARE_RANK;
 
-  /* Future version do not close MPI. Jump to where Fenix_Finalize is called. */
-  MPI_Finalize();
-  exit(0);
+  if (mode == EXIT) {
+    MPI_Finalize();
+    exit(0);
+  }
 }
 
 void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
@@ -850,6 +859,8 @@ int __fenix_preinit(
 }
 
 void __fenix_postinit() {
+  if (fenix_rt.finalized) return;
+
   util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   *fenix_rt.ret_role  = fenix_rt.role;
   *fenix_rt.ret_error = fenix_rt.repair_result;
@@ -959,8 +970,10 @@ int Fenix_Finalize() {
   __fenix_data_recovery_destroy(fenix_rt.data_recovery);
 
   /* Free up any C++ data structures, reset default variables */
+  auto role          = fenix_rt.role;
   fenix_rt           = {};
   fenix_rt.finalized = true;
+  fenix_rt.role      = role;
   return FENIX_SUCCESS;
   FENIX_C_API_END
 }

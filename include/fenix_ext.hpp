@@ -78,6 +78,7 @@ struct Settings {
   UnhandledMode unhandled            = ABORT;
   MlogRecoveryMode mlog_recovery     = MANUAL;
   SpareWaitMode spare_wait           = YIELD;
+  SpareFinalizeMode spare_finalize   = EXIT;
 };
 
 // Configurations before init change this
@@ -105,8 +106,8 @@ struct fenix_t {
   int* fail_world     = nullptr;
 
   //Save the pointer to role and error of Fenix_Init
-  int* ret_role  = nullptr;
-  int* ret_error = nullptr;
+  int* ret_role  = &role;
+  int* ret_error = &repair_result;
 
   std::unordered_map<CallbackLocation, std::vector<FenixCallbackFunc>>
     callbacks;

@@ -156,7 +156,7 @@ int Fenix_Process_detect_failures(int do_recovery) {
 }
 
 Fenix_Rank_role Fenix_get_role() {
-  assert(initialized());
+  assert(initialized() || fenix_rt.finalized);
   return role();
 }
 
@@ -198,6 +198,7 @@ void set_option(SettingName setting, unsigned option) {
     SET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
     SET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
     SET_OPTION_CASE(SPARE_WAIT, spare_wait);
+    SET_OPTION_CASE(SPARE_FINALIZE, spare_finalize);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -216,6 +217,7 @@ unsigned get_option(SettingName setting) {
     GET_OPTION_CASE(CALLBACK_EXCEPTION, cb_exception);
     GET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
     GET_OPTION_CASE(SPARE_WAIT, spare_wait);
+    GET_OPTION_CASE(SPARE_FINALIZE, spare_finalize);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -229,7 +231,7 @@ void throw_exception() {
 }
 
 Fenix_Rank_role role() {
-  assert(initialized());
+  assert(initialized() || fenix_rt.finalized);
   return (Fenix_Rank_role)fenix_rt.role;
 }
 
