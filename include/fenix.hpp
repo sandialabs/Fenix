@@ -261,6 +261,14 @@ int member_stage_inplace(
   int group_id, int member_id, void* buf, const DataSubset& subset = SUBSET_FULL
 );
 
+//!@brief Overload of #Fenix_Data_member_stage_begin
+int member_stage_begin(int group_id, int member_id, FILE** fp);
+//!@brief Overload of #Fenix_Data_member_stage_begin
+int member_stage_begin(int group_id, int member_id, std::iostream** stream);
+
+//!@brief Overload of #Fenix_Data_member_stage_end
+int member_stage_end(int group_id, int member_id);
+
 //!@brief Overload of #Fenix_Data_member_store
 int member_store(
   int group_id, int member_id, const DataSubset& subset = SUBSET_FULL

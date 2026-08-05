@@ -100,20 +100,25 @@ int main(int argc, char** argv) {
           my_group, res_comm, start_timestamp, group_depth,
           FENIX_DATA_POLICY_IMR, NULL, &errflag
         );
-        Fenix_Data_member_create(
-          my_group, my_member, data.data(), FENIX_RESIZEABLE, MPI_INT
+        fenix::data::member_create(
+          my_group, my_member, nullptr, FENIX_RESIZEABLE, MPI_INT,
+          [&](FILE* fp, int dir, void* b, int offset, int count) {
+            fenix_assert(offset == 0);
+            fenix_assert(b == nullptr);
+            if (dir == FENIX_SERIALIZE) {
+              fenix_assert(count == FENIX_RESIZEABLE);
+              fwrite(data.data(), sizeof(int), data.size(), fp);
+            } else {
+              data.resize(count);
+              fread(data.data(), sizeof(int), count, fp);
+            }
+          }
         );
 
         data.resize(100 + rank);
         for (int& i : data) i = -1;
 
-        //Store the whole array first. We need to keep our buffer pointer
-        //updated since resizing an array can change it
-        Fenix_Data_member_attr_set(
-          my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, data.data(),
-          &errflag
-        );
-        member_stage(my_group, my_member, {{0, data.size() - 1}});
+        member_stage(my_group, my_member, SUBSET_FULL);
         member_storev(my_group, my_member, SUBSET_PRESTAGED);
         Fenix_Data_commit_barrier(my_group, NULL);
 
@@ -122,11 +127,7 @@ int main(int argc, char** argv) {
         int val = 1;
         for (int& i : data) i = val++;
 
-        Fenix_Data_member_attr_set(
-          my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, data.data(),
-          &errflag
-        );
-        member_stage(my_group, my_member, {{0, data.size() - 1}});
+        member_stage(my_group, my_member, SUBSET_FULL);
         member_storev(my_group, my_member, SUBSET_PRESTAGED);
         Fenix_Data_commit_barrier(my_group, NULL);
 
@@ -155,28 +156,30 @@ int main(int argc, char** argv) {
             my_group, res_comm, start_timestamp, group_depth,
             FENIX_DATA_POLICY_IMR, NULL, &errflag
           );
+          fenix::data::member_define(
+            my_group, my_member, nullptr, FENIX_RESIZEABLE, MPI_INT,
+            [&](FILE* fp, int dir, void* b, int offset, int count) {
+              fenix_assert(offset == 0);
+              fenix_assert(b == nullptr);
+              if (dir == FENIX_SERIALIZE) {
+                fenix_assert(count == FENIX_RESIZEABLE);
+                fwrite(data.data(), sizeof(int), data.size(), fp);
+              } else {
+                data.resize(count);
+                fread(data.data(), sizeof(int), count, fp);
+              }
+            }
+          );
+
+          //Set all data to a value that was never stored, just for testing
+          data.resize(200 + rank);
+          for (int& i : data) i = -2;
 
           //Do a null restore to get information about the stored subset
           DataSubset stored_subset;
-          int ret = member_restore(
-            my_group, my_member, nullptr, 0, FENIX_DATA_SNAPSHOT_LATEST,
-            stored_subset
-          );
-          if (ret != FENIX_SUCCESS) {
-            fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, ret);
-            MPI_Abort(MPI_COMM_WORLD, 1);
-          }
-
-          //Resize data to fit all stored data
-          data.resize(stored_subset.end() + 1);
-
-          //Set all data to a value that was never stored, just for testing
-          for (int& i : data) i = -2;
-
-          //Now do an lrestore to get the recovered data.
-          ret = member_lrestore(
-            my_group, my_member, data.data(), data.size(),
-            FENIX_DATA_SNAPSHOT_LATEST, stored_subset
+          member_restore(
+            my_group, my_member, FENIX_DATA_RESTORE_INPLACE,
+            FENIX_DATA_RESTORE_FULL, FENIX_DATA_SNAPSHOT_LATEST
           );
 
           break;

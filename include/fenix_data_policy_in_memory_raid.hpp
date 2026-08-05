@@ -116,6 +116,9 @@ struct Member {
 
   void stage(const DataSubset& subset);
   void stage_inplace(void* buf, const DataSubset& subset);
+  void stage_begin(FILE** fp);
+  void stage_begin(std::iostream** strm);
+  void stage_end();
 
   //Member::istore(v) copies local data and region.
   tasks::Task<int> istore(const DataSubset& subset);
@@ -132,7 +135,7 @@ struct Member {
 
   //Restore all internal snapshot data
   //Moves entries to align with the group's list of timestamps.
-  //Impl must actually restoring entry data
+  //Impl must handle actually restoring entry data
   int restore();
   virtual int restore_impl() = 0;
 
@@ -210,6 +213,9 @@ struct Group : public fenix_group_t {
   void member_stage_inplace(
     int member_id, void* buf, const DataSubset& subset
   ) override;
+  void member_stage_begin(int member_id, FILE** fp) override;
+  void member_stage_begin(int member_id, std::iostream** strm) override;
+  void member_stage_end(int member_id) override;
 
   int member_store(int member_id, const DataSubset& subset) override;
   int member_storev(int member_id, const DataSubset& subset) override;

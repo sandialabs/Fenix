@@ -102,6 +102,7 @@ typedef enum {
   FENIX_ERROR_GROUP_CREATE,
   FENIX_ERROR_MEMBER_CREATE,
   FENIX_ERROR_MEMBER_EXISTS,
+  FENIX_ERROR_MEMBER_STAGING,
   FENIX_ERROR_COMMIT_BARRIER,
   FENIX_ERROR_INVALID_GROUPID,
   FENIX_ERROR_INVALID_MEMBERID,
@@ -113,6 +114,7 @@ typedef enum {
   FENIX_ERROR_INVALID_ATTRIBUTE_NAME,
   FENIX_ERROR_INVALID_ATTRIBUTE_VALUE,
   FENIX_ERROR_INVALID_POSITION,
+  FENIX_ERROR_INVALID_SUBSET,
   FENIX_ERROR_DATA_WAIT,
   FENIX_ERROR_SUBSET_NUM_BLOCKS,
   FENIX_ERROR_SUBSET_START_OFFSET,
@@ -845,6 +847,39 @@ int Fenix_Data_member_stage(
 int Fenix_Data_member_stage_inplace(
   int group_id, int member_id, void* buf, const Fenix_Data_subset subset
 );
+
+/**
+ * @brief Open a file for manually staging a member into.
+ *
+ * It is an error to call any staging, storing, or restoring function involving
+ * this member before a corresponding call to #Fenix_Data_member_stage_end.
+ *
+ * @param group_id  All ranks must provide the same group_id
+ * @param member_id All ranks must provide the same member_id
+ * @param fpp       Output location for the file pointer to be written to. File
+ *                  must not be closed by the user. It is an error to use this
+ *                  file after the corresponding #Fenix_Data_member_stage_end.
+ * @returnstatus
+ */
+int Fenix_Data_member_stage_begin(int group_id, int member_id, FILE** fpp);
+
+/**
+ * @brief Concludes a #Fenix_Data_member_stage_begin.
+ *
+ * This function is equivalent to performing a #Fenix_Data_member_stage_inplace
+ * with buf pointing to the written data and a subset of FENIX_DATA_SUBSET_FULL.
+ * For resizable members, the subset is instead of the range
+ * [0, staging_file_size/element_size] and it is an error if the staging file's
+ * size is not divisible by the element size.
+ *
+ * Throws (or returns) FENIX_ERROR_INVALID_LOGIC_CALL if there has not been a
+ * corresponding #Fenix_Data_member_stage_begin.
+ *
+ * @param group_id  All ranks must provide the same group_id
+ * @param member_id All ranks must provide the same member_id
+ * @returnstatus
+ */
+int Fenix_Data_member_stage_end(int group_id, int member_id);
 
 /**
  * @brief Store a particular group member into the group's resilient storage

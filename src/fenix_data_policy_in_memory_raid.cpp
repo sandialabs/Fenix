@@ -62,6 +62,7 @@
 #include <set>
 #include <cstring>
 #include <utility>
+#include <limits>
 
 #include <mpi.h>
 #ifndef MPICH_VERSION
@@ -78,7 +79,6 @@
 #include "fenix_data_member.hpp"
 #include "fenix_data_policy_in_memory_raid.hpp"
 #include "fenix/tasks/mpi.hpp"
-#include "fenix/data/mstream.hpp"
 
 #define __FENIX_IMR_DEFAULT_MENTRY_NUM 10
 #define __FENIX_IMR_NO_MEMBERS 16000
@@ -90,7 +90,7 @@ namespace fenix::data::imr {
 
 Entry::Entry(int size, int max_count)
   : elm_size(size), elm_max_count(max_count) {
-  buf.reserve(size * max_count);
+  if (max_count != -1) buf.reserve(size * max_count);
 }
 
 Entry::Entry(Entry&& other) { *this = std::move(other); }
@@ -121,7 +121,7 @@ void Entry::add_and_fit(const DataSubset& subset) {
   fenix_assert(region.max_count() > 0 || region.empty());
 
   region += subset;
-  region.bound(elm_max_count - 1);
+  if (elm_max_count) region.bound(elm_max_count - 1);
 
   int new_count = elm_max_count;
   if (!new_count) new_count = region.max_count();
@@ -137,7 +137,7 @@ void Entry::partner_add_and_fit(const DataSubset& subset) {
   fenix_assert(partner_region.max_count() > 0 || partner_region.empty());
 
   partner_region += subset;
-  partner_region.bound(elm_max_count - 1);
+  if (elm_max_count) partner_region.bound(elm_max_count - 1);
 
   int new_count = elm_max_count;
   if (!new_count) new_count = partner_region.max_count();
@@ -161,19 +161,20 @@ Member::Member(fenix_member_entry_t& my_mentry, Group& my_group)
   : mentry(my_mentry), group(my_group), send_buf(group.send_buf),
     recv_buf(group.recv_buf) {
   for (int i = 0; i < group.depth + 2; i++) {
-    entries.emplace_back(mentry.datatype_size, mentry.current_count);
+    entries.emplace_back(mentry.datatype_size, mentry.elm_count());
   }
 }
 
 BuddyMember::BuddyMember(fenix_member_entry_t& my_mentry, Group& my_group)
   : Member(my_mentry, my_group) {
-  for (auto& entry : entries)
-    entry.partner_resize(mentry.datatype_size * mentry.current_count);
+  if (mentry.user_data.is_bounded()) {
+    for (auto& entry : entries) entry.partner_resize(mentry.user_data.size());
+  }
 }
 
 ParityMember::ParityMember(fenix_member_entry_t& my_mentry, Group& my_group)
   : Member(my_mentry, my_group) {
-  int data_len   = (mentry.datatype_size * mentry.current_count);
+  int data_len   = mentry.user_data.is_bounded() ? mentry.user_data.size() : 0;
   int parity_len = data_len / (group.set_size - 1);
 
   int remainder = data_len % (group.set_size - 1);
@@ -203,79 +204,47 @@ void Member::stage(const DataSubset& subset) {
   if (subset == SUBSET_PRESTAGED) FENIX_THROW("Cannot stage SUBSET_PRESTAGED");
 
   Entry& e = entries.back();
-  if (e.elm_max_count == 0 && subset == SUBSET_FULL) {
-    // Staging when we don't know the size of the data
-    if (!mentry.serializer) {
-      FENIX_THROW(
-        "Cannot stage SUBSET_FULL to non-serializable resizeable member"
-      );
-    } else if (mentry.serializer->index() == 0) {
-      stage_resizeable(subset, std::get<0>(*mentry.serializer));
-    } else if (mentry.serializer->index() == 1) {
-      stage_resizeable(subset, std::get<1>(*mentry.serializer));
-    } else {
-      FENIX_THROW("Unsupported serializer for unknown serialization size");
-    }
-  } else {
-    // Normal case staging
-    e.add_and_fit(subset);
-    subset.copy_data(
-      e.elm_size, e.elm_max_count, mentry.user_data, e.buf, mentry.serializer
-    );
-  }
-}
 
-void Member::stage_resizeable(const DataSubset& subset, SerializeFileFunc& f) {
-  // A memstream which serves as a dynamically-sized memory-backed file pointer.
-  char* buf   = nullptr;
-  size_t size = 0;
-  FILE* fp    = open_memstream(&buf, &size);
-  fenix_assert(fp != nullptr);
+  mentry.serialize(subset, e.buf);
 
-  // Serialize into the memstream before closing it
-  f(fp, FENIX_SERIALIZE, mentry.user_data, 0, FENIX_RESIZEABLE);
-  fclose(fp);
+  fenix_assert(e.buf.size() % mentry.datatype_size == 0);
+  fenix_assert(e.buf.size() <= mentry.user_data.size());
 
-  // Stage the final data
-  Entry& e = entries.back();
-  fenix_assert(size % e.elm_size == 0);
-  stage_inplace(buf, DataSubset((size / e.elm_size) - 1));
-}
-
-void Member::stage_resizeable(
-  const DataSubset& subset, SerializeStreamFunc& f
-) {
-  MStream strm;
-  f(strm, FENIX_SERIALIZE, mentry.user_data, 0, FENIX_RESIZEABLE);
-  auto sbuf = dynamic_cast<detail::OMmapStreamBuf*>(strm.get_buf());
-
-  size_t size = sbuf->written_len();
-  char* buf   = sbuf->release();
-
-  Entry& e = entries.back();
-  fenix_assert(size % e.elm_size == 0);
-
-#ifdef FENIX_HAVE_MREMAP
-  e.buf.take_ownership_mmapped(buf, size);
-#else
-  e.buf.take_ownership(buf, size);
-#endif
-  e.region = DataSubset((size / e.elm_size) - 1);
+  size_t max_elm = (e.buf.size() / mentry.datatype_size) - 1;
+  e.region += subset.bounded(max_elm);
 }
 
 void Member::stage_inplace(void* buf, const DataSubset& subset) {
   if (subset == SUBSET_PRESTAGED) FENIX_THROW("Cannot stage SUBSET_PRESTAGED");
 
   Entry& e = entries.back();
-  if (e.elm_max_count == 0 && subset == SUBSET_FULL)
-    FENIX_THROW("Cannot stage SUBSET_FULL to FENIX_RESIZEABLE member");
+  if (!mentry.user_data.is_bounded() && !subset.is_bounded()) {
+    FENIX_THROW(
+      "Cannot stage_inplace unbounded subset to FENIX_RESIZEABLE member"
+    );
+  }
 
-  int count = subset.max_count();
-  if (subset == SUBSET_FULL) count = e.elm_max_count;
-  else if (e.elm_max_count && count > e.elm_max_count) count = e.elm_max_count;
+  int count           = mentry.elm_count();
+  size_t subset_count = subset.max_count();
+  if (subset.is_bounded() && count > subset_count) count = subset_count;
 
   e.buf.take_ownership((char*)buf, count * e.elm_size);
   e.region = subset.bounded(count - 1);
+}
+
+void Member::stage_begin(FILE** fp) {
+  mentry.stage_begin(fp, entries.back().buf);
+}
+
+void Member::stage_begin(std::iostream** strm) {
+  mentry.stage_begin(strm, entries.back().buf);
+}
+
+void Member::stage_end() {
+  mentry.stage_end();
+  Entry& e = entries.back();
+  fenix_assert(e.buf.size() % mentry.datatype_size == 0);
+  e.region = DataSubset({0, (e.buf.size() / mentry.datatype_size) - 1});
 }
 
 tasks::Task<int> Member::istorev(const DataSubset& subset) {
@@ -301,14 +270,14 @@ tasks::Task<int> BuddyMember::exch(
   int recv_count = partner_subset.count(e.elm_max_count - 1);
   recv_buf.reset(e.elm_size * recv_count);
 
-  subset.serialize_data(e.elm_size, e.buf, send_buf);
+  subset.pack_data(e.elm_size, e.buf, send_buf);
   co_await tasks::mpi::sendrecv(
     send_buf.data(), send_buf.size(), MPI_BYTE, right, 0,
     recv_buf.data(), recv_buf.size(), MPI_BYTE,  left, 0,
     group.set_comm
   );
 
-  partner_subset.deserialize_data(e.elm_size, recv_buf, e.partner_buf);
+  partner_subset.unpack_data(e.elm_size, recv_buf, e.partner_buf);
   co_return FENIX_SUCCESS;
 }
 
@@ -466,7 +435,8 @@ int BuddyMember::restore_impl() {
       if (group.set_rank == 0) {
         debug_print(
           "WARNING Fenix_Data_member_restore: %s member %d timestamp %d "
-          "unrecoverable", group.str().c_str(), id, *ts
+          "unrecoverable",
+          group.str().c_str(), id, *ts
         );
       }
       continue;
@@ -479,7 +449,7 @@ int BuddyMember::restore_impl() {
       //Fetch my data
       int m_count = e->region.count(e->elm_max_count - 1);
       recv_buf.recv(m_count * e->elm_size, right, 0, group.set_comm).wait();
-      e->region.deserialize_data(e->elm_size, recv_buf, e->buf);
+      e->region.unpack_data(e->elm_size, recv_buf, e->buf);
 
       //Fetch left partner's region
       recv_buf.recv_unknown(left, 0, group.set_comm).wait();
@@ -487,7 +457,7 @@ int BuddyMember::restore_impl() {
       //Fetch data
       int p_count = e->partner_region.count(e->elm_max_count - 1);
       recv_buf.recv(p_count * e->elm_size, left, 0, group.set_comm).wait();
-      e->partner_region.deserialize_data(e->elm_size, recv_buf, e->partner_buf);
+      e->partner_region.unpack_data(e->elm_size, recv_buf, e->partner_buf);
 
       //Only update timestamp after all other data updated, to indicate
       //recovery of this snapshot completed
@@ -498,7 +468,7 @@ int BuddyMember::restore_impl() {
       e->partner_region.serialize(send_buf);
       send_buf.send(left, 0, group.set_comm).wait();
       //Send their data
-      e->partner_region.serialize_data(e->elm_size, e->partner_buf, send_buf);
+      e->partner_region.pack_data(e->elm_size, e->partner_buf, send_buf);
       send_buf.send(left, 0, group.set_comm).wait();
     }
     if (!found_right) {
@@ -506,7 +476,7 @@ int BuddyMember::restore_impl() {
       e->region.serialize(send_buf);
       send_buf.send(right, 0, group.set_comm).wait();
       //Send my data
-      e->region.serialize_data(e->elm_size, e->buf, send_buf);
+      e->region.pack_data(e->elm_size, e->buf, send_buf);
       send_buf.send(right, 0, group.set_comm).wait();
     }
   }
@@ -536,7 +506,8 @@ int ParityMember::restore_impl() {
         if (group.set_rank == 0) {
           debug_print(
             "WARNING Fenix_Data_member_restore: %s member %d timestamp %d "
-            "unrecoverable", group.str().c_str(), id, *ts
+            "unrecoverable",
+            group.str().c_str(), id, *ts
           );
         }
         recovering = -1;
@@ -599,6 +570,8 @@ int Member::lrestore(
   //Restoring always clears the commit buffer
   entries.back().reset();
 
+  DataRef dst{target, max_restore * mentry.datatype_size};
+
   // Get index of entry to use
   int end = 0;
   if (timestamp == FENIX_DATA_SNAPSHOT_LATEST) {
@@ -623,7 +596,7 @@ int Member::lrestore(
 
     if (max_restore > 0) {
       DataSubset s = e.region - recovered;
-      s.copy_data(e.elm_size, e.buf, max_restore, target, mentry.serializer);
+      mentry.deserialize(s, e.buf, dst);
     }
 
     recovered += e.region;
@@ -830,6 +803,24 @@ void Group::member_stage_inplace(
   auto iter = member_data.find(member_id);
   if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
   iter->second->stage_inplace(buf, subset);
+}
+
+void Group::member_stage_begin(int member_id, FILE** fp) {
+  auto iter = member_data.find(member_id);
+  if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  iter->second->stage_begin(fp);
+}
+
+void Group::member_stage_begin(int member_id, std::iostream** strm) {
+  auto iter = member_data.find(member_id);
+  if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  iter->second->stage_begin(strm);
+}
+
+void Group::member_stage_end(int member_id) {
+  auto iter = member_data.find(member_id);
+  if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  iter->second->stage_end();
 }
 
 int Group::member_store(int member_id, const DataSubset& subset) {

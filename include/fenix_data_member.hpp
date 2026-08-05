@@ -56,7 +56,13 @@
 #ifndef __FENIX_DATA_MEMBER_H__
 #define __FENIX_DATA_MEMBER_H__
 
-#define __FENIX_DEFAULT_MEMBER_SIZE 512
+#include <optional>
+
+#include "fenix_data_subset.hpp"
+#include "fenix_data_buffer.hpp"
+#include "fenix/data/util/data_ref.hpp"
+#include "fenix/data/util/serializer.hpp"
+
 namespace fenix::data {
 
 struct fenix_group_t;
@@ -67,22 +73,67 @@ struct fenix_member_entry_packet_t {
   int current_count;
 };
 
-struct fenix_member_entry_t {
+class fenix_member_entry_t {
+ public:
+  using Serializer = util::Serializer;
+
   fenix_member_entry_t() = default;
+
   fenix_member_entry_t(int id, void* data, int count, MPI_Datatype datatype);
   fenix_member_entry_t(int id, void* data, int count, int datatype_size);
+
   fenix_member_entry_t(
     int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
+  );
+  fenix_member_entry_t(
+    int id, void* data, int count, int datatype_size, SerializeFunc& s
+  );
+
+  fenix_member_entry_t(
+    int id, void* data, int count, MPI_Datatype datatype,
+    std::optional<SerializeFunc> s
+  );
+  fenix_member_entry_t(
+    int id, void* data, int count, int datatype_size,
+    std::optional<SerializeFunc> s
   );
 
   fenix_member_entry_packet_t to_packet();
 
-  int memberid    = -1;
-  char* user_data = nullptr;
-  int current_count;
+  int memberid = -1;
   int datatype_size;
+  DataRef user_data;
 
-  std::optional<SerializeFunc> serializer;
+  int elm_count();
+
+  void stage_begin(FILE** fp, DataBuffer& buf);
+  void stage_begin(std::iostream** fp, DataBuffer& buf);
+
+  void stage_end();
+
+  std::optional<SerializeFunc> ser_func;
+
+  // Set iff stage_begin called with no matching stage_end
+  std::optional<Serializer> open_serializer;
+
+  // Serialize user_data into buf
+  void serialize(const DataSubset& subset, DataBuffer& buf);
+
+  // Deserialize buf into dst
+  void deserialize(
+    const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+  );
+
+ private:
+  // Note that Serializers aren't guaranteed to have written their data to the
+  // buffer until their destructor is called. So these should usually only be
+  // used to construct temporaries that go to a subset's serialize call
+  Serializer create_serializer(
+    std::optional<SerializeFunc>& sf, const DataSubset& s, DataBuffer& b
+  );
+  Serializer create_deserializer(
+    const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+  );
 };
 
 } // namespace fenix::data

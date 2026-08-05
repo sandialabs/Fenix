@@ -64,22 +64,103 @@ fenix_member_entry_packet_t fenix_member_entry_t::to_packet() {
   fenix_member_entry_packet_t to_ret;
   to_ret.memberid      = memberid;
   to_ret.datatype_size = datatype_size;
-  to_ret.current_count = current_count;
+  to_ret.current_count = elm_count();
   return to_ret;
 }
 
 fenix_member_entry_t::fenix_member_entry_t(
   int id, void* data, int count, MPI_Datatype datatype
-) : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) {};
+) : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype)) {}
 
 fenix_member_entry_t::fenix_member_entry_t(
   int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
-) : memberid(id), user_data((char*)data), current_count(count),
-    datatype_size(__fenix_get_size(datatype)), serializer(s) {};
+) : fenix_member_entry_t(id, data, count, __fenix_get_size(datatype), s) {}
+
+fenix_member_entry_t::fenix_member_entry_t(
+  int id, void* d, int c, MPI_Datatype dt, std::optional<SerializeFunc> s
+) : fenix_member_entry_t(id, d, c, __fenix_get_size(dt), s) {}
+
+fenix_member_entry_t::fenix_member_entry_t(
+  int id, void* data, int count, int dsize, SerializeFunc& s
+) : fenix_member_entry_t(id, data, count, dsize) {
+  ser_func = s;
+}
+
+fenix_member_entry_t::fenix_member_entry_t(
+  int id, void* data, int count, int dsize, std::optional<SerializeFunc> s
+) : fenix_member_entry_t(id, data, count, dsize) {
+  ser_func = s;
+}
 
 fenix_member_entry_t::fenix_member_entry_t(
   int id, void* data, int count, int dsize
-) : memberid(id), user_data((char*)data), current_count(count),
-    datatype_size(dsize) {};
+) : memberid(id), datatype_size(dsize) {
+  if (count == FENIX_RESIZEABLE) user_data = DataRef((char*)data);
+  else user_data = DataRef((char*)data, count * dsize);
+};
+
+int fenix_member_entry_t::elm_count() {
+  if (!user_data.is_bounded()) return FENIX_RESIZEABLE;
+
+  fenix_assert(user_data.size() % datatype_size == 0);
+  return user_data.size() / datatype_size;
+}
+
+void fenix_member_entry_t::serialize(
+  const DataSubset& subset, DataBuffer& buf
+) {
+  subset.copy_data(create_serializer(ser_func, subset, buf));
+}
+
+void fenix_member_entry_t::deserialize(
+  const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+) {
+  subset.copy_data(create_deserializer(subset, buf, dst));
+}
+
+fenix::data::util::Serializer fenix_member_entry_t::create_serializer(
+  std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf
+) {
+  if (open_serializer) FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
+
+  DataRef output = user_data;
+  if (subset.is_bounded()) {
+    output = output.bounded(subset.max_count() * datatype_size);
+  }
+
+  if (output.is_bounded()) {
+    if (buf.size() < output.size()) buf.resize(output.size());
+  } else if (!sf) {
+    FENIX_THROW(FENIX_ERROR_INVALID_SUBSET);
+  }
+
+  return Serializer(buf, sf, output, FENIX_SERIALIZE, datatype_size);
+}
+
+fenix::data::util::Serializer fenix_member_entry_t::create_deserializer(
+  const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+) {
+  if (open_serializer) FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
+  return Serializer(buf, ser_func, dst, FENIX_DESERIALIZE, datatype_size);
+}
+
+void fenix_member_entry_t::stage_begin(FILE** fp, DataBuffer& buf) {
+  std::optional<SerializeFunc> sf = SerializeFileFunc{};
+  buf.resize(0);
+  open_serializer.emplace(create_serializer(sf, SUBSET_FULL, buf));
+  *fp = open_serializer->get_file();
+}
+
+void fenix_member_entry_t::stage_begin(std::iostream** strm, DataBuffer& buf) {
+  std::optional<SerializeFunc> sf = SerializeStreamFunc{};
+  buf.resize(0);
+  open_serializer.emplace(create_serializer(sf, SUBSET_FULL, buf));
+  *strm = open_serializer->get_stream();
+}
+
+void fenix_member_entry_t::stage_end() {
+  if (!open_serializer) FENIX_THROW(FENIX_ERROR_INVALID_LOGIC_CALL);
+  open_serializer.reset();
+}
 
 } //namespace fenix::data

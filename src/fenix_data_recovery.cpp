@@ -60,7 +60,7 @@
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
 #include "fenix_data_subset.hpp"
-#include "fenix/data/mstream.hpp"
+#include "fenix/data/util/mstream.hpp"
 
 #include <cassert>
 
@@ -77,7 +77,7 @@ int group_create(
   void* policy_value, int* flag
 ) {
   FENIX_CPP_API_BEGIN
-  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+  fenix::util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   if (timestart < 0) FENIX_THROW(FENIX_ERROR_INVALID_TIMESTART);
   if (depth < -1) FENIX_THROW(FENIX_ERROR_INVALID_DEPTH);
 
@@ -153,7 +153,7 @@ int member_define(
       ret = member_attr_set(
         groupid, memberid, FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE, &datatype, &set
       );
-    member->serializer.reset();
+    member->ser_func.reset();
     return ret;
   }
   FENIX_CPP_API_END
@@ -166,7 +166,7 @@ int member_define(
   FENIX_CPP_API_BEGIN
   int ret = member_define(groupid, memberid, data, count, datatype);
   if (ret == FENIX_SUCCESS)
-    find_group(groupid)->find_member(memberid)->serializer.emplace(serializer);
+    find_group(groupid)->find_member(memberid)->ser_func.emplace(serializer);
   return ret;
   FENIX_CPP_API_END
 }
@@ -186,10 +186,12 @@ int member_attr_set(
 
   switch (attr) {
   case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
-    mentry->user_data = (char*)value;
+    mentry->user_data = {(char*)value, mentry->user_data.size()};
     break;
   case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
-    mentry->current_count = *((int*)(value));
+    mentry->user_data = {
+      mentry->user_data.data(), (*((int*)(value))) * mentry->datatype_size
+    };
     break;
   case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE: {
     MPI_Datatype* dtype = (MPI_Datatype*)value;
@@ -232,10 +234,31 @@ int member_stage_inplace(
   FENIX_CPP_API_END
 }
 
+int member_stage_begin(int groupid, int memberid, FILE** fp) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_stage_begin(memberid, fp);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int member_stage_begin(int groupid, int memberid, std::iostream** stream) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_stage_begin(memberid, stream);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int member_stage_end(int groupid, int memberid) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_stage_end(memberid);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
 // Quick little helper function for the 4 kinds of stores
 template <auto Func, typename... Args>
 static int store(int groupid, int memberid, Args&&... args) {
-  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+  fenix::util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   auto group = find_group(groupid);
   if (memberid == FENIX_DATA_MEMBER_ALL) {
     for (auto& [id, member] : group->members) {
@@ -293,7 +316,7 @@ int commit(int groupid, int* timestamp) {
 
 int commit_barrier(int groupid, int* timestamp) {
   FENIX_CPP_API_BEGIN
-  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+  fenix::util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   //We want to make sure there aren't any failed MPI operations (IE unfinished
   //stores) But we don't want to fail to commit if a failure has happened after
   //all stores.
@@ -324,7 +347,7 @@ int checkpoint(
   int* timestamp
 ) {
   FENIX_CPP_API_BEGIN
-  util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
+  fenix::util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
   bool inline_recovery = scoped_mlog.old_inline_recovery;
   auto g               = find_group(group_id);
 
@@ -384,7 +407,7 @@ int member_restore(
   if (data == FENIX_DATA_RESTORE_INPLACE) {
     auto m = g->search_member(memberid);
     if (m) {
-      data = m->user_data;
+      data = m->user_data.data();
     } else if (maxcount > 0) {
       // Cannot restore this data without knowing where to put it
       FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
@@ -492,7 +515,7 @@ int Fenix_Data_member_restore_from_rank(
   int source_rank
 ) {
   FENIX_C_API_BEGIN
-  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+  fenix::util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   fatal_print("unimplemented");
   return find_group(groupid)->member_restore_from_rank(
     memberid, target_buffer, max_count, time_stamp, source_rank
@@ -524,7 +547,7 @@ int Fenix_Data_group_get_member_at_position(
 
 int Fenix_Data_wait(Fenix_Request request) {
   FENIX_C_API_BEGIN
-  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+  fenix::util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   fatal_print("unimplemented");
   return FENIX_SUCCESS;
   FENIX_C_API_END
@@ -532,7 +555,7 @@ int Fenix_Data_wait(Fenix_Request request) {
 
 int Fenix_Data_test(Fenix_Request request, int* flag) {
   FENIX_C_API_BEGIN
-  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+  fenix::util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   fatal_print("unimplemented");
   return FENIX_SUCCESS;
   FENIX_C_API_END

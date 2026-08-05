@@ -55,7 +55,6 @@
 //@HEADER
 */
 
-#include <fenix.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,18 +63,26 @@
 #include <unistd.h>
 #include <iostream>
 
+#include <fenix.hpp>
+#include <fenix_data_member.hpp>
 #include <fenix_data_subset.hpp>
+#include <fenix/data/util/data_ref.hpp>
+#include <fenix/data/util/serializer.hpp>
 
 #include "subset_common.hpp"
 
 using namespace fenix;
+using namespace fenix::data;
+using namespace fenix::data::util;
 
 void file_serializer(FILE* fp, int direction, void* b, int offset, int count) {
   int* buf = (int*)b;
   if (direction == FENIX_SERIALIZE) {
-    fwrite(buf + offset, sizeof(int), count, fp);
+    int wcount = fwrite(buf + offset, sizeof(int), count, fp);
+    fenix_assert(wcount == count);
   } else {
-    fread(buf + offset, sizeof(int), count, fp);
+    int rcount = fread(buf + offset, sizeof(int), count, fp);
+    fenix_assert(rcount == count);
   }
 }
 
@@ -90,28 +97,40 @@ void stream_serializer(
   }
 }
 
-bool test_copy(const DataSubset& a, DataSubset::Serializer s = {}) {
-  size_t count = a.max_count();
-  if (count == 0) count = 1000;
+bool test_copy(
+  const DataSubset& a, std::optional<SerializeFunc> s, const int default_inval,
+  const int default_outval
+) {
+  size_t count = a.is_bounded() ? a.max_count() : 1000;
 
   std::vector<int> in, out;
   in.resize(count);
   out.resize(count);
 
-  DataBuffer buf;
+  DataBuffer b(count);
 
-  for (int& i : in) i = 1;
-  for (int& i : out) i = 0;
+  for (int& i : in) i = default_inval;
+  for (int& i : out) i = default_outval;
 
-  a.copy_data(sizeof(int), count, (char*)in.data(), buf);
-  a.copy_data(sizeof(int), buf, count, (char*)out.data());
+  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int), s);
+
+  mentry.serialize(a, b);
+  mentry.deserialize(a, b, out);
 
   for (int i = 0; i < count; i++) {
-    if (a.includes(i) && out[i] != 1) {
-      printf("Failed to transfer index %d\n", i);
+    if (a.includes(i) && out[i] != default_inval) {
+      fprintf(
+        stderr,
+        "Failed to transfer index %d with subset %s (%d != expected %d)\n", i,
+        a.str().c_str(), out[i], default_inval
+      );
       return false;
-    } else if (!a.includes(i) && out[i] != 0) {
-      printf("Incorrectly transferred index %d\n", i);
+    } else if (!a.includes(i) && out[i] != default_outval) {
+      fprintf(
+        stderr,
+        "Incorrectly transferred index %d with subset %s (%d != expected %d)\n",
+        i, a.str().c_str(), out[i], default_outval
+      );
       return false;
     }
   }
@@ -123,14 +142,22 @@ int main(int argc, char** argv) {
   bool success = true;
 
   auto subsets = get_subsets();
+  fprintf(stderr, "Testing default serializer\n");
   for (const auto& a : subsets) {
-    success &= test_copy(a);
+    success &= test_copy(a, {}, 0xAAAAAAAA, 0x55555555);
+    success &= test_copy(a, {}, 0x55555555, 0xAAAAAAAA);
   }
+
+  fprintf(stderr, "Testing file serializer\n");
   for (const auto& a : subsets) {
-    success &= test_copy(a, file_serializer);
+    success &= test_copy(a, file_serializer, 0xAAAAAAAA, 0x55555555);
+    success &= test_copy(a, file_serializer, 0x55555555, 0xAAAAAAAA);
   }
+
+  fprintf(stderr, "Testing stream serializer\n");
   for (const auto& a : subsets) {
-    success &= test_copy(a, stream_serializer);
+    success &= test_copy(a, stream_serializer, 0xAAAAAAAA, 0x55555555);
+    success &= test_copy(a, stream_serializer, 0x55555555, 0xAAAAAAAA);
   }
 
   return success ? 0 : 1;

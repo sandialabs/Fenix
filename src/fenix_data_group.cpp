@@ -88,8 +88,8 @@ fenix_group_t::fenix_group_t(
 ) {
   groupid      = m_groupid;
   comm         = m_comm;
-  comm_size    = util::comm_size(comm);
-  current_rank = util::comm_rank(comm);
+  comm_size    = fenix::util::comm_size(comm);
+  current_rank = fenix::util::comm_rank(comm);
   timestart    = m_timestart;
   timestamp    = -1;
   depth        = m_depth;
