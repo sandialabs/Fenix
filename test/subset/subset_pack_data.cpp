@@ -105,7 +105,7 @@ bool test_pack_data(const DataSubset& a) {
       printf("Failed to transfer index %d\n", i);
       return false;
     } else if (!a.includes(i) && out[i] != 0) {
-      printf("Incorrectly transfered index %d\n", i);
+      printf("Incorrectly transferred index %d\n", i);
       return false;
     }
   }
