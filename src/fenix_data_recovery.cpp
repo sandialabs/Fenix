@@ -188,11 +188,17 @@ int member_attr_set(
   case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
     mentry->user_data = {(char*)value, mentry->user_data.size()};
     break;
-  case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
-    mentry->user_data = {
-      mentry->user_data.data(), (*((int*)(value))) * mentry->datatype_size
-    };
+  case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT: {
+    int new_count = *((int*)value);
+    if (new_count == FENIX_RESIZEABLE) {
+      mentry->user_data = {mentry->user_data.data()};
+    } else {
+      mentry->user_data = {
+        mentry->user_data.data(), new_count * mentry->datatype_size
+      };
+    }
     break;
+  }
   case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE: {
     MPI_Datatype* dtype = (MPI_Datatype*)value;
     int dtype_size;
@@ -398,22 +404,71 @@ int checkpointv(int group_id, const DataSubset& subset, int* time_stamp) {
   FENIX_CPP_API_END
 }
 
+int member_repair(int groupid, int memberid) {
+  FENIX_CPP_API_BEGIN
+  // TODO: This should be the base function which member_restore invokes during
+  // its execution
+  return member_restore(
+    groupid, memberid, nullptr, 0, FENIX_DATA_SNAPSHOT_ALL, SUBSET_IGNORE
+  );
+  FENIX_CPP_API_END
+}
+
+int member_load(
+  int groupid, int memberid, int timestamp, DataSubset& data_found
+) {
+  FENIX_CPP_API_BEGIN
+  return member_load(
+    groupid, memberid, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL,
+    timestamp, data_found
+  );
+  FENIX_CPP_API_END
+}
+
+int member_load(
+  int groupid, int memberid, void* target, int target_count, int timestamp,
+  DataSubset& data_found
+) {
+  FENIX_CPP_API_BEGIN
+  // TODO: This shold be the base function, not member_lrestore
+  return member_lrestore(
+    groupid, memberid, target, target_count, timestamp, data_found
+  );
+  FENIX_CPP_API_END
+}
+
+int member_load_begin(
+  int groupid, int memberid, FILE** fp, int timestamp, DataSubset& data_found
+) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_load_begin(memberid, fp, timestamp, data_found);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int member_load_begin(
+  int groupid, int memberid, std::iostream** strm, int timestamp,
+  DataSubset& data_found
+) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_load_begin(memberid, strm, timestamp, data_found);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int member_load_end(int groupid, int memberid) {
+  FENIX_CPP_API_BEGIN
+  find_group(groupid)->member_load_end(memberid);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
 int member_restore(
   int groupid, int memberid, void* data, int maxcount, int timestamp,
   DataSubset& data_found
 ) {
   FENIX_CPP_API_BEGIN
-  auto g = find_group(groupid);
-  if (data == FENIX_DATA_RESTORE_INPLACE) {
-    auto m = g->search_member(memberid);
-    if (m) {
-      data = m->user_data.data();
-    } else if (maxcount > 0) {
-      // Cannot restore this data without knowing where to put it
-      FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
-    }
-  }
-
+  auto g     = find_group(groupid);
   data_found = {};
   return find_group(groupid)->member_restore(
     memberid, data, maxcount, timestamp, data_found

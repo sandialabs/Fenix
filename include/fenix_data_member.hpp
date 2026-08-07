@@ -108,8 +108,11 @@ class fenix_member_entry_t {
 
   void stage_begin(FILE** fp, DataBuffer& buf);
   void stage_begin(std::iostream** fp, DataBuffer& buf);
-
   void stage_end();
+
+  void load_begin(FILE** fp, DataBuffer& buf);
+  void load_begin(std::iostream** fp, DataBuffer& buf);
+  void load_end();
 
   std::optional<SerializeFunc> ser_func;
 
@@ -132,7 +135,8 @@ class fenix_member_entry_t {
     std::optional<SerializeFunc>& sf, const DataSubset& s, DataBuffer& b
   );
   Serializer create_deserializer(
-    const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+    std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf,
+    const DataRef& dst
   );
 };
 

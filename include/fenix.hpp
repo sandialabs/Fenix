@@ -312,6 +312,40 @@ inline int member_istorev(
   return member_istorev(group_id, FENIX_DATA_MEMBER_ALL, subset, request);
 }
 
+//!@brief Overload of #Fenix_Data_member_repair
+int member_repair(int group_id, int member_id);
+
+//!@brief Overload of #Fenix_Data_member_load
+int member_load(
+  int group_id, int member_id, int time_stamp = FENIX_DATA_SNAPSHOT_ALL,
+  DataSubset& data_found = SUBSET_IGNORE
+);
+
+//!@brief Overload of #Fenix_Data_member_load_to
+int member_load(
+  int group_id, int member_id, void* target,
+  int target_count       = FENIX_DATA_RESTORE_FULL,
+  int time_stamp         = FENIX_DATA_SNAPSHOT_ALL,
+  DataSubset& data_found = SUBSET_IGNORE
+);
+
+//!@brief Overload of #Fenix_Data_member_load_begin
+int member_load_begin(
+  int group_id, int member_id, FILE** fp,
+  int time_stamp         = FENIX_DATA_SNAPSHOT_LATEST,
+  DataSubset& data_found = SUBSET_IGNORE
+);
+
+//!@brief Overload of #Fenix_Data_member_load_begin
+int member_load_begin(
+  int group_id, int member_id, std::iostream** strm,
+  int time_stamp         = FENIX_DATA_SNAPSHOT_LATEST,
+  DataSubset& data_found = SUBSET_IGNORE
+);
+
+//@!brief Overload of #Fenix_Data_member_load_end
+int member_load_end(int group_id, int member_id);
+
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
   int group_id, int member_id, void* target_buffer = FENIX_DATA_RESTORE_INPLACE,
@@ -321,6 +355,7 @@ int member_restore(
 );
 
 //!@brief Overload of #Fenix_Data_member_lrestore
+[[deprecated("Use member_load functions instead")]]
 int member_lrestore(
   int group_id, int member_id, void* target_buffer = FENIX_DATA_RESTORE_INPLACE,
   int max_length         = FENIX_DATA_RESTORE_FULL,

@@ -111,7 +111,8 @@
     FENIX_ABORT();                                                             \
   } while (0)
 
-#define fenix_assert_impl(predicate, ...)                                      \
+// Checks even during release builds. Generally used in our ci tests or examples
+#define fenix_require(predicate, ...)                                          \
   do {                                                                         \
     if (!(predicate)) {                                                        \
       error_print("internal error, failed assertion (%s)", #predicate);        \
@@ -121,12 +122,12 @@
   } while (0)
 
 #ifdef NDEBUG
-//Disable assertions when NDEBUG
+//Disable normal assertions when NDEBUG
 #define fenix_assert(...)                                                      \
   do {                                                                         \
   } while (0)
 #else
-#define fenix_assert(...) fenix_assert_impl(__VA_ARGS__)
+#define fenix_assert(...) fenix_require(__VA_ARGS__)
 #endif
 
 typedef struct __fenix_debug_opt_t {
