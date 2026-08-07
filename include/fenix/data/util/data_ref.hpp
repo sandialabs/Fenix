@@ -3,6 +3,8 @@
 
 #include "fenix_data_buffer.hpp"
 
+#include <limits>
+
 namespace fenix::data {
 
 namespace detail {

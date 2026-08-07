@@ -29,6 +29,7 @@ add_library(mlog STATIC)
 add_library(Fenix::mlog ALIAS mlog)
 target_link_libraries(mlog INTERFACE fenix)
 
+add_subdirectory(data)
 add_subdirectory(logging)
 
 set(Fenix_INCLUDE ${CMAKE_SOURCE_DIR}/include)
