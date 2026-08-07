@@ -122,6 +122,13 @@ struct fenix_group_t {
   virtual int commit()                       = 0;
   virtual int snapshot_delete(int timestamp) = 0;
   virtual int barrier()                      = 0;
+  virtual void member_load_begin(
+    int memberid, FILE** fp, int timestamp, DataSubset& data_found
+  ) = 0;
+  virtual void member_load_begin(
+    int memberid, std::iostream** strm, int timestamp, DataSubset& data_found
+  )                                          = 0;
+  virtual void member_load_end(int memberid) = 0;
   virtual int member_restore(
     int member_id, void* target_bugger, int max, int timestamp,
     DataSubset& data_found

@@ -88,10 +88,10 @@ int main(int argc, char** argv) {
   std::vector<int> data;
   auto data_ser =
     [&data](std::iostream& s, int dir, void* b, int offset, int count) {
-      fenix_assert(offset == 0);
-      fenix_assert(b == nullptr);
+      fenix_require(offset == 0);
+      fenix_require(b == nullptr);
       if (dir == FENIX_SERIALIZE) {
-        fenix_assert(count == FENIX_RESIZEABLE);
+        fenix_require(count == FENIX_RESIZEABLE);
         s.write((char*)data.data(), sizeof(int) * data.size());
       } else {
         data.resize(count);

@@ -103,10 +103,10 @@ int main(int argc, char** argv) {
         fenix::data::member_create(
           my_group, my_member, nullptr, FENIX_RESIZEABLE, MPI_INT,
           [&](FILE* fp, int dir, void* b, int offset, int count) {
-            fenix_assert(offset == 0);
-            fenix_assert(b == nullptr);
+            fenix_require(offset == 0);
+            fenix_require(b == nullptr);
             if (dir == FENIX_SERIALIZE) {
-              fenix_assert(count == FENIX_RESIZEABLE);
+              fenix_require(count == FENIX_RESIZEABLE);
               fwrite(data.data(), sizeof(int), data.size(), fp);
             } else {
               data.resize(count);
@@ -159,10 +159,10 @@ int main(int argc, char** argv) {
           fenix::data::member_define(
             my_group, my_member, nullptr, FENIX_RESIZEABLE, MPI_INT,
             [&](FILE* fp, int dir, void* b, int offset, int count) {
-              fenix_assert(offset == 0);
-              fenix_assert(b == nullptr);
+              fenix_require(offset == 0);
+              fenix_require(b == nullptr);
               if (dir == FENIX_SERIALIZE) {
-                fenix_assert(count == FENIX_RESIZEABLE);
+                fenix_require(count == FENIX_RESIZEABLE);
                 fwrite(data.data(), sizeof(int), data.size(), fp);
               } else {
                 data.resize(count);

@@ -81,7 +81,7 @@ Task<int> get_partner_rank() {
 
   // Send me to left with tag 0, recv partner from right with tag 0
   co_await sendrecv(me, left, 0, partner, right, 0, MPI_COMM_WORLD);
-  fenix_assert(partner == right, "ERR: exchanged partner rank %d\n", partner);
+  fenix_require(partner == right, "ERR: exchanged partner rank %d\n", partner);
   co_return partner;
 }
 
@@ -91,7 +91,7 @@ Task<int> get_max_partner() {
   MPI_Comm_rank(MPI_COMM_WORLD, &me);
 
   int partner = co_await get_partner_rank();
-  fenix_assert(
+  fenix_require(
     partner == (me + 1) % n_ranks, "ERR: returned partner rank %d\n", partner
   );
   fprintf(stderr, "Rank %d has partner %d\n", me, partner);
@@ -99,10 +99,10 @@ Task<int> get_max_partner() {
   Indexed<int> my_partner = {.value = partner, .index = me};
   Indexed<int> max_partner;
   co_await allreduce(my_partner, max_partner, MPI_MAXLOC, MPI_COMM_WORLD);
-  fenix_assert(
+  fenix_require(
     max_partner.value == n_ranks - 1, "ERR: max_partner %d\n", max_partner.value
   );
-  fenix_assert(
+  fenix_require(
     max_partner.index == n_ranks - 2, "ERR: max_index %d\n", max_partner.index
   );
   fprintf(
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
   max_partner_task.wait();
   int max_partner = max_partner_task.result();
 
-  fenix_assert(
+  fenix_require(
     max_partner == n_ranks - 1, "ERR: returned max partner %d\n", max_partner
   );
 

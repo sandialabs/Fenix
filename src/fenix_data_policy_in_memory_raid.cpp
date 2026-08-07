@@ -564,6 +564,40 @@ int ParityMember::restore_impl() {
   return FENIX_SUCCESS;
 }
 
+void Member::load_begin(FILE** fp, int ts, DataSubset& avail) {
+  // SNAPSHOT_ALL not valid here
+  if (ts == FENIX_DATA_SNAPSHOT_ALL) FENIX_THROW(FENIX_ERROR_INVALID_TIMESTAMP);
+
+  for (int i = entries.size() - 2; i >= 0; i--) {
+    Entry& e = entries[i];
+    if (e.timestamp < 0) continue;
+    if (ts == FENIX_DATA_SNAPSHOT_LATEST || ts == e.timestamp) {
+      mentry.load_begin(fp, e.buf);
+      avail = e.region;
+      return;
+    }
+  }
+  FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
+}
+
+void Member::load_begin(std::iostream** strm, int ts, DataSubset& avail) {
+  // SNAPSHOT_ALL not valid here
+  if (ts == FENIX_DATA_SNAPSHOT_ALL) FENIX_THROW(FENIX_ERROR_INVALID_TIMESTAMP);
+
+  for (int i = entries.size() - 2; i >= 0; i--) {
+    Entry& e = entries[i];
+    if (e.timestamp < 0) continue;
+    if (ts == FENIX_DATA_SNAPSHOT_LATEST || ts == e.timestamp) {
+      mentry.load_begin(strm, e.buf);
+      avail = e.region;
+      return;
+    }
+  }
+  FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
+}
+
+void Member::load_end() { mentry.load_end(); }
+
 int Member::lrestore(
   char* target, int max_restore, int timestamp, DataSubset& recovered
 ) {
@@ -571,6 +605,10 @@ int Member::lrestore(
   entries.back().reset();
 
   DataRef dst{target, max_restore * mentry.datatype_size};
+  if (target == FENIX_DATA_RESTORE_INPLACE) {
+    dst = {mentry.user_data.data(), dst.size()};
+  }
+  if (max_restore == FENIX_DATA_RESTORE_FULL) dst = {dst.data()};
 
   // Get index of entry to use
   int end = 0;
@@ -821,6 +859,28 @@ void Group::member_stage_end(int member_id) {
   auto iter = member_data.find(member_id);
   if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
   iter->second->stage_end();
+}
+
+void Group::member_load_begin(
+  int member_id, FILE** fp, int timestamp, DataSubset& data_found
+) {
+  auto iter = member_data.find(member_id);
+  if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  iter->second->load_begin(fp, timestamp, data_found);
+}
+
+void Group::member_load_begin(
+  int member_id, std::iostream** strm, int timestamp, DataSubset& data_found
+) {
+  auto iter = member_data.find(member_id);
+  if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  iter->second->load_begin(strm, timestamp, data_found);
+}
+
+void Group::member_load_end(int member_id) {
+  auto iter = member_data.find(member_id);
+  if (iter == member_data.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  iter->second->load_end();
 }
 
 int Group::member_store(int member_id, const DataSubset& subset) {

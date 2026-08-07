@@ -133,6 +133,10 @@ struct Member {
   int store(const DataSubset& subset) { return istore(subset).result(); }
   int storev(const DataSubset& subset) { return istorev(subset).result(); }
 
+  void load_begin(FILE** fp, int timestamp, DataSubset& subset);
+  void load_begin(std::iostream** strm, int timestamp, DataSubset& subset);
+  void load_end();
+
   //Restore all internal snapshot data
   //Moves entries to align with the group's list of timestamps.
   //Impl must handle actually restoring entry data
@@ -216,6 +220,14 @@ struct Group : public fenix_group_t {
   void member_stage_begin(int member_id, FILE** fp) override;
   void member_stage_begin(int member_id, std::iostream** strm) override;
   void member_stage_end(int member_id) override;
+
+  void member_load_begin(
+    int member_id, FILE** fp, int timestamp, DataSubset& data_found
+  ) override;
+  void member_load_begin(
+    int member_id, std::iostream** strm, int timestamp, DataSubset& data_found
+  ) override;
+  void member_load_end(int member_id) override;
 
   int member_store(int member_id, const DataSubset& subset) override;
   int member_storev(int member_id, const DataSubset& subset) override;

@@ -80,7 +80,7 @@ class Serializer {
   }
 
   size_t size() const {
-    fenix_assert(user.is_bounded() || user.size() % elm_size == 0);
+    fenix_assert(!user.is_bounded() || user.size() % elm_size == 0);
     fenix_assert(stage.size() % elm_size == 0);
     if (dynamic) return std::numeric_limits<size_t>::max();
     else if (!user.is_bounded()) return stage.size();
@@ -130,6 +130,8 @@ class Serializer {
     fenix_assert(has_stream());
     return &strm.value();
   }
+
+  int get_dir() const { return dir; }
 
   Serializer(Serializer&& o) : stage(o.stage) {
     use_file_func = o.use_file_func;

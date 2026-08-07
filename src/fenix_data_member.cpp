@@ -115,13 +115,17 @@ void fenix_member_entry_t::serialize(
 void fenix_member_entry_t::deserialize(
   const DataSubset& subset, DataBuffer& buf, const DataRef& dst
 ) {
-  subset.copy_data(create_deserializer(subset, buf, dst));
+  subset.copy_data(create_deserializer(ser_func, subset, buf, dst));
 }
 
 fenix::data::util::Serializer fenix_member_entry_t::create_serializer(
   std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf
 ) {
-  if (open_serializer) FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
+  if (open_serializer) {
+    if (open_serializer->get_dir() == FENIX_SERIALIZE)
+      FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
+    FENIX_THROW(FENIX_ERROR_MEMBER_LOADING);
+  }
 
   DataRef output = user_data;
   if (subset.is_bounded()) {
@@ -138,10 +142,15 @@ fenix::data::util::Serializer fenix_member_entry_t::create_serializer(
 }
 
 fenix::data::util::Serializer fenix_member_entry_t::create_deserializer(
-  const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+  std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf,
+  const DataRef& dst
 ) {
-  if (open_serializer) FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
-  return Serializer(buf, ser_func, dst, FENIX_DESERIALIZE, datatype_size);
+  if (open_serializer) {
+    if (open_serializer->get_dir() == FENIX_SERIALIZE)
+      FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
+    FENIX_THROW(FENIX_ERROR_MEMBER_LOADING);
+  }
+  return Serializer(buf, sf, dst, FENIX_DESERIALIZE, datatype_size);
 }
 
 void fenix_member_entry_t::stage_begin(FILE** fp, DataBuffer& buf) {
@@ -160,6 +169,27 @@ void fenix_member_entry_t::stage_begin(std::iostream** strm, DataBuffer& buf) {
 
 void fenix_member_entry_t::stage_end() {
   if (!open_serializer) FENIX_THROW(FENIX_ERROR_INVALID_LOGIC_CALL);
+  if (open_serializer->get_dir() != FENIX_SERIALIZE)
+    FENIX_THROW(FENIX_ERROR_MEMBER_LOADING);
+  open_serializer.reset();
+}
+
+void fenix_member_entry_t::load_begin(FILE** fp, DataBuffer& buf) {
+  std::optional<SerializeFunc> sf = SerializeFileFunc{};
+  open_serializer.emplace(create_deserializer(sf, SUBSET_FULL, buf, nullptr));
+  *fp = open_serializer->get_file();
+}
+
+void fenix_member_entry_t::load_begin(std::iostream** strm, DataBuffer& buf) {
+  std::optional<SerializeFunc> sf = SerializeStreamFunc{};
+  open_serializer.emplace(create_deserializer(sf, SUBSET_FULL, buf, nullptr));
+  *strm = open_serializer->get_stream();
+}
+
+void fenix_member_entry_t::load_end() {
+  if (!open_serializer) FENIX_THROW(FENIX_ERROR_INVALID_LOGIC_CALL);
+  if (open_serializer->get_dir() != FENIX_DESERIALIZE)
+    FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
   open_serializer.reset();
 }
 
