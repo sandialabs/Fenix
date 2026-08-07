@@ -103,6 +103,7 @@ typedef enum {
   FENIX_ERROR_MEMBER_CREATE,
   FENIX_ERROR_MEMBER_EXISTS,
   FENIX_ERROR_MEMBER_STAGING,
+  FENIX_ERROR_MEMBER_LOADING,
   FENIX_ERROR_COMMIT_BARRIER,
   FENIX_ERROR_INVALID_GROUPID,
   FENIX_ERROR_INVALID_MEMBERID,
@@ -717,7 +718,7 @@ int Fenix_Data_group_created(int group_id);
  *
  * All calling ranks in the group's communicator must pass the same values for
  * the parameters
- * \c member_id, \c datatype, and \c group_id.
+ * \c member_id, \c datatype, \c group_id, and \c count.
  *
  * @param group_id Identifier to a data group within which to create the member.
  * @param member_id An integer unique within the data group that identifies the
@@ -805,6 +806,7 @@ int Fenix_Data_test(Fenix_Request request, int* flag);
 
 /**
  * @brief Serialize a group member's data into the member's local store.
+ * @qualifier local
  *
  * A store operation can broken into two parts: locally staging the data within
  * Fenix, then policy-specific operations to make the data resilient to faults.
@@ -813,8 +815,8 @@ int Fenix_Data_test(Fenix_Request request, int* flag);
  *
  * It is undefined behaviour to commit staged-but-not-stored data.
  *
- * @param group_id All ranks must provide the same group_id
- * @param member_id All ranks must provide the same member_id
+ * @param group_id  Group of the member to stage to
+ * @param member_id Member to stage to
  * @param subset_specifier Which subset of the data to stage.
  *        FENIX_DATA_SUBSET_ALL is invalid if member size is FENIX_RESIZEABLE.
  *        FENIX_DATA_SUBSET_PRESTAGED is invalid.
@@ -827,6 +829,7 @@ int Fenix_Data_member_stage(
 /**
  * @brief As #Fenix_Data_member_stage, but takes ownership of buf to possibly
  * avoid a copy.
+ * @qualifier local
  *
  * Fenix takes this \c buf as the new location to stage all data to. Any prior
  * staged but uncommitted data is lost. Even if \c subset is not contiguous or
@@ -838,8 +841,8 @@ int Fenix_Data_member_stage(
  * call. Fenix may overwrite, reallocate, or free this buffer at any time,
  * including before returning from this function.
  *
- * @param group_id All ranks must provide the same group_id
- * @param member_id All ranks must provide the same member_id
+ * @param group_id  Group of the member to stage to
+ * @param member_id Member to stage to
  * @param buf The data buffer which Fenix will take ownership of
  * @param subset Which subset of the data to stage. See #Fenix_Data_member_stage
  * @returnstatus
@@ -850,12 +853,14 @@ int Fenix_Data_member_stage_inplace(
 
 /**
  * @brief Open a file for manually staging a member into.
+ * @qualifier local
  *
- * It is an error to call any staging, storing, or restoring function involving
- * this member before a corresponding call to #Fenix_Data_member_stage_end.
+ * It is an error to call any staging, storing, loading, or restoring function
+ * involving this member before a corresponding call to
+ * #Fenix_Data_member_stage_end.
  *
- * @param group_id  All ranks must provide the same group_id
- * @param member_id All ranks must provide the same member_id
+ * @param group_id  Group of the member to stage to
+ * @param member_id Member to stage to
  * @param fpp       Output location for the file pointer to be written to. File
  *                  must not be closed by the user. It is an error to use this
  *                  file after the corresponding #Fenix_Data_member_stage_end.
@@ -865,6 +870,7 @@ int Fenix_Data_member_stage_begin(int group_id, int member_id, FILE** fpp);
 
 /**
  * @brief Concludes a #Fenix_Data_member_stage_begin.
+ * @qualifier local
  *
  * This function is equivalent to performing a #Fenix_Data_member_stage_inplace
  * with buf pointing to the written data and a subset of FENIX_DATA_SUBSET_FULL.
@@ -875,8 +881,8 @@ int Fenix_Data_member_stage_begin(int group_id, int member_id, FILE** fpp);
  * Throws (or returns) FENIX_ERROR_INVALID_LOGIC_CALL if there has not been a
  * corresponding #Fenix_Data_member_stage_begin.
  *
- * @param group_id  All ranks must provide the same group_id
- * @param member_id All ranks must provide the same member_id
+ * @param group_id  Group of the member to end staging for
+ * @param member_id Member to end staging for
  * @returnstatus
  */
 int Fenix_Data_member_stage_end(int group_id, int member_id);
@@ -991,27 +997,144 @@ int Fenix_Data_checkpoint(
 int Fenix_Data_barrier(int group_id);
 
 /**
- * @brief Restore the data of a group member from a snapshot.
+ * @brief Repair the resilient storage of committed data for this member.
  * @qualifier collective
  *
- * All ranks in the group’s resilient communicator must pass the
- * same values for the parameters group_id, member_id, and time_stamp.
- * This function is used to retrieve data from consistent snapshot
- * members. This function can only be used if the size of the
- * communicator used to store the data is the same as that at the time
- * of data recovery (this implies non-shrinking communicator recovery
- * in case of a rank loss).
+ * All ranks in this group must call with the same group_id and member_id. May
+ * also be matched by a call to #Fenix_Data_member_restore.
  *
- * If the size of the buffer needing to receive the recovery data is
- * unknown for a particular rank, it can be queried using
- * #Fenix_Data_member_attr_get.
+ * Member does not have to exist locally. If member does not exist locally, this
+ * function is equivalent to calling #Fenix_Data_member_create with a null
+ * buffer before this function's normal behavior. If the group's policy is
+ * unable to rebuild this member (i.e., in the case of an unrecoverable failure
+ * pattern), raises FENIX_ERROR_NODATA_FOUND.
+ *
+ * Note that this may not raise any error if the member exists but its committed
+ * data is unable to be restored. This may present as if the member simply never
+ * committed any data.
+ *
+ * Behavior is currently undefined if this group's comm has a different size
+ * than it had when it committed any of the group's snapshots.
+ *
+ * @param[in] group_id The group of the member to repair
+ * @param[in] member_id The member to repair
+ * @returnstatus
+ */
+int Fenix_Data_member_repair(int group_id, int member_id);
+
+/**
+ * @brief Load this member's committed data into user's data.
+ * @qualifier local
+ *
+ * Attempts to load up to ATTRIBUTE_COUNT elements into ATTRIBUTE_BUFFER.
+ *
+ * For members without a serializer, data is loaded by directly copying memory.
+ * Otherwise, data is loaded by calls to this member's serializer.
+ *
+ * If time stamp is FENIX_DATA_SNAPSHOT_ALL, this function attempts to load
+ * elements [0, MEMBER_ATTRIBUTE_COUNT-1] by loading each element from the most
+ * recent available snapshot the individual element was committed in.
+ *
+ * If a snapshot at the specified time stamp is not locally available, raises
+ * FENIX_ERROR_NODATA_FOUND. If any elements from [0, MEMBER_ATTRIBUTE_COUNT-1]
+ * were not loaded from the snapshot(s), returns FENIX_WARNING_PARTIAL_RESTORE.
+ *
+ * User is responsible for freeing the subset returned in found_data, unless
+ * found_data is FENIX_DATA_SUBSET_IGNORE (in which case no subset is returned).
+ *
+ * @param[in] group_id The group of the member to load
+ * @param[in] member_id The member to load
+ * @param[in] time_stamp Time stamp of the snapshot to load
+ * @param[inout] found_data Subset of the elements successfully loaded
+ * @returnstatus
+ */
+int Fenix_Data_member_load(
+  int group_id, int member_id, int time_stamp, Fenix_Data_subset* found_data
+);
+
+/**
+ * @brief As #Fenix_Data_member_load, but with a custom load destination
+ * @qualifier local
+ *
+ * Attempts to load up to target_count elements into target. Otherwise behaves
+ * as #Fenix_Data_member_load.
+ *
+ * If target_count is FENIX_DATA_RESTORE_FULL, assumes buffer has space to load
+ * all available elements.
+ *
+ * @param[in] group_id The group of the member to load
+ * @param[in] member_id The member to load
+ * @param[inout] target The custom load destination
+ * @param[in] target_count The number of elements to attempt to load
+ * @param[in] time_stamp Time stamp of the snapshot to load
+ * @param[inout] found_data Subset of the elements successfully loaded
+ * @returnstatus
+ */
+int Fenix_Data_member_load_to(
+  int group_id, int member_id, void* target, int target_count, int time_stamp,
+  Fenix_Data_subset* found_data
+);
+
+/**
+ * @brief Get a file to read this member's committed data from.
+ * @qualifier local
+ *
+ * As #Fenix_Data_member_load, but opens a file to read data from instead of
+ * directly loading the data.
+ *
+ * It is an error to call any staging, storing, loading, or restoring function
+ * involving this member before a corresponding call to
+ * #Fenix_Data_member_load_end. Returned file is read-only and must not be
+ * closed by the user. The value of any data outside the found_data subset is
+ * undefined.
+ *
+ * Note that time_stamp must not be FENIX_DATA_SNAPSHOT_ALL.
+ *
+ * @param[in] group_id The group of the member to load
+ * @param[in] member_id The member to load
+ * @param[out] fpp Output location for the file pointer to be written to
+ * @param[in] time_stamp Time stamp of the snapshot to load
+ * @param[inout] found_data Subset of the elements successfully loaded
+ * @returnstatus
+ */
+int Fenix_data_member_load_begin(
+  int group_id, int member_id, FILE** fpp, int time_stamp,
+  Fenix_Data_subset* found_data
+);
+
+/**
+ * @brief Concludes a #Fenix_Data_member_load_begin.
+ * @qualifier local
+ *
+ * Throws (or returns) FENIX_ERROR_INVALID_LOGIC_CALL if there has not been a
+ * corresponding #Fenix_Data_member_load_begin.
+ *
+ * @param group_id  Group of the member to end loading for
+ * @param member_id Member to end loading for
+ * @returnstatus
+ */
+int Fenix_Data_member_load_end(int group_id, int member_id);
+
+/**
+ * @brief Repair and load a member.
+ * @qualifier collective
+ *
+ * Consolidating function to take the following steps:
+ *   1. Repair the member
+ *   2. If the member did not exist already, set the member's buffer to
+ *   target_buffer (or NULL if target_buffer is FENIX_DATA_RESTORE_INPLACE)
+ *   3. Load max_count elements to target_buffer (or member's buffer if
+ *   target_buffer is FENIX_DATA_RESTORE_INPLACE).
+ *
+ * This function is collective amongst the ranks of this member's group, but
+ * it may be matched remotely by #Fenix_Data_member_repair.
  *
  * @param[in] group_id The group to restore from
  * @param[in] member_id The member to restore
- * @param[out] target_buffer The buffer to store the restored data
- * @param[in] max_count The maximum number of elements to restore
- * @param[in] time_stamp The time stamp of the snapshot to restore from
- * @param[out] found_data The subset of the data that was found in the snapshot
+ * @param[out] target_buffer The buffer to load to
+ * @param[in] max_count The maximum number of elements to load
+ * @param[in] time_stamp The time stamp of the snapshot to load
+ * @param[inout] found_data Subset of the elements successfully loaded
  * @returnstatus
  */
 int Fenix_Data_member_restore(
@@ -1021,6 +1144,9 @@ int Fenix_Data_member_restore(
 
 /**
  * @brief Local-only version of Fenix_Data_member_restore
+ * @qualifier deprecated
+ *
+ * DEPRECATED: Use member_load functions instead.
  *
  * This function restores the data of a group member from the local
  * snapshot.

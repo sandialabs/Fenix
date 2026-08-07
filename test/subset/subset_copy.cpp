@@ -79,10 +79,10 @@ void file_serializer(FILE* fp, int direction, void* b, int offset, int count) {
   int* buf = (int*)b;
   if (direction == FENIX_SERIALIZE) {
     int wcount = fwrite(buf + offset, sizeof(int), count, fp);
-    fenix_assert(wcount == count);
+    fenix_require(wcount == count);
   } else {
     int rcount = fread(buf + offset, sizeof(int), count, fp);
-    fenix_assert(rcount == count);
+    fenix_require(rcount == count);
   }
 }
 
