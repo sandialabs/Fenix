@@ -104,6 +104,9 @@ struct fenix_group_t {
   virtual int member_create(fenix_member_entry_t* member)             = 0;
   virtual int member_delete(fenix_member_entry_t* member)             = 0;
   virtual int get_redundant_policy(int* name, void* value, int* flag) = 0;
+  virtual void member_stage_begin(int memberid, FILE** fp)            = 0;
+  virtual void member_stage_begin(int memberid, std::iostream** strm) = 0;
+  virtual void member_stage_end(int memberid)                         = 0;
   virtual void member_stage(int memberid, const DataSubset& subset)   = 0;
   virtual void member_stage_inplace(
     int memberid, void* buf, const DataSubset& subset

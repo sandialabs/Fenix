@@ -139,7 +139,7 @@ int Fenix_check_cancelled(MPI_Request* request, MPI_Status* status) {
   FENIX_C_API_BEGIN
   // We know this may return as "COMM_REVOKED", but we know the error was
   // already handled
-  util::ScopedIgnoreAndReturn opt;
+  fenix::util::ScopedIgnoreAndReturn opt;
 
   int flag;
   int ret = PMPI_Test(request, &flag, status);
@@ -331,7 +331,7 @@ int Fenix_Data_member_fdefine(
   FENIX_C_API_BEGIN
   int ret = member_define(group_id, member_id, buffer, count, datatype);
   if (ret == FENIX_SUCCESS) {
-    find_group(group_id)->find_member(member_id)->serializer.emplace(
+    find_group(group_id)->find_member(member_id)->ser_func.emplace(
       [serializer, ctx](FILE* fp, int d, void* b, int o, int c) {
         return serializer(fp, d, b, o, c, ctx);
       }

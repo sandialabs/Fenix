@@ -12,6 +12,7 @@
 #include <cstring>
 
 #include "fenix_opt.hpp"
+#include "fenix/data/util/data_ref.hpp"
 
 namespace fenix::data {
 namespace detail {
@@ -224,8 +225,13 @@ class MStream : public std::iostream {
     buf = std::make_unique<detail::OMmapStreamBuf>();
     rdbuf(buf.get());
   }
-  MStream(char* b, size_t l) : std::iostream(nullptr) {
-    buf = std::make_unique<detail::MStreamBuf>(b, l);
+  MStream(const DataRef& dr) : std::iostream(nullptr) {
+    buf = std::make_unique<detail::MStreamBuf>(dr.data(), dr.size());
+    rdbuf(buf.get());
+  }
+  MStream(MStream&& o) : std::iostream(nullptr) {
+    o.rdbuf(nullptr);
+    buf = std::move(o.buf);
     rdbuf(buf.get());
   }
   ~MStream() = default;

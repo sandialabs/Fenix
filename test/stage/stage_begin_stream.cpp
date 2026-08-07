@@ -63,6 +63,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <iostream>
 
 constexpr int kKillID         = 2;
 constexpr int my_group        = 0;
@@ -85,6 +86,18 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(res_comm, &rank);
 
   std::vector<int> data;
+  auto data_ser =
+    [&data](std::iostream& s, int dir, void* b, int offset, int count) {
+      fenix_assert(offset == 0);
+      fenix_assert(b == nullptr);
+      if (dir == FENIX_SERIALIZE) {
+        fenix_assert(count == FENIX_RESIZEABLE);
+        s.write((char*)data.data(), sizeof(int) * data.size());
+      } else {
+        data.resize(count);
+        s.read((char*)data.data(), sizeof(int) * count);
+      }
+    };
 
   bool should_throw = Fenix_get_role() == FENIX_ROLE_RECOVERED_RANK;
   while (true) {
@@ -100,20 +113,19 @@ int main(int argc, char** argv) {
           my_group, res_comm, start_timestamp, group_depth,
           FENIX_DATA_POLICY_IMR, NULL, &errflag
         );
-        Fenix_Data_member_create(
-          my_group, my_member, data.data(), FENIX_RESIZEABLE, MPI_INT
+        fenix::data::member_create(
+          my_group, my_member, nullptr, FENIX_RESIZEABLE, MPI_INT, data_ser
         );
 
         data.resize(100 + rank);
         for (int& i : data) i = -1;
 
-        //Store the whole array first. We need to keep our buffer pointer
-        //updated since resizing an array can change it
-        Fenix_Data_member_attr_set(
-          my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, data.data(),
-          &errflag
-        );
-        member_stage(my_group, my_member, {{0, data.size() - 1}});
+        std::iostream* strm;
+        member_stage_begin(my_group, my_member, &strm);
+        strm->write((char*)data.data(), sizeof(int) * data.size());
+        member_stage_end(my_group, my_member);
+        strm = nullptr;
+
         member_storev(my_group, my_member, SUBSET_PRESTAGED);
         Fenix_Data_commit_barrier(my_group, NULL);
 
@@ -122,11 +134,11 @@ int main(int argc, char** argv) {
         int val = 1;
         for (int& i : data) i = val++;
 
-        Fenix_Data_member_attr_set(
-          my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, data.data(),
-          &errflag
-        );
-        member_stage(my_group, my_member, {{0, data.size() - 1}});
+        member_stage_begin(my_group, my_member, &strm);
+        strm->write((char*)data.data(), sizeof(int) * data.size());
+        member_stage_end(my_group, my_member);
+        strm = nullptr;
+
         member_storev(my_group, my_member, SUBSET_PRESTAGED);
         Fenix_Data_commit_barrier(my_group, NULL);
 
@@ -155,28 +167,19 @@ int main(int argc, char** argv) {
             my_group, res_comm, start_timestamp, group_depth,
             FENIX_DATA_POLICY_IMR, NULL, &errflag
           );
+          fenix::data::member_define(
+            my_group, my_member, nullptr, FENIX_RESIZEABLE, MPI_INT, data_ser
+          );
+
+          //Set all data to a value that was never stored, just for testing
+          data.resize(200 + rank);
+          for (int& i : data) i = -2;
 
           //Do a null restore to get information about the stored subset
           DataSubset stored_subset;
-          int ret = member_restore(
-            my_group, my_member, nullptr, 0, FENIX_DATA_SNAPSHOT_LATEST,
-            stored_subset
-          );
-          if (ret != FENIX_SUCCESS) {
-            fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, ret);
-            MPI_Abort(MPI_COMM_WORLD, 1);
-          }
-
-          //Resize data to fit all stored data
-          data.resize(stored_subset.end() + 1);
-
-          //Set all data to a value that was never stored, just for testing
-          for (int& i : data) i = -2;
-
-          //Now do an lrestore to get the recovered data.
-          ret = member_lrestore(
-            my_group, my_member, data.data(), data.size(),
-            FENIX_DATA_SNAPSHOT_LATEST, stored_subset
+          member_restore(
+            my_group, my_member, FENIX_DATA_RESTORE_INPLACE,
+            FENIX_DATA_RESTORE_FULL, FENIX_DATA_SNAPSHOT_LATEST
           );
 
           break;
@@ -190,7 +193,10 @@ int main(int argc, char** argv) {
   //Ensure data is correct after execution and recovery
   bool successful = data.size() == 50 + rank;
   if (!successful)
-    printf("Rank %d expected data size 50, but got %ld\n", rank, data.size());
+    printf(
+      "Rank %d expected data size %d, but got %ld\n", rank, rank + 50,
+      data.size()
+    );
 
   for (int i = 0; i < data.size() && successful; i++) {
     successful &= data[i] == i + 1;

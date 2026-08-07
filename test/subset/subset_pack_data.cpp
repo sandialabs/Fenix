@@ -34,11 +34,11 @@
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 // GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 // IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
@@ -64,60 +64,62 @@
 #include <unistd.h>
 
 #include <fenix_data_subset.hpp>
+#include <fenix_data_member.hpp>
+#include <fenix/data/util/serializer.hpp>
 
 #include "subset_common.hpp"
 
 using namespace fenix;
+using namespace fenix::data;
 
-bool test_serialize_data(const DataSubset& a){
-   size_t count = a.max_count();
-   if(count == 0) count = 1000;
+bool test_pack_data(const DataSubset& a) {
+  size_t count = a.max_count();
+  if (count == 0) count = 1000;
 
-   std::vector<int> in, out;
-   in.resize(count);
-   out.resize(count);
-   
-   for(int& i : in) i = 1;
-   for(int& i : out) i = 0;
+  std::vector<int> in, out;
+  in.resize(count);
+  out.resize(count);
 
-   DataBuffer in_buf, out_buf, serialized_buf;
+  for (int& i : in) i = 1;
+  for (int& i : out) i = 0;
 
-   // Data to in_buf
-   a.copy_data(sizeof(int), count, (char*)in.data(), in_buf);
+  DataBuffer in_buf, out_buf, packed_buf;
 
-   //Serialize in_buf to serialized_buf
-   a.serialize_data(sizeof(int), in_buf, serialized_buf);
-   
-   // Deserialize back to out_buf
-   out_buf.reset(sizeof(int)*count);
-   a.deserialize_data(sizeof(int), serialized_buf, out_buf);
+  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int));
 
-   // Data from out_buf to out
-   a.copy_data(sizeof(int), out_buf, count, (char*)out.data());
+  // Data to in_buf
+  mentry.serialize(a, in_buf);
 
-   for(int i = 0; i < count; i++){
-      if(a.includes(i) && out[i] != 1){
-         printf("Failed to transfer index %d\n", i);
-         return false;
-      } else if(!a.includes(i) && out[i] != 0){
-         printf("Incorrectly transfered index %d\n", i);
-         return false;
-      }
-   }
-   
-   return true;
+  // Pack in_buf into packed_buf
+  a.pack_data(sizeof(int), in_buf, packed_buf);
+
+  // Unpack back to out_buf
+  out_buf.reset(sizeof(int) * count);
+  a.unpack_data(sizeof(int), packed_buf, out_buf);
+
+  // Data from out_buf to out
+  mentry.deserialize(a, out_buf, out);
+
+  for (int i = 0; i < count; i++) {
+    if (a.includes(i) && out[i] != 1) {
+      printf("Failed to transfer index %d\n", i);
+      return false;
+    } else if (!a.includes(i) && out[i] != 0) {
+      printf("Incorrectly transferred index %d\n", i);
+      return false;
+    }
+  }
+
+  return true;
 }
 
-int main(int argc, char **argv)
-{
-   bool success = true;
+int main(int argc, char** argv) {
+  bool success = true;
 
-   auto subsets = get_expanded_subsets();
-   for(const auto& a : subsets){
-      success &= test_serialize_data(a);
-   }
+  auto subsets = get_expanded_subsets();
+  for (const auto& a : subsets) {
+    success &= test_pack_data(a);
+  }
 
-   return success ? 0 : 1;
+  return success ? 0 : 1;
 }
-
-

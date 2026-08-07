@@ -138,15 +138,15 @@ struct DataRegion {
 };
 } // namespace detail
 
+namespace data::util {
+// Forward declaration
+class Serializer;
+}
+
 struct DataSubset {
   static constexpr size_t MAX = detail::DataRegion::MAX;
 
-  // Redeclaring here to avoid cyclic dependency
-  using SerializeFileFunc = std::function<void(FILE*, int, void*, int, int)>;
-  using SerializeStreamFunc =
-    std::function<void(std::iostream&, int, void*, int, int)>;
-  using SerializeFunc = std::variant<SerializeFileFunc, SerializeStreamFunc>;
-  using Serializer    = std::optional<SerializeFunc>;
+  using Serializer = data::util::Serializer;
 
   enum SubsetType {
     BasicSubset,
@@ -204,36 +204,22 @@ struct DataSubset {
   void serialize(DataBuffer& buf) const;
 
   //Will reset dst to fit
-  void serialize_data(
-    size_t elm_size, const DataBuffer& src, DataBuffer& dst
-  ) const;
+  void pack_data(size_t elm_size, const DataBuffer& src, DataBuffer& dst) const;
   //If dst.size()==0, will resize dst to fit
-  void deserialize_data(
+  void unpack_data(
     size_t elm_size, const DataBuffer& src, DataBuffer& dst
   ) const;
 
-  //Serialize data into dst buffer
+  //Copy data using given Serializer
   //If src_len == 0, will assume src is a large as needed. May resize dst.
-  void copy_data(
-    const size_t elm_size, const size_t src_len, char* src, DataBuffer& dst
-  ) const;
-  void copy_data(
-    const size_t, const size_t, char*, DataBuffer&, Serializer&
-  ) const;
-
-  //Deserialize data from src buffer
-  //If dst_len == 0, will assume dst is as large as needed
-  void copy_data(
-    const size_t elm_size, DataBuffer& src, const size_t dst_len, char* dst
-  ) const;
-  void copy_data(
-    const size_t, DataBuffer&, const size_t, char*, Serializer&
-  ) const;
+  void copy_data(const Serializer& s) const;
 
   //Whether this subset includes the element at index idx
   bool includes(size_t idx) const;
   //Whether this subset includes the entire range [0, end] without gaps
   bool includes_all(size_t end) const;
+
+  bool is_bounded() const { return end() != MAX; }
 
   //Return a DataSubset consisting of bounded_regions(max_index)
   DataSubset bounded(size_t max_index) const;

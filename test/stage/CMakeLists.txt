@@ -8,10 +8,9 @@
 #  directory.
 #
 
-add_executable(stage stage.cpp)
 
-target_link_libraries(stage fenix MPI::MPI_CXX)
-target_compile_features(stage PRIVATE cxx_std_20)
-
-add_test(NAME stage
-  COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_PREFLAGS} stage ${MPIEXEC_POSTFLAGS})
+fenix_test(SRC stage.cpp RANKS 6)
+fenix_test(SRC stage_dynamic_file.cpp RANKS 6)
+fenix_test(SRC stage_dynamic_stream.cpp RANKS 6)
+fenix_test(SRC stage_begin_file.cpp RANKS 6)
+fenix_test(SRC stage_begin_stream.cpp RANKS 6)
