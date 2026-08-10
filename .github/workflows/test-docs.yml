@@ -1,0 +1,83 @@
+name: Test Documentation Build
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/test-docs.yml'
+
+jobs:
+  test-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Sphinx
+        run: pip install sphinx sphinx_rtd_theme
+
+      - name: Build documentation
+        run: |
+          sphinx-build -W -b html docs docs/_build/html
+          echo "Documentation built successfully"
+
+      - name: Upload documentation artifact
+        id: artifact-step
+        uses: actions/upload-artifact@v7
+        with:
+          name: documentation-preview
+          path: docs/_build/html/
+          retention-days: 30
+
+      - name: Add documentation preview comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifactUrl = '${{ steps.artifact-step.outputs.artifact-url }}';
+
+            const message = `## 📚 Documentation Preview
+
+            The documentation has been built successfully!
+
+            **Download the preview:**
+            [📥 Download HTML documentation](${artifactUrl})
+
+            After downloading, extract the file and open \`index.html\` in your browser.
+
+            ---
+            *Last updated: ${new Date().toISOString()}*`;
+
+            // Find existing comment from this workflow
+            const comments = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const botComment = comments.data.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('📚 Documentation Preview')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: message
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: message
+              });
+            }

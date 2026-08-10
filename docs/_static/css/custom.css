@@ -1,5 +1,42 @@
 /* Custom styling for Fenix documentation */
 
+/* Operation type badge */
+.operation-badge {
+    display: inline-block;
+    font-size: 0.4em;
+    padding: 0.4em 0.9em;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    vertical-align: middle;
+    margin-left: 0.4em;
+    float: right;
+}
+
+.operation-badge.local {
+    background-color: #ecf9f2;
+    color: #27ae60;
+    border: 1px solid #a8dcc0;
+}
+
+.operation-badge.collective {
+    background-color: #fef5e7;
+    color: #d68910;
+    border: 1px solid #f9d79b;
+}
+
+/* Default style for custom badge text */
+.operation-badge:not(.local):not(.collective) {
+    background-color: #e8f4f8;
+    color: #2c5aa0;
+    border: 1px solid #b8d4e0;
+}
+
+/* Hide the paragraph that originally contains the badge */
+p:has(> .operation-badge-inline) {
+    display: none;
+}
+
 /* Highlight collective/local operation markers */
 .rubric {
     font-weight: bold;

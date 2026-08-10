@@ -1,7 +1,10 @@
 Types
 =====
 
-This page documents all enums, structs, and typedefs in the Fenix C API.
+This page documents all enums, structs, and typedefs used in Fenix.
+
+These types are shared between the C and C++ APIs. The C++ API provides type aliases
+in the ``fenix`` namespace that map to the C types.
 
 Enums
 -----
@@ -12,19 +15,31 @@ Enums
 
    Describes the current process's state in reference to process recovery.
 
+   **C++ type alias:**
+
+   .. cpp:type:: fenix::Role
+
+      Type alias for Fenix_Rank_role.
+
+   **Enumerators:**
+
    .. c:enumerator:: FENIX_ROLE_INITIAL_RANK
+   .. cpp:enumerator:: fenix::INITIAL_RANK
 
       No failures have occurred yet (value: 0)
 
    .. c:enumerator:: FENIX_ROLE_RECOVERED_RANK
+   .. cpp:enumerator:: fenix::RECOVERED_RANK
 
       This rank was a spare before the most recent failure, or was just spawned (value: 1)
 
    .. c:enumerator:: FENIX_ROLE_SURVIVOR_RANK
+   .. cpp:enumerator:: fenix::SURVIVOR_RANK
 
       This rank was not a spare before the most recent failure (value: 2)
 
    .. c:enumerator:: FENIX_ROLE_SPARE_RANK
+   .. cpp:enumerator:: fenix::SPARE_RANK
 
       This rank was a spare when Fenix finalized (value: 3)
 
