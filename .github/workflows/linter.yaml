@@ -2,6 +2,14 @@ name: Lint
 
 on:
   pull_request:
+    paths:
+      - '**.c'
+      - '**.cpp'
+      - '**.h'
+      - '**.hpp'
+      - '.pre-commit-config.yaml'
+      - '.clang-format'
+      - '.github/workflows/linter.yaml'
 
 jobs:
   lint:
