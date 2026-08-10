@@ -1,12 +1,11 @@
-name: Publish GH Pages
+name: Publish Documentation
 
 on:
   push:
     branches:
-      - master
       - develop
 
-#Only one of this workflow runs at a time
+# Only one of this workflow runs at a time
 concurrency:
   group: docs
   cancel-in-progress: true
@@ -17,14 +16,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Build pages
-        run: /bin/bash .github/scripts/build-gh-pages.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+
+      - name: Install Sphinx
+        run: pip install sphinx sphinx_rtd_theme
+
+      - name: Build documentation
+        run: sphinx-build -b html docs docs/_build/html
 
       - name: Upload documentation artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ env.DOCS_DIR }}
+          path: docs/_build/html
 
   deploy-docs:
     needs: build-pages
@@ -33,7 +41,11 @@ jobs:
       pages: write
       id-token: write
 
-    steps:
-      - name: Deploy documentation to GH Pages
-        uses: actions/deploy-pages@v4
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
+    steps:
+      - name: Deploy documentation to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

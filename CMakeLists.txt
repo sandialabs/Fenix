@@ -19,7 +19,7 @@ include(cmake/util.cmake)
 
 option(BUILD_EXAMPLES    "Builds example programs from the examples directory" OFF)
 option(BUILD_TESTING     "Builds tests and test modes of files"                ON)
-option(BUILD_DOCS        "Builds documentation if is doxygen found"            ON)
+option(BUILD_DOCS        "Builds documentation if Sphinx is found"            ON)
 option(DOCS_ONLY         "Only build documentation"                            OFF)
 
 option(FENIX_C_CATCH_RUNTIME_EXCEPTIONS
@@ -56,7 +56,7 @@ if(NOT DOCS_ONLY)
 endif()
 
 if(BUILD_DOCS)
-    add_subdirectory(doc)
+    add_subdirectory(docs)
 endif()
 
 configure_file(
