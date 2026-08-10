@@ -22,12 +22,15 @@ jobs:
         run: pip install sphinx sphinx_rtd_theme
 
       - name: Build documentation
+        id: build-docs
+        continue-on-error: true
         run: |
           sphinx-build -W -b html docs docs/_build/html
           echo "Documentation built successfully"
 
       - name: Upload documentation artifact
         id: artifact-step
+        if: steps.build-docs.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: documentation-preview
@@ -35,12 +38,16 @@ jobs:
           retention-days: 30
 
       - name: Add documentation preview comment
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
+            const buildSuccess = '${{ steps.build-docs.outcome }}' === 'success';
             const artifactUrl = '${{ steps.artifact-step.outputs.artifact-url }}';
 
-            const message = `## 📚 Documentation Preview
+            let message;
+            if (buildSuccess) {
+              message = `## 📚 Documentation Preview
 
             The documentation has been built successfully!
 
@@ -51,6 +58,16 @@ jobs:
 
             ---
             *Last updated: ${new Date().toISOString()}*`;
+            } else {
+              message = `## ❌ Documentation Build Failed
+
+            The documentation build encountered errors.
+
+            Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+            ---
+            *Last updated: ${new Date().toISOString()}*`;
+            }
 
             // Find existing comment from this workflow
             const comments = await github.rest.issues.listComments({
@@ -80,4 +97,9 @@ jobs:
                 repo: context.repo.repo,
                 body: message
               });
+            }
+
+            // Fail the workflow if build failed
+            if (!buildSuccess) {
+              core.setFailed('Documentation build failed');
             }
