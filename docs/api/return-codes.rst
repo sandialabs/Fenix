@@ -5,7 +5,15 @@ Return Codes
 
 .. c:type:: Fenix_Return_codes
 
-   All possible return codes from Fenix functions. Errors are negative, warnings are positive.
+   All possible return codes from Fenix C API functions. Errors are negative, warnings are positive.
+
+   **C++ Exception Mapping:**
+
+   When :c:enumerator:`FENIX_RESUME_THROW` is enabled, the C++ API throws
+   :cpp:class:`fenix::CommException` instead of returning error codes. The exception's
+   ``error`` member contains the corresponding return code value.
+
+   See :doc:`exceptions` for C++ exception classes.
 
    **Success:**
 

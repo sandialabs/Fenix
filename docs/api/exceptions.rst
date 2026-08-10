@@ -1,7 +1,11 @@
 C++ Exceptions
 ==============
 
-The Fenix C++ API provides exception types for error handling.
+The Fenix C++ API provides exception types for error handling when
+:c:enumerator:`FENIX_RESUME_THROW` is configured.
+
+**Note:** These exception classes are C++ only and have no C equivalent. The C API uses
+return codes (see :doc:`return-codes`).
 
 Exception Hierarchy
 -------------------
@@ -36,6 +40,18 @@ Exception Hierarchy
       Get the Fenix error code.
 
       :returns: Error code from :c:type:`Fenix_Return_codes`
+
+Error Code Mapping
+------------------
+
+Each exception's ``get_error_code()`` returns the corresponding value from :doc:`return-codes`.
+Common mappings:
+
+- :c:enumerator:`FENIX_ERROR_UNINITIALIZED` → CommException with -100
+- :c:enumerator:`FENIX_ERROR_CANCELLED` → CommException with -101
+- :c:enumerator:`FENIX_ERROR_GROUP_CREATE` → CommException with -200
+
+See :doc:`return-codes` for the complete list of error codes.
 
 Usage
 -----
