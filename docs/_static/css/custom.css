@@ -1,0 +1,19 @@
+/* Custom styling for Fenix documentation */
+
+/* Highlight collective/local operation markers */
+.rubric {
+    font-weight: bold;
+    color: #2980b9;
+    margin-top: 1em;
+}
+
+/* Style unimplemented warnings */
+.admonition.warning {
+    border-left: 4px solid #f39c12;
+}
+
+/* Function signature formatting */
+.sig-name {
+    font-family: monospace;
+    font-weight: bold;
+}

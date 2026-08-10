@@ -1,3 +1,0 @@
-<br><select id="versionSelector">
-    @DOC_VERSION_SELECT@
-</select>
