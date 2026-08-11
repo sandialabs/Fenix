@@ -16,40 +16,36 @@ Exception Hierarchy
 
    Thrown when :c:enumerator:`FENIX_RESUME_THROW` is configured and a fault occurs.
 
-   .. cpp:function:: CommException(MPI_Comm comm, int error_code)
+   .. cpp:function:: CommException(MPI_Comm comm, int fenix_error, int mpi_error)
 
       Construct a CommException.
 
       :param comm: The communicator where the error occurred
-      :param error_code: The Fenix error code
+      :param fenix_error: The Fenix error code
+      :param mpi_error: The MPI error code
 
-   .. cpp:function:: const char* what() const noexcept
+   .. cpp:member:: MPI_Comm repaired_comm
 
-      Get the error message.
+      The repaired communicator after fault recovery.
 
-      :returns: Error message string
+   .. cpp:member:: const int fenix_err
 
-   .. cpp:function:: MPI_Comm get_comm() const
+      The Fenix error code (from :c:type:`Fenix_Return_codes`).
 
-      Get the communicator where the error occurred.
+   .. cpp:member:: const int mpi_err
 
-      :returns: MPI communicator
-
-   .. cpp:function:: int get_error_code() const
-
-      Get the Fenix error code.
-
-      :returns: Error code from :c:type:`Fenix_Return_codes`
+      The MPI error code from the failed operation.
 
 Error Code Mapping
 ------------------
 
-Each exception's ``get_error_code()`` returns the corresponding value from :doc:`return-codes`.
-Common mappings:
+Each exception's ``fenix_err`` member contains the corresponding value from :doc:`return-codes`.
+Common error codes:
 
-- :c:enumerator:`FENIX_ERROR_UNINITIALIZED` → CommException with -100
-- :c:enumerator:`FENIX_ERROR_CANCELLED` → CommException with -101
-- :c:enumerator:`FENIX_ERROR_GROUP_CREATE` → CommException with -200
+- :c:enumerator:`FENIX_ERROR_UNINITIALIZED` → -100
+- :c:enumerator:`FENIX_ERROR_NOCATEGORY` → -101
+- :c:enumerator:`FENIX_ERROR_GROUP_CREATE` → -103
+- :c:enumerator:`FENIX_ERROR_CANCELLED` → -127
 
 See :doc:`return-codes` for the complete list of error codes.
 
@@ -67,7 +63,9 @@ When using :c:enumerator:`FENIX_RESUME_THROW` mode, exceptions are thrown on fai
        MPI_Send(...);
    } catch (const fenix::CommException& e) {
        // Handle failure
-       std::cerr << "Fault detected: " << e.what() << std::endl;
+       std::cerr << "Fault detected on communicator" << std::endl;
+       std::cerr << "Fenix error: " << e.fenix_err << std::endl;
+       std::cerr << "MPI error: " << e.mpi_err << std::endl;
        // Recovery happens automatically before exception is thrown
    }
 

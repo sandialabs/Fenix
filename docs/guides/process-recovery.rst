@@ -9,18 +9,22 @@ communicator recovery, and application recovery.
 Detecting Failures
 ------------------
 
-Fenix is built on top of ULFM MPI, so specific fault detection mechanisms and
-options can be found in the `ULFM documentation <https://docs.open-mpi.org/en/v5.0.x/features/ulfm.html>`_. At a
-high level, this means that Fenix will detect failures when an MPI function
-call is made which involves a failed rank. Detection is not collectively
-consistent, meaning some ranks may fail to complete a collective while other
-ranks finish successfully. Once a failure is detected, Fenix will 'revoke' the
-communicator that the failed operation was using and the top-level communicator
-output by :c:func:`Fenix_Init` (these communicators are usually the same). The
-revocation is permanent, and means that all future operations on the
-communicator by any rank will fail. This allows knowledge of the failed rank to
-be propagated to all ranks in the communicator, even if some ranks would never
-have directly communicated with the failed rank.
+Fenix is built on top of ULFM (User Level Failure Mitigation) MPI, which provides
+the low-level mechanisms for fault tolerance. Specific fault detection mechanisms
+and options can be found in the `ULFM documentation <https://docs.open-mpi.org/en/v5.0.x/features/ulfm.html>`_.
+At a high level, Fenix detects failures when an MPI function call is made that
+involves a failed rank. Detection is **not collectively consistent**, meaning some
+ranks may detect a failure and fail an MPI operation while other ranks successfully
+complete the same operation (e.g., in a collective operation, some ranks may finish
+their ``MPI_Bcast`` while others detect the failure and return an error).
+
+Once a failure is detected, Fenix automatically **revokes** the communicator that
+the failed operation was using (and the top-level communicator output by
+:c:func:`Fenix_Init`, which are usually the same). Revocation is permanent and
+propagates knowledge of the failure: all future MPI operations on the revoked
+communicator by any rank will fail immediately with an error code. This ensures
+all ranks learn about the failure, even ranks that would never have directly
+communicated with the failed rank.
 
 Since failures can only be detected during MPI function calls, applications with
 long periods of communication-free computation will experience delays in beginning
@@ -56,31 +60,42 @@ Communicator Recovery
 
 Once a failure has been detected, Fenix will begin the collective process of
 rebuilding the resilient communicator provided by :c:func:`Fenix_Init`. There are two
-ways to rebuild: replacing failed ranks with spares, or shrinking the
-communicator to exclude the failed ranks. If there are any spares available,
+ways to rebuild: replacing failed ranks with spare ranks, or shrinking the
+communicator to exclude the failed ranks. If there are any spare ranks available,
 Fenix will use those to replace the failed ranks and maintain the original
 communicator size and guarantee that surviving processes keep the same rank ID.
-If there are not enough spares, some processes may have a different rank ID on
+If there are not enough spare ranks, some processes may have a different rank ID on
 the new communicator, and Fenix will warn the user about this by setting the
 error code for :c:func:`Fenix_Init` to :c:macro:`FENIX_WARNING_SPARE_RANKS_DEPLETED`.
 
 **Advanced:** Communicator recovery is collective, blocking, and not
-interruptable. ULFM exposes some functions (e.g. MPIX_Comm_agree,
-MPIX_Comm_shrink) that are also not interrupable -- meaning they will continue
-despite any failures or revocations. If multiple collective, non-interruptable
-operations are started by different ranks in different orders, the application
-will deadlock. This is similar to what would happen if a non-resilient
-application called multiple collectives (e.g. ``MPI_Allreduce``) in different
-orders. However, the preemptive and inconsistent nature of failure recovery
-makes it more complex to reason about ordering between ranks. Fenix uses these
-ULFM functions internally, so care is taken to ensure that the order of
-operations is consistent across ranks. Before any such operation begins, Fenix
-first uses MPIX_Comm_agree on the resilient communicator provided by
-:c:func:`Fenix_Init` to agree on which 'location' will proceed - if there is any
-disagreement, all ranks will enter recovery as if they had detected a failure.
-Applications which wish to use these functions themselves should follow this
-pattern, providing a unique 'location' value for any operations that may be
-interrupted.
+**interruptible** (cannot be interrupted by additional failures). ULFM exposes
+special non-interruptible MPI functions (e.g., ``MPIX_Comm_agree``,
+``MPIX_Comm_shrink``) that continue despite additional failures or revocations
+during recovery. If multiple collective, non-interruptible operations are started
+by different ranks in different orders, the application will deadlock - just as a
+non-resilient application would deadlock if ranks called different collectives
+(e.g., ``MPI_Allreduce`` vs. ``MPI_Bcast``) in different orders.
+
+However, the preemptive and inconsistent nature of failure detection makes it more
+complex to reason about ordering between ranks. Different ranks may detect a failure
+at different times and enter recovery at different "locations" in the code. Fenix
+uses ULFM's non-interruptible functions internally and ensures consistent ordering:
+before any such operation begins, Fenix first uses ``MPIX_Comm_agree`` on the
+resilient communicator to agree on which code 'location' all ranks will execute.
+If there is any disagreement (ranks are at different locations), all ranks enter
+recovery as if they had detected a failure. Applications that wish to use these
+ULFM functions directly should follow this pattern, providing a unique 'location'
+identifier for any operations that may be interrupted.
+
+See Also
+--------
+
+- :doc:`../howto/choose-recovery-pattern` - Choose between longjmp and inline recovery
+- :doc:`../howto/migrate-existing-app` - Add Fenix to existing applications
+- :doc:`../tutorials/01-first-program` - First fault-tolerant program tutorial
+- :doc:`../api/process-recovery` - Process recovery API reference
+- :doc:`../troubleshooting` - Common process recovery issues
 
 ----
 
@@ -88,17 +103,23 @@ Application Recovery
 --------------------
 
 Once a new communicator has been constructed, application recovery begins.
-There are two recovery modes: jumping (default) and non-jumping. With jumping
-recovery, Fenix will automatically ``longjmp`` to the :c:func:`Fenix_Init` call site once
-communicator recovery is complete. This allows for very simple recovery logic,
-since it mimics the traditional teardown-restart pattern. However, ``longjmp``
-has many undefined semantics according to the C and C++ specifications and may
-result in unexpected behavior due to compiler assumptions and optimizations.
-Additionally, some applications may be able to more efficiently recover by
-continuing inline. Users can initialize Fenix as non-jumping (see test/no_jump)
-to instead return an error code from the triggering MPI function call after
-communicator recovery. This may require more intrusive code changes (checking
-return statuses of each MPI call).
+There are two recovery modes: **longjmp** (default) and **inline** (non-jumping).
+
+With **longjmp recovery**, Fenix automatically uses the C library function ``longjmp``
+to jump back to the :c:func:`Fenix_Init` call site once communicator recovery is complete.
+This allows for very simple recovery logic, since it mimics the traditional
+checkpoint/restart pattern - execution simply restarts from initialization. However,
+``longjmp`` has undefined behavior according to the C and C++ specifications:
+variables may have unexpected values, C++ destructors may not be called, and compiler
+optimizations may break. Variables should be declared ``volatile`` to avoid issues,
+but this doesn't solve all problems.
+
+With **inline recovery** (non-jumping mode), Fenix returns an error code from the
+failing MPI function call after communicator recovery is complete. Execution continues
+inline without jumping. This is more predictable across compilers and optimizations,
+but requires checking return codes of MPI calls (or using exceptions in C++).
+Additionally, some applications can recover more efficiently by continuing inline
+rather than restarting from initialization.
 
 Fenix also allows applications to register one or more callback functions with
 :c:func:`Fenix_Callback_register` and :c:func:`Fenix_Callback_pop`, which removes the most
@@ -106,11 +127,13 @@ recently registered callback. These callbacks are invoked after communicator
 recovery, just before control returns to the application. Callbacks are
 executed in the reverse order they were registered.
 
-For C++ applications, it is recommended to use Fenix in non-jumping mode and to
-register a callback that throws an exception. At it's simplest, wrapping
-everything between :c:func:`Fenix_Init` and :c:func:`Fenix_Finalize` in a single try-catch can
-give the same simple recovery logic as jumping mode, but without the undefined
-behavior of ``longjmp``.
+For C++ applications, it is recommended to use inline recovery (non-jumping mode)
+with exceptions. Set ``FENIX_RESUME_MODE`` to ``FENIX_RESUME_THROW``, and Fenix
+will throw a ``fenix::CommException`` when a failure occurs. At its simplest,
+wrapping everything between :c:func:`Fenix_Init` and :c:func:`Fenix_Finalize` in a
+single try-catch can give the same simple recovery logic as longjmp mode, but
+without the undefined behavior. C++ exceptions provide clean error handling,
+proper destructor calls, and well-defined semantics across all compilers.
 
 :c:func:`Fenix_Init` outputs a role, from :c:type:`Fenix_Rank_role`, which helps inform the
 application about the recovery state of the rank. It is important to note that
@@ -118,4 +141,4 @@ all spare ranks are captured inside :c:func:`Fenix_Init` until they are used for
 recovery. Therefore, after recovery, recovered ranks will not have the same
 callbacks registered -- recovered ranks will need to manually invoke any
 callbacks that use MPI functions. These roles also help the application more
-generally modify it's behavior based on each rank's recovery state.
+generally modify its behavior based on each rank's recovery state.

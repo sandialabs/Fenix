@@ -22,10 +22,11 @@ is achieved by setting aside some number of ranks as *spare ranks*.
 When a failure is detected, the spare ranks are used to replace
 the failed ranks.
 
-The exact process of recovery is subject to some nuances of the OpenMPI
-ULFM specification, which Fenix is implemented on top of. For example,
-messages may have locally succeeded while failing on other participating
-ranks.
+The exact process of recovery is subject to some nuances of the Open MPI
+ULFM (User Level Failure Mitigation) specification, which Fenix is built upon.
+ULFM provides the low-level mechanisms for detecting failures and rebuilding
+communicators. For example, messages may have locally succeeded while failing
+on other participating ranks, which ULFM detects and Fenix handles automatically.
 
 .. figure:: _static/images/fenix_process_flow.png
    :width: 300px
@@ -33,15 +34,18 @@ ranks.
 
    An example process flow diagram for recovery using Fenix
 
-The default recovery pattern is to perform a ``longjmp`` to the location of
+The default recovery pattern uses ``longjmp`` (a C library function that jumps
+to a previously saved program state) to return execution to the location of
 :c:func:`Fenix_Init` following communicator repairs. This emulates the typical offline
 checkpoint/restart pattern, but without the need to restart the application.
-However, ``longjmp`` has some nebulous behavior in many applications. Fenix also
-supports a non-jumping recovery pattern. This is more predictable across compilers
-and optimizations, but requires checking the return value of every MPI call to
-detect failed operations (though communicator repair is still automatic). A
-good practice for C++ applications is to use the non-jumping pattern, but add
-a Fenix error-handler callback to throw an exception on failure.
+However, ``longjmp`` has undefined behavior in C++ and with many compiler optimizations
+(variables may have unexpected values, destructors may not be called). Fenix also
+supports a non-jumping recovery pattern called **inline recovery**. This is more
+predictable across compilers and optimizations, but requires checking the return
+value of every MPI call to detect failed operations (though communicator repair is
+still automatic). For C++ applications, the recommended practice is to use inline
+recovery with exceptions: Fenix can throw a ``CommException`` on failure, providing
+clean error handling without longjmp's undefined behavior.
 
 Data Recovery
 -------------

@@ -17,6 +17,8 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
+    'sphinx.ext.graphviz',
+    'sphinx_design',
 ]
 
 # -- Custom directives -------------------------------------------------------
@@ -90,6 +92,9 @@ html_theme_options = {
 }
 
 # -- Extension configuration -------------------------------------------------
+
+# Graphviz configuration - use SVG instead of PNG
+graphviz_output_format = 'svg'
 
 # C domain as primary
 primary_domain = 'c'

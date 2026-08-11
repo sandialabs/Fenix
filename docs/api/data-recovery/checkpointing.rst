@@ -16,5 +16,6 @@ Checkpointing
    ../functions/data_commit
    ../functions/data_commit_barrier
    ../functions/data_checkpoint
+   ../functions/data_checkpointv
    ../functions/data_barrier
    ../functions/data_snapshot_delete
