@@ -839,60 +839,8 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
 
 int comm_revoke(MPI_Comm comm) { return MPIX_Comm_revoke(comm); }
 
-} // namespace fenix
-
-using namespace fenix;
-
-int __fenix_preinit(
-  int* role, MPI_Comm comm, MPI_Comm* new_comm, int* argc, char*** argv,
-  int spare_ranks, int* error, jmp_buf* jump_env
-) {
-  args::FenixInitArgs args;
-  args.role     = role;
-  args.in_comm  = comm;
-  args.out_comm = new_comm;
-  args.argc     = argc;
-  args.argv     = argv;
-  args.spares   = spare_ranks;
-  args.err      = error;
-  return preinit(args, jump_env);
-}
-
-void __fenix_postinit() {
-  if (fenix_rt.finalized) return;
-
-  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
-  *fenix_rt.ret_role  = fenix_rt.role;
-  *fenix_rt.ret_error = fenix_rt.repair_result;
-
-  if (fenix_rt.new_world_exists) {
-    //Set up dummy irecv to use for checking for failures.
-    MPI_Irecv(
-      &fenix_rt.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
-      tags::DETECT_FAILURES_TAG, fenix_rt.new_world,
-      &fenix_rt.check_failures_req
-    );
-  }
-
-  if (fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
-    callback_invoke_all();
-    if (fenix_rt.settings.mlog_recovery == INLINE_AUTOSYNC) {
-      for (int mlog_id : fenix_rt.mlog_order) {
-        mlog::sync(mlog_id, FENIX_MLOG_CONTINUE);
-      }
-    }
-  }
-
-  if (fenix_rt.options.verbose == 9) {
-    verbose_print(
-      "After barrier. current_rank: %d, role: %d\n",
-      __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role
-    );
-  }
-}
-
-int Fenix_Finalize() {
-  FENIX_C_API_BEGIN
+int finalize() {
+  FENIX_CPP_API_BEGIN
   util::ScopedActiveMlog scoped_mlog(FENIX_MLOG_NONE);
   bool inline_recovery = scoped_mlog.old_inline_recovery;
 
@@ -975,5 +923,57 @@ int Fenix_Finalize() {
   fenix_rt.finalized = true;
   fenix_rt.role      = role;
   return FENIX_SUCCESS;
-  FENIX_C_API_END
+  FENIX_CPP_API_END
+}
+
+} // namespace fenix
+
+using namespace fenix;
+
+int __fenix_preinit(
+  int* role, MPI_Comm comm, MPI_Comm* new_comm, int* argc, char*** argv,
+  int spare_ranks, int* error, jmp_buf* jump_env
+) {
+  args::FenixInitArgs args;
+  args.role     = role;
+  args.in_comm  = comm;
+  args.out_comm = new_comm;
+  args.argc     = argc;
+  args.argv     = argv;
+  args.spares   = spare_ranks;
+  args.err      = error;
+  return preinit(args, jump_env);
+}
+
+void __fenix_postinit() {
+  if (fenix_rt.finalized) return;
+
+  util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
+  *fenix_rt.ret_role  = fenix_rt.role;
+  *fenix_rt.ret_error = fenix_rt.repair_result;
+
+  if (fenix_rt.new_world_exists) {
+    //Set up dummy irecv to use for checking for failures.
+    MPI_Irecv(
+      &fenix_rt.dummy_recv_buffer, 1, MPI_INT, MPI_ANY_SOURCE,
+      tags::DETECT_FAILURES_TAG, fenix_rt.new_world,
+      &fenix_rt.check_failures_req
+    );
+  }
+
+  if (fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
+    callback_invoke_all();
+    if (fenix_rt.settings.mlog_recovery == INLINE_AUTOSYNC) {
+      for (int mlog_id : fenix_rt.mlog_order) {
+        mlog::sync(mlog_id, FENIX_MLOG_CONTINUE);
+      }
+    }
+  }
+
+  if (fenix_rt.options.verbose == 9) {
+    verbose_print(
+      "After barrier. current_rank: %d, role: %d\n",
+      __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role
+    );
+  }
 }

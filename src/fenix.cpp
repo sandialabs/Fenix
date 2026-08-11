@@ -170,6 +170,12 @@ int Fenix_get_nspare() {
   return nspare();
 }
 
+int Fenix_Finalize() {
+  FENIX_C_API_BEGIN
+  return finalize();
+  FENIX_C_API_END
+}
+
 namespace fenix {
 
 template <typename T>
