@@ -63,11 +63,14 @@
 #include <chrono>
 #include <thread>
 
+// [headers]
 #include <mpi.h>
 
 #include <fenix.hpp>
 #include <fenix_util.hpp>
+// [headers]
 
+// [constants]
 constexpr int group        = 0;
 constexpr int state_member = 0;
 constexpr int mlogs_member = 1;
@@ -83,12 +86,16 @@ constexpr int checkpoint_iterations        = 10;
 
 // Synthetic per-iteration work, in milliseconds
 constexpr int iteration_work_ms = 10;
+// [constants]
 
+// [state-struct]
 // Very simplified application state
 struct State {
   int rank = -1, iteration = -1;
 };
+// [state-struct]
 
+// [inject-failure]
 // Inject a failure on some ranks on some iterations
 void check_inject_failure(State& state, int app_ranks) {
   // Use global rank to avoid infinitely repeating the same failures
@@ -104,6 +111,7 @@ void check_inject_failure(State& state, int app_ranks) {
     raise(SIGKILL);
   }
 }
+// [inject-failure]
 
 int main(int argc, char** argv) {
   namespace data = fenix::data;
@@ -111,14 +119,18 @@ int main(int argc, char** argv) {
   using namespace fenix::data;
   MPI_Init(&argc, &argv);
 
+  // [fenix-modern-init]
   // Initialize fenix in exception-based recovery mode
   MPI_Comm res_world;
   fenix::init({.out_comm = &res_world, .spares = 3});
   assert(fenix::error() == FENIX_SUCCESS);
+  // [fenix-modern-init]
 
+  // [mlog-setup]
   // Hold on to checkpoint_iterations+1 regions at once, to be sure we can
   // replay any failed neighbor's messages
   mlog::create(mlogs, res_world, checkpoint_iterations + 1);
+  // [mlog-setup]
 
   // Grab basic MPI info
   int n_ranks, rank;
@@ -129,6 +141,7 @@ int main(int argc, char** argv) {
 
   State state;
 
+  // [initial-setup]
   // Set up the local state
   if (fenix::role() == fenix::INITIAL_RANK) {
     // Initial ranks initialize state and make the first checkpoint
@@ -141,6 +154,8 @@ int main(int argc, char** argv) {
 
     data::member_store(group, SUBSET_FULL);
     data::commit_barrier(group);
+  // [initial-setup]
+  // [recovery-path]
   } else {
     // Recovered ranks just recover from the checkpoint instead
     while (true) {
@@ -164,12 +179,16 @@ int main(int argc, char** argv) {
     assert(state.rank == rank);
     printf("Rank %d recovered to iteration %d\n", state.rank, state.iteration);
   }
+  // [recovery-path]
 
+  // [mlog-activate]
   // From here on, the message logs will automatically sync after failures
   // and any logged messages will be recovered inline
   fenix::mlog::activate(mlogs);
   fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
+  // [mlog-activate]
 
+  // [callback-register]
   // Now that our local state is good, add our recovery callback to help
   // others recover their state on failure(s).
   fenix::callback_register([&](MPI_Comm repaired_comm, int mpi_err) {
@@ -183,7 +202,9 @@ int main(int argc, char** argv) {
       "Rank %d continuing inline at iteration %d\n", state.rank, state.iteration
     );
   });
+  // [callback-register]
 
+  // [main-loop]
   // Now enter the application work loop.
   for (int i = state.iteration; i < app_iterations; i++) {
     check_inject_failure(state, n_ranks);
@@ -223,6 +244,7 @@ int main(int argc, char** argv) {
       data::checkpoint(group, SUBSET_FULL, {mlogs_member});
     }
   }
+  // [main-loop]
 
   // With an active log and inline recovery enabled, finalize will recover
   // inline automatically.

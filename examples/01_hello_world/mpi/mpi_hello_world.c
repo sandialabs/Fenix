@@ -54,6 +54,7 @@
 //@HEADER
 */
 
+// [mpi-hello-world-full]
 #include <mpi.h>
 #include <stdio.h>
 
@@ -75,3 +76,4 @@ int main(int argc, char **argv) {
 
   MPI_Finalize();
 }
+// [mpi-hello-world-full]

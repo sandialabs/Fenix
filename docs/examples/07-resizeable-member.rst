@@ -71,19 +71,16 @@ Let's examine this example section by section.
 1. Headers and Setup
 ^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 1, 8-9
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [headers]
+   :end-before: // [headers]
+   :emphasize-lines: 1, 8
 
-   #include <fenix.hpp>
-   #include <mpi.h>
-   #include <stdio.h>
-   #include <stdlib.h>
-   #include <signal.h>
-   #include <vector>
-
-   using fenix::DataSubset;
-   using namespace fenix::data;
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [using-declarations]
+   :end-before: // [using-declarations]
 
 **Modern C++ API:**
 
@@ -94,15 +91,10 @@ Let's examine this example section by section.
 2. Constants and Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-
-   constexpr int kKillID = 2;
-   constexpr int my_group = 0;
-   constexpr int my_member = 0;
-   constexpr int start_time_stamp = 0;
-   constexpr int group_depth = 1;
-   int errflag;
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [constants]
+   :end-before: // [constants]
 
 **Configuration:**
 
@@ -113,19 +105,11 @@ Let's examine this example section by section.
 3. Modern Initialization
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 4-5
-
-   int main(int argc, char** argv) {
-     MPI_Init(&argc, &argv);
-
-     MPI_Comm res_comm;
-     fenix::init({.out_comm = &res_comm, .spares = 1});
-
-     int num_ranks, rank;
-     MPI_Comm_size(res_comm, &num_ranks);
-     MPI_Comm_rank(res_comm, &rank);
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [fenix-init]
+   :end-before: // [fenix-init]
+   :emphasize-lines: 2-3
 
 **Modern Pattern:**
 
@@ -153,31 +137,11 @@ The ``should_throw`` flag triggers exception-based recovery for recovered ranks.
 5. Initial Rank Setup
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 5-7, 9-10, 13-16, 18
-
-   if (Fenix_get_role() == FENIX_ROLE_INITIAL_RANK) {
-     // Create data group and member
-     Fenix_Data_group_create(
-       my_group, res_comm, start_time_stamp, group_depth,
-       FENIX_DATA_POLICY_IMR, NULL, &errflag
-     );
-     Fenix_Data_member_create(
-       my_group, my_member, data.data(), FENIX_RESIZEABLE, MPI_INT
-     );
-
-     // First resize: Store 100 elements initialized to -1
-     data.resize(100);
-     for (int& i : data) i = -1;
-
-     // CRITICAL: Update buffer pointer after resize
-     Fenix_Data_member_attr_set(
-       my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, data.data(),
-       &errflag
-     );
-     member_store(my_group, my_member, {{0, data.size() - 1}});
-     Fenix_Data_commit_barrier(my_group, NULL);
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [initial-setup]
+   :end-before: // [initial-setup]
+   :emphasize-lines: 4-6, 8-9, 12-15, 17
 
 **First Checkpoint (100 elements):**
 
@@ -196,22 +160,11 @@ The ``should_throw`` flag triggers exception-based recovery for recovered ranks.
 6. Second Checkpoint with Different Size
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 2-4, 7-10
-
-   // Second resize: Store 50 elements with different values
-   data.resize(50);
-   int val = 1;
-   for (int& i : data) i = val++;
-
-   // Update buffer pointer again
-   Fenix_Data_member_attr_set(
-     my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER, data.data(),
-     &errflag
-   );
-   member_store(my_group, my_member, {{0, data.size() - 1}});
-   Fenix_Data_commit_barrier(my_group, NULL);
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [second-checkpoint]
+   :end-before: // [second-checkpoint]
+   :emphasize-lines: 2-4, 6-9
 
 **Second Checkpoint (50 elements):**
 
@@ -278,20 +231,11 @@ After recovery, recreate the data group. This is required before restoring membe
 10. Null Restore: Query Stored Dimensions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [null-restore]
+   :end-before: // [null-restore]
    :emphasize-lines: 2-6
-
-   // Do a null restore to get information about the stored subset
-   DataSubset stored_subset;
-   int ret = member_restore(
-     my_group, my_member, nullptr, 0, FENIX_DATA_SNAPSHOT_LATEST,
-     stored_subset
-   );
-   if (ret != FENIX_SUCCESS) {
-     fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, ret);
-     MPI_Abort(MPI_COMM_WORLD, 1);
-   }
 
 **Null Restore Pattern:**
 
@@ -311,23 +255,11 @@ You need to know the stored size before you can resize your container to fit the
 11. Resize to Fit and Restore
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 2, 8-11
-
-   // Resize data to fit all stored data
-   data.resize(stored_subset.max_count());
-
-   // Set all data to -2 (for testing, this wasn't stored)
-   for (int& i : data) i = -2;
-
-   // Now do an lrestore to get the recovered data
-   ret = member_lrestore(
-     my_group, my_member, data.data(), data.size(),
-     FENIX_DATA_SNAPSHOT_LATEST, stored_subset
-   );
-
-   break;
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [resize-and-restore]
+   :end-before: // [resize-and-restore]
+   :emphasize-lines: 2, 7-10
 
 **Restore Process:**
 
@@ -377,20 +309,10 @@ This ensures the application keeps trying to recover even if multiple failures o
 13. Validation
 ^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-
-   // Ensure data is correct after execution and recovery
-   bool successful = data.size() == 50;
-   if (!successful)
-     printf("Rank %d expected data size 50, but got %ld\n", rank, data.size());
-
-   for (int i = 0; i < data.size() && successful; i++) {
-     successful &= data[i] == i + 1;
-     if (!successful) {
-       printf("Rank %d data[%d]=%d, but should be %d!\n", rank, i, data[i], i + 1);
-     }
-   }
+.. literalinclude:: ../../examples/07_resizeable_member/resizeable.cpp
+   :language: cpp
+   :start-after: // [validation]
+   :end-before: // [validation]
 
 **Verification:**
 

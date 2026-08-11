@@ -55,6 +55,7 @@
 //@HEADER
 */
 
+// [headers]
 #include <fenix.hpp>
 #include <mpi.h>
 #include <stdio.h>
@@ -63,26 +64,33 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+// [headers]
 
+// [constants]
 constexpr int kKillID = 2;
 constexpr int my_group = 0;
 constexpr int my_member = 0;
 constexpr int start_timestamp = 0;
 constexpr int group_depth = 1;
 int errflag;
+// [constants]
 
+// [using-declarations]
 using fenix::DataSubset;
 using namespace fenix::data;
+// [using-declarations]
 
 int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
+  // [fenix-init]
   MPI_Comm res_comm;
   fenix::init({.out_comm = &res_comm, .spares = 1});
 
   int num_ranks, rank;
   MPI_Comm_size(res_comm, &num_ranks);
   MPI_Comm_rank(res_comm, &rank);
+  // [fenix-init]
 
   std::vector<int> data;
 
@@ -94,6 +102,7 @@ int main(int argc, char** argv) {
         fenix::throw_exception();
       }
 
+      // [initial-setup]
       //Initial work and commits
       if (Fenix_get_role() == FENIX_ROLE_INITIAL_RANK) {
         Fenix_Data_group_create(
@@ -115,7 +124,9 @@ int main(int argc, char** argv) {
         );
         member_store(my_group, my_member, {{0, data.size() - 1}});
         Fenix_Data_commit_barrier(my_group, NULL);
+        // [initial-setup]
 
+        // [second-checkpoint]
         //Now commit a smaller portion with different data.
         data.resize(50);
         int val = 1;
@@ -127,6 +138,7 @@ int main(int argc, char** argv) {
         );
         member_store(my_group, my_member, {{0, data.size() - 1}});
         Fenix_Data_commit_barrier(my_group, NULL);
+        // [second-checkpoint]
 
         if (rank == kKillID) {
           fprintf(stderr, "Doing kill on node %d\n", rank);
@@ -155,6 +167,7 @@ int main(int argc, char** argv) {
             FENIX_DATA_POLICY_IMR, NULL, &errflag
           );
 
+          // [null-restore]
           //Do a null restore to get information about the stored subset
           DataSubset stored_subset;
           int ret = member_restore(
@@ -165,7 +178,9 @@ int main(int argc, char** argv) {
             fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, ret);
             MPI_Abort(MPI_COMM_WORLD, 1);
           }
+          // [null-restore]
 
+          // [resize-and-restore]
           //Resize data to fit all stored data
           data.resize(stored_subset.max_count());
 
@@ -177,6 +192,7 @@ int main(int argc, char** argv) {
             my_group, my_member, data.data(), data.size(),
             FENIX_DATA_SNAPSHOT_LATEST, stored_subset
           );
+          // [resize-and-restore]
 
           break;
         } catch (const fenix::CommException& nested) {
@@ -186,6 +202,7 @@ int main(int argc, char** argv) {
     }
   }
 
+  // [validation]
   //Ensure data is correct after execution and recovery
   bool successful = data.size() == 50;
   if (!successful)
@@ -199,6 +216,7 @@ int main(int argc, char** argv) {
       );
     }
   }
+  // [validation]
 
   if (successful) {
     printf("Rank %d successfully recovered\n", rank);

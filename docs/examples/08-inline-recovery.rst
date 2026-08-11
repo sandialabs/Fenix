@@ -80,13 +80,11 @@ Let's examine this example section by section.
 1. Headers and Modern API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [headers]
+   :end-before: // [headers]
    :emphasize-lines: 2-3
-
-   #include <mpi.h>
-   #include <fenix.hpp>
-   #include <fenix_util.hpp>
 
 **Key Point:** Use ``fenix.hpp`` for the modern C++ API. This gives you:
 
@@ -98,18 +96,10 @@ Let's examine this example section by section.
 2. Application Constants
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-
-   constexpr int group        = 0;
-   constexpr int state_member = 0;
-   constexpr int mlogs_member = 1;
-   constexpr int mlogs = 2;
-
-   constexpr int app_iterations               = 100;
-   constexpr int convergence_check_iterations = 5;
-   constexpr int checkpoint_iterations        = 10;
-   constexpr int iteration_work_ms            = 10;
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [constants]
+   :end-before: // [constants]
 
 This sets up:
 
@@ -120,27 +110,21 @@ This sets up:
 3. Application State
 ^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-
-   struct State {
-     int rank = -1, iteration = -1;
-   };
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [state-struct]
+   :end-before: // [state-struct]
 
 Simple state for this example. In real applications, this would be your simulation data (mesh, arrays, etc.).
 
 4. Modern Fenix Initialization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [fenix-modern-init]
+   :end-before: // [fenix-modern-init]
    :emphasize-lines: 3-4
-
-   MPI_Init(&argc, &argv);
-
-   MPI_Comm res_world;
-   fenix::init({.out_comm = &res_world, .spares = 3});
-   assert(fenix::error() == FENIX_SUCCESS);
 
 **Modern Pattern:**
 
@@ -152,11 +136,10 @@ Simple state for this example. In real applications, this would be your simulati
 5. Message Logging Setup
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-
-   namespace mlog = fenix::mlog;
-   mlog::create(mlogs, res_world, checkpoint_iterations + 1);
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [mlog-setup]
+   :end-before: // [mlog-setup]
 
 **Message Logging:** Fenix can automatically record and replay MPI messages.
 
@@ -167,26 +150,11 @@ Simple state for this example. In real applications, this would be your simulati
 6. Initial State Setup
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 5, 9-10, 13-14
-
-   State state;
-
-   if (fenix::role() == fenix::INITIAL_RANK) {
-     // Initial ranks initialize state
-     state.rank      = rank;
-     state.iteration = 0;
-
-     // Create data group and members
-     data::group_create(group);
-     data::member_create(group, state_member, &state, 2, MPI_INT);
-     mlog::create_data_member(mlogs, group, mlogs_member);
-
-     // Store initial checkpoint
-     data::member_store(group, SUBSET_FULL);
-     data::commit_barrier(group);
-   }
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [initial-setup]
+   :end-before: // [initial-setup]
+   :emphasize-lines: 4, 7-8, 11-12
 
 **Initial Ranks:** First time through, initialize application state and take first checkpoint.
 
@@ -202,34 +170,11 @@ Simple state for this example. In real applications, this would be your simulati
 7. Recovery Path (Exception-Based)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 3, 6-10, 12
-
-   } else {
-     // Recovered ranks restore from checkpoint
-     while (true) {
-       try {
-         data::group_create(group);
-
-         // member_define is safely idempotent
-         data::member_define(group, state_member, &state, 2, MPI_INT);
-         mlog::define_data_member(mlogs, group, mlogs_member);
-
-         // Restore from checkpoint
-         data::member_restore(group, state_member);
-         data::member_restore(group, mlogs_member);
-
-         // Sync message logs to recovered iteration
-         mlog::sync(mlogs, state.iteration);
-       } catch (fenix::CommException& error) {
-         // If recovery fails (another failure during recovery), retry
-         continue;
-       }
-       break;
-     }
-     printf("Rank %d recovered to iteration %d\n", state.rank, state.iteration);
-   }
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [recovery-path]
+   :end-before: // [recovery-path]
+   :emphasize-lines: 4, 7-11, 13
 
 **Recovery Pattern:**
 
@@ -248,13 +193,11 @@ Simple state for this example. In real applications, this would be your simulati
 8. Activate Message Logging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 2-3
-
-   // Enable automatic message recovery
-   fenix::mlog::activate(mlogs);
-   fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [mlog-activate]
+   :end-before: // [mlog-activate]
+   :emphasize-lines: 3-4
 
 **Activation:** After this point, all MPI communication is:
 
@@ -267,23 +210,11 @@ Simple state for this example. In real applications, this would be your simulati
 9. Register Recovery Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 2-3, 5-7, 9-11
-
-   // Register callback for THROW or RETURN resume mode
-   fenix::callback_register([&](MPI_Comm repaired_comm, int mpi_err) {
-     assert(fenix::error() == FENIX_SUCCESS);
-
-     // Re-create data group and restore
-     data::group_create(group);
-     data::member_restore(group, state_member, NULL, 0);
-     data::member_restore(group, mlogs_member, NULL, 0);
-
-     printf(
-       "Rank %d continuing inline at iteration %d\n", state.rank, state.iteration
-     );
-   });
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [callback-register]
+   :end-before: // [callback-register]
+   :emphasize-lines: 3-4, 6-8, 10-12
 
 **This is the key to THROW or RETURN resume mode!**
 
@@ -304,40 +235,11 @@ Simple state for this example. In real applications, this would be your simulati
 10. Main Application Loop
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-   :emphasize-lines: 4, 6-7, 16-18, 20-21
-
-   for (int i = state.iteration; i < app_iterations; i++) {
-     check_inject_failure(state, n_ranks);  // Simulated failures
-
-     // Start message log region for this iteration
-     mlog::begin_region(mlogs, i);
-
-     // Exchange with neighbors (standard MPI)
-     State left_state, right_state;
-     MPI_Sendrecv(
-       &state,      2, MPI_INT, right_rank, 0,
-       &left_state, 2, MPI_INT, left_rank,  0,
-       res_world, MPI_STATUS_IGNORE
-     );
-     MPI_Sendrecv(/*...*/);
-
-     // Do local computation
-     state.iteration++;
-     std::this_thread::sleep_for(std::chrono::milliseconds(iteration_work_ms));
-
-     // Periodic convergence check
-     if (state.iteration % convergence_check_iterations == 0) {
-       double my_part = i, result = -1;
-       MPI_Allreduce(&my_part, &result, 1, MPI_DOUBLE, MPI_SUM, res_world);
-     }
-
-     // Periodic checkpoint
-     if (state.iteration % checkpoint_iterations == 0) {
-       data::checkpoint(group, SUBSET_FULL, {mlogs_member});
-     }
-   }
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [main-loop]
+   :end-before: // [main-loop]
+   :emphasize-lines: 5, 7-8, 19-21, 23-24
 
 **Application Loop:**
 
@@ -360,22 +262,10 @@ When a failure occurs:
 11. Failure Injection
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: cpp
-   :linenos:
-
-   void check_inject_failure(State& state, int app_ranks) {
-     int rank;
-     MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // Use global rank
-
-     bool kill = false;
-     kill |= rank == app_ranks / 2 && state.iteration == 18;
-     kill |= rank == app_ranks - 1 && state.iteration == 21;
-     kill |= rank == 0 && state.iteration == 78;
-     if (kill) {
-       printf("Rank %d failing at iteration %d\n", rank, state.iteration);
-       raise(SIGKILL);
-     }
-   }
+.. literalinclude:: ../../examples/08_inline_recovery/stencil_skeleton.cpp
+   :language: cpp
+   :start-after: // [inject-failure]
+   :end-before: // [inject-failure]
 
 **Three Failures Injected:**
 

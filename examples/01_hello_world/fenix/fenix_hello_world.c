@@ -54,6 +54,7 @@
 //@HEADER
 */
 
+// [fenix-hello-world-full]
 #include <fenix.h>
 #include <mpi.h>
 #include <stdio.h>
@@ -74,10 +75,13 @@ int main(int argc, char** argv) {
 
   int old_world_size, new_world_size = -1;
   int old_rank = 1, new_rank = -1;
+  // [spare-ranks-setup]
   int spare_ranks = atoi(argv[1]);
+  // [spare-ranks-setup]
 
   MPI_Init(&argc, &argv);
 
+  // [fenix-init]
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Comm world_comm;
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
@@ -91,17 +95,22 @@ int main(int argc, char** argv) {
   Fenix_Init(
     &fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, &error
   );
+  // [fenix-init]
 
+  // [check-status]
   if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
     MPI_Comm_size(new_comm, &new_world_size);
     MPI_Comm_rank(new_comm, &new_rank);
     recovered = 1;
   }
+  // [check-status]
 
+  // [simulate-failure]
   if (old_rank == kKillID && recovered == 0) {
     pid_t pid = getpid();
     kill(pid, SIGTERM);
   }
+  // [simulate-failure]
 
   MPI_Barrier(new_comm);
 
@@ -115,6 +124,7 @@ int main(int argc, char** argv) {
     processor_name, old_rank, new_rank, new_world_size, old_world_size
   );
 
+  // [query-failures]
   int *fails, num_fails;
   num_fails = Fenix_Process_fail_list(&fails);
 
@@ -131,9 +141,11 @@ int main(int argc, char** argv) {
   used = snprintf(fails_str, max, "%s]", fails_str);
   assert(used > 0 && used < max);
   printf("%s\n", fails_str);
+  // [query-failures]
 
   Fenix_Finalize();
   MPI_Finalize();
 
   return 0;
 }
+// [fenix-hello-world-full]

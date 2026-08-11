@@ -47,32 +47,12 @@ The Plain MPI Version
 
 First, let's look at the plain MPI program without fault tolerance:
 
-.. code-block:: c
+.. literalinclude:: ../../examples/01_hello_world/mpi/mpi_hello_world.c
+   :language: c
    :caption: mpi/mpi_hello_world.c
    :linenos:
-
-   #include <mpi.h>
-   #include <stdio.h>
-
-   int main(int argc, char **argv) {
-     MPI_Init(&argc, &argv);
-
-     int world_size;
-     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-     int world_rank;
-     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-     char processor_name[MPI_MAX_PROCESSOR_NAME];
-     int name_len;
-     MPI_Get_processor_name(processor_name, &name_len);
-
-     printf("Hello world from processor %s, rank %d out of %d processors\n",
-            processor_name, world_rank, world_size);
-
-     MPI_Finalize();
-     return 0;
-   }
+   :start-after: // [mpi-hello-world-full]
+   :end-before: // [mpi-hello-world-full]
 
 This is a standard MPI hello world. **If any rank fails during execution, the entire program crashes.**
 
@@ -81,94 +61,13 @@ The Fenix Version
 
 Now let's see the fault-tolerant version with Fenix:
 
-.. code-block:: c
+.. literalinclude:: ../../examples/01_hello_world/fenix/fenix_hello_world.c
+   :language: c
    :caption: fenix/fenix_hello_world.c
    :linenos:
-   :emphasize-lines: 22-37, 45-48, 62-77
-
-   #include <fenix.h>
-   #include <mpi.h>
-   #include <stdio.h>
-   #include <signal.h>
-   #include <stdlib.h>
-   #include <sys/types.h>
-   #include <unistd.h>
-   #include <assert.h>
-
-   const int kKillID = 1;
-
-   int main(int argc, char** argv) {
-
-     if (argc < 2) {
-       printf("Usage: %s <# spare ranks> \n", *argv);
-       exit(0);
-     }
-
-     int old_world_size, new_world_size = -1;
-     int old_rank = 1, new_rank = -1;
-     int spare_ranks = atoi(argv[1]);
-
-     MPI_Init(&argc, &argv);
-
-     MPI_Barrier(MPI_COMM_WORLD);
-     MPI_Comm world_comm;
-     MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
-     MPI_Comm_size(world_comm, &old_world_size);
-     MPI_Comm_rank(world_comm, &old_rank);
-
-     int fenix_status;
-     int recovered = 0;
-     MPI_Comm new_comm;
-     int error;
-     Fenix_Init(
-       &fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, &error
-     );
-
-     if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
-       MPI_Comm_size(new_comm, &new_world_size);
-       MPI_Comm_rank(new_comm, &new_rank);
-       recovered = 1;
-     }
-
-     if (old_rank == kKillID && recovered == 0) {
-       pid_t pid = getpid();
-       kill(pid, SIGTERM);
-     }
-
-     MPI_Barrier(new_comm);
-
-     char processor_name[MPI_MAX_PROCESSOR_NAME];
-     int name_len;
-     MPI_Get_processor_name(processor_name, &name_len);
-
-     printf(
-       "hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, active "
-       "ranks: %d, ranks before process failure: %d\n",
-       processor_name, old_rank, new_rank, new_world_size, old_world_size
-     );
-
-     int *fails, num_fails;
-     num_fails = Fenix_Process_fail_list(&fails);
-
-     int max = 100, used;
-     char fails_str[max];
-     used = snprintf(fails_str, max, "Rank %d sees failed processes [", new_rank);
-     assert(used > 0 && used < max);
-     for (int i = 0; i < num_fails; i++) {
-       used = snprintf(
-         fails_str, max, "%s%s%d", fails_str, (i == 0 ? "" : ", "), fails[i]
-       );
-       assert(used > 0 && used < max);
-     }
-     used = snprintf(fails_str, max, "%s]", fails_str);
-     assert(used > 0 && used < max);
-     printf("%s\n", fails_str);
-
-     Fenix_Finalize();
-     MPI_Finalize();
-
-     return 0;
-   }
+   :start-after: // [fenix-hello-world-full]
+   :end-before: // [fenix-hello-world-full]
+   :emphasize-lines: 21-40, 43-47, 61-76
 
 Code Walkthrough
 ----------------
@@ -178,9 +77,10 @@ Let's break down the key differences:
 1. Spare Ranks Setup
 ^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: c
-
-   int spare_ranks = atoi(argv[1]);
+.. literalinclude:: ../../examples/01_hello_world/fenix/fenix_hello_world.c
+   :language: c
+   :start-after: // [spare-ranks-setup]
+   :end-before: // [spare-ranks-setup]
 
 The program accepts the number of spare ranks as a command-line argument. Spare ranks are reserved to replace failed ranks during recovery.
 
@@ -189,16 +89,10 @@ The program accepts the number of spare ranks as a command-line argument. Spare 
 2. Fenix Initialization
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: c
-
-   MPI_Comm world_comm;
-   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
-
-   int fenix_status, error;
-   MPI_Comm new_comm;
-   Fenix_Init(
-     &fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, &error
-   );
+.. literalinclude:: ../../examples/01_hello_world/fenix/fenix_hello_world.c
+   :language: c
+   :start-after: // [fenix-init]
+   :end-before: // [fenix-init]
 
 **Key points:**
 
@@ -209,13 +103,10 @@ The program accepts the number of spare ranks as a command-line argument. Spare 
 3. Understanding fenix_status
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: c
-
-   if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
-     MPI_Comm_size(new_comm, &new_world_size);
-     MPI_Comm_rank(new_comm, &new_rank);
-     recovered = 1;
-   }
+.. literalinclude:: ../../examples/01_hello_world/fenix/fenix_hello_world.c
+   :language: c
+   :start-after: // [check-status]
+   :end-before: // [check-status]
 
 The ``fenix_status`` can be:
 
@@ -226,27 +117,20 @@ The ``fenix_status`` can be:
 4. Simulating a Failure
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: c
-
-   if (old_rank == kKillID && recovered == 0) {
-     pid_t pid = getpid();
-     kill(pid, SIGTERM);
-   }
+.. literalinclude:: ../../examples/01_hello_world/fenix/fenix_hello_world.c
+   :language: c
+   :start-after: // [simulate-failure]
+   :end-before: // [simulate-failure]
 
 This intentionally kills rank 1 (``kKillID``) to demonstrate recovery. The ``recovered == 0`` check ensures we only kill once, not after recovery.
 
 5. Querying Failed Ranks
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: c
-
-   int *fails, num_fails;
-   num_fails = Fenix_Process_fail_list(&fails);
-
-   // Print the list of failed ranks
-   for (int i = 0; i < num_fails; i++) {
-     printf("%d ", fails[i]);
-   }
+.. literalinclude:: ../../examples/01_hello_world/fenix/fenix_hello_world.c
+   :language: c
+   :start-after: // [query-failures]
+   :end-before: // [query-failures]
 
 ``Fenix_Process_fail_list`` returns an array of rank IDs that have failed. This is useful for:
 
