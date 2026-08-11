@@ -205,7 +205,7 @@ Simple state for this example. In real applications, this would be your simulati
 - Automatically replayed after recovery
 - Synchronized across ranks
 
-**INLINE_AUTOSYNC mode:** Recovery happens inline (no longjmp), and message logs auto-sync.
+**INLINE_AUTOSYNC mode:** Messages are replayed automatically inline after communicator repair. This allows survivor ranks to continue without reloading checkpoints - only recovered ranks need to restore from the last checkpoint.
 
 9. Register Recovery Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -216,21 +216,21 @@ Simple state for this example. In real applications, this would be your simulati
    :end-before: // [callback-register]
    :emphasize-lines: 3-4, 6-8, 10-12
 
-**This is the key to THROW or RETURN resume mode!**
+**Recovery callbacks work with all resume modes** and are required for MLOG_RECOVERY_INLINE modes.
 
 **How It Works:**
 
-1. When a failure occurs **during the main loop**, this callback fires
-2. Callback restores state from checkpoint
-3. Execution continues right where it left off (no longjmp!)
+1. When a failure occurs **during the main loop**, this callback fires on all ranks
+2. Callback recreates data structures that may have been invalidated
+3. Survivors continue with their current data; recovered ranks restore from checkpoint
 4. The lambda captures ``[&]`` to access local variables
 
-**Benefits:**
+**Why Callbacks Are Used:**
 
-- No jumping back to initialization
-- Cleaner control flow
-- Can continue mid-iteration
-- More predictable behavior
+- Recreate data members/groups after communicator repair
+- Recovered ranks restore from checkpoint
+- Survivor ranks continue with current state (no checkpoint reload needed)
+- Required for inline message recovery modes
 
 10. Main Application Loop
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -249,15 +249,17 @@ Simple state for this example. In real applications, this would be your simulati
 - Update state
 - Checkpoint every 10 iterations
 
-**Automatic Recovery:**
+**Inline Message Recovery:**
 
 When a failure occurs:
 
-1. Message log stops at ``begin_region(i)``
-2. Callback fires, restores to last checkpoint
-3. Message log syncs and replays messages
-4. Loop continues from correct iteration
-5. Assertions verify correctness (messages from expected neighbors)
+1. MPI function detects failure, throws ``CommException`` (RESUME_THROW mode)
+2. Exception propagates to catch block in main
+3. Callback fires on all ranks during communicator repair
+4. Recovered ranks restore from checkpoint; survivors keep their current state
+5. Message log autosync replays only messages needed by recovered ranks
+6. Loop continues from each rank's current iteration (survivors continue where they were)
+7. Assertions verify correctness (messages from expected neighbors)
 
 11. Failure Injection
 ^^^^^^^^^^^^^^^^^^^^^
@@ -336,84 +338,218 @@ Understanding the Recovery Flow
 
 Let's trace what happens when rank 2 fails at iteration 18:
 
-.. code-block:: text
+.. graphviz::
+   :align: center
+   :caption: Timeline of failure and recovery for rank 2 at iteration 18
 
-   Time | Rank 0       | Rank 1       | Rank 2       | Rank 3
-   -----+--------------+--------------+--------------+--------------
-   T0   | Iter 18      | Iter 18      | Iter 18      | Iter 18
-   T1   | Iter 18      | Iter 18      | KILLED       | Iter 18
-   T2   | Detect fail  | Detect fail  | [dead]       | Detect fail
-   T3   | Callback     | Callback     | [dead]       | Callback
-        | fires        | fires        |              | fires
-   T4   | Restore to   | Restore to   | Spare        | Restore to
-        | iter 10      | iter 10      | activated    | iter 10
-   T5   | Sync mlogs   | Sync mlogs   | Restore to   | Sync mlogs
-        |              |              | iter 10      |
-   T6   | Continue     | Continue     | Continue     | Continue
-        | at iter 10   | at iter 10   | as new       | at iter 10
-        |              |              | rank 2       |
-   T7   | Messages     | Messages     | Messages     | Messages
-        | replayed     | replayed     | replayed     | replayed
-        | 10-17        | 10-17        | 10-17        | 10-17
-   T8   | Resume       | Resume       | Resume       | Resume
-        | at iter 18   | at iter 18   | at iter 18   | at iter 18
+   digraph recovery_flow {
+       rankdir=TB;
+       node [shape=box, style=filled, fontname="monospace", fontsize=13];
+
+       // Time labels
+       node [shape=plaintext, fillcolor=none];
+       t0 [label="T0"];
+       t1 [label="T1"];
+       t2 [label="T2"];
+       t3 [label="T3"];
+       t4 [label="T4"];
+       t5 [label="T5"];
+       t6 [label="T6"];
+       t7 [label="T7"];
+       t8 [label="T8"];
+       t9 [label="T9"];
+
+       // Rank 0 column
+       node [shape=box, style=filled, fillcolor=lightblue];
+       r0_t0 [label="Rank 0, Iter 17\nHalo Exchange"];
+       r0_t1 [label="Rank 0, Iter 18\nHalo Exchange"];
+       r0_t2 [label="Rank 0, Iter 18\nDetect fail\n(REVOKED)"];
+       r0_t3 [label="Rank 0, Iter 18\nCallback fires"];
+       r0_t4 [label="Rank 0, Iter 18\nRepair without\nrestore"];
+       r0_t5 [label="Rank 0, Iter 18\nAutosync mlogs\n@CONTINUE"];
+       r0_t6 [label="Rank 0, Iter 18\nNo replay\nneeded"];
+       r0_t7 [label="Rank 0, Iter 18\nHalo Exchange\n(auto-retry)"];
+       r0_t8 [label="Rank 0, Iter 19\nHalo Exchange\n(delayed)", fillcolor=lightyellow];
+       r0_t9 [label="Rank 0, Iter 19\nHalo Exchange\n(cont.)"];
+
+       // Rank 1 column
+       r1_t0 [label="Rank 1, Iter 17\nHalo Exchange"];
+       r1_t1 [label="Rank 1, Iter 18\nHalo Exchange"];
+       r1_t2 [label="Rank 1, Iter 18\nDetect fail\n(PROC_FAILED)"];
+       r1_t3 [label="Rank 1, Iter 18\nCallback fires"];
+       r1_t4 [label="Rank 1, Iter 18\nRepair without\nrestore"];
+       r1_t5 [label="Rank 1, Iter 18\nAutosync mlogs\n@CONTINUE"];
+       r1_t6 [label="Rank 1, Iter 18\nReplay msgs\niters 10-17"];
+       r1_t7 [label="Rank 1, Iter 18\nHalo Exchange\n(auto-retry)\n(delayed)", fillcolor=lightyellow];
+       r1_t8 [label="Rank 1, Iter 18\nHalo Exchange\n(cont.)"];
+       r1_t9 [label="Rank 1, Iter 19\nHalo Exchange"];
+
+       // Rank 2 column (with failure)
+       node [fillcolor=lightcoral];
+       r2_t0 [label="Rank 2, Iter 17\nHalo Exchange"];
+       r2_t1 [label="Rank 2, Iter 18\nKILLED", fillcolor=red, penwidth=3];
+       r2_t2 [label="[dead]", fillcolor=gray];
+       node [fillcolor=lightgreen];
+       r2_t3 [label="Rank 2'\nSpare activated"];
+       r2_t4 [label="Rank 2', Iter 0\nRestore from\niter 10 ckpt"];
+       r2_t5 [label="Rank 2', Iter 10\nSync mlogs\n@Region 10"];
+       r2_t6 [label="Rank 2', Iter 10\nRepeat iters\n10-17"];
+       // No r2_t7
+       r2_t8 [label="Rank 2', Iter 18\nHalo Exchange"];
+       r2_t9 [label="Rank 2', Iter 19\nHalo Exchange"];
+
+       // Rank 3 column
+       node [fillcolor=lightblue];
+       r3_t0 [label="Rank 3, Iter 17\nHalo Exchange"];
+       r3_t1 [label="Rank 3, Iter 18\nHalo Exchange"];
+       r3_t2 [label="Rank 3, Iter 18\nDetect fail\n(PROC_FAILED)"];
+       r3_t3 [label="Rank 3, Iter 18\nCallback fires"];
+       r3_t4 [label="Rank 3, Iter 18\nRepair without\nrestore"];
+       r3_t5 [label="Rank 3, Iter 18\nAutosync mlogs\n@CONTINUE"];
+       r3_t6 [label="Rank 3, Iter 18\nReplay msgs\niters 10-17"];
+       r3_t7 [label="Rank 3, Iter 18\nHalo Exchange\n(auto-retry)\n(delayed)", fillcolor=lightyellow];
+       r3_t8 [label="Rank 3, Iter 18\nHalo Exchange\n(cont.)"];
+       r3_t9 [label="Rank 3, Iter 19\nHalo Exchange"];
+
+       // Vertical flow and horizontal ordering
+       {rank=same; t0; r0_t0; r1_t0; r2_t0; r3_t0;}
+       {rank=same; t1; r0_t1; r1_t1; r2_t1; r3_t1;}
+       {rank=same; t2; r0_t2; r1_t2; r2_t2; r3_t2;}
+       {rank=same; t3; r0_t3; r1_t3; r2_t3; r3_t3;}
+       {rank=same; t4; r0_t4; r1_t4; r2_t4; r3_t4;}
+       {rank=same; t5; r0_t5; r1_t5; r2_t5; r3_t5;}
+       {rank=same; t6; r0_t6; r1_t6; r2_t6; r3_t6;}
+       {rank=same; t7; r0_t7; r1_t7; r3_t7;}
+       {rank=same; t8; r0_t8; r1_t8; r2_t8; r3_t8;}
+       {rank=same; t9; r0_t9; r1_t9; r2_t9; r3_t9;}
+
+       // Edges for time progression
+       t0 -> t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> t7 -> t8 -> t9 [style=invis];
+
+       // Force left-to-right ordering of ranks
+       t0 -> r0_t0 -> r1_t0 -> r2_t0 -> r3_t0 [style=invis];
+       t1 -> r0_t1 -> r1_t1 -> r2_t1 -> r3_t1 [style=invis];
+       t2 -> r0_t2 -> r1_t2 -> r2_t2 -> r3_t2 [style=invis];
+       t3 -> r0_t3 -> r1_t3 -> r2_t3 -> r3_t3 [style=invis];
+       t4 -> r0_t4 -> r1_t4 -> r2_t4 -> r3_t4 [style=invis];
+       t5 -> r0_t5 -> r1_t5 -> r2_t5 -> r3_t5 [style=invis];
+       t6 -> r0_t6 -> r1_t6 -> r2_t6 -> r3_t6 [style=invis];
+       t7 -> r0_t7 -> r1_t7 -> r3_t7 [style=invis];
+       t8 -> r0_t8 -> r1_t8 -> r2_t8 -> r3_t8 [style=invis];
+       t9 -> r0_t9 -> r1_t9 -> r2_t9 -> r3_t9 [style=invis];
+
+       r0_t0 -> r0_t1 -> r0_t2 -> r0_t3 -> r0_t4 -> r0_t5 -> r0_t6 -> r0_t7 [arrowhead=vee];
+       r0_t7 -> r0_t8 [arrowhead=vee, style=dashed];
+       r0_t8 -> r0_t9 [arrowhead=vee];
+       r1_t0 -> r1_t1 -> r1_t2 -> r1_t3 -> r1_t4 -> r1_t5 -> r1_t6 -> r1_t7 [arrowhead=vee];
+       r1_t7 -> r1_t8 [arrowhead=vee, style=dashed];
+       r1_t8 -> r1_t9 [arrowhead=vee];
+       r2_t0 -> r2_t1 -> r2_t2 [arrowhead=vee];
+       r2_t3 -> r2_t4 -> r2_t5 -> r2_t6 [arrowhead=vee, color=green, penwidth=2]
+       r2_t6 -> r2_t8 [arrowhead=vee, color=green, penwidth=2, style=dashed, overlap=true];
+       r2_t8 -> r2_t9 [arrowhead=vee, color=green, penwidth=2];
+       r3_t0 -> r3_t1 -> r3_t2 -> r3_t3 -> r3_t4 -> r3_t5 -> r3_t6 -> r3_t7 [arrowhead=vee];
+       r3_t7 -> r3_t8 [arrowhead=vee, style=dashed];
+       r3_t8 -> r3_t9 [arrowhead=vee];
+
+       // Normal message exchanges at T0 (stencil pattern: each rank exchanges with neighbors)
+       r0_t0 -> r1_t0 [color=blue, style=solid, constraint=false];
+       r1_t0 -> r0_t0 [color=blue, style=solid, constraint=false];
+       r1_t0 -> r2_t0 [color=blue, style=solid, constraint=false];
+       r2_t0 -> r1_t0 [color=blue, style=solid, constraint=false];
+       r2_t0 -> r3_t0 [color=blue, style=solid, constraint=false];
+       r3_t0 -> r2_t0 [color=blue, style=solid, constraint=false];
+
+       // Failed message exchanges at T1 (stencil pattern: each rank exchanges with neighbors)
+       r0_t1 -> r1_t1 [color=red, style=dashed, constraint=false];
+       r1_t1 -> r0_t1 [color=red, style=dashed, constraint=false];
+       r1_t1 -> r2_t1 [color=red, style=dashed, constraint=false];
+       r3_t1 -> r2_t1 [color=red, style=dashed, constraint=false];
+
+       // Message replay at T6 (survivors replay to recovered rank)
+       r1_t6 -> r2_t6 [color=purple, style=bold, penwidth=2, constraint=false];
+       r3_t6 -> r2_t6 [color=purple, style=bold, penwidth=2, constraint=false];
+
+       // Partial message exchanges at T7 (stencil pattern: each rank exchanges with neighbors)
+       r0_t7 -> r1_t7 [color=blue, style=solid, constraint=false];
+       r1_t7 -> r0_t7 [color=blue, style=solid, constraint=false];
+
+       // Partial message exchanges at T8 (stencil pattern: each rank exchanges with neighbors)
+       r1_t8 -> r2_t8 [color=blue, style=solid, constraint=false];
+       r2_t8 -> r1_t8 [color=blue, style=solid, constraint=false];
+       r2_t8 -> r3_t8 [color=blue, style=solid, constraint=false];
+       r3_t8 -> r2_t8 [color=blue, style=solid, constraint=false];
+
+       // Normal message exchanges at T9 (stencil pattern: each rank exchanges with neighbors)
+       r0_t9 -> r1_t9 [color=blue, style=solid, constraint=false];
+       r1_t9 -> r0_t9 [color=blue, style=solid, constraint=false];
+       r1_t9 -> r2_t9 [color=blue, style=solid, constraint=false];
+       r2_t9 -> r1_t9 [color=blue, style=solid, constraint=false];
+       r2_t9 -> r3_t9 [color=blue, style=solid, constraint=false];
+       r3_t9 -> r2_t9 [color=blue, style=solid, constraint=false];
+
+       // Spare activation
+       r2_t2 -> r2_t3 [label="spare\nactivates", color=green, penwidth=2, style=dashed];
+   }
 
 **Key Points:**
 
-1. **No longjmp** - Each rank continues from where it was
-2. **Callback handles recovery** - Restores state inline
+1. **Minimal lost work** - Each survivor continues from its current state without loading a checkpoint - only recovered ranks have to start from the old data.
+2. **Callback handles recovery** - Repairs data members inline
 3. **Message replay** - Iterations 10-17 replayed automatically
-4. **All ranks synchronized** - Resume together at iteration 18
+4. **Minimally synchronized** - Global synchronization during repair to decide what messages to replay, then ranks continue without waiting until data patterns demand it (e.g. collective, receives from recovering ranks, ...)
 
 Why This Pattern is Superior
 -----------------------------
 
-Compared to Traditional Longjmp Recovery
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Compared to Manual Message Recovery
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. list-table::
    :header-rows: 1
    :widths: 30 35 35
 
    * - Aspect
-     - Longjmp (Old)
-     - Inline + Callback (Modern)
-   * - Control Flow
-     - Jump back to init
-     - Continue where you are
-   * - Code Structure
-     - Single recovery path
-     - Recovery callbacks + main loop
-   * - Predictability
-     - Can be unpredictable
-     - Predictable, local recovery
-   * - C++ Safety
-     - May skip destructors
-     - Safe with RAII/exceptions
+     - MLOG_RECOVERY_MANUAL
+     - MLOG_RECOVERY_INLINE_AUTOSYNC
+   * - Survivor State
+     - Must reload checkpoint
+     - Continue with current state
+   * - Message Replay
+     - Manual sync required
+     - Automatic replay to recovered ranks
+   * - Synchronization
+     - All ranks reload together
+     - Minimal sync during repair
    * - Performance
-     - Restart all work
-     - Resume from checkpoint
-   * - Debugging
-     - Harder to debug
-     - Easier to trace
+     - All ranks pay checkpoint overhead
+     - Only recovered ranks reload
+   * - Code Complexity
+     - Simpler (all ranks same path)
+     - More complex (survivors/recovered diverge)
+   * - Lost Work
+     - All ranks lose work since checkpoint
+     - Only recovered ranks lose work
 
 **When to Use Each:**
 
-- **Inline + Callback (Recommended):** Most applications, especially C++
-- **Longjmp:** Legacy code, simple restart patterns
+- **Inline Message Recovery (MLOG_RECOVERY_INLINE_AUTOSYNC):** Performance-critical applications where minimizing lost work is important
+- **Manual Message Recovery (MLOG_RECOVERY_MANUAL):** Simpler recovery logic, all ranks follow same path
+
+**Note:** These message recovery modes work with any resume mode (JUMP, RETURN, or THROW).
 
 Key Takeaways
 -------------
 
 ✓ **Modern C++ API** - ``fenix::init()``, namespaces, exceptions
 
-✓ **Inline Recovery** - No longjmp, continue execution naturally
+✓ **Inline Message Recovery** - Survivors continue without reloading checkpoints
 
-✓ **Recovery Callbacks** - Lambda functions for THROW or RETURN resume mode logic
+✓ **Exception-Based Resume Mode** - Type-safe error handling with try/catch (RESUME_THROW)
 
-✓ **Message Logging** - Automatic capture and replay
+✓ **Recovery Callbacks** - Required for inline message recovery, work with all resume modes
 
-✓ **Exception Safety** - Type-safe error handling with try/catch
+✓ **Automatic Message Replay** - Messages to recovered ranks replayed automatically
 
 ✓ **Production Ready** - Handles multiple failures, cascading failures
 
@@ -546,11 +682,13 @@ Summary
 
 ✅ Clean C++ API with designated initializers
 
-✅ Exception-based error handling
+✅ Exception-based resume mode (RESUME_THROW)
 
-✅ Inline recovery with callbacks (no longjmp)
+✅ Inline message recovery (MLOG_RECOVERY_INLINE_AUTOSYNC) for minimal lost work
 
-✅ Automatic message logging and replay
+✅ Recovery callbacks to handle data member recreation
+
+✅ Automatic message replay to recovered ranks
 
 ✅ Production-ready: handles multiple and cascading failures
 
