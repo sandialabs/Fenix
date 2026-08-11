@@ -114,7 +114,7 @@ Key Features
    Optional message logging and replay for seamless fault tolerance
 
 🔄 **Modern C++ API**
-   Clean, type-safe interface with exceptions and inline recovery
+   Clean, type-safe interface with exceptions and RAII-safe recovery
 
 ⚡ **High Performance**
    Minimal overhead during normal execution, fast recovery times
@@ -122,7 +122,7 @@ Key Features
 Quick Example
 =============
 
-Modern C++ API with inline recovery:
+Modern C++ API with automatic recovery:
 
 .. code-block:: cpp
 
@@ -155,7 +155,7 @@ Unlike traditional checkpoint/restart that stops and restarts your entire applic
 
 ✅ **Automatic recovery** - Fenix handles communicator repair transparently
 
-✅ **Flexible patterns** - Choose longjmp-style restart or inline recovery
+✅ **Flexible patterns** - Choose between three resume modes (JUMP, RETURN, THROW)
 
 ✅ **MPI-native** - Works with standard MPI communication patterns
 

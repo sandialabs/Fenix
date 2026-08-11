@@ -101,7 +101,7 @@ Here's a simple example showing message logging basics:
        fenix::mlog::sync(MLOG_ID, iteration);
      }
 
-     // Enable inline recovery and auto-sync
+     // Enable inline recovery
      fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
 
      // Main loop with logging
@@ -217,18 +217,18 @@ When restoring, you'll sync to the region corresponding to your checkpoint.
 Step 5: Enable Inline Recovery
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For automatic recovery without longjmp:
+For automatic recovery without interrupting application control-flow:
 
 .. code-block:: cpp
 
-   // Enable inline recovery with automatic log synchronization
+   // Enable inline recovery
    fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
 
 With this setting:
 
 - MPI errors trigger automatic recovery
 - Message logs sync automatically after recovery
-- Your application continues inline (no longjmp)
+- Your application continues inline (no exception, longjmp, or returned error code)
 
 Step 6: Restore and Sync on Recovery
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

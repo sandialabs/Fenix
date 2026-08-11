@@ -854,7 +854,7 @@ Now that you understand resizable data members:
 
 📚 **Learn More:**
 
-- :doc:`08-inline-recovery` - Modern inline recovery (RECOMMENDED)
+- :doc:`08-inline-recovery` - Modern THROW or RETURN resume mode (RECOMMENDED)
 - :doc:`/guides/data-recovery` - Deep dive into data recovery
 - :doc:`/api/data-recovery` - Complete data recovery API
 
@@ -862,7 +862,7 @@ Now that you understand resizable data members:
 
 - Checkpoint your application's ``std::vector`` arrays
 - Use null restore for dynamic mesh applications
-- Combine with inline recovery from Example 8
+- Combine with THROW or RETURN resume mode from Example 8
 
 📖 **Reference:**
 

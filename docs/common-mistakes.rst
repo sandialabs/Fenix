@@ -228,14 +228,14 @@ Mistake: Not Checking for Failures in Long Compute Loops
 
 **Why it matters:** Failures can only be detected during MPI calls. Long compute phases delay recovery, potentially allowing more failures to accumulate.
 
-Mistake: Using Longjmp with C++ Objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mistake: Using JUMP Resume Mode with C++ Objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Problem:**
 
 .. code-block:: cpp
 
-   // WRONG - Longjmp with C++ objects
+   // WRONG - JUMP resume mode (longjmp) with C++ objects
    fenix::set_option(fenix::RESUME_MODE, fenix::JUMP);  // Default
 
    fenix::init({.out_comm = &res_comm, .spares = 2});
@@ -254,7 +254,7 @@ Mistake: Using Longjmp with C++ Objects
 
 .. code-block:: cpp
 
-   // RIGHT - Use inline recovery with exceptions
+   // RIGHT - Use THROW resume mode with exceptions
    fenix::set_option(fenix::RESUME_MODE, fenix::THROW);
 
    fenix::init({.out_comm = &res_comm, .spares = 2});
@@ -270,9 +270,9 @@ Mistake: Using Longjmp with C++ Objects
      // Handle recovery
    }
 
-**Why it matters:** ``longjmp`` bypasses normal C++ stack unwinding. Destructors are not called, leading to resource leaks and undefined behavior.
+**Why it matters:** ``longjmp`` (JUMP resume mode) bypasses normal C++ stack unwinding. Destructors are not called, leading to resource leaks and undefined behavior.
 
-**Exception:** If using longjmp, allocate resources before ``Fenix_Init`` or use manual memory management.
+**Exception:** If using JUMP resume mode, allocate resources before ``Fenix_Init`` or use manual memory management.
 
 Mistake: Ignoring ``fenix::error()`` in Callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

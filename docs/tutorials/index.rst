@@ -11,7 +11,7 @@ These hands-on tutorials will guide you step-by-step through learning Fenix, fro
 
    01-first-program
    02-data-recovery
-   03-inline-recovery
+   03-resume-modes
    04-message-logging
 
 Prerequisites
@@ -58,19 +58,19 @@ Extend your program with data checkpointing and recovery. You'll learn:
 
 :doc:`Start Tutorial 2 → <02-data-recovery>`
 
-Tutorial 3: Inline Recovery and Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Tutorial 3: Resume Modes and Recovery Control Flow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Time:** 30-40 minutes | **Difficulty:** Intermediate
+**Time:** 20-30 minutes | **Difficulty:** Intermediate
 
-Master inline recovery for transparent fault handling without restarting loops. You'll discover:
+Learn how Fenix communicates failures to your application through resume modes. You'll discover:
 
-- Why inline recovery vs exception-based recovery
-- Setting up recovery callbacks
-- Maintaining application state across failures
-- Complete stencil computation example with inline recovery
+- The three resume modes: THROW, RETURN, and JUMP
+- When each mode is appropriate for your application
+- How callbacks work with any resume mode
+- How resume modes interact with message logging
 
-:doc:`Start Tutorial 3 → <03-inline-recovery>`
+:doc:`Start Tutorial 3 → <03-resume-modes>`
 
 Tutorial 4: Message Logging for Seamless Recovery
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

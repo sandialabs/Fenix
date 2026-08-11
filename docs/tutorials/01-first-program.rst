@@ -660,9 +660,9 @@ You now understand the basics of fault tolerance with Fenix! Here's what to expl
 
 Learn how to checkpoint application state so recovered ranks can restore data and continue seamlessly.
 
-**Tutorial 3: Inline Recovery Patterns** (:doc:`03-inline-recovery`)
+**Tutorial 3: Resume Modes and Recovery Control Flow** (:doc:`03-resume-modes`)
 
-Discover more advanced recovery patterns including callbacks and fine-grained control.
+Learn how Fenix communicates failures through different resume modes (THROW, RETURN, JUMP).
 
 **Concepts: Process Recovery** (:doc:`/guides/process-recovery`)
 

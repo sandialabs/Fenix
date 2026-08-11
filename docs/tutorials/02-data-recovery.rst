@@ -808,7 +808,7 @@ Now that you understand data recovery, explore more advanced topics:
 
 📚 **Continue Learning:**
 
-- :doc:`03-inline-recovery` - Learn about exception-based recovery and callbacks
+- :doc:`03-resume-modes` - Learn about resume modes and callbacks
 - :doc:`04-message-logging` - Add message logging for automatic replay
 - :doc:`/guides/data-recovery` - Deep dive into data recovery internals
 

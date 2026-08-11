@@ -111,8 +111,8 @@ This glossary defines Fenix-specific terminology. Terms are organized alphabetic
 
       See also: :term:`Rank Role`, :c:func:`Fenix_get_role`
 
-   Inline Recovery
-      A recovery pattern where control returns to the application at the point of failure (the failing MPI call) rather than jumping back to :c:func:`Fenix_Init`. Enabled by setting :c:macro:`FENIX_RESUME_MODE` to ``FENIX_RESUME_RETURN`` or ``FENIX_RESUME_THROW``.
+   Non-Longjmp Recovery
+      Recovery patterns where control returns to the application at the point of failure (the failing MPI call) rather than jumping back to :c:func:`Fenix_Init`. Includes both exception-based (RESUME_THROW) and return-based (RESUME_RETURN) resume modes.
 
       Advantages over :term:`longjmp recovery`:
 
@@ -121,7 +121,27 @@ This glossary defines Fenix-specific terminology. Terms are organized alphabetic
       - More predictable with compiler optimizations
       - Better integration with exception handling
 
-      See also: :doc:`tutorials/03-inline-recovery`, :doc:`howto/choose-recovery-pattern`
+      See also: :term:`Resume Mode`, :term:`Exception-Based Recovery`, :term:`Return-Based Recovery`, :doc:`tutorials/03-resume-modes`
+
+   Resume Mode
+      Configuration setting (FENIX_RESUME_MODE) that controls how Fenix communicates failures to your application after repairing the communicator. Independent of :term:`Message Replay Mode`.
+
+      Three modes:
+      - RESUME_THROW: Throw fenix::CommException (C++ only)
+      - RESUME_RETURN: Return error codes
+      - RESUME_JUMP: Use longjmp back to Init
+
+      See also: :doc:`tutorials/03-resume-modes`, :doc:`howto/choose-recovery-pattern`
+
+   Exception-Based Recovery
+      Resume mode (RESUME_THROW) where Fenix throws a ``fenix::CommException`` after repairing the communicator. Recommended for C++ applications. Works with any :term:`Message Replay Mode`.
+
+      See also: :term:`Resume Mode`, :doc:`tutorials/03-resume-modes`
+
+   Return-Based Recovery
+      Resume mode (RESUME_RETURN) where Fenix functions return error codes (FENIX_ERROR_PROCESS_FAILURE) instead of throwing exceptions or jumping. Primarily for small code sections needing fine-grained control or third-party C libraries. Works with any :term:`Message Replay Mode`.
+
+      See also: :term:`Resume Mode`, :doc:`tutorials/03-resume-modes`
 
    Load
       The local operation of copying data from a :term:`snapshot` into application memory. Unlike :term:`restore`, load is not collective and does not repair the snapshot's resilient storage.
@@ -131,13 +151,13 @@ This glossary defines Fenix-specific terminology. Terms are organized alphabetic
       See also: :term:`Restore`, :term:`Snapshot`
 
    Longjmp Recovery
-      The default recovery pattern where Fenix uses ``longjmp`` to return control to :c:func:`Fenix_Init` after a failure. This mimics traditional checkpoint/restart behavior but has undefined behavior in C++ and with certain compiler optimizations.
+      Resume mode (RESUME_JUMP) where Fenix uses ``longjmp`` to return control to :c:func:`Fenix_Init` after a failure. This mimics traditional checkpoint/restart behavior. Practical for large C codebases where adding comprehensive error checking would be infeasible. Works with any :term:`Message Replay Mode`.
 
-      Enabled by setting :c:macro:`FENIX_RESUME_MODE` to ``FENIX_RESUME_JUMP`` (default).
+      Enabled by setting :c:macro:`FENIX_RESUME_MODE` to ``FENIX_RESUME_JUMP`` (default for C API).
 
-      Warning: Variables modified between ``Fenix_Init`` and the failure point should be declared ``volatile`` to avoid undefined behavior.
+      Warning: Stack variables modified between ``Fenix_Init`` and the failure point should be declared ``volatile`` to avoid undefined behavior.
 
-      See also: :term:`Inline Recovery`, :doc:`howto/choose-recovery-pattern`
+      See also: :term:`Resume Mode`, :term:`Non-Longjmp Recovery`, :doc:`tutorials/03-resume-modes`
 
    Message Logging
       Optional Fenix feature that records MPI communication patterns so they can be replayed after recovery, eliminating the need to recompute from the last checkpoint.
@@ -150,7 +170,19 @@ This glossary defines Fenix-specific terminology. Terms are organized alphabetic
 
       Functions: :c:func:`Fenix_Mlog_create`, :c:func:`Fenix_Mlog_activate`, :c:func:`Fenix_Mlog_sync`
 
-      See also: :doc:`howto/message-logging`
+      See also: :term:`Message Replay Mode`, :doc:`howto/message-logging`, :doc:`tutorials/04-message-logging`
+
+   Message Replay Mode
+      Configuration setting (FENIX_MLOG_RECOVERY_MODE) that controls whether MPI messages are automatically replayed after recovery when using :term:`Message Logging`. Independent of :term:`Resume Mode`.
+
+      Three modes:
+      - MLOG_RECOVERY_MANUAL: Manual replay via Fenix_Mlog_sync
+      - MLOG_RECOVERY_INLINE: Automatic replay of failed MPI operations
+      - MLOG_RECOVERY_INLINE_AUTOSYNC: Automatic replay + automatic sync
+
+      When automatic replay succeeds, the resume mode is not triggered (MPI function returns success).
+
+      See also: :term:`Message Logging`, :term:`Resume Mode`, :doc:`tutorials/04-message-logging`
 
    RAID Policy
       See :term:`IMR Policy`
@@ -401,5 +433,9 @@ Cross-Reference
 :term:`Window`
 
 **Recovery Patterns:**
-:term:`Inline Recovery`,
-:term:`Longjmp Recovery`
+:term:`Resume Mode`,
+:term:`Exception-Based Recovery`,
+:term:`Return-Based Recovery`,
+:term:`Non-Longjmp Recovery`,
+:term:`Longjmp Recovery`,
+:term:`Message Replay Mode`

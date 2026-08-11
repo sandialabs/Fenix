@@ -285,10 +285,10 @@ What MPI operations are supported?
 Recovery Patterns
 -----------------
 
-What's the difference between longjmp and inline recovery?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+What's the difference between JUMP and RETURN/THROW resume modes?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Longjmp recovery (default):**
+**JUMP resume mode (default, uses longjmp):**
 
 - Automatically jumps back to ``Fenix_Init`` after failure
 - Mimics traditional checkpoint/restart pattern
@@ -296,13 +296,19 @@ What's the difference between longjmp and inline recovery?
 - Has undefined behavior with C++ objects and compiler optimizations
 - May not call destructors properly
 
-**Inline recovery (recommended for C++):**
+**RETURN resume mode (recommended for C):**
 
 - Returns error code from the failing MPI call
-- Continues execution inline without jumping
+- Continues execution without jumping
 - More predictable behavior
-- Works well with C++ exceptions
 - Requires checking MPI return codes
+
+**THROW resume mode (recommended for C++):**
+
+- Throws C++ exception from the failing MPI call
+- Continues execution without jumping
+- Works well with C++ RAII and exception handling
+- Most predictable for C++ applications
 
 **Example: Inline with exceptions:**
 
@@ -319,17 +325,17 @@ What's the difference between longjmp and inline recovery?
 
 :doc:`Process recovery guide → <guides/process-recovery>`
 
-Should I use longjmp or inline recovery?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Should I use JUMP, RETURN, or THROW resume mode?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Recommendations:**
 
-- **C++ applications**: Use inline recovery with exceptions (``fenix::THROW``)
-- **C applications**: Either works; inline gives more control, longjmp is simpler
-- **Legacy code**: Longjmp may be easier to retrofit
-- **New code**: Always use inline recovery
+- **C++ applications**: Use THROW resume mode with exceptions (``fenix::THROW``)
+- **C applications**: Either RETURN or JUMP works; RETURN gives more control, JUMP is simpler
+- **Legacy code**: JUMP mode may be easier to retrofit
+- **New code**: Always use THROW (C++) or RETURN (C) resume mode
 
-**Why inline is better:**
+**Why RETURN/THROW are better:**
 
 - No undefined behavior from longjmp
 - Proper C++ destructor calls

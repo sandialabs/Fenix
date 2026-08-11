@@ -1,7 +1,10 @@
-Inline Recovery with Callbacks
-==============================
+Recovery with Callbacks
+=======================
 
-This guide shows you how to use inline recovery with callbacks for modern, maintainable fault tolerance without the pitfalls of longjmp. This is the recommended approach for C++ applications.
+This guide shows you how to use callbacks for modern, maintainable fault tolerance. Callbacks work with **all resume modes** (THROW, RETURN, and JUMP) and execute before control returns to your application.
+
+.. note::
+   **Callbacks are universal**: They work the same way regardless of which resume mode you're using. This guide focuses on using callbacks with exception-based recovery (THROW mode), which is recommended for C++ applications, but the callback patterns apply to any resume mode.
 
 .. contents:: On this page
    :local:
@@ -10,7 +13,7 @@ This guide shows you how to use inline recovery with callbacks for modern, maint
 Quick Start
 -----------
 
-Here's a minimal example with inline recovery:
+Here's a minimal example with exception-based recovery and callbacks:
 
 .. code-block:: cpp
 
@@ -21,7 +24,7 @@ Here's a minimal example with inline recovery:
      namespace data = fenix::data;
      MPI_Init(&argc, &argv);
 
-     // Enable inline recovery with exceptions
+     // Enable exception-based resume mode
      MPI_Comm res_comm;
      fenix::init({.out_comm = &res_comm, .spares = 2});
      fenix::set_option(fenix::RESUME_MODE, fenix::RESUME_THROW);
@@ -74,15 +77,15 @@ Here's a minimal example with inline recovery:
      return 0;
    }
 
-Why Use Inline Recovery
------------------------
+Why Use Non-Longjmp Resume Modes
+---------------------------------
 
-Advantages Over Longjmp
-~~~~~~~~~~~~~~~~~~~~~~~~
+Advantages Over Longjmp-Based Recovery
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Type Safety and RAII**
 
-Inline recovery works correctly with C++ RAII patterns. Destructors are called properly, and resources are not leaked:
+Exception-based and return-based resume modes work correctly with C++ RAII patterns. Destructors are called properly, and resources are not leaked:
 
 .. code-block:: cpp
 
@@ -92,7 +95,7 @@ Inline recovery works correctly with C++ RAII patterns. Destructors are called p
      std::lock_guard<std::mutex> lock(mtx);
 
      // If using longjmp, destructors won't be called - leak!
-     // With inline recovery, everything is cleaned up properly
+     // With THROW or RETURN resume modes, everything is cleaned up properly
      MPI_Allreduce(/* ... */);
    }
 
@@ -106,8 +109,8 @@ Variables don't mysteriously change values:
    // With longjmp, need: volatile int counter = 0;
 
    for (int i = 0; i < 100; i++) {
-     counter++;  // Always increments correctly with inline recovery
-     // With longjmp, counter may reset unpredictably
+     counter++;  // Always increments correctly with THROW or RETURN modes
+     // With JUMP mode (longjmp), counter may reset unpredictably
    }
 
 **Cleaner Control Flow**
@@ -116,12 +119,12 @@ Recovery happens where the failure occurs, not at initialization:
 
 .. code-block:: cpp
 
-   // Inline recovery: continue from checkpoint
+   // THROW or RETURN modes: continue from checkpoint
    for (int i = last_checkpoint; i < MAX_ITER; i++) {
      // ...
    }
 
-   // Longjmp: restart entire loop from beginning
+   // JUMP mode (longjmp): restart entire loop from beginning
    for (int i = 0; i < MAX_ITER; i++) {
      // All work before checkpoint is lost
    }
@@ -132,7 +135,7 @@ Callback Basics
 What Are Callbacks?
 ~~~~~~~~~~~~~~~~~~~
 
-Recovery callbacks are functions you register with Fenix that are automatically called after a failure is detected and the communicator is repaired. They restore your application state so execution can continue inline.
+Recovery callbacks are functions you register with Fenix that are automatically called after a failure is detected and the communicator is repaired. They restore your application state regardless of which resume mode you're using (THROW, RETURN, or JUMP).
 
 **Callback Signature:**
 
@@ -642,7 +645,7 @@ Iterative Stencil Solver
      namespace data = fenix::data;
      MPI_Init(&argc, &argv);
 
-     // Initialize with inline recovery
+     // Initialize with THROW or RETURN resume mode
      MPI_Comm res_comm;
      fenix::init({.out_comm = &res_comm, .spares = 2});
      fenix::set_option(fenix::RESUME_MODE, fenix::RESUME_THROW);

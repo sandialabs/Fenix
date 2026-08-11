@@ -38,14 +38,12 @@ The default recovery pattern uses ``longjmp`` (a C library function that jumps
 to a previously saved program state) to return execution to the location of
 :c:func:`Fenix_Init` following communicator repairs. This emulates the typical offline
 checkpoint/restart pattern, but without the need to restart the application.
-However, ``longjmp`` has undefined behavior in C++ and with many compiler optimizations
-(variables may have unexpected values, destructors may not be called). Fenix also
-supports a non-jumping recovery pattern called **inline recovery**. This is more
-predictable across compilers and optimizations, but requires checking the return
-value of every MPI call to detect failed operations (though communicator repair is
-still automatic). For C++ applications, the recommended practice is to use inline
-recovery with exceptions: Fenix can throw a ``CommException`` on failure, providing
-clean error handling without longjmp's undefined behavior.
+However, ``longjmp`` requires careful handling (stack variables should be declared
+``volatile``) and C++ destructors may not be called. Fenix also supports two non-jumping
+resume modes: **return-based recovery** (RESUME_RETURN) which returns error codes, and
+**exception-based recovery** (RESUME_THROW) which throws ``CommException`` on failure.
+For C++ applications, the recommended practice is to use exception-based recovery,
+providing clean error handling without longjmp's complications.
 
 Data Recovery
 -------------

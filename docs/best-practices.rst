@@ -21,7 +21,7 @@ Before deploying your Fenix application to production:
 - [ ] Tested recovery from multiple simultaneous failures
 - [ ] Tested spare depletion scenario
 - [ ] Long compute phases include periodic ``detect_failures()`` calls
-- [ ] Using inline recovery (C++) or careful with longjmp (C)
+- [ ] Using RETURN or THROW resume mode (C++) or careful with JUMP mode (C)
 
 **Data Recovery:**
 
@@ -156,10 +156,10 @@ Handle Spare Depletion Gracefully
 - Do ranks need to rebalance work after shrinkage?
 - Should you checkpoint to disk as a backup when spares are low?
 
-Use Inline Recovery (C++)
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use THROW Resume Mode (C++)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**For C++ applications, prefer inline recovery with exceptions:**
+**For C++ applications, prefer THROW resume mode with exceptions:**
 
 .. code-block:: cpp
 
@@ -184,7 +184,7 @@ Use Inline Recovery (C++)
 - Predictable with compiler optimizations
 - Cleaner error handling
 
-**Rationale:** ``longjmp`` (a C library function that jumps to a saved program state) bypasses normal C++ control flow. This means C++ destructors may not be called when leaving scope via longjmp, RAII objects (smart pointers, mutexes, etc.) may leak resources, and compiler optimizations may make variable values unpredictable. Exceptions provide well-defined C++ semantics.
+**Rationale:** ``longjmp`` (JUMP resume mode - a C library function that jumps to a saved program state) bypasses normal C++ control flow. This means C++ destructors may not be called when leaving scope via longjmp, RAII objects (smart pointers, mutexes, etc.) may leak resources, and compiler optimizations may make variable values unpredictable. THROW resume mode with exceptions provides well-defined C++ semantics.
 
 Detect Failures During Long Compute Phases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

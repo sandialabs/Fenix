@@ -222,13 +222,13 @@ Phase 2: Add Process Recovery
 2.5 Configure Recovery Mode (C++ Only)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**For C++ applications, use inline recovery:**
+**For C++ applications, use exception-based recovery:**
 
 .. code-block:: cpp
 
    MPI_Init(&argc, &argv);
 
-   // Set inline recovery with exceptions
+   // Set exception-based resume mode (THROW is default for C++ API)
    fenix::set_option(fenix::RESUME_MODE, fenix::THROW);
 
    fenix::init({.out_comm = &res_comm, .spares = 3});
@@ -236,10 +236,10 @@ Phase 2: Add Process Recovery
 **Checklist:**
 
 - [ ] ``fenix::set_option`` called after ``MPI_Init``
-- [ ] Set to ``fenix::THROW`` for C++ (recommended)
-- [ ] Or ``fenix::RETURN`` for manual error handling
+- [ ] Set to ``fenix::THROW`` for C++ (recommended, default)
+- [ ] Or ``fenix::RETURN`` for small sections needing fine-grained control
 
-**For C applications:** Can use default (longjmp) or set to ``FENIX_RESUME_RETURN`` for inline.
+**For C applications:** Can use default (RESUME_JUMP/longjmp) or set to ``FENIX_RESUME_RETURN`` for return-based recovery in specific sections.
 
 2.6 Add Basic Exception Handling (C++ with THROW)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

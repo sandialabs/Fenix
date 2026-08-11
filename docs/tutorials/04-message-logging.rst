@@ -3,11 +3,11 @@ Tutorial 4: Message Logging for Seamless Recovery
 
 **Time:** 45 minutes | **Difficulty:** Advanced
 
-**Prerequisites:** :doc:`01-first-program`, :doc:`02-data-recovery`, :doc:`03-inline-recovery`
+**Prerequisites:** :doc:`01-first-program`, :doc:`02-data-recovery`, :doc:`03-resume-modes`
 
 Welcome to the final and most advanced tutorial in the Fenix learning path! In this tutorial, you'll learn about **message logging**, the ultimate fault tolerance technique that enables truly seamless recovery without any recomputation or manual message replay.
 
-In previous tutorials, you learned process recovery, data checkpointing, and inline recovery callbacks. However, these approaches still require recomputing any work lost between checkpoints. **Message logging eliminates this limitation** by automatically recording and replaying MPI messages, allowing recovered ranks to receive exactly the same messages they would have received if no failure occurred.
+In previous tutorials, you learned process recovery, data checkpointing, and recovery callbacks. However, these approaches still require recomputing any work lost between checkpoints. **Message logging eliminates this limitation** by automatically recording and replaying MPI messages, allowing recovered ranks to receive exactly the same messages they would have received if no failure occurred.
 
 .. contents:: In This Tutorial
    :local:
@@ -40,7 +40,7 @@ What is Message Logging?
 The Recomputation Problem
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Even with data checkpointing and inline recovery, you still lose work:
+Even with data checkpointing and recovery callbacks, you still lose work:
 
 .. code-block:: cpp
 
@@ -309,7 +309,7 @@ The most powerful mode is ``INLINE_AUTOSYNC``, which handles everything automati
 .. code-block:: cpp
    :linenos:
 
-   // Enable inline recovery with automatic sync
+   // Enable return-based resume mode with automatic message replay
    fenix::set_option(fenix::RESUME_MODE, fenix::RETURN);
    fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
 
@@ -335,7 +335,7 @@ The most powerful mode is ``INLINE_AUTOSYNC``, which handles everything automati
 Step 2.3: Complete Integrated Example
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Here's a complete example combining message logging, data checkpointing, and inline recovery:
+Here's a complete example combining message logging, data checkpointing, and automatic message replay:
 
 .. code-block:: cpp
    :linenos:
@@ -424,7 +424,7 @@ Here's a complete example combining message logging, data checkpointing, and inl
        printf("Rank %d: Restored to iteration %d\n", rank, state.iteration);
      }
 
-     // Configure inline recovery with auto-sync
+     // Configure return-based resume mode with automatic message replay
      fenix::set_option(fenix::RESUME_MODE, fenix::RETURN);
      fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
 
@@ -701,7 +701,7 @@ Complete Implementation
               rank, state.iteration, state.residual_norm);
      }
 
-     // Configure inline recovery with auto-sync
+     // Configure return-based resume mode with automatic message replay
      fenix::set_option(fenix::RESUME_MODE, fenix::RETURN);
      fenix::set_option(fenix::MLOG_RECOVERY_MODE, fenix::INLINE_AUTOSYNC);
 

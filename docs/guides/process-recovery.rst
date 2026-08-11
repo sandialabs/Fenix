@@ -91,7 +91,7 @@ identifier for any operations that may be interrupted.
 See Also
 --------
 
-- :doc:`../howto/choose-recovery-pattern` - Choose between longjmp and inline recovery
+- :doc:`../howto/choose-recovery-pattern` - Choose the right recovery pattern
 - :doc:`../howto/migrate-existing-app` - Add Fenix to existing applications
 - :doc:`../tutorials/01-first-program` - First fault-tolerant program tutorial
 - :doc:`../api/process-recovery` - Process recovery API reference
@@ -103,37 +103,53 @@ Application Recovery
 --------------------
 
 Once a new communicator has been constructed, application recovery begins.
-There are two recovery modes: **longjmp** (default) and **inline** (non-jumping).
+Fenix provides three **resume modes** (controlled by ``FENIX_RESUME_MODE``) that determine
+how control returns to your application after the communicator is repaired:
 
-With **longjmp recovery**, Fenix automatically uses the C library function ``longjmp``
-to jump back to the :c:func:`Fenix_Init` call site once communicator recovery is complete.
-This allows for very simple recovery logic, since it mimics the traditional
-checkpoint/restart pattern - execution simply restarts from initialization. However,
-``longjmp`` has undefined behavior according to the C and C++ specifications:
-variables may have unexpected values, C++ destructors may not be called, and compiler
-optimizations may break. Variables should be declared ``volatile`` to avoid issues,
-but this doesn't solve all problems.
+**1. RESUME_JUMP (longjmp-based)** - Default for C API
 
-With **inline recovery** (non-jumping mode), Fenix returns an error code from the
-failing MPI function call after communicator recovery is complete. Execution continues
-inline without jumping. This is more predictable across compilers and optimizations,
-but requires checking return codes of MPI calls (or using exceptions in C++).
-Additionally, some applications can recover more efficiently by continuing inline
-rather than restarting from initialization.
+Fenix automatically uses the C library function ``longjmp`` to jump back to the
+:c:func:`Fenix_Init` call site once communicator recovery is complete. This allows for
+very simple recovery logic, since it mimics the traditional checkpoint/restart pattern -
+execution simply restarts from initialization. Practical for large C codebases where adding
+comprehensive error checking would be infeasible.
 
-Fenix also allows applications to register one or more callback functions with
-:c:func:`Fenix_Callback_register` and :c:func:`Fenix_Callback_pop`, which removes the most
-recently registered callback. These callbacks are invoked after communicator
-recovery, just before control returns to the application. Callbacks are
-executed in the reverse order they were registered.
+However, ``longjmp`` requires careful handling: stack variables modified between
+``Fenix_Init`` and the failure should be declared ``volatile`` to avoid undefined values.
+C++ destructors may not be called for objects in the jumped scope.
 
-For C++ applications, it is recommended to use inline recovery (non-jumping mode)
-with exceptions. Set ``FENIX_RESUME_MODE`` to ``FENIX_RESUME_THROW``, and Fenix
-will throw a ``fenix::CommException`` when a failure occurs. At its simplest,
+**2. RESUME_RETURN (return-based)**
+
+Fenix returns an error code (``FENIX_ERROR_PROCESS_FAILURE``) from the failing MPI or
+Fenix function call after communicator recovery is complete. Execution continues from
+the point of failure. This requires checking return codes but provides fine-grained
+control. Primarily intended for small sections of code needing careful error handling
+or third-party C libraries. Not recommended for large-scale application-wide recovery.
+
+**3. RESUME_THROW (exception-based)** - Recommended for C++, default for C++ API
+
+Fenix throws a ``fenix::CommException`` when a failure occurs. At its simplest,
 wrapping everything between :c:func:`Fenix_Init` and :c:func:`Fenix_Finalize` in a
 single try-catch can give the same simple recovery logic as longjmp mode, but
 without the undefined behavior. C++ exceptions provide clean error handling,
 proper destructor calls, and well-defined semantics across all compilers.
+
+**Recovery Callbacks**
+
+Applications can register one or more callback functions with :c:func:`Fenix_Callback_register`
+and :c:func:`Fenix_Callback_pop`. These callbacks are invoked after communicator recovery,
+just before control returns to the application (via jump, return, or exception). Callbacks
+work with **all resume modes** and are executed in reverse registration order.
+
+**Message Logging**
+
+In addition to resume modes, Fenix provides message logging (``FENIX_MLOG_RECOVERY_MODE``)
+to control whether MPI messages are automatically replayed. These settings are independent:
+any resume mode can be combined with any message replay mode. When automatic replay succeeds,
+the resume mode is not triggered (the MPI function returns success).
+
+See :doc:`../tutorials/03-resume-modes` for detailed examples and :doc:`../tutorials/04-message-logging`
+for message replay modes.
 
 :c:func:`Fenix_Init` outputs a role, from :c:type:`Fenix_Rank_role`, which helps inform the
 application about the recovery state of the rank. It is important to note that

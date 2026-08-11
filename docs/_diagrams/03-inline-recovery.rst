@@ -1,17 +1,17 @@
-Inline Recovery Pattern
-========================
+RETURN Resume Mode
+==================
 
-The inline recovery pattern (FENIX_RESUME_RETURN) returns error codes from MPI operations, allowing clean continuation without stack unwinding.
+The RETURN resume mode (FENIX_RESUME_RETURN) returns error codes from MPI operations, allowing clean continuation without stack unwinding.
 
-.. _inline-recovery:
+.. _return-resume-mode:
 
 Call Stack Behavior
 -------------------
 
 .. graphviz::
-   :caption: Inline Recovery - Stack Preserved
+   :caption: RETURN Resume Mode - Stack Preserved
 
-   digraph inline_stack {
+   digraph return_stack {
        rankdir=TB;
        node [shape=box, style="rounded,filled"];
 
@@ -81,7 +81,7 @@ Code Example with Callbacks
    int main(int argc, char** argv) {
      MPI_Init(&argc, &argv);
 
-     // Configure inline recovery
+     // Configure RETURN resume mode
      Fenix_set_option(FENIX_RESUME_MODE, FENIX_RESUME_RETURN);
 
      int role, error;
@@ -157,6 +157,6 @@ When to Use
 
 .. seealso::
 
-   * :doc:`04-exception-recovery` - C++ exception alternative
-   * :doc:`02-longjmp-recovery` - Legacy alternative
-   * :doc:`12-decision-recovery-pattern` - Pattern comparison
+   * :doc:`04-exception-recovery` - THROW resume mode (C++ exceptions)
+   * :doc:`02-longjmp-recovery` - JUMP resume mode (longjmp)
+   * :doc:`12-decision-recovery-pattern` - Resume mode comparison

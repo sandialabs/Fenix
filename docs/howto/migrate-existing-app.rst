@@ -516,7 +516,7 @@ Step 5: Restore Data After Recovery
        member_restore(GROUP_ID, GRID_MEMBER);
      }
 
-     // Register callback for inline recovery
+     // Register callback for restoring state
      fenix::callback_register([&](MPI_Comm repaired, int err) {
        // This runs when another failure happens
        group_create(GROUP_ID, {.comm = repaired});
@@ -671,7 +671,7 @@ Here's a complete example migrating a 1D stencil computation:
          printf("Rank %d restored to iteration %d\n", rank, state.iteration);
        }
 
-       // Recovery callback for inline recovery
+       // Recovery callback for restoring state
        fenix::callback_register([&](MPI_Comm repaired, int err) {
          group_create(GROUP_ID, {.comm = repaired});
          // member_define to update buffer pointers (vector may have reallocated)

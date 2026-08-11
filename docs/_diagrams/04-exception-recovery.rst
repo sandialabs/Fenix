@@ -1,17 +1,17 @@
-Exception-Based Recovery Pattern
-==================================
+THROW Resume Mode
+=================
 
-The exception recovery pattern (FENIX_RESUME_THROW) uses C++ exceptions for clean, RAII-safe recovery.
+The THROW resume mode (FENIX_RESUME_THROW) uses C++ exceptions for clean, RAII-safe recovery.
 
-.. _exception-recovery:
+.. _throw-resume-mode:
 
 Call Stack with Exception Unwinding
 ------------------------------------
 
 .. graphviz::
-   :caption: Exception Recovery - Clean Unwinding
+   :caption: THROW Resume Mode - Clean Unwinding
 
-   digraph exception_stack {
+   digraph throw_stack {
        rankdir=TB;
        node [shape=box, style="rounded,filled"];
 
@@ -181,6 +181,6 @@ When to Use
 
 .. seealso::
 
-   * :doc:`03-inline-recovery` - C++ alternative without exceptions
-   * :doc:`02-longjmp-recovery` - Why not to use longjmp in C++
-   * :doc:`12-decision-recovery-pattern` - Pattern selection guide
+   * :doc:`03-inline-recovery` - RETURN resume mode (C++ alternative without exceptions)
+   * :doc:`02-longjmp-recovery` - JUMP resume mode (why not to use in C++)
+   * :doc:`12-decision-recovery-pattern` - Resume mode selection guide

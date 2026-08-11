@@ -1,5 +1,5 @@
-Example 8: Modern Inline Recovery with Message Logging (RECOMMENDED)
-=====================================================================
+Example 8: Modern Exception-Based Recovery with Message Logging (RECOMMENDED)
+==============================================================================
 
 .. contents:: In This Example
    :local:
@@ -11,7 +11,7 @@ Example 8: Modern Inline Recovery with Message Logging (RECOMMENDED)
    This example demonstrates the most complete and production-ready approach using:
 
    - Modern C++ API with ``fenix::init()``
-   - Exception-based inline recovery
+   - Exception-based recovery (RESUME_THROW mode)
    - Recovery callbacks for seamless continuation
    - Automatic message logging and replay
    - No longjmp - cleaner control flow
@@ -23,7 +23,7 @@ This example shows a realistic stencil computation with fault tolerance. It demo
 
 ✓ **Modern C++ API** - Clean initialization with designated initializers
 
-✓ **Inline Recovery** - Continue execution without longjmp, using callbacks
+✓ **Exception-Based Recovery** - Continue execution without longjmp, using THROW mode
 
 ✓ **Message Logging** - Automatic capture and replay of messages
 
@@ -36,10 +36,10 @@ This example shows a realistic stencil computation with fault tolerance. It demo
 **What You'll Learn:**
 
 - The modern way to structure Fenix applications
-- How inline recovery works vs. traditional longjmp
+- How exception-based recovery (THROW mode) works vs. longjmp (JUMP mode)
 - Using recovery callbacks for seamless continuation
 - Message logging for automatic recovery
-- Exception-based error handling
+- Exception-based error handling with fenix::CommException
 
 **Time to Complete:** 30 minutes
 
@@ -271,7 +271,7 @@ Simple state for this example. In real applications, this would be your simulati
    :linenos:
    :emphasize-lines: 2-3, 5-7, 9-11
 
-   // Register callback for inline recovery
+   // Register callback for THROW or RETURN resume mode
    fenix::callback_register([&](MPI_Comm repaired_comm, int mpi_err) {
      assert(fenix::error() == FENIX_SUCCESS);
 
@@ -285,7 +285,7 @@ Simple state for this example. In real applications, this would be your simulati
      );
    });
 
-**This is the key to inline recovery!**
+**This is the key to THROW or RETURN resume mode!**
 
 **How It Works:**
 
@@ -519,7 +519,7 @@ Key Takeaways
 
 ✓ **Inline Recovery** - No longjmp, continue execution naturally
 
-✓ **Recovery Callbacks** - Lambda functions for inline recovery logic
+✓ **Recovery Callbacks** - Lambda functions for THROW or RETURN resume mode logic
 
 ✓ **Message Logging** - Automatic capture and replay
 
@@ -639,7 +639,7 @@ Now that you understand modern Fenix patterns:
 🔨 **Apply It:**
 
 - :doc:`/migration-checklist` - Migrate your application
-- :doc:`/tutorials/03-inline-recovery` - Tutorial version
+- :doc:`/tutorials/03-resume-modes` - Resume modes tutorial
 - :doc:`/tutorials/04-message-logging` - Advanced message logging
 
 📖 **Reference:**

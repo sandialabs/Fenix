@@ -1,15 +1,15 @@
-Decision Tree: Choosing Recovery Pattern
-=========================================
+Decision Tree: Choosing Resume Mode
+====================================
 
-This guide helps you choose the right recovery pattern for your application.
+This guide helps you choose the right resume mode for your application.
 
-.. _decision-recovery-pattern:
+.. _decision-resume-mode:
 
 Decision Flowchart
 ------------------
 
 .. graphviz::
-   :caption: Recovery Pattern Decision Tree
+   :caption: Resume Mode Decision Tree
 
    digraph decision_tree {
        rankdir=TB;
@@ -51,10 +51,10 @@ Decision Flowchart
        cpp_raii -> longjmp_cpp [label="NO (legacy)"];
    }
 
-Pattern Comparison
-------------------
+Resume Mode Comparison
+----------------------
 
-.. list-table:: Recovery Pattern Comparison
+.. list-table:: Resume Mode Comparison
    :header-rows: 1
    :widths: 25 25 25 25
 
@@ -185,7 +185,7 @@ Scientific Simulation (C++)
 - Frequent checkpoints
 
 .. graphviz::
-   :caption: Recommended Pattern for Scientific Simulations
+   :caption: Recommended Resume Mode for Scientific Simulations
 
    digraph sim_pattern {
        node [shape=box, style="rounded,filled"];
@@ -206,7 +206,7 @@ Legacy MPI-based CFD Code (C)
 - Minimal state
 
 .. graphviz::
-   :caption: Recommended Pattern for Legacy C Code
+   :caption: Recommended Resume Mode for Legacy C Code
 
    digraph cfd_pattern {
        node [shape=box, style="rounded,filled"];
@@ -226,7 +226,7 @@ Machine Learning Training (C++)
 - Need to continue from checkpoint
 
 .. graphviz::
-   :caption: Recommended Pattern for ML Training
+   :caption: Recommended Resume Mode for ML Training
 
    digraph ml_pattern {
        node [shape=box, style="rounded,filled"];
@@ -351,7 +351,7 @@ Symbol Legend
 
 .. seealso::
 
-   * :doc:`02-longjmp-recovery` - Longjmp details
-   * :doc:`03-inline-recovery` - Inline recovery details
-   * :doc:`04-exception-recovery` - Exception recovery details
+   * :doc:`02-longjmp-recovery` - JUMP resume mode details
+   * :doc:`03-inline-recovery` - RETURN resume mode details
+   * :doc:`04-exception-recovery` - THROW resume mode details
    * :doc:`00-quick-reference` - Quick reference card

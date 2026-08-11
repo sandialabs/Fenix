@@ -9,7 +9,7 @@ Example programs demonstrating Fenix usage are in the ``examples/`` directory.
 Recommended Learning Path
 -------------------------
 
-1. **Example 8 (Start Here!)** - Modern inline recovery with message logging ⭐
+1. **Example 8 (Start Here!)** - Modern recovery with THROW resume mode and message logging ⭐
 2. **Example 7** - Resizable data members with modern API
 3. **Examples 1-4** - Simpler patterns (older API, will be updated)
 4. **Examples 5-6** - Data subset operations
@@ -25,15 +25,15 @@ Recommended Learning Path
 Example Overview
 ----------------
 
-Example 8: Inline Recovery (RECOMMENDED ⭐)
+Example 8: Modern Recovery (RECOMMENDED ⭐)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Modern C++ API, Inline Recovery, Message Logging**
+**Modern C++ API, THROW Resume Mode, Message Logging**
 
 This is the gold standard example showing production-ready patterns:
 
 - Modern ``fenix::init()`` with designated initializers
-- Exception-based inline recovery
+- Exception-based recovery (THROW resume mode)
 - Recovery callbacks for seamless continuation
 - Automatic message logging and replay
 - Handles multiple failures gracefully

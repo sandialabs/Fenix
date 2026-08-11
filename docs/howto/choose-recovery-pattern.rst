@@ -70,12 +70,11 @@ When a failure is detected, Fenix repairs the communicator, calls your registere
      namespace data = fenix::data;
      MPI_Init(&argc, &argv);
 
-     // Configure inline recovery with exceptions
      MPI_Comm res_comm;
      fenix::init({
        .out_comm = &res_comm,
        .spares = 2,
-       .resume_mode = fenix::RESUME_THROW  // Throw on failures
+       .resume_mode = fenix::RESUME_THROW  // Throw on failures (default)
      });
 
      int rank;
@@ -109,7 +108,7 @@ When a failure is detected, Fenix repairs the communicator, calls your registere
               rank, state.iteration);
      }
 
-     // Register callback for inline recovery during execution
+     // Register callback for THROW or RETURN resume mode during execution
      fenix::callback_register([&](MPI_Comm repaired, int err) {
        // This callback runs after a failure
        // Restore state from checkpoint
@@ -180,7 +179,7 @@ When a failure is detected, Fenix repairs the communicator, calls your registere
    int main(int argc, char** argv) {
      MPI_Init(&argc, &argv);
 
-     // Set inline recovery mode (return error codes)
+     // Set RETURN resume mode
      Fenix_set_option(FENIX_RESUME_MODE, FENIX_RESUME_RETURN);
 
      int role, error;
@@ -260,7 +259,7 @@ When a failure occurs, Fenix uses ``setjmp/longjmp`` to jump back to ``Fenix_Ini
 
 **Warnings:**
 
-- Variables may have undefined values after longjmp unless declared ``volatile``
+- Stack variables may have undefined values after longjmp unless declared ``volatile``
 - C++ destructors may not be called when leaving scope via longjmp (undefined behavior)
 - RAII objects (smart pointers, locks) will leak
 - Not recommended for modern C++ code
@@ -313,7 +312,7 @@ When a failure occurs, Fenix uses ``setjmp/longjmp`` to jump back to ``Fenix_Ini
 1. All work since initialization is lost on failure
 2. Must re-initialize all state after longjmp
 3. Cannot use with C++ RAII patterns
-4. Variables need ``volatile`` qualifier to be reliable
+4. Stack variables need ``volatile`` qualifier to be reliable
 
 Pattern 3: No Recovery (Manual)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -395,7 +394,7 @@ Scenario: Legacy Fortran/C Code
 Migration Path
 --------------
 
-If you're currently using longjmp and want to migrate to inline recovery:
+If you're currently using longjmp and want to migrate to THROW or RETURN resume mode:
 
 **Step 1: Add resume mode setting**
 
@@ -435,7 +434,7 @@ Troubleshooting
 
 **Problem: Memory leaks after recovery**
 
-- Longjmp doesn't call destructors - switch to inline recovery
+- Longjmp doesn't call destructors - switch to THROW or RETURN resume mode
 - Or manually free resources before ``Fenix_Init``
 
 **Problem: Segfault after recovery**

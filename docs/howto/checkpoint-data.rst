@@ -353,7 +353,6 @@ Here's a complete iterative solver with checkpointing:
               rank, state.iteration);
      }
 
-     // Register callback for inline recovery
      fenix::callback_register([&](MPI_Comm comm, int err) {
        data::group_create(GROUP_ID);
        data::member_restore(GROUP_ID, SOLUTION_MEMBER, NULL, 0);

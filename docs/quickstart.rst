@@ -203,7 +203,7 @@ Fenix provides **automatic process recovery**:
 
 * **Fenix Communicator**: A resilient MPI communicator that auto-repairs on failure
 * **Spare Ranks**: Reserved ranks that replace failed ranks during recovery
-* **longjmp Recovery**: By default, Fenix jumps back to Fenix_Init after recovery using ``longjmp`` (a C library function that jumps to a saved program state). This can be disabled in favor of inline recovery or exception-based recovery.
+* **Resume Modes**: Fenix supports three ways to communicate failures: RESUME_JUMP (longjmp, default for C), RESUME_RETURN (error codes), and RESUME_THROW (exceptions, default for C++). See :doc:`tutorials/03-resume-modes`.
 * **Data Recovery**: Optional feature to checkpoint/restore application data to in-memory redundant storage (covered in tutorials)
 
 Next Steps
@@ -215,7 +215,7 @@ Now that you have Fenix working, explore further:
 
 * :doc:`tutorials/index` - Step-by-step guided tutorials
 * :doc:`guides/process-recovery` - Deep dive into how recovery works
-* :doc:`howto/choose-recovery-pattern` - longjmp vs. no-jump patterns
+* :doc:`howto/choose-recovery-pattern` - Choose the right recovery pattern
 
 🔨 **Build Something:**
 

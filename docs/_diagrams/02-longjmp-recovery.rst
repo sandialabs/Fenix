@@ -1,9 +1,9 @@
-Longjmp Recovery Pattern
-=========================
+JUMP Resume Mode
+================
 
-The longjmp recovery pattern (FENIX_RESUME_JUMP) is the default recovery mode that uses setjmp/longjmp to return control to Fenix_Init after a failure.
+The JUMP resume mode (FENIX_RESUME_JUMP) is the default recovery mode that uses setjmp/longjmp to return control to Fenix_Init after a failure.
 
-.. _longjmp-recovery:
+.. _jump-resume-mode:
 
 .. warning::
    **NOT recommended for C++!** Longjmp bypasses destructors and causes undefined behavior with RAII objects.
@@ -12,9 +12,9 @@ Call Stack Behavior
 -------------------
 
 .. graphviz::
-   :caption: Longjmp Stack Jump
+   :caption: JUMP Resume Mode Stack Jump
 
-   digraph longjmp_stack {
+   digraph jump_stack {
        rankdir=TB;
        node [shape=box, style="rounded,filled"];
 
@@ -126,6 +126,6 @@ When to Use
 
 .. seealso::
 
-   * :doc:`03-inline-recovery` - Better alternative for C
-   * :doc:`04-exception-recovery` - Best for C++
-   * :doc:`12-decision-recovery-pattern` - Choosing patterns
+   * :doc:`03-inline-recovery` - RETURN resume mode (better for C)
+   * :doc:`04-exception-recovery` - THROW resume mode (best for C++)
+   * :doc:`12-decision-recovery-pattern` - Choosing resume modes
