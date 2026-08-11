@@ -7,12 +7,12 @@ Check if Fenix_Init has been called.
 
 .. c:function:: int Fenix_Initialized(int* flag)
 
-   :param int* flag: Pointer to the flag to be set
+   :param int* flag: [out] Pointer to integer that will be set to 1 (true) if :c:func:`Fenix_Init` has been called, 0 (false) otherwise.
    :returns: FENIX_SUCCESS if successful
 
 .. cpp:function:: bool fenix::initialized()
 
-   :returns: true if initialized, false otherwise
+   :returns: true if :cpp:func:`fenix::init` has been called, false otherwise
 
 .. note::
    The C++ overload returns the result directly as a bool instead of through an output parameter.

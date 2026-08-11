@@ -20,6 +20,7 @@ Functions for detecting and recovering from process failures.
    :maxdepth: 1
 
    functions/detect_failures
+   functions/comm_revoke
    functions/get_role
    functions/get_error
    functions/get_nspare

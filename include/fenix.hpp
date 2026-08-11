@@ -180,6 +180,9 @@ int detect_failures(bool recover = true);
 //!@brief Overload of #Fenix_Initialized that directly returns true if initialized
 bool initialized();
 
+//!@brief Overload of #Fenix_Finalize for consistent C++ API
+int finalize();
+
 //!@brief Overload of #Fenix_Finalized that directly returns true if finalized
 bool finalized();
 

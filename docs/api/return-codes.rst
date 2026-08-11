@@ -101,7 +101,7 @@ Return Codes
 
    .. c:enumerator:: FENIX_ERROR_INVALID_SUBSET
 
-      Invalid subset specification
+      Invalid subset specification (invalid element ranges or malformed subset)
 
    .. c:enumerator:: FENIX_ERROR_DATA_WAIT
 
@@ -109,19 +109,19 @@ Return Codes
 
    .. c:enumerator:: FENIX_ERROR_SUBSET_NUM_BLOCKS
 
-      Invalid number of blocks in subset
+      Invalid number of blocks in subset (must be >= 0)
 
    .. c:enumerator:: FENIX_ERROR_SUBSET_START_OFFSET
 
-      Invalid start offset in subset
+      Invalid start offset in subset (start must be <= end for each block)
 
    .. c:enumerator:: FENIX_ERROR_SUBSET_END_OFFSET
 
-      Invalid end offset in subset
+      Invalid end offset in subset (end must be >= start for each block)
 
    .. c:enumerator:: FENIX_ERROR_SUBSET_STRIDE
 
-      Invalid stride in subset
+      Invalid stride in subset (stride must be > 0 if num_blocks > 1)
 
    .. c:enumerator:: FENIX_ERROR_NODATA_FOUND
 

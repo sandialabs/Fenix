@@ -7,18 +7,18 @@ Stage a member by taking ownership of a buffer to avoid a copy.
 
 .. c:function:: int Fenix_Data_member_stage_inplace(int group_id, int member_id, void* buf, const Fenix_Data_subset subset)
 
-   :param int group_id: Group of the member to stage to
-   :param int member_id: Member to stage to
-   :param void* buf: The data buffer which Fenix will take ownership of
-   :param Fenix_Data_subset subset: Which subset of the data to stage
-   :returns: FENIX_SUCCESS if successful
+   :param int group_id: [in] The data group containing the member. Must be a valid group ID.
+   :param int member_id: [in] The member to stage data for.
+   :param void* buf: [in] Data buffer containing elements to stage. Fenix takes ownership of this buffer and may overwrite, reallocate, or free it at any time (including during this call). The pointer may become invalid after this function returns.
+   :param Fenix_Data_subset subset: [in] Which element ranges to stage from buf. Use FENIX_DATA_SUBSET_FULL to stage all elements. Buffer must contain all elements from 0 to max(member's count, subset's end) even if subset is non-contiguous.
+   :returns: FENIX_SUCCESS if successful, error code otherwise
 
 .. cpp:function:: int fenix::data::member_stage_inplace(int group_id, int member_id, void* buf, const DataSubset& subset = SUBSET_FULL)
 
-   :param int group_id: Group of the member to stage to
-   :param int member_id: Member to stage to
-   :param void* buf: Buffer Fenix takes ownership of
-   :param DataSubset subset: Which subset to stage
+   :param int group_id: [in] Group of the member to stage to
+   :param int member_id: [in] Member to stage to
+   :param void* buf: [in] Buffer Fenix takes ownership of (may become invalid)
+   :param DataSubset subset: [in] Element ranges to stage. Default: SUBSET_FULL.
    :returns: FENIX_SUCCESS if successful
 
 .. note::
