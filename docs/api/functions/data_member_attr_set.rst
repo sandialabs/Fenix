@@ -9,11 +9,11 @@ Set the value of a member's attribute.
 
 .. cpp:function:: int fenix::data::member_attr_set(int group_id, int member_id, int attr, void* value, int* flag)
 
-   :param int group_id: The group to update
-   :param int member_id: The member to update
-   :param int attr: The attribute to update
-   :param void* value: The new value of the attribute
-   :param int* flag: Set to true if the attribute was set, else false
+   :param int group_id: [in] The data group to update
+   :param int member_id: [in] The member to update
+   :param int attr: [in] The attribute to set. Valid: BUFFER, COUNT, or DATATYPE. COUNT and DATATYPE only settable before first store.
+   :param void* value: [in] Pointer to new attribute value
+   :param int* flag: [out] Set to 1 if successful, 0 otherwise
    :returns: FENIX_SUCCESS if successful
 
 .. note::
@@ -22,5 +22,10 @@ Set the value of a member's attribute.
    be set before the first store operation. Contrary to the Fenix specification, returning
    to Fenix_Init after a failure does not allow the user to set these attributes again.
 
+**Common Use Cases:**
+
+- **Dynamic memory reallocation**: Update BUFFER attribute when using realloc() or std::vector::resize()
+- **Pointer updates**: Keep Fenix in sync when application data structures are reorganized in memory
+
 .. seealso::
-   :c:func:`Fenix_Data_member_attr_get`, :c:func:`Fenix_Data_member_create`
+   :c:func:`Fenix_Data_member_attr_get`, :c:func:`Fenix_Data_member_create`, :c:func:`Fenix_Data_member_define`
