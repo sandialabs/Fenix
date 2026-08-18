@@ -3,15 +3,16 @@ member_delete
 
 .. operation:: local
 
-Delete a data member from a group.
+Delete a data member from a group. Frees the member's metadata and any stored
+checkpoint data.
 
 .. c:function:: int Fenix_Data_member_delete(int group_id, int member_id)
 
 .. cpp:function:: int fenix::data::member_delete(int group_id, int member_id)
 
-   :param int group_id: The group to delete from
-   :param int member_id: The member to delete
-   :returns: FENIX_SUCCESS if successful
+   :param int group_id: [in] The group containing the member
+   :param int member_id: [in] The member to delete 
+   :returns: FENIX_SUCCESS if successful, error code otherwise
 
 .. seealso::
    :c:func:`Fenix_Data_member_create`, :c:func:`Fenix_Data_member_created`

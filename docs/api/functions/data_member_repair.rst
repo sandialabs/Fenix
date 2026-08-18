@@ -9,17 +9,19 @@ Repair the resilient storage of committed data for a member.
 
 .. cpp:function:: int fenix::data::member_repair(int group_id, int member_id)
 
-   :param int group_id: The group of the member to repair
-   :param int member_id: The member to repair
+   :param int group_id: [in] The data group containing the member. All ranks in the group must provide the same value.
+   :param int member_id: [in] The member whose redundant storage to repair/reconstruct after failures. All ranks must provide the same value. Member does not need to exist locally (will be created with NULL buffer if missing).
    :returns: FENIX_SUCCESS if successful
 
-.. note::
-   All ranks in this group must call with the same group_id and member_id. May also be matched
-   by a call to :c:func:`Fenix_Data_member_restore`. Member does not have to exist locally. If
-   member does not exist locally, this function is equivalent to calling :c:func:`Fenix_Data_member_create`
-   with a null buffer before this function's normal behavior. If the group's policy is unable to
-   rebuild this member (i.e., in the case of an unrecoverable failure pattern), raises
-   FENIX_ERROR_NODATA_FOUND.
+The member does not need to exist locally prior to this call. If the member is
+created by this call, it will be created without a serializer and with a NULL
+buffer (see :cpp:func:`member_define`).
+
+This function can be matched remotely by a call to :cpp:func:`member_restore` on
+the same member.
+
+This function does not load any data into the application's memory. See
+:cpp:func:`member_load` or :cpp:func:`member_restore`.
 
 .. warning::
    Behavior is currently undefined if this group's comm has a different size than it had when
