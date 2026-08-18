@@ -76,15 +76,19 @@ int main(int argc, char** argv) {
     );
   std::vector<int> large_buffer(150, -888);
 
-  ret =
-    member_load(my_group, my_member, large_buffer.data(), 150, 0, found_subset);
+  try {
+    ret =
+      member_load(my_group, my_member, large_buffer.data(), 150, 0, found_subset);
+  } catch (const fenix::RuntimeException& e) {
+    ret = e.error;
+  }
 
   // Should get FENIX_WARNING_PARTIAL_RESTORE (101) since checkpoint only has
   // 100 elements
-  if (ret != 101) {
+  if (ret != FENIX_WARNING_PARTIAL_RESTORE) {
     fprintf(
-      stderr, "Rank %d: ERROR expected partial restore warning (101), got %d\n",
-      rank, ret
+      stderr, "Rank %d: ERROR expected partial restore warning (%d), got %d\n",
+      rank, FENIX_WARNING_PARTIAL_RESTORE, ret
     );
     MPI_Abort(res_comm, 1);
   }

@@ -164,22 +164,34 @@ int main(int argc, char** argv) {
   int ret_member10, ret_member20, ret_member30;
 
   // Restore member 10
-  ret_member10 = member_restore(
-    my_group, member_10, data10.data(), data10.size(), timestamp,
-    restored_subset
-  );
+  try {
+    ret_member10 = member_restore(
+      my_group, member_10, data10.data(), data10.size(), timestamp,
+      restored_subset
+    );
+  } catch (const fenix::RuntimeException& e) {
+    ret_member10 = e.error; 
+  }
 
   // Restore member 20
-  ret_member20 = member_restore(
-    my_group, member_20, data20.data(), data20.size(), timestamp,
-    restored_subset
-  );
+  try {
+    ret_member20 = member_restore(
+      my_group, member_20, data20.data(), data20.size(), timestamp,
+      restored_subset
+    );
+  } catch (const fenix::RuntimeException& e) {
+    ret_member20 = e.error; 
+  }
 
   // Restore member 30
-  ret_member30 = member_restore(
-    my_group, member_30, data30.data(), data30.size(), timestamp,
-    restored_subset
-  );
+  try {
+    ret_member30 = member_restore(
+      my_group, member_30, data30.data(), data30.size(), timestamp,
+      restored_subset
+    );
+  } catch (const fenix::RuntimeException& e) {
+    ret_member30 = e.error; 
+  }
 
   // Verify only valid return codes
   const int FENIX_WARNING_PARTIAL_RESTORE = 101;

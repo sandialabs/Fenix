@@ -251,6 +251,10 @@ int member_attr_set(
   int group_id, int member_id, int attr, void* value, int* flag
 );
 
+int member_attr_get(
+  int group_id, int member_id, int attr, void* value, int* flag
+);
+
 //!@brief Overload of #Fenix_Data_member_stage
 int member_stage(
   int group_id, int member_id, const DataSubset& subset = SUBSET_FULL

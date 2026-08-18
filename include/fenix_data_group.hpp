@@ -57,7 +57,10 @@
 #define __FENIX_DATA_GROUP_H__
 
 #include <unordered_map>
+#include <map>
+#include <memory>
 #include <vector>
+#include <set>
 #include <source_location>
 
 #include <mpi.h>
@@ -74,6 +77,8 @@ namespace fenix::data {
 struct fenix_group_t {
   fenix_group_t(int groupid, MPI_Comm c, int timestart, int depth, int policy);
 
+  virtual ~fenix_group_t() = default;
+
   int groupid;
   MPI_Comm comm;
   int comm_size;
@@ -82,9 +87,11 @@ struct fenix_group_t {
   int timestamp;
   int depth;
   int policy_name;
-  std::unordered_map<int, fenix_member_entry_t> members;
-  // Kept in order of creation
+  using MemberSet =
+    std::set<std::shared_ptr<fenix_member_entry_t>, MemberIdComparator>;
+  MemberSet members;
   std::vector<int> member_order;
+  std::set<int, std::greater<int>> timestamps; // Reverse sorted: newest first
 
   std::vector<int> get_member_ids();
   //Search for id, returning null if not found.
@@ -93,94 +100,45 @@ struct fenix_group_t {
   fenix_member_entry_t* find_member(
     int id, std::source_location loc = std::source_location::current()
   );
-  int member_create(int id, void* data, int count, MPI_Datatype datatype);
-  int member_create(
+  void member_create(int id, void* data, int count, MPI_Datatype datatype);
+  void member_create(
     int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
   );
-  int member_create(int id, void* data, int count, int datatype_size);
-  int member_delete(int memberid);
+  void member_create(int id, void* data, int count, int datatype_size);
 
-  virtual int group_delete()                                          = 0;
-  virtual int member_create(fenix_member_entry_t* member)             = 0;
-  virtual int member_delete(fenix_member_entry_t* member)             = 0;
-  virtual int get_redundant_policy(int* name, void* value, int* flag) = 0;
-  virtual void member_stage_begin(int memberid, FILE** fp)            = 0;
-  virtual void member_stage_begin(int memberid, std::iostream** strm) = 0;
-  virtual void member_stage_end(int memberid)                         = 0;
-  virtual void member_stage(int memberid, const DataSubset& subset)   = 0;
-  virtual void member_stage_inplace(
-    int memberid, void* buf, const DataSubset& subset
-  )                                                                 = 0;
-  virtual int member_store(int memberid, const DataSubset& subset)  = 0;
-  virtual int member_storev(int memberid, const DataSubset& subset) = 0;
-  virtual int member_istore(
-    int memberid, const DataSubset& subset, Fenix_Request* req
-  ) = 0;
-  virtual int member_istorev(
-    int memberid, const DataSubset& subset, Fenix_Request* req
-  )                                          = 0;
-  virtual int commit()                       = 0;
-  virtual int snapshot_delete(int timestamp) = 0;
-  virtual int barrier()                      = 0;
-  virtual void member_load_begin(
-    int memberid, FILE** fp, int timestamp, DataSubset& data_found
-  ) = 0;
-  virtual void member_load_begin(
-    int memberid, std::iostream** strm, int timestamp, DataSubset& data_found
-  )                                          = 0;
-  virtual void member_load_end(int memberid) = 0;
-  virtual int member_restore(
-    int member_id, void* target_bugger, int max, int timestamp,
-    DataSubset& data_found
-  ) = 0;
-  virtual int member_lrestore(
-    int member_id, void* target_bugger, int max, int timestamp,
-    DataSubset& data_found
-  ) = 0;
-  virtual int member_restore_from_rank(
+  virtual void member_delete(int memberid);
+
+  // Create and emplace a policy-specific member into members map
+  virtual void emplace_member(fenix_member_entry_t&& mentry);
+
+  virtual void get_redundant_policy(int* name, void* value) = 0;
+
+  virtual void member_repair(int member_id) = 0;
+  virtual void member_restore_from_rank(
     int member_id, void* target_bugger, int max, int timestamp, int source_rank
-  )                                                                  = 0;
-  virtual int get_number_of_snapshots(int* num)                      = 0;
-  virtual int get_snapshot_at_position(int position, int* timestamp) = 0;
-  virtual std::vector<int> get_snapshots()                           = 0;
-  virtual int reinit(int* flag)                                      = 0;
-  virtual int member_get_attribute(
-    fenix_member_entry_t* mentry, int name, void* value, int* flag,
-    int sourcerank
-  ) = 0;
-  virtual int member_set_attribute(
-    fenix_member_entry_t* mentry, int name, void* value, int* flag
-  ) = 0;
+  )                     = 0;
+  virtual void reinit() = 0;
+
+  // Default implementations using timestamps
+  virtual void commit();
+  virtual void snapshot_delete(int timestamp);
+  virtual int get_number_of_snapshots();
+  virtual int get_snapshot_at_position(int position);
+  virtual std::vector<int> get_snapshots();
 };
 
-typedef struct __fenix_data_recovery {
-  size_t count;
-  size_t total_size;
-  fenix::data::fenix_group_t** group;
-} fenix_data_recovery_t;
+struct GroupIdComparator {
+  using is_transparent = void; // Enables heterogeneous lookup
 
-typedef struct __group_entry_packet {
-  int groupid;
-  int timestamp;
-  int depth;
-  int rank_separation;
-} fenix_group_entry_packet_t;
+  bool operator()(
+    const std::shared_ptr<fenix_group_t>& a,
+    const std::shared_ptr<fenix_group_t>& b
+  ) const;
 
-fenix_data_recovery_t* __fenix_data_recovery_init();
+  bool operator()(const std::shared_ptr<fenix_group_t>& a, int id) const;
 
-int __fenix_data_recovery_remove_group(int groupid);
-void __fenix_data_recovery_destroy(fenix_data_recovery_t* fx_data_recovery);
-
-void __fenix_ensure_data_recovery_capacity(fenix_data_recovery_t* dr);
-
-int __fenix_search_groupid(int key, fenix_data_recovery_t* dr);
-
-int __fenix_find_next_group_position(fenix_data_recovery_t* dr);
-
-fenix_group_t* search_group(int id);
-fenix_group_t* find_group(
-  int id, std::source_location loc = std::source_location::current()
-);
+  bool operator()(int id, const std::shared_ptr<fenix_group_t>& a) const;
+};
 
 } //end namespace fenix::data
 

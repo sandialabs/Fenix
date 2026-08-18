@@ -331,11 +331,11 @@ int Fenix_Data_member_fdefine(
   FENIX_C_API_BEGIN
   int ret = member_define(group_id, member_id, buffer, count, datatype);
   if (ret == FENIX_SUCCESS) {
-    find_group(group_id)->find_member(member_id)->ser_func.emplace(
-      [serializer, ctx](FILE* fp, int d, void* b, int o, int c) {
+    fenix_rt.data_recovery->find_member(group_id, member_id)
+      ->ser_func.emplace([serializer,
+                          ctx](FILE* fp, int d, void* b, int o, int c) {
         return serializer(fp, d, b, o, c, ctx);
-      }
-    );
+      });
   }
   return ret;
   FENIX_C_API_END
@@ -420,12 +420,6 @@ int Fenix_Data_checkpoint(
   FENIX_C_API_END
 }
 
-int Fenix_Data_barrier(int group_id) {
-  FENIX_C_API_BEGIN
-  return 0;
-  FENIX_C_API_END
-}
-
 int Fenix_Data_member_restore(
   int group_id, int member_id, void* target_buffer, int max_count,
   int time_stamp, Fenix_Data_subset* data_found
@@ -450,9 +444,8 @@ int Fenix_Data_member_lrestore(
 ) {
   FENIX_C_API_BEGIN
   DataSubset* s = new DataSubset();
-  int ret       = member_lrestore(
-    group_id, member_id, target_buffer, max_count, time_stamp, *s
-  );
+  int ret =
+    member_load(group_id, member_id, target_buffer, max_count, time_stamp, *s);
   if (data_found == nullptr) {
     delete s;
   } else {

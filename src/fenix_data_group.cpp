@@ -55,6 +55,7 @@
 */
 
 #include <cassert>
+#include <algorithm>
 
 #include "mpi.h"
 #include "fenix-config.h"
@@ -65,23 +66,6 @@
 #include "fenix/mpi_util.hpp"
 
 namespace fenix::data {
-
-fenix_group_t* search_group(int id) {
-  auto dr = fenix_rt.data_recovery;
-  for (int i = 0; i < dr->count; i++) {
-    auto group = dr->group[i];
-    if (dr->group[i]->groupid == id) {
-      return dr->group[i];
-    }
-  }
-  return nullptr;
-}
-
-fenix_group_t* find_group(int id, std::source_location loc) {
-  auto group = search_group(id);
-  if (!group) FENIX_THROW_FROM(FENIX_ERROR_INVALID_GROUPID, loc);
-  return group;
-}
 
 fenix_group_t::fenix_group_t(
   int m_groupid, MPI_Comm m_comm, int m_timestart, int m_depth, int m_policy
@@ -99,8 +83,8 @@ fenix_group_t::fenix_group_t(
 fenix_member_entry_t* fenix_group_t::search_member(int id) {
   auto iter = members.find(id);
   if (iter == members.end()) return nullptr;
-  assert(iter->first == iter->second.memberid);
-  return &(iter->second);
+  assert((*iter)->memberid == id);
+  return iter->get();
 }
 
 fenix_member_entry_t* fenix_group_t::find_member(
@@ -111,159 +95,110 @@ fenix_member_entry_t* fenix_group_t::find_member(
   return member;
 }
 
-int fenix_group_t::member_create(
+// Create a member with MPI_Datatype
+// Creates temporary base entry, calls emplace_member to replace with policy
+// type, then calls virtual member_create for initialization
+void fenix_group_t::member_create(
   int id, void* data, int count, MPI_Datatype datatype
 ) {
-  auto [iter, emplaced] = members.try_emplace(id, id, data, count, datatype);
-  if (!emplaced) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+  if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+
+  // Let policy replace with its specific Member type
+  this->emplace_member({id, data, count, datatype, depth});
+
+  auto iter = members.find(id);
+  fenix_assert(iter != members.end(), "emplace_member failed");
+
   member_order.push_back(id);
-  return this->member_create(&iter->second);
+  (*iter)->init_snapshots();
 }
 
-int fenix_group_t::member_create(
+// Create a member with MPI_Datatype and custom serialization function
+void fenix_group_t::member_create(
   int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
 ) {
-  auto [iter, emplaced] = members.try_emplace(id, id, data, count, datatype, s);
-  if (!emplaced) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+  if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+
+  this->emplace_member({id, data, count, datatype, depth, s});
+
+  auto iter = members.find(id);
+  fenix_assert(iter != members.end(), "emplace_member failed");
+
   member_order.push_back(id);
-  return this->member_create(&iter->second);
+  (*iter)->init_snapshots();
 }
 
-int fenix_group_t::member_create(
+// Create a member with explicit datatype size
+void fenix_group_t::member_create(
   int id, void* data, int count, int datatype_size
 ) {
-  auto [iter, emplaced] =
-    members.try_emplace(id, id, data, count, datatype_size);
-  if (!emplaced) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+  if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
+
+  // Let policy replace with its specific Member type
+  this->emplace_member({id, data, count, datatype_size, depth});
+
+  auto iter = members.find(id);
+  fenix_assert(iter != members.end(), "emplace_member failed");
+
   member_order.push_back(id);
-  return this->member_create(&iter->second);
+  (*iter)->init_snapshots();
 }
 
-int fenix_group_t::member_delete(int id) {
-  auto member = find_member(id);
-  int ret     = this->member_delete(member);
-  if (ret == FENIX_SUCCESS) {
-    members.erase(id);
-    for (int i = 0; i < member_order.size(); i++) {
-      if (member_order[i] == id) {
-        member_order.erase(member_order.begin() + i);
-        break;
-      }
+void fenix_group_t::emplace_member(fenix_member_entry_t&& mentry) {
+  members.insert(std::make_shared<fenix_member_entry_t>(std::move(mentry)));
+}
+
+void fenix_group_t::member_delete(int id) {
+  auto iter = members.find(id);
+  if (iter == members.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  members.erase(iter);
+  for (int i = 0; i < member_order.size(); i++) {
+    if (member_order[i] == id) {
+      member_order.erase(member_order.begin() + i);
+      break;
     }
   }
-  return ret;
 }
 
 std::vector<int> fenix_group_t::get_member_ids() { return member_order; }
 
-fenix_data_recovery_t* __fenix_data_recovery_init() {
-  fenix_data_recovery_t* data_recovery =
-    (fenix_data_recovery_t*)s_calloc(1, sizeof(fenix_data_recovery_t));
-
-  data_recovery->count      = 0;
-  data_recovery->total_size = __FENIX_DEFAULT_GROUP_SIZE;
-
-  data_recovery->group = (fenix_group_t**)s_malloc(
-    __FENIX_DEFAULT_GROUP_SIZE * sizeof(fenix_group_t*)
-  );
-
-  if (fenix_rt.options.verbose == 41) {
-    verbose_print(
-      "c-rank: %d, role: %d, g-count: %zu, g-size: %zu\n",
-      __fenix_get_current_rank(fenix_rt.new_world), fenix_rt.role,
-      data_recovery->count, data_recovery->total_size
-    );
+void fenix_group_t::commit() {
+  if (timestamps.size() == depth + 1) {
+    // Remove oldest timestamp (last in reverse-sorted set)
+    timestamps.erase(--timestamps.end());
   }
-
-  return data_recovery;
+  timestamps.insert(timestamp);
+  for (auto& member : members) member->commit(timestamp);
 }
 
-int __fenix_group_delete_direct(fenix_group_t* group) {
-  //We need this function to remove any allocated pointers
-  //that the fenix core adds before called the policy-specific
-  //group delete. This lets us update fenix core's group struct
-  //without having to potentially update the deletion process
-  //for each and every policy.
-  //
-  //We'll leave responsibility for calling
-  //__fenix_data_member_destroy()
-  //to the policy, as it may be using that as a reference for
-  //knowing how many members there are during its own deletion
-  //process.
+void fenix_group_t::snapshot_delete(int ts) {
+  if (timestamps.empty()) {
+    FENIX_THROW(FENIX_ERROR_INVALID_TIMESTAMP);
+  } else if (ts == FENIX_DATA_SNAPSHOT_ALL) {
+    while (!timestamps.empty()) this->snapshot_delete(*timestamps.begin());
+  } else {
+    if (ts == FENIX_DATA_SNAPSHOT_LATEST) ts = *timestamps.begin();
 
-  return group->group_delete();
-}
+    auto it = timestamps.find(ts);
+    if (it == timestamps.end()) FENIX_THROW(FENIX_ERROR_INVALID_TIMESTAMP);
+    timestamps.erase(it);
 
-int __fenix_data_recovery_remove_group(int groupid) {
-  auto dr = fenix_rt.data_recovery;
-
-  bool found = false;
-  for (int i = 0; i < dr->count; i++) {
-    if (dr->group[i] && dr->group[i]->groupid == groupid) {
-      found = true;
-    }
-    if (found) {
-      if (i < dr->count - 1) dr->group[i] = dr->group[i + 1];
-      else dr->group[i] = nullptr;
-    }
-  }
-  if (!found) FENIX_THROW(FENIX_ERROR_INVALID_GROUPID);
-  dr->count--;
-
-  return FENIX_SUCCESS;
-}
-
-void __fenix_data_recovery_destroy(fenix_data_recovery_t* data_recovery) {
-  int group_index;
-  for (group_index = 0; group_index < data_recovery->count; group_index++) {
-    fenix_group_t* group = (data_recovery->group[group_index]);
-
-    //Specific data policy function frees any data policy constructs
-    __fenix_group_delete_direct(group);
-  }
-  free(data_recovery->group);
-  free(data_recovery);
-}
-
-void __fenix_ensure_data_recovery_capacity(
-  fenix_data_recovery_t* data_recovery
-) {
-  //If we're ensuring there is space for a new group, we need to check that
-  //count+1 is < size
-  if (data_recovery->count + 1 >= data_recovery->total_size) {
-    int start_index      = data_recovery->total_size;
-    data_recovery->group = (fenix_group_t**)s_realloc(
-      data_recovery->group,
-      (data_recovery->total_size * 2) * sizeof(fenix_group_t*)
-    );
-    data_recovery->total_size = data_recovery->total_size * 2;
-
-    if (fenix_rt.options.verbose == 51) {
-      verbose_print(
-        "g-count: %zu, g-size: %zu\n", data_recovery->count,
-        data_recovery->total_size
-      );
-    }
+    for (auto& member : members) member->snapshot_delete(ts);
   }
 }
 
-int __fenix_search_groupid(int key, fenix_data_recovery_t* data_recovery) {
-  int group_index, found = -1, index = -1;
-  for (group_index = 0; (found != 1) && (group_index < data_recovery->count);
-       group_index++) {
-    fenix_group_t* group = (data_recovery->group[group_index]);
-    if (key == group->groupid) {
-      index = group_index;
-      found = 1;
-    }
-  }
-  return index;
+int fenix_group_t::get_number_of_snapshots() { return timestamps.size(); }
+
+int fenix_group_t::get_snapshot_at_position(int position) {
+  if (position < 0 || position >= timestamps.size())
+    FENIX_THROW(FENIX_ERROR_INVALID_POSITION);
+  auto it = timestamps.begin();
+  std::advance(it, position);
+  return *it;
 }
 
-int __fenix_find_next_group_position(fenix_data_recovery_t* data_recovery) {
-  //Ensure that we have space.
-  __fenix_ensure_data_recovery_capacity(data_recovery);
-  return data_recovery->count;
+std::vector<int> fenix_group_t::get_snapshots() {
+  return {timestamps.begin(), timestamps.end()};
 }
 
 } //end namespace fenix::data

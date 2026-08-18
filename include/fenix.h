@@ -599,6 +599,7 @@ int Fenix_Finalize();
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
 #define FENIX_DATA_POLICY_IMR FENIX_DATA_POLICY_IN_MEMORY_RAID
+#define FENIX_DATA_POLICY_LOCAL 14
 
 #define FENIX_TIME_STAMP_IGNORE NULL
 
@@ -993,9 +994,6 @@ int Fenix_Data_checkpoint(
   int* time_stamp
 );
 
-//!@unimplemented Block until all ranks in the group have reached this point.
-int Fenix_Data_barrier(int group_id);
-
 /**
  * @brief Repair the resilient storage of committed data for this member.
  * @qualifier collective
@@ -1288,7 +1286,7 @@ int Fenix_Data_group_get_snapshot_at_position(
 //!@unimplemented Get the value of a member's attribute.
 int Fenix_Data_member_attr_get(
   int group_id, int member_id, int attributename, void* attributevalue,
-  int* flag, int source_rank
+  int* flag
 );
 
 /**

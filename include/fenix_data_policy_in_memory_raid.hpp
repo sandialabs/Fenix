@@ -66,104 +66,57 @@
 #include "fenix_data_group.hpp"
 #include "fenix_data_buffer.hpp"
 #include "fenix_data_subset.hpp"
+#include "fenix_data_snapshot.hpp"
 #include "fenix/tasks/task.hpp"
 
 namespace fenix::data::imr {
 
-struct Entry {
-  //No copying, must be moved
-  Entry(const Entry&) = delete;
-  Entry(Entry&&);
-  Entry& operator=(Entry&&);
-
+struct Entry : public fenix::data::Snapshot {
   Entry(int size, int max_count);
 
-  //Re-initializes
-  void reset();
+  //IMR-specific partner data as a second Snapshot
+  Snapshot partner;
 
-  //Get raw buffer pointer
-  char* data();
-  //Get buffer size
-  int size();
-  //Resize buffer
-  void resize(int size);
-  //Add subset to region and ensure buf is large enough.
-  void add_and_fit(const DataSubset& subset);
-
-  DataBuffer buf;
-  DataSubset region;
-
-  char* partner_data();
-  int partner_size();
-  void partner_resize(int size);
-  void partner_add_and_fit(const DataSubset& subset);
-
-  DataBuffer partner_buf;
-  DataSubset partner_region;
-
-  int timestamp = -2;
-  int elm_size;
-  int elm_max_count;
+  //Accessor for partner snapshot
+  Snapshot& partner_snapshot() { return partner; }
 };
 
 struct Group;
 
-struct Member {
-  Member(fenix_member_entry_t& mentry, Group& group);
+struct Member : public fenix_member_entry_t {
+  Member(fenix_member_entry_t&& mentry, Group& group);
 
-  //Returns true if snapshot was found.
-  bool snapshot_delete(int timestamp);
+  // Override create_snapshot to return IMR Entry type
+  std::unique_ptr<Snapshot> create_snapshot(int size, int max_count) override {
+    return std::make_unique<imr::Entry>(size, max_count);
+  }
 
-  void stage(const DataSubset& subset);
-  void stage_inplace(void* buf, const DataSubset& subset);
-  void stage_begin(FILE** fp);
-  void stage_begin(std::iostream** strm);
-  void stage_end();
+  // Staging and loading functions use base class default implementations
 
-  //Member::istore(v) copies local data and region.
-  tasks::Task<int> istore(const DataSubset& subset);
-  //Handles partner data and region
+  // Member::istore(v) handle local data and region, while istore(v)_impl handle
+  // partner data and region
+  tasks::Task<int> istore(const DataSubset& subset) override;
   virtual tasks::Task<int> istore_impl(const DataSubset& subset) = 0;
 
-  //As istore(_impl)
-  tasks::Task<int> istorev(const DataSubset& subset);
+  tasks::Task<int> istorev(const DataSubset& subset) override;
   virtual tasks::Task<int> istorev_impl(const DataSubset& subset) = 0;
 
-  //These call the async versions and wait on them.
-  int store(const DataSubset& subset) { return istore(subset).result(); }
-  int storev(const DataSubset& subset) { return istorev(subset).result(); }
-
-  void load_begin(FILE** fp, int timestamp, DataSubset& subset);
-  void load_begin(std::iostream** strm, int timestamp, DataSubset& subset);
-  void load_end();
-
   //Restore all internal snapshot data
-  //Moves entries to align with the group's list of timestamps.
-  //Impl must handle actually restoring entry data
-  int restore();
-  virtual int restore_impl() = 0;
+  //Moves snapshots to align with the group's list of timestamps.
+  //Impl must handle actually restoring snapshot data
+  void repair();
+  virtual void repair_impl() = 0;
 
-  int lrestore(char* target, int max, int timestamp, DataSubset& subset);
-
-  void commit(int timestamp);
-
-  fenix_member_entry_t& mentry;
   Group& group;
-  int id = mentry.memberid;
-  // entries to be initialized by inheritors
-  std::deque<Entry> entries;
+  int id = memberid;
 
   DataBuffer& send_buf;
   DataBuffer& recv_buf;
-
- private:
-  void stage_resizeable(const DataSubset& subset, SerializeFileFunc& f);
-  void stage_resizeable(const DataSubset& subset, SerializeStreamFunc& f);
 };
 
 struct BuddyMember : public Member {
-  BuddyMember(fenix_member_entry_t& mentry, Group& group);
-  int restore_impl() override;
+  BuddyMember(fenix_member_entry_t&& mentry, Group& group);
+  void repair_impl() override;
   tasks::Task<int> istore_impl(const DataSubset& subset) override;
   tasks::Task<int> istorev_impl(const DataSubset& subset) override;
   tasks::Task<int> exch(
@@ -172,20 +125,18 @@ struct BuddyMember : public Member {
 };
 
 struct ParityMember : public Member {
-  ParityMember(fenix_member_entry_t& mentry, Group& group);
-  int restore_impl() override;
+  ParityMember(fenix_member_entry_t&& mentry, Group& group);
+  void repair_impl() override;
   tasks::Task<int> istore_impl(const DataSubset& subset) override;
 
   tasks::Task<int> istorev_impl(const DataSubset& subset) override {
     fatal_print("IMR mode 5 cannot storev");
     co_return 0;
-  };
+  }
 };
 
 struct Group : public fenix_group_t {
-  Group(
-    int id, MPI_Comm comm, int timestart, int depth, int* policy, int* flag
-  );
+  Group(int id, MPI_Comm comm, int timestart, int depth, int* policy);
 
   int mode;
   int rank_separation;
@@ -195,77 +146,24 @@ struct Group : public fenix_group_t {
   int set_size, set_rank;
   static inline bool set_comm_revoke_callback = false;
 
-  std::map<int, std::shared_ptr<Member>> member_data;
-  std::deque<int> timestamps;
-
   DataBuffer send_buf, recv_buf;
 
   void sync_timestamps();
   void build_set_comm();
 
-  //nullptr if member not found
-  Member* find_member(int member_id);
-
   std::string str();
 
-  int group_delete() override;
-  int member_create(fenix_member_entry_t* mentry) override;
-  int member_delete(fenix_member_entry_t* mentry) override;
-  int get_redundant_policy(int* name, void* value, int* flag) override;
+  void emplace_member(fenix_member_entry_t&& mentry) override;
+  void get_redundant_policy(int* name, void* value) override;
 
-  void member_stage(int member_id, const DataSubset& subset) override;
-  void member_stage_inplace(
-    int member_id, void* buf, const DataSubset& subset
-  ) override;
-  void member_stage_begin(int member_id, FILE** fp) override;
-  void member_stage_begin(int member_id, std::iostream** strm) override;
-  void member_stage_end(int member_id) override;
+  void commit() override;
 
-  void member_load_begin(
-    int member_id, FILE** fp, int timestamp, DataSubset& data_found
-  ) override;
-  void member_load_begin(
-    int member_id, std::iostream** strm, int timestamp, DataSubset& data_found
-  ) override;
-  void member_load_end(int member_id) override;
-
-  int member_store(int member_id, const DataSubset& subset) override;
-  int member_storev(int member_id, const DataSubset& subset) override;
-  int member_istore(
-    int member_id, const DataSubset& subset, Fenix_Request* request
-  ) override;
-  int member_istorev(
-    int member_id, const DataSubset& subset, Fenix_Request* request
-  ) override;
-
-  int commit() override;
-
-  int snapshot_delete(int timestamp) override;
-  int barrier() override;
-
-  int member_restore(
-    int member_id, void* buffer, int max, int timestamp, DataSubset& data_found
-  ) override;
-  int member_lrestore(
-    int member_id, void* buffer, int max, int timestamp, DataSubset& data_found
-  ) override;
-  int member_restore_from_rank(
+  void member_repair(int member_id) override;
+  void member_restore_from_rank(
     int member_id, void* buffer, int max, int timestamp, int source_rank
   ) override;
 
-  int member_get_attribute(
-    fenix_member_entry_t* member, int name, void* value, int* flag,
-    int sourcerank
-  ) override;
-  int member_set_attribute(
-    fenix_member_entry_t* member, int name, void* value, int* flag
-  ) override;
-
-  int get_number_of_snapshots(int* number_of_snapshots) override;
-  int get_snapshot_at_position(int position, int* timestamp) override;
-  std::vector<int> get_snapshots();
-
-  int reinit(int* flag) override;
+  void reinit() override;
 };
 
 } // namespace fenix::data::imr

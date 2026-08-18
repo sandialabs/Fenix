@@ -112,7 +112,7 @@ bool test_copy(
   for (int& i : in) i = default_inval;
   for (int& i : out) i = default_outval;
 
-  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int), s);
+  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int), 0, s);
 
   mentry.serialize(a, b);
   mentry.deserialize(a, b, out);

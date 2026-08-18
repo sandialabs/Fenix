@@ -56,7 +56,6 @@
 #ifndef __FENIX_DATA_SUBSET_HPP__
 #define __FENIX_DATA_SUBSET_HPP__
 
-#include "fenix.h"
 #include "fenix_opt.hpp"
 #include "fenix_data_buffer.hpp"
 

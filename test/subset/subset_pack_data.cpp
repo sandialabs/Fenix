@@ -85,7 +85,7 @@ bool test_pack_data(const DataSubset& a) {
 
   DataBuffer in_buf, out_buf, packed_buf;
 
-  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int));
+  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int), 0);
 
   // Data to in_buf
   mentry.serialize(a, in_buf);

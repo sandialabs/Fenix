@@ -117,7 +117,7 @@ static int preinit(
     );
   }
 
-  fenix_rt.data_recovery = data::__fenix_data_recovery_init();
+  fenix_rt.data_recovery = new data::DataComponent();
 
   /*****************************************************/
   /* Note: fenix_rt.new_world is only valid for the   */
@@ -771,7 +771,7 @@ void __fenix_finalize_spare() {
   free(fenix_rt.world);
 
   /* Free data recovery interface */
-  __fenix_data_recovery_destroy(fenix_rt.data_recovery);
+  delete fenix_rt.data_recovery;
 
   /* Free up any C++ data structures, reset default variables */
   SpareFinalizeMode mode = fenix_rt.settings.spare_finalize;
@@ -969,7 +969,7 @@ int Fenix_Finalize() {
   }
 
   /* Free data recovery interface */
-  __fenix_data_recovery_destroy(fenix_rt.data_recovery);
+  delete fenix_rt.data_recovery;
 
   /* Free up any C++ data structures, reset default variables */
   auto role          = fenix_rt.role;

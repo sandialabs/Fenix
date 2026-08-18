@@ -57,11 +57,16 @@
 #define __FENIX_DATA_MEMBER_H__
 
 #include <optional>
+#include <deque>
+#include <memory>
+#include <source_location>
 
 #include "fenix_data_subset.hpp"
 #include "fenix_data_buffer.hpp"
+#include "fenix_data_snapshot.hpp"
 #include "fenix/data/util/data_ref.hpp"
 #include "fenix/data/util/serializer.hpp"
+#include "fenix/tasks/task.hpp"
 
 namespace fenix::data {
 
@@ -76,27 +81,22 @@ struct fenix_member_entry_packet_t {
 class fenix_member_entry_t {
  public:
   using Serializer = util::Serializer;
+  using CommitSet =
+    std::set<std::unique_ptr<Snapshot>, SnapshotTimestampComparator>;
+  using CommitIter = CommitSet::iterator;
 
-  fenix_member_entry_t() = default;
-
-  fenix_member_entry_t(int id, void* data, int count, MPI_Datatype datatype);
-  fenix_member_entry_t(int id, void* data, int count, int datatype_size);
-
-  fenix_member_entry_t(
-    int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
-  );
-  fenix_member_entry_t(
-    int id, void* data, int count, int datatype_size, SerializeFunc& s
-  );
+  fenix_member_entry_t() = delete;
 
   fenix_member_entry_t(
-    int id, void* data, int count, MPI_Datatype datatype,
-    std::optional<SerializeFunc> s
+    int id, void* data, int count, MPI_Datatype datatype, int depth,
+    std::optional<SerializeFunc> s = {}
   );
   fenix_member_entry_t(
-    int id, void* data, int count, int datatype_size,
-    std::optional<SerializeFunc> s
+    int id, void* data, int count, int datatype_size, int depth,
+    std::optional<SerializeFunc> s = {}
   );
+
+  fenix_member_entry_t(fenix_member_entry_t&& other);
 
   fenix_member_entry_packet_t to_packet();
 
@@ -106,25 +106,85 @@ class fenix_member_entry_t {
 
   int elm_count();
 
-  void stage_begin(FILE** fp, DataBuffer& buf);
-  void stage_begin(std::iostream** fp, DataBuffer& buf);
-  void stage_end();
+  // Create a (possibly policy-specific) snapshot with specified capacity
+  virtual std::unique_ptr<Snapshot> create_snapshot(int size, int max_count);
 
-  void load_begin(FILE** fp, DataBuffer& buf);
-  void load_begin(std::iostream** fp, DataBuffer& buf);
-  void load_end();
+  // Serialize user_data into buf
+  virtual void serialize(const DataSubset& subset, DataBuffer& buf);
+
+  // Deserialize buf into dst
+  virtual void deserialize(
+    const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+  );
+
+  // Data operations with default local-only implementations
+  virtual void stage(const DataSubset& subset);
+  virtual void stage_inplace(void* buf, const DataSubset& subset);
+  virtual void stage_begin(FILE** fp);
+  virtual void stage_begin(std::iostream** strm);
+  virtual void stage_end();
+  virtual void load_begin(FILE** fp, int timestamp, DataSubset& subset);
+  virtual void load_begin(
+    std::iostream** strm, int timestamp, DataSubset& subset
+  );
+  virtual void load_end();
+  virtual void load(
+    void* target, int target_count, int timestamp, DataSubset& data_found
+  );
+  virtual int store(const DataSubset& subset);
+  virtual int storev(const DataSubset& subset);
+  virtual tasks::Task<int> istore(const DataSubset& subset);
+  virtual tasks::Task<int> istorev(const DataSubset& subset);
+  virtual void repair();
+  virtual void commit(int timestamp);
+  virtual void snapshot_delete(int timestamp);
+
+  void snapshot_delete(CommitIter it);
+
+  virtual void attr_set(int attr, void* value);
+  virtual void attr_get(int attr, void* value);
+
+  virtual ~fenix_member_entry_t() = default;
+
+  // Must be called AFTER this class's constructor completes, else virtual
+  // emplace_snapshot overrides won't be used.
+  void init_snapshots();
 
   std::optional<SerializeFunc> ser_func;
 
   // Set iff stage_begin called with no matching stage_end
   std::optional<Serializer> open_serializer;
 
-  // Serialize user_data into buf
-  void serialize(const DataSubset& subset, DataBuffer& buf);
+ protected:
+  // Snapshot storage - three separate locations
 
-  // Deserialize buf into dst
-  void deserialize(
-    const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+  // Current uncommitted staging snapshot
+  std::unique_ptr<Snapshot> stage_snapshot_;
+
+  // Committed snapshots ordered by timestamp (oldest to newest)
+  CommitSet commit_snapshots_;
+
+  // Pool of unused snapshots ready for reuse
+  std::vector<std::unique_ptr<Snapshot>> avail_snapshots_;
+
+  // Maximum allowed snapshots (from group depth)
+  int depth_ = 0;
+
+  /**
+   * @brief Get reference to the current staging snapshot.
+   *
+   * @return Reference to the staging snapshot
+   */
+  Snapshot& current_snapshot();
+
+  // search for committed timestamp, returning null if not found
+  // Throws if timestamp is not valid (including FENIX_DATA_SNAPSHOT_ALL)
+  Snapshot* search_snapshot(
+    int timestamp, std::source_location loc = std::source_location::current()
+  );
+  // As search_snapshot, but throw if not found
+  Snapshot* find_snapshot(
+    int timestamp, std::source_location loc = std::source_location::current()
   );
 
  private:
@@ -138,6 +198,29 @@ class fenix_member_entry_t {
     std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf,
     const DataRef& dst
   );
+};
+
+struct MemberIdComparator {
+  using is_transparent = void; // Enables heterogeneous lookup
+
+  bool operator()(
+    const std::shared_ptr<fenix_member_entry_t>& a,
+    const std::shared_ptr<fenix_member_entry_t>& b
+  ) const {
+    return a->memberid < b->memberid;
+  }
+
+  bool operator()(
+    const std::shared_ptr<fenix_member_entry_t>& a, int id
+  ) const {
+    return a->memberid < id;
+  }
+
+  bool operator()(
+    int id, const std::shared_ptr<fenix_member_entry_t>& a
+  ) const {
+    return id < a->memberid;
+  }
 };
 
 } // namespace fenix::data
