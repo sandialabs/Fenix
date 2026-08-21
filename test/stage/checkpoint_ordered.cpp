@@ -64,7 +64,7 @@
 
 using namespace fenix::data;
 
-constexpr int my_group = 0;
+constexpr int my_group    = 0;
 constexpr int member_id_1 = 10;
 constexpr int member_id_2 = 20;
 constexpr int member_id_3 = 30;
@@ -88,25 +88,29 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(res_comm, &rank);
 
   if (num_ranks != 2) {
-    if (rank == 0) fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
+    if (rank == 0)
+      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
     Fenix_Finalize();
     MPI_Finalize();
     return 0;
   }
 
-  if (rank == 0) fprintf(stderr, "Test: checkpoint stores members in creation order\n");
+  if (rank == 0)
+    fprintf(stderr, "Test: checkpoint stores members in creation order\n");
 
   // Create group
   group_create(my_group, {.depth = 1});
 
   // Initialize data for each member
   data1 = {100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
-  data2 = {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214};
+  data2 = {200, 201, 202, 203, 204, 205, 206, 207,
+           208, 209, 210, 211, 212, 213, 214};
   data3 = {300, 301, 302, 303, 304, 305, 306, 307, 308, 309,
            310, 311, 312, 313, 314, 315, 316, 317, 318, 319};
 
   // Create 3 members with custom serializers that track staging order
-  if (rank == 0) fprintf(stderr, "  Creating members with custom serializers\n");
+  if (rank == 0)
+    fprintf(stderr, "  Creating members with custom serializers\n");
 
   // Member 1 with custom serializer
   member_define(
@@ -171,10 +175,12 @@ int main(int argc, char** argv) {
   staged_members_order.clear();
 
   int timestamp = -1;
-  int ret = checkpoint(my_group, SUBSET_FULL, {}, &timestamp);
+  int ret       = checkpoint(my_group, SUBSET_FULL, {}, &timestamp);
 
   if (ret != FENIX_SUCCESS) {
-    fprintf(stderr, "Rank %d: ERROR - checkpoint failed with code %d\n", rank, ret);
+    fprintf(
+      stderr, "Rank %d: ERROR - checkpoint failed with code %d\n", rank, ret
+    );
     MPI_Abort(res_comm, 1);
   }
 
@@ -190,51 +196,71 @@ int main(int argc, char** argv) {
 
   // Verify order is {10, 20, 30} (creation order)
   if (staged_members_order.size() != 3) {
-    fprintf(stderr, "Rank %d: ERROR - expected 3 staged members, got %zu\n",
-            rank, staged_members_order.size());
+    fprintf(
+      stderr, "Rank %d: ERROR - expected 3 staged members, got %zu\n", rank,
+      staged_members_order.size()
+    );
     MPI_Abort(res_comm, 1);
   }
 
   if (staged_members_order[0] != member_id_1 ||
       staged_members_order[1] != member_id_2 ||
       staged_members_order[2] != member_id_3) {
-    fprintf(stderr, "Rank %d: ERROR - expected order [10, 20, 30], got [%d, %d, %d]\n",
-            rank, staged_members_order[0], staged_members_order[1], staged_members_order[2]);
+    fprintf(
+      stderr,
+      "Rank %d: ERROR - expected order [10, 20, 30], got [%d, %d, %d]\n", rank,
+      staged_members_order[0], staged_members_order[1], staged_members_order[2]
+    );
     MPI_Abort(res_comm, 1);
   }
 
-  if (rank == 0) fprintf(stderr, "  ✓ Members stored in creation order: [10, 20, 30]\n");
+  if (rank == 0)
+    fprintf(stderr, "  ✓ Members stored in creation order: [10, 20, 30]\n");
 
   // Verify data integrity
   if (rank == 0) fprintf(stderr, "  Verifying data integrity\n");
 
-  data1.clear(); data2.clear(); data3.clear();
-  member_restore(my_group, member_id_1, FENIX_DATA_RESTORE_INPLACE,
-                 FENIX_DATA_RESTORE_FULL, timestamp);
-  member_restore(my_group, member_id_2, FENIX_DATA_RESTORE_INPLACE,
-                 FENIX_DATA_RESTORE_FULL, timestamp);
-  member_restore(my_group, member_id_3, FENIX_DATA_RESTORE_INPLACE,
-                 FENIX_DATA_RESTORE_FULL, timestamp);
+  data1.clear();
+  data2.clear();
+  data3.clear();
+  member_restore(
+    my_group, member_id_1, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL,
+    timestamp
+  );
+  member_restore(
+    my_group, member_id_2, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL,
+    timestamp
+  );
+  member_restore(
+    my_group, member_id_3, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL,
+    timestamp
+  );
 
   bool data_ok = true;
   for (int i = 0; i < 10 && data_ok; i++) {
     if (data1[i] != 100 + i) {
-      fprintf(stderr, "Rank %d: ERROR - member 10 data[%d] = %d, expected %d\n",
-              rank, i, data1[i], 100 + i);
+      fprintf(
+        stderr, "Rank %d: ERROR - member 10 data[%d] = %d, expected %d\n", rank,
+        i, data1[i], 100 + i
+      );
       data_ok = false;
     }
   }
   for (int i = 0; i < 15 && data_ok; i++) {
     if (data2[i] != 200 + i) {
-      fprintf(stderr, "Rank %d: ERROR - member 20 data[%d] = %d, expected %d\n",
-              rank, i, data2[i], 200 + i);
+      fprintf(
+        stderr, "Rank %d: ERROR - member 20 data[%d] = %d, expected %d\n", rank,
+        i, data2[i], 200 + i
+      );
       data_ok = false;
     }
   }
   for (int i = 0; i < 20 && data_ok; i++) {
     if (data3[i] != 300 + i) {
-      fprintf(stderr, "Rank %d: ERROR - member 30 data[%d] = %d, expected %d\n",
-              rank, i, data3[i], 300 + i);
+      fprintf(
+        stderr, "Rank %d: ERROR - member 30 data[%d] = %d, expected %d\n", rank,
+        i, data3[i], 300 + i
+      );
       data_ok = false;
     }
   }
@@ -243,7 +269,10 @@ int main(int argc, char** argv) {
 
   if (rank == 0) fprintf(stderr, "  ✓ All data restored correctly\n");
 
-  if (rank == 0) fprintf(stderr, "\nTest passed! Members are checkpointed in creation order.\n");
+  if (rank == 0)
+    fprintf(
+      stderr, "\nTest passed! Members are checkpointed in creation order.\n"
+    );
 
   Fenix_Finalize();
   MPI_Finalize();

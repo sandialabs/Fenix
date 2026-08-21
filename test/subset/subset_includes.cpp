@@ -112,7 +112,7 @@ bool test_strided(int start, int end, int count, int stride) {
   }
   for (int b = 0; b < count && b < 5; b++) {
     int b_start = start + b * stride;
-    int b_end = end + b * stride;
+    int b_end   = end + b * stride;
     for (int i = b_start; i <= b_end; i++) {
       if (!s.includes(i)) {
         printf(
@@ -124,7 +124,7 @@ bool test_strided(int start, int end, int count, int stride) {
     }
   }
   for (int b = 0; b < count - 1 && b < 5; b++) {
-    int b_end = end + b * stride;
+    int b_end        = end + b * stride;
     int next_b_start = start + (b + 1) * stride;
     for (int i = b_end + 1; i < next_b_start; i++) {
       if (s.includes(i)) {

@@ -84,22 +84,26 @@ int main(int argc, char** argv) {
   std::vector<int> data;
 
   // Create 3 checkpoints with different data
-  if (rank == 0) fprintf(stderr, "Creating checkpoint 0 with value 0xAAAAAAAA\n");
+  if (rank == 0)
+    fprintf(stderr, "Creating checkpoint 0 with value 0xAAAAAAAA\n");
   data.resize(10);
   for (int& i : data) i = 0xAAAAAAAA;
   member_define(my_group, my_member, data.data(), FENIX_RESIZEABLE, MPI_INT);
   checkpoint(my_group, DataSubset({0, 9}));
 
-  if (rank == 0) fprintf(stderr, "Creating checkpoint 1 with value 0xBBBBBBBB\n");
+  if (rank == 0)
+    fprintf(stderr, "Creating checkpoint 1 with value 0xBBBBBBBB\n");
   for (int& i : data) i = 0xBBBBBBBB;
   checkpoint(my_group, DataSubset({0, 9}));
 
-  if (rank == 0) fprintf(stderr, "Creating checkpoint 2 with value 0xCCCCCCCC\n");
+  if (rank == 0)
+    fprintf(stderr, "Creating checkpoint 2 with value 0xCCCCCCCC\n");
   for (int& i : data) i = 0xCCCCCCCC;
   checkpoint(my_group, DataSubset({0, 9}));
 
   // Test group_snapshots() returns {2, 1, 0} (newest to oldest)
-  if (rank == 0) fprintf(stderr, "Testing group_snapshots() returns {2, 1, 0}\n");
+  if (rank == 0)
+    fprintf(stderr, "Testing group_snapshots() returns {2, 1, 0}\n");
   std::vector<int> snapshots = *group_snapshots(my_group);
   fenix_require(snapshots.size() == 3, "Expected 3 snapshots");
   fenix_require(snapshots[0] == 2, "Expected first snapshot to be 2 (newest)");
@@ -133,17 +137,24 @@ int main(int argc, char** argv) {
   }
 
   // Test error: snapshot_delete with invalid timestamp (-1) should throw
-  if (rank == 0) fprintf(stderr, "Testing snapshot_delete(-1) throws FENIX_ERROR_INVALID_TIMESTAMP\n");
+  if (rank == 0)
+    fprintf(
+      stderr,
+      "Testing snapshot_delete(-1) throws FENIX_ERROR_INVALID_TIMESTAMP\n"
+    );
   bool exception_caught = false;
   try {
     snapshot_delete(my_group, -1);
-    if (rank == 0) fprintf(stderr, "ERROR: snapshot_delete(-1) did not throw exception\n");
+    if (rank == 0)
+      fprintf(stderr, "ERROR: snapshot_delete(-1) did not throw exception\n");
   } catch (const fenix::RuntimeException& e) {
     exception_caught = true;
     if (rank == 0) {
       fprintf(stderr, "SUCCESS: Caught expected exception: %s\n", e.what());
-      fenix_require(e.error == FENIX_ERROR_INVALID_TIMESTAMP,
-                    "Expected FENIX_ERROR_INVALID_TIMESTAMP");
+      fenix_require(
+        e.error == FENIX_ERROR_INVALID_TIMESTAMP,
+        "Expected FENIX_ERROR_INVALID_TIMESTAMP"
+      );
     }
   }
   fenix_require(exception_caught, "Expected exception to be thrown");

@@ -77,7 +77,8 @@ int main(int argc, char** argv) {
 
   // Use only 2 ranks
   if (num_ranks != 2) {
-    if (rank == 0) fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
+    if (rank == 0)
+      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
     Fenix_Finalize();
     MPI_Finalize();
     return 0;
@@ -96,77 +97,117 @@ int main(int argc, char** argv) {
   //===========================================================================
   // Test 1: Try to change count to DIFFERENT value after staging
   //===========================================================================
-  if (rank == 0) fprintf(stderr, "Test 1: Change count to different value after staging\n");
+  if (rank == 0)
+    fprintf(stderr, "Test 1: Change count to different value after staging\n");
 
-  // Try to change count to a different value - should throw FENIX_ERROR_INVALID_LOGIC_CALL
-  int new_count = 50;
-  int flag = 0;
+  // Try to change count to a different value - should throw
+  // FENIX_ERROR_INVALID_LOGIC_CALL
+  int new_count         = 50;
+  int flag              = 0;
   bool caught_exception = false;
 
   try {
-    member_attr_set(my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT, &new_count, &flag);
-    if (rank == 0) fprintf(stderr, "  ERROR: Count change after staging should have thrown!\n");
+    member_attr_set(
+      my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT, &new_count, &flag
+    );
+    if (rank == 0)
+      fprintf(
+        stderr, "  ERROR: Count change after staging should have thrown!\n"
+      );
     MPI_Abort(res_comm, 1);
   } catch (const fenix::RuntimeException& e) {
     caught_exception = true;
     if (rank == 0) fprintf(stderr, "  Caught exception: %s\n", e.what());
     // Verify it's the right error code
     if (e.error != FENIX_ERROR_INVALID_LOGIC_CALL) {
-      if (rank == 0) fprintf(stderr, "  ERROR: Expected FENIX_ERROR_INVALID_LOGIC_CALL, got %d\n", e.error);
+      if (rank == 0)
+        fprintf(
+          stderr, "  ERROR: Expected FENIX_ERROR_INVALID_LOGIC_CALL, got %d\n",
+          e.error
+        );
       MPI_Abort(res_comm, 1);
     }
   }
 
   if (!caught_exception) {
-    if (rank == 0) fprintf(stderr, "  ERROR: Count change after staging should have thrown!\n");
+    if (rank == 0)
+      fprintf(
+        stderr, "  ERROR: Count change after staging should have thrown!\n"
+      );
     MPI_Abort(res_comm, 1);
   }
 
-  if (rank == 0) fprintf(stderr, "  ✓ Count change correctly rejected after staging\n");
+  if (rank == 0)
+    fprintf(stderr, "  ✓ Count change correctly rejected after staging\n");
 
   //===========================================================================
   // Test 2: Try to change datatype to DIFFERENT size after staging
   //===========================================================================
-  if (rank == 0) fprintf(stderr, "Test 2: Change datatype to different size after staging\n");
+  if (rank == 0)
+    fprintf(
+      stderr, "Test 2: Change datatype to different size after staging\n"
+    );
 
-  // Try to change datatype to a different size - should throw FENIX_ERROR_INVALID_LOGIC_CALL
+  // Try to change datatype to a different size - should throw
+  // FENIX_ERROR_INVALID_LOGIC_CALL
   MPI_Datatype new_dtype = MPI_DOUBLE; // Different size from MPI_INT
-  caught_exception = false;
+  caught_exception       = false;
 
   try {
-    member_attr_set(my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE, &new_dtype, &flag);
-    if (rank == 0) fprintf(stderr, "  ERROR: Datatype change after staging should have thrown!\n");
+    member_attr_set(
+      my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE, &new_dtype, &flag
+    );
+    if (rank == 0)
+      fprintf(
+        stderr, "  ERROR: Datatype change after staging should have thrown!\n"
+      );
     MPI_Abort(res_comm, 1);
   } catch (const fenix::RuntimeException& e) {
     caught_exception = true;
     if (rank == 0) fprintf(stderr, "  Caught exception: %s\n", e.what());
     // Verify it's the right error code
     if (e.error != FENIX_ERROR_INVALID_LOGIC_CALL) {
-      if (rank == 0) fprintf(stderr, "  ERROR: Expected FENIX_ERROR_INVALID_LOGIC_CALL, got %d\n", e.error);
+      if (rank == 0)
+        fprintf(
+          stderr, "  ERROR: Expected FENIX_ERROR_INVALID_LOGIC_CALL, got %d\n",
+          e.error
+        );
       MPI_Abort(res_comm, 1);
     }
   }
 
   if (!caught_exception) {
-    if (rank == 0) fprintf(stderr, "  ERROR: Datatype change after staging should have thrown!\n");
+    if (rank == 0)
+      fprintf(
+        stderr, "  ERROR: Datatype change after staging should have thrown!\n"
+      );
     MPI_Abort(res_comm, 1);
   }
 
-  if (rank == 0) fprintf(stderr, "  ✓ Datatype change correctly rejected after staging\n");
+  if (rank == 0)
+    fprintf(stderr, "  ✓ Datatype change correctly rejected after staging\n");
 
   //===========================================================================
   // Test 3: Verify changing count to SAME value after staging is allowed
   //===========================================================================
-  if (rank == 0) fprintf(stderr, "Test 3: Change count to same value after staging (should be allowed)\n");
+  if (rank == 0)
+    fprintf(
+      stderr,
+      "Test 3: Change count to same value after staging (should be allowed)\n"
+    );
 
   // Set count to the SAME value (100) - should be allowed
   new_count = 100;
   try {
-    member_attr_set(my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT, &new_count, &flag);
+    member_attr_set(
+      my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_COUNT, &new_count, &flag
+    );
     if (rank == 0) fprintf(stderr, "  ✓ Setting count to same value allowed\n");
   } catch (const fenix::RuntimeException& e) {
     if (rank == 0) {
-      fprintf(stderr, "  ERROR: Setting count to same value should be allowed!\n");
+      fprintf(
+        stderr, "  ERROR: Setting count to same value should be allowed!\n"
+      );
       fprintf(stderr, "  Caught exception: %s\n", e.what());
     }
     MPI_Abort(res_comm, 1);
@@ -175,16 +216,25 @@ int main(int argc, char** argv) {
   //===========================================================================
   // Test 4: Verify changing datatype to SAME size after staging is allowed
   //===========================================================================
-  if (rank == 0) fprintf(stderr, "Test 4: Change datatype to same size after staging (should be allowed)\n");
+  if (rank == 0)
+    fprintf(
+      stderr,
+      "Test 4: Change datatype to same size after staging (should be allowed)\n"
+    );
 
   // Set datatype to the SAME type (MPI_INT) - should be allowed
   new_dtype = MPI_INT;
   try {
-    member_attr_set(my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE, &new_dtype, &flag);
-    if (rank == 0) fprintf(stderr, "  ✓ Setting datatype to same type allowed\n");
+    member_attr_set(
+      my_group, 1, FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE, &new_dtype, &flag
+    );
+    if (rank == 0)
+      fprintf(stderr, "  ✓ Setting datatype to same type allowed\n");
   } catch (const fenix::RuntimeException& e) {
     if (rank == 0) {
-      fprintf(stderr, "  ERROR: Setting datatype to same type should be allowed!\n");
+      fprintf(
+        stderr, "  ERROR: Setting datatype to same type should be allowed!\n"
+      );
       fprintf(stderr, "  Caught exception: %s\n", e.what());
     }
     MPI_Abort(res_comm, 1);
@@ -192,7 +242,8 @@ int main(int argc, char** argv) {
 
   member_delete(my_group, 1);
 
-  if (rank == 0) fprintf(stderr, "\nAll member attribute error tests passed!\n");
+  if (rank == 0)
+    fprintf(stderr, "\nAll member attribute error tests passed!\n");
 
   Fenix_Finalize();
   MPI_Finalize();

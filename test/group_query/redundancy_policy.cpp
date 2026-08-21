@@ -78,15 +78,21 @@ int main(int argc, char** argv) {
   int policy_vals_in[2] = {1, 1};
   int errflag;
   int ret = Fenix_Data_group_create(
-    my_group, res_comm, 0, 1,
-    FENIX_DATA_POLICY_IN_MEMORY_RAID, policy_vals_in, &errflag
+    my_group, res_comm, 0, 1, FENIX_DATA_POLICY_IN_MEMORY_RAID, policy_vals_in,
+    &errflag
   );
   fenix_require(ret == FENIX_SUCCESS);
-  if (rank == 0) fprintf(stderr, "Group created with IN_MEMORY_RAID policy (mode=1, rank_separation=1)\n");
+  if (rank == 0)
+    fprintf(
+      stderr,
+      "Group created with IN_MEMORY_RAID policy (mode=1, rank_separation=1)\n"
+    );
 
   // Query the redundancy policy
   int policy_name;
-  int policy_vals_out[3] = {-1, -1, -1};  // Initialize to detect if values are set
+  int policy_vals_out[3] = {
+    -1, -1, -1
+  }; // Initialize to detect if values are set
   int flag;
   ret = Fenix_Data_group_get_redundancy_policy(
     my_group, &policy_name, policy_vals_out, &flag
@@ -97,15 +103,19 @@ int main(int argc, char** argv) {
   fenix_require(policy_name == FENIX_DATA_POLICY_IN_MEMORY_RAID);
 
   // Verify returned policy values match what we set
-  fenix_require(policy_vals_out[0] == 1);  // mode
-  fenix_require(policy_vals_out[1] == 1);  // rank_separation
+  fenix_require(policy_vals_out[0] == 1); // mode
+  fenix_require(policy_vals_out[1] == 1); // rank_separation
 
   if (rank == 0) {
     fprintf(stderr, "Policy query successful\n");
-    fprintf(stderr, "  Policy name: %d (expected: %d)\n",
-            policy_name, FENIX_DATA_POLICY_IN_MEMORY_RAID);
+    fprintf(
+      stderr, "  Policy name: %d (expected: %d)\n", policy_name,
+      FENIX_DATA_POLICY_IN_MEMORY_RAID
+    );
     fprintf(stderr, "  Mode: %d (expected: 1)\n", policy_vals_out[0]);
-    fprintf(stderr, "  Rank separation: %d (expected: 1)\n", policy_vals_out[1]);
+    fprintf(
+      stderr, "  Rank separation: %d (expected: 1)\n", policy_vals_out[1]
+    );
     fprintf(stderr, "  Flag value: %d (expected: %d)\n", flag, FENIX_SUCCESS);
   }
 
@@ -113,13 +123,18 @@ int main(int argc, char** argv) {
   if (rank == 0) fprintf(stderr, "\nTest 2: Mode 5 (set-based) IMR\n");
 
   constexpr int my_group_mode5 = 1;
-  int policy_vals_mode5[3] = {5, 1, 3};
-  ret = Fenix_Data_group_create(
-    my_group_mode5, res_comm, 0, 1,
-    FENIX_DATA_POLICY_IN_MEMORY_RAID, policy_vals_mode5, &errflag
+  int policy_vals_mode5[3]     = {5, 1, 3};
+  ret                          = Fenix_Data_group_create(
+    my_group_mode5, res_comm, 0, 1, FENIX_DATA_POLICY_IN_MEMORY_RAID,
+    policy_vals_mode5, &errflag
   );
   fenix_require(ret == FENIX_SUCCESS);
-  if (rank == 0) fprintf(stderr, "Group 1 created with IN_MEMORY_RAID policy (mode=5, rank_separation=1, set_size=3)\n");
+  if (rank == 0)
+    fprintf(
+      stderr,
+      "Group 1 created with IN_MEMORY_RAID policy (mode=5, rank_separation=1, "
+      "set_size=3)\n"
+    );
 
   // Query the redundancy policy for mode 5
   int policy_name_mode5;
@@ -134,20 +149,32 @@ int main(int argc, char** argv) {
   fenix_require(policy_name_mode5 == FENIX_DATA_POLICY_IN_MEMORY_RAID);
 
   // Verify returned policy values match what we set
-  fenix_require(policy_vals_out_mode5[0] == 5);  // mode
-  fenix_require(policy_vals_out_mode5[1] == 1);  // rank_separation
-  // Note: set_size gets overwritten by MPI_Comm_size(set_comm, &set_size) in Group constructor
-  // so we cannot verify it matches the input value. We just verify it was set to something > 0.
-  fenix_require(policy_vals_out_mode5[2] > 0);  // set_size (actual communicator size)
+  fenix_require(policy_vals_out_mode5[0] == 5); // mode
+  fenix_require(policy_vals_out_mode5[1] == 1); // rank_separation
+  // Note: set_size gets overwritten by MPI_Comm_size(set_comm, &set_size) in
+  // Group constructor so we cannot verify it matches the input value. We just
+  // verify it was set to something > 0.
+  fenix_require(
+    policy_vals_out_mode5[2] > 0
+  ); // set_size (actual communicator size)
 
   if (rank == 0) {
     fprintf(stderr, "Policy query successful for mode 5\n");
-    fprintf(stderr, "  Policy name: %d (expected: %d)\n",
-            policy_name_mode5, FENIX_DATA_POLICY_IN_MEMORY_RAID);
+    fprintf(
+      stderr, "  Policy name: %d (expected: %d)\n", policy_name_mode5,
+      FENIX_DATA_POLICY_IN_MEMORY_RAID
+    );
     fprintf(stderr, "  Mode: %d (expected: 5)\n", policy_vals_out_mode5[0]);
-    fprintf(stderr, "  Rank separation: %d (expected: 1)\n", policy_vals_out_mode5[1]);
-    fprintf(stderr, "  Set size: %d (actual set_comm size)\n", policy_vals_out_mode5[2]);
-    fprintf(stderr, "  Flag value: %d (expected: %d)\n", flag_mode5, FENIX_SUCCESS);
+    fprintf(
+      stderr, "  Rank separation: %d (expected: 1)\n", policy_vals_out_mode5[1]
+    );
+    fprintf(
+      stderr, "  Set size: %d (actual set_comm size)\n",
+      policy_vals_out_mode5[2]
+    );
+    fprintf(
+      stderr, "  Flag value: %d (expected: %d)\n", flag_mode5, FENIX_SUCCESS
+    );
   }
 
   Fenix_Finalize();

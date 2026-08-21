@@ -1085,8 +1085,8 @@ int Group::member_set_attribute(
       MPI_Type_size(*new_dtype, &new_dtype_size);
       value_changing = (new_dtype_size != member->datatype_size);
     } else { // FENIX_DATA_MEMBER_ATTRIBUTE_COUNT
-      int new_count = *((int*)attributevalue);
-      int old_count = member->elm_count();
+      int new_count  = *((int*)attributevalue);
+      int old_count  = member->elm_count();
       value_changing = (new_count != old_count);
     }
 
@@ -1097,8 +1097,7 @@ int Group::member_set_attribute(
         // Check if member has been staged by examining entries
         for (const Entry& entry : imr_member->entries) {
           // Valid committed snapshot OR current stage with non-empty regions
-          if (entry.timestamp >= 0 ||
-              entry.region != SUBSET_EMPTY ||
+          if (entry.timestamp >= 0 || entry.region != SUBSET_EMPTY ||
               entry.partner_region != SUBSET_EMPTY) {
             FENIX_THROW(FENIX_ERROR_INVALID_LOGIC_CALL);
           }

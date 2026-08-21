@@ -81,13 +81,15 @@ int main(int argc, char** argv) {
 
   // Use only 2 ranks
   if (num_ranks != 2) {
-    if (rank == 0) fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
+    if (rank == 0)
+      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
     Fenix_Finalize();
     MPI_Finalize();
     return 0;
   }
 
-  if (rank == 0) fprintf(stderr, "Test: member_store with FENIX_DATA_MEMBER_ALL\n");
+  if (rank == 0)
+    fprintf(stderr, "Test: member_store with FENIX_DATA_MEMBER_ALL\n");
 
   // Create group
   group_create(my_group, {.depth = 1});
@@ -121,7 +123,8 @@ int main(int argc, char** argv) {
   member_create(my_group, member_2, data2.data(), data2.size(), MPI_INT);
 
   // Store all members at once using FENIX_DATA_MEMBER_ALL
-  if (rank == 0) fprintf(stderr, "Storing all members with FENIX_DATA_MEMBER_ALL\n");
+  if (rank == 0)
+    fprintf(stderr, "Storing all members with FENIX_DATA_MEMBER_ALL\n");
 
   int ret = member_store(my_group, FENIX_DATA_MEMBER_ALL, SUBSET_FULL);
 
@@ -146,29 +149,38 @@ int main(int argc, char** argv) {
   DataSubset restored_subset;
 
   ret = member_restore(
-    my_group, member_0, data0.data(), data0.size(),
-    FENIX_DATA_SNAPSHOT_LATEST, restored_subset
+    my_group, member_0, data0.data(), data0.size(), FENIX_DATA_SNAPSHOT_LATEST,
+    restored_subset
   );
   if (ret != FENIX_SUCCESS) {
-    fprintf(stderr, "Rank %d: member_restore for member 0 failed with code %d\n", rank, ret);
+    fprintf(
+      stderr, "Rank %d: member_restore for member 0 failed with code %d\n",
+      rank, ret
+    );
     MPI_Abort(res_comm, 1);
   }
 
   ret = member_restore(
-    my_group, member_1, data1.data(), data1.size(),
-    FENIX_DATA_SNAPSHOT_LATEST, restored_subset
+    my_group, member_1, data1.data(), data1.size(), FENIX_DATA_SNAPSHOT_LATEST,
+    restored_subset
   );
   if (ret != FENIX_SUCCESS) {
-    fprintf(stderr, "Rank %d: member_restore for member 1 failed with code %d\n", rank, ret);
+    fprintf(
+      stderr, "Rank %d: member_restore for member 1 failed with code %d\n",
+      rank, ret
+    );
     MPI_Abort(res_comm, 1);
   }
 
   ret = member_restore(
-    my_group, member_2, data2.data(), data2.size(),
-    FENIX_DATA_SNAPSHOT_LATEST, restored_subset
+    my_group, member_2, data2.data(), data2.size(), FENIX_DATA_SNAPSHOT_LATEST,
+    restored_subset
   );
   if (ret != FENIX_SUCCESS) {
-    fprintf(stderr, "Rank %d: member_restore for member 2 failed with code %d\n", rank, ret);
+    fprintf(
+      stderr, "Rank %d: member_restore for member 2 failed with code %d\n",
+      rank, ret
+    );
     MPI_Abort(res_comm, 1);
   }
 
@@ -180,8 +192,11 @@ int main(int argc, char** argv) {
   // Verify member 0: rank*100+i
   for (int i = 0; i < data0.size(); i++) {
     if (data0[i] != rank * 100 + i) {
-      fprintf(stderr, "Rank %d: member 0 data mismatch at index %d! Expected %d, got %d\n",
-              rank, i, rank * 100 + i, data0[i]);
+      fprintf(
+        stderr,
+        "Rank %d: member 0 data mismatch at index %d! Expected %d, got %d\n",
+        rank, i, rank * 100 + i, data0[i]
+      );
       success = false;
       break;
     }
@@ -190,8 +205,11 @@ int main(int argc, char** argv) {
   // Verify member 1: rank*200+i
   for (int i = 0; i < data1.size(); i++) {
     if (data1[i] != rank * 200 + i) {
-      fprintf(stderr, "Rank %d: member 1 data mismatch at index %d! Expected %d, got %d\n",
-              rank, i, rank * 200 + i, data1[i]);
+      fprintf(
+        stderr,
+        "Rank %d: member 1 data mismatch at index %d! Expected %d, got %d\n",
+        rank, i, rank * 200 + i, data1[i]
+      );
       success = false;
       break;
     }
@@ -200,8 +218,11 @@ int main(int argc, char** argv) {
   // Verify member 2: rank*300+i
   for (int i = 0; i < data2.size(); i++) {
     if (data2[i] != rank * 300 + i) {
-      fprintf(stderr, "Rank %d: member 2 data mismatch at index %d! Expected %d, got %d\n",
-              rank, i, rank * 300 + i, data2[i]);
+      fprintf(
+        stderr,
+        "Rank %d: member 2 data mismatch at index %d! Expected %d, got %d\n",
+        rank, i, rank * 300 + i, data2[i]
+      );
       success = false;
       break;
     }
@@ -209,7 +230,11 @@ int main(int argc, char** argv) {
 
   if (success) {
     if (rank == 0) fprintf(stderr, "All data verified successfully!\n");
-    if (rank == 0) fprintf(stderr, "Test passed: FENIX_DATA_MEMBER_ALL stored and restored all 3 members\n");
+    if (rank == 0)
+      fprintf(
+        stderr,
+        "Test passed: FENIX_DATA_MEMBER_ALL stored and restored all 3 members\n"
+      );
   } else {
     fprintf(stderr, "Rank %d: FAILURE - data verification failed\n", rank);
     MPI_Abort(res_comm, 1);

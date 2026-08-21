@@ -64,11 +64,11 @@
 #include <unistd.h>
 #include <vector>
 
-constexpr int kKillID = 2;
-constexpr int my_group = 0;
-constexpr int my_member = 0;
+constexpr int kKillID         = 2;
+constexpr int my_group        = 0;
+constexpr int my_member       = 0;
 constexpr int start_timestamp = 0;
-constexpr int group_depth = 1;
+constexpr int group_depth     = 1;
 int errflag;
 
 using fenix::DataSubset;

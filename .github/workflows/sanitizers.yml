@@ -67,21 +67,3 @@ jobs:
           path: |
             build_memory_asan/memory_reports/
           retention-days: 7
-
-      - name: Check for errors
-        if: always()
-        run: |
-          if [ -f build_memory_asan/memory_reports/asan_errors.txt ]; then
-            if [ -s build_memory_asan/memory_reports/asan_errors.txt ]; then
-              echo "::error::AddressSanitizer detected memory errors"
-              cat build_memory_asan/memory_reports/asan_errors.txt
-              exit 1
-            fi
-          fi
-
-          if [ -f build_memory_asan/memory_reports/ubsan_errors.txt ]; then
-            if [ -s build_memory_asan/memory_reports/ubsan_errors.txt ]; then
-              echo "::warning::UndefinedBehaviorSanitizer detected undefined behavior"
-              cat build_memory_asan/memory_reports/ubsan_errors.txt
-            fi
-          fi

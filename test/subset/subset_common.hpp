@@ -34,11 +34,11 @@
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 // GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 // IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
@@ -61,32 +61,32 @@
 #include <vector>
 
 //Returns a variety of subsets to perform tests on
-static std::vector<fenix::DataSubset> get_subsets(){
-    using namespace fenix;
-    std::vector<DataSubset> ret;
-    ret.push_back(DataSubset());
-    ret.push_back(DataSubset(10));
-    ret.push_back(DataSubset(-1));
-    ret.push_back(DataSubset({0, 0}));
-    ret.push_back(DataSubset({0, 10}));
-    ret.push_back(DataSubset({0, -1}));
-    ret.push_back(DataSubset({5, 10}));
-    ret.push_back(DataSubset({5, -1}));
-    ret.push_back(DataSubset({0, 4}, 2, 5));
-    ret.push_back(DataSubset({0, 4}, 2, 6));
-    ret.push_back(DataSubset({0, 4}, 10, 6));
-    ret.push_back(DataSubset({0, 4}, 10, 10));
-    return ret;
+static std::vector<fenix::DataSubset> get_subsets() {
+  using namespace fenix;
+  std::vector<DataSubset> ret;
+  ret.push_back(DataSubset());
+  ret.push_back(DataSubset(10));
+  ret.push_back(DataSubset(-1));
+  ret.push_back(DataSubset({0, 0}));
+  ret.push_back(DataSubset({0, 10}));
+  ret.push_back(DataSubset({0, -1}));
+  ret.push_back(DataSubset({5, 10}));
+  ret.push_back(DataSubset({5, -1}));
+  ret.push_back(DataSubset({0, 4}, 2, 5));
+  ret.push_back(DataSubset({0, 4}, 2, 6));
+  ret.push_back(DataSubset({0, 4}, 10, 6));
+  ret.push_back(DataSubset({0, 4}, 10, 10));
+  return ret;
 }
 
-static std::vector<fenix::DataSubset> get_expanded_subsets(){
-    std::vector<fenix::DataSubset> subsets = get_subsets(), expanded;
-    for(const auto& a : subsets){
-        for(const auto& b : subsets){
-            expanded.push_back(a+b);
-            expanded.push_back(b+a);
-        }
+static std::vector<fenix::DataSubset> get_expanded_subsets() {
+  std::vector<fenix::DataSubset> subsets = get_subsets(), expanded;
+  for (const auto& a : subsets) {
+    for (const auto& b : subsets) {
+      expanded.push_back(a + b);
+      expanded.push_back(b + a);
     }
-    for(const auto& a : expanded) subsets.push_back(a);
-    return subsets;
+  }
+  for (const auto& a : expanded) subsets.push_back(a);
+  return subsets;
 }

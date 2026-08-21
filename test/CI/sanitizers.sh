@@ -26,6 +26,7 @@
 
 set -e  # Exit on error
 set -u  # Exit on undefined variable
+set -o pipefail  # Propagate pipe failures
 
 # Color output
 RED='\033[0;31m'
@@ -47,12 +48,6 @@ fi
 PROJECT_ROOT="$(pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build_memory_asan"
 REPORT_DIR="${BUILD_DIR}/memory_reports"
-
-# Set up PATH for common tool locations
-export PATH="/home/mwhitlo/installs/openmpi/main/bin:${PATH}"
-export PATH="/projects/claude_scratch/python_packages/bin:${PATH}"
-export PATH="/projects/claude_scratch/python_packages/cmake/data/bin:${PATH}"
-export PYTHONPATH="/projects/claude_scratch/python_packages/lib/python3.13/site-packages:${PYTHONPATH:-}"
 
 echo -e "${GREEN}=== Fenix Memory Testing ===${NC}"
 echo "Using: ${BLUE}AddressSanitizer + LeakSanitizer${NC}"
@@ -96,6 +91,7 @@ cmake .. \
     -DCMAKE_C_FLAGS="${SANITIZER_FLAGS}" \
     -DCMAKE_CXX_FLAGS="${SANITIZER_FLAGS}" \
     -DCMAKE_EXE_LINKER_FLAGS="${SANITIZER_FLAGS}" \
+    -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe;--mca;async_mpi_finalize;1" \
     -DBUILD_TESTING=ON \
     -DBUILD_EXAMPLES=OFF
 

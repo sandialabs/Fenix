@@ -61,7 +61,7 @@
 #include <stdlib.h>
 #include <vector>
 
-constexpr int my_group = 0;
+constexpr int my_group  = 0;
 constexpr int member_10 = 10;
 constexpr int member_20 = 20;
 constexpr int member_30 = 30;
@@ -81,7 +81,8 @@ int main(int argc, char** argv) {
 
   // Use only 2 ranks
   if (num_ranks != 2) {
-    if (rank == 0) fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
+    if (rank == 0)
+      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
     Fenix_Finalize();
     MPI_Finalize();
     return 0;
@@ -134,15 +135,21 @@ int main(int argc, char** argv) {
   if (rank == 0) fprintf(stderr, "  Calling checkpointv(SUBSET_PRESTAGED)\n");
 
   int timestamp = -1;
-  int ret = checkpointv(my_group, SUBSET_PRESTAGED, &timestamp);
+  int ret       = checkpointv(my_group, SUBSET_PRESTAGED, &timestamp);
 
   // Strict verification: checkpointv must return FENIX_SUCCESS
   if (ret != FENIX_SUCCESS) {
-    fprintf(stderr, "Rank %d: ERROR - checkpointv failed with code %d (expected FENIX_SUCCESS=0)\n", rank, ret);
+    fprintf(
+      stderr,
+      "Rank %d: ERROR - checkpointv failed with code %d (expected "
+      "FENIX_SUCCESS=0)\n",
+      rank, ret
+    );
     MPI_Abort(res_comm, 1);
   }
 
-  if (rank == 0) fprintf(stderr, "  Checkpoint succeeded at timestamp %d\n", timestamp);
+  if (rank == 0)
+    fprintf(stderr, "  Checkpoint succeeded at timestamp %d\n", timestamp);
 
   // Clear all member data
   if (rank == 0) fprintf(stderr, "  Clearing all data\n");
@@ -158,40 +165,49 @@ int main(int argc, char** argv) {
 
   // Restore member 10
   ret_member10 = member_restore(
-    my_group, member_10, data10.data(), data10.size(),
-    timestamp, restored_subset
+    my_group, member_10, data10.data(), data10.size(), timestamp,
+    restored_subset
   );
 
   // Restore member 20
   ret_member20 = member_restore(
-    my_group, member_20, data20.data(), data20.size(),
-    timestamp, restored_subset
+    my_group, member_20, data20.data(), data20.size(), timestamp,
+    restored_subset
   );
 
   // Restore member 30
   ret_member30 = member_restore(
-    my_group, member_30, data30.data(), data30.size(),
-    timestamp, restored_subset
+    my_group, member_30, data30.data(), data30.size(), timestamp,
+    restored_subset
   );
 
   // Verify only valid return codes
   const int FENIX_WARNING_PARTIAL_RESTORE = 101;
-  bool valid_codes = true;
+  bool valid_codes                        = true;
 
   auto is_valid_code = [](int code) {
     return code == FENIX_SUCCESS || code == FENIX_WARNING_PARTIAL_RESTORE;
   };
 
   if (!is_valid_code(ret_member10)) {
-    fprintf(stderr, "Rank %d: ERROR - member 10 restore returned invalid code %d\n", rank, ret_member10);
+    fprintf(
+      stderr, "Rank %d: ERROR - member 10 restore returned invalid code %d\n",
+      rank, ret_member10
+    );
     valid_codes = false;
   }
   if (!is_valid_code(ret_member20)) {
-    fprintf(stderr, "Rank %d: ERROR - member 20 restore returned invalid code %d\n", rank, ret_member20);
+    fprintf(
+      stderr, "Rank %d: ERROR - member 20 restore returned invalid code %d\n",
+      rank, ret_member20
+    );
     valid_codes = false;
   }
   if (!is_valid_code(ret_member30)) {
-    fprintf(stderr, "Rank %d: ERROR - member 30 restore returned invalid code %d\n", rank, ret_member30);
+    fprintf(
+      stderr, "Rank %d: ERROR - member 30 restore returned invalid code %d\n",
+      rank, ret_member30
+    );
     valid_codes = false;
   }
 
@@ -205,14 +221,19 @@ int main(int argc, char** argv) {
     for (int i = 0; i < data20.size(); i++) {
       int expected = rank * 2000 + i;
       if (data20[i] != expected) {
-        fprintf(stderr, "Rank %d: Member 20 data mismatch at index %d! Expected %d, got %d\n",
-                rank, i, expected, data20[i]);
+        fprintf(
+          stderr,
+          "Rank %d: Member 20 data mismatch at index %d! Expected %d, got %d\n",
+          rank, i, expected, data20[i]
+        );
         data20_ok = false;
         break;
       }
     }
     if (!data20_ok) {
-      fprintf(stderr, "Rank %d: FAILURE - member 20 data verification failed\n", rank);
+      fprintf(
+        stderr, "Rank %d: FAILURE - member 20 data verification failed\n", rank
+      );
       MPI_Abort(res_comm, 1);
     }
   }
@@ -228,7 +249,9 @@ int main(int argc, char** argv) {
       }
     }
     if (!data10_ok) {
-      fprintf(stderr, "Rank %d: FAILURE - member 10 data verification failed\n", rank);
+      fprintf(
+        stderr, "Rank %d: FAILURE - member 10 data verification failed\n", rank
+      );
       MPI_Abort(res_comm, 1);
     }
   }
@@ -244,7 +267,9 @@ int main(int argc, char** argv) {
       }
     }
     if (!data30_ok) {
-      fprintf(stderr, "Rank %d: FAILURE - member 30 data verification failed\n", rank);
+      fprintf(
+        stderr, "Rank %d: FAILURE - member 30 data verification failed\n", rank
+      );
       MPI_Abort(res_comm, 1);
     }
   }
@@ -265,10 +290,14 @@ int main(int argc, char** argv) {
   // Rank 1 verifies all results and prints report
   if (rank == 1) {
     fprintf(stderr, "\nRestore results:\n");
-    fprintf(stderr, "  Rank 0: member 10=%d, member 20=%d, member 30=%d\n",
-            rank0_results[0], rank0_results[1], rank0_results[2]);
-    fprintf(stderr, "  Rank 1: member 10=%d, member 20=%d, member 30=%d\n",
-            rank1_results[0], rank1_results[1], rank1_results[2]);
+    fprintf(
+      stderr, "  Rank 0: member 10=%d, member 20=%d, member 30=%d\n",
+      rank0_results[0], rank0_results[1], rank0_results[2]
+    );
+    fprintf(
+      stderr, "  Rank 1: member 10=%d, member 20=%d, member 30=%d\n",
+      rank1_results[0], rank1_results[1], rank1_results[2]
+    );
     fprintf(stderr, "  (0=SUCCESS, 101=PARTIAL_RESTORE)\n\n");
 
     // Verify expected behavior
@@ -276,35 +305,61 @@ int main(int argc, char** argv) {
 
     // Member 20 must succeed on both ranks (prestaged on both)
     if (rank0_results[1] != FENIX_SUCCESS) {
-      fprintf(stderr, "ERROR: Member 20 on rank 0 returned %d (expected SUCCESS=0)\n", rank0_results[1]);
+      fprintf(
+        stderr, "ERROR: Member 20 on rank 0 returned %d (expected SUCCESS=0)\n",
+        rank0_results[1]
+      );
       test_passed = false;
     }
     if (rank1_results[1] != FENIX_SUCCESS) {
-      fprintf(stderr, "ERROR: Member 20 on rank 1 returned %d (expected SUCCESS=0)\n", rank1_results[1]);
+      fprintf(
+        stderr, "ERROR: Member 20 on rank 1 returned %d (expected SUCCESS=0)\n",
+        rank1_results[1]
+      );
       test_passed = false;
     }
 
-    // Member 10: rank 0 should succeed (prestaged), rank 1 may warn (not prestaged)
+    // Member 10: rank 0 should succeed (prestaged), rank 1 may warn (not
+    // prestaged)
     if (rank0_results[0] != FENIX_SUCCESS) {
-      fprintf(stderr, "ERROR: Member 10 on rank 0 returned %d (expected SUCCESS=0, prestaged on rank 0)\n",
-              rank0_results[0]);
+      fprintf(
+        stderr,
+        "ERROR: Member 10 on rank 0 returned %d (expected SUCCESS=0, prestaged "
+        "on rank 0)\n",
+        rank0_results[0]
+      );
       test_passed = false;
     }
-    if (rank1_results[0] != FENIX_SUCCESS && rank1_results[0] != FENIX_WARNING_PARTIAL_RESTORE) {
-      fprintf(stderr, "ERROR: Member 10 on rank 1 returned %d (expected SUCCESS or PARTIAL_RESTORE)\n",
-              rank1_results[0]);
+    if (rank1_results[0] != FENIX_SUCCESS &&
+        rank1_results[0] != FENIX_WARNING_PARTIAL_RESTORE) {
+      fprintf(
+        stderr,
+        "ERROR: Member 10 on rank 1 returned %d (expected SUCCESS or "
+        "PARTIAL_RESTORE)\n",
+        rank1_results[0]
+      );
       test_passed = false;
     }
 
-    // Member 30: rank 1 should succeed (prestaged), rank 0 may warn (not prestaged)
+    // Member 30: rank 1 should succeed (prestaged), rank 0 may warn (not
+    // prestaged)
     if (rank1_results[2] != FENIX_SUCCESS) {
-      fprintf(stderr, "ERROR: Member 30 on rank 1 returned %d (expected SUCCESS=0, prestaged on rank 1)\n",
-              rank1_results[2]);
+      fprintf(
+        stderr,
+        "ERROR: Member 30 on rank 1 returned %d (expected SUCCESS=0, prestaged "
+        "on rank 1)\n",
+        rank1_results[2]
+      );
       test_passed = false;
     }
-    if (rank0_results[2] != FENIX_SUCCESS && rank0_results[2] != FENIX_WARNING_PARTIAL_RESTORE) {
-      fprintf(stderr, "ERROR: Member 30 on rank 0 returned %d (expected SUCCESS or PARTIAL_RESTORE)\n",
-              rank0_results[2]);
+    if (rank0_results[2] != FENIX_SUCCESS &&
+        rank0_results[2] != FENIX_WARNING_PARTIAL_RESTORE) {
+      fprintf(
+        stderr,
+        "ERROR: Member 30 on rank 0 returned %d (expected SUCCESS or "
+        "PARTIAL_RESTORE)\n",
+        rank0_results[2]
+      );
       test_passed = false;
     }
 
@@ -314,10 +369,23 @@ int main(int argc, char** argv) {
     }
 
     fprintf(stderr, "Verification:\n");
-    fprintf(stderr, "  - Member 20: SUCCESS on both ranks (prestaged on both) - PASS\n");
-    fprintf(stderr, "  - Member 10: SUCCESS on rank 0, code %d on rank 1 - PASS\n", rank1_results[0]);
-    fprintf(stderr, "  - Member 30: code %d on rank 0, SUCCESS on rank 1 - PASS\n", rank0_results[2]);
-    fprintf(stderr, "\nTest passed! checkpointv(SUBSET_PRESTAGED) correctly handled different prestaged subsets per rank.\n");
+    fprintf(
+      stderr,
+      "  - Member 20: SUCCESS on both ranks (prestaged on both) - PASS\n"
+    );
+    fprintf(
+      stderr, "  - Member 10: SUCCESS on rank 0, code %d on rank 1 - PASS\n",
+      rank1_results[0]
+    );
+    fprintf(
+      stderr, "  - Member 30: code %d on rank 0, SUCCESS on rank 1 - PASS\n",
+      rank0_results[2]
+    );
+    fprintf(
+      stderr,
+      "\nTest passed! checkpointv(SUBSET_PRESTAGED) correctly handled "
+      "different prestaged subsets per rank.\n"
+    );
   }
 
   Fenix_Finalize();

@@ -61,7 +61,7 @@
 #include <stdlib.h>
 #include <vector>
 
-constexpr int my_group = 0;
+constexpr int my_group  = 0;
 constexpr int my_member = 0;
 
 using fenix::DataSubset;
@@ -81,13 +81,17 @@ int main(int argc, char** argv) {
 
   // Use only 2 ranks as specified
   if (num_ranks != 2) {
-    if (rank == 0) fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
+    if (rank == 0)
+      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
     Fenix_Finalize();
     MPI_Finalize();
     return 0;
   }
 
-  if (rank == 0) fprintf(stderr, "Test: member_stage_inplace with dynamically allocated buffer\n");
+  if (rank == 0)
+    fprintf(
+      stderr, "Test: member_stage_inplace with dynamically allocated buffer\n"
+    );
 
   // Create a group with depth=1
   group_create(my_group, {.depth = 1});
@@ -99,7 +103,9 @@ int main(int argc, char** argv) {
   }
 
   if (rank == 0) {
-    fprintf(stderr, "Buffer A[0]=%d, Buffer A[99]=%d\n", buffer_a[0], buffer_a[99]);
+    fprintf(
+      stderr, "Buffer A[0]=%d, Buffer A[99]=%d\n", buffer_a[0], buffer_a[99]
+    );
   }
 
   // Create a member with initial buffer A
@@ -114,11 +120,14 @@ int main(int argc, char** argv) {
   }
 
   for (int i = 0; i < 100; i++) {
-    buffer_b[i] = (rank + 1) * 10000 + i; // Values like 10000, 10001, ..., 10099 for rank 0
+    buffer_b[i] =
+      (rank + 1) * 10000 + i; // Values like 10000, 10001, ..., 10099 for rank 0
   }
 
   if (rank == 0) {
-    fprintf(stderr, "Buffer B[0]=%d, Buffer B[99]=%d\n", buffer_b[0], buffer_b[99]);
+    fprintf(
+      stderr, "Buffer B[0]=%d, Buffer B[99]=%d\n", buffer_b[0], buffer_b[99]
+    );
   }
 
   // Save buffer B values for later verification
@@ -126,7 +135,11 @@ int main(int argc, char** argv) {
 
   // Call member_stage_inplace with buffer B - Fenix takes ownership!
   // Do NOT free buffer_b after this call - Fenix owns it and will call free()
-  if (rank == 0) fprintf(stderr, "Calling member_stage_inplace (Fenix takes ownership of buffer_b)\n");
+  if (rank == 0)
+    fprintf(
+      stderr,
+      "Calling member_stage_inplace (Fenix takes ownership of buffer_b)\n"
+    );
   member_stage_inplace(my_group, my_member, buffer_b, SUBSET_FULL);
 
   // Store the staged data
@@ -144,10 +157,11 @@ int main(int argc, char** argv) {
 
   if (rank == 0) fprintf(stderr, "Cleared buffer A\n");
 
-  // Restore data using INPLACE - restores to the original member buffer (buffer_a)
+  // Restore data using INPLACE - restores to the original member buffer
+  // (buffer_a)
   member_restore(
-    my_group, my_member, FENIX_DATA_RESTORE_INPLACE,
-    FENIX_DATA_RESTORE_FULL, FENIX_DATA_SNAPSHOT_LATEST
+    my_group, my_member, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL,
+    FENIX_DATA_SNAPSHOT_LATEST
   );
 
   if (rank == 0) fprintf(stderr, "Data restored to buffer A\n");
@@ -158,7 +172,8 @@ int main(int argc, char** argv) {
     int expected = buffer_b_values[i]; // This was buffer_b's original value
     if (buffer_a[i] != expected) {
       fprintf(
-        stderr, "Rank %d: Mismatch at index %d! Expected %d (from buffer B), got %d\n",
+        stderr,
+        "Rank %d: Mismatch at index %d! Expected %d (from buffer B), got %d\n",
         rank, i, expected, buffer_a[i]
       );
       success = false;
@@ -167,7 +182,12 @@ int main(int argc, char** argv) {
   }
 
   if (success) {
-    if (rank == 0) fprintf(stderr, "SUCCESS: Buffer A now contains data from buffer B (stage_inplace worked correctly)\n");
+    if (rank == 0)
+      fprintf(
+        stderr,
+        "SUCCESS: Buffer A now contains data from buffer B (stage_inplace "
+        "worked correctly)\n"
+      );
     printf("Rank %d: Test passed\n", rank);
   } else {
     fprintf(stderr, "FAILURE on rank %d: Data does not match buffer B\n", rank);

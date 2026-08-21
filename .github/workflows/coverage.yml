@@ -15,6 +15,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+      packages: write
 
     steps:
       - name: Checkout PR
@@ -43,11 +44,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: spack -e ./test/CI install
 
+      - name: Push packages to Fenix's build cache
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          spack -e ./test/CI buildcache push --base-image ubuntu:24.04 \
+            --allow-missing --update-index fenix-buildcache
+        # Can safely push index even if some installs failed, only successful
+        # installs will be cached. May also fail if PR is from a fork.
+        continue-on-error: true
+
       - name: Build Fenix with Coverage (PR)
         shell: spack-bash {0}
         run: |
           spack env activate --dir ./test/CI
           mkdir -p build-pr && cd build-pr
+          # Compile with same gcc as lcov
+          export OMPI_CC=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c')
+          export OMPI_CXX=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.cxx')
           cmake ../ -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx \
             -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
@@ -69,9 +84,17 @@ jobs:
         run: |
           spack env activate --dir ./test/CI
           cd build-pr
-          lcov --capture --directory . --output-file coverage-pr.info
-          lcov --remove coverage-pr.info '/usr/*' '*/test/*' '*/examples/*' --output-file coverage-pr-filtered.info
+          LCOV_GCC=$(basename $(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c'))
+          LCOV_GCOV="gcov-${LCOV_GCC#gcc-}"
+          echo "LCOV_GCC=$LCOV_GCC, LCOV_GCOV=$LCOV_GCOV"
+          lcov --gcov-tool $LCOV_GCOV --capture --directory . --output-file coverage-pr.info
+          lcov --gcov-tool $LCOV_GCOV --remove coverage-pr.info '/usr/*' '*/test/*' '*/examples/*' --output-file coverage-pr-filtered.info
           lcov --list coverage-pr-filtered.info > coverage-pr-summary.txt
+
+      - name: Save comparison script from PR branch
+        run: |
+          # Copy the comparison script before switching branches
+          cp test/CI/compare-coverage.py /tmp/compare-coverage.py
 
       - name: Checkout Base Branch
         run: |
@@ -83,6 +106,8 @@ jobs:
         run: |
           spack env activate --dir ./test/CI
           mkdir -p build-base && cd build-base
+          export OMPI_CC=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c')
+          export OMPI_CXX=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.cxx')
           cmake ../ -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx \
             -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
@@ -104,13 +129,15 @@ jobs:
         run: |
           spack env activate --dir ./test/CI
           cd build-base
-          lcov --capture --directory . --output-file coverage-base.info
-          lcov --remove coverage-base.info '/usr/*' '*/test/*' '*/examples/*' --output-file coverage-base-filtered.info
+          LCOV_GCC=$(basename $(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c'))
+          LCOV_GCOV="gcov-${LCOV_GCC#gcc-}"
+          lcov --gcov-tool $LCOV_GCOV --capture --directory . --output-file coverage-base.info
+          lcov --gcov-tool $LCOV_GCOV --remove coverage-base.info '/usr/*' '*/test/*' '*/examples/*' --output-file coverage-base-filtered.info
           lcov --list coverage-base-filtered.info > coverage-base-summary.txt
 
       - name: Compare Coverage and Generate Report
         run: |
-          python3 test/CI/compare-coverage.py \
+          python3 /tmp/compare-coverage.py \
             build-base/coverage-base-filtered.info \
             build-pr/coverage-pr-filtered.info \
             --output coverage-report.md \

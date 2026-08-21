@@ -91,50 +91,75 @@ int main(int argc, char** argv) {
   int retcode = Fenix_Data_group_get_number_of_members(my_group, &num_members);
   fenix_require(retcode == FENIX_SUCCESS);
   fenix_require(num_members == 3);
-  if (rank == 0) fprintf(stderr, "Number of members: %d (expected 3)\n", num_members);
+  if (rank == 0)
+    fprintf(stderr, "Number of members: %d (expected 3)\n", num_members);
 
   if (rank == 0) fprintf(stderr, "Iterate through members by position\n");
   std::set<int> collected_ids;
   for (int pos = 0; pos < num_members; pos++) {
     int member_id = -1;
-    retcode = Fenix_Data_group_get_member_at_position(my_group, &member_id, pos);
+    retcode =
+      Fenix_Data_group_get_member_at_position(my_group, &member_id, pos);
     fenix_require(retcode == FENIX_SUCCESS);
     collected_ids.insert(member_id);
-    if (rank == 0) fprintf(stderr, "Position %d: member_id = %d\n", pos, member_id);
+    if (rank == 0)
+      fprintf(stderr, "Position %d: member_id = %d\n", pos, member_id);
   }
 
   if (rank == 0) fprintf(stderr, "Verify collected IDs match {10, 20, 30}\n");
   std::set<int> expected_ids = {10, 20, 30};
   fenix_require(collected_ids == expected_ids);
 
-  if (rank == 0) fprintf(stderr, "Test error: get_member_at_position with invalid position (-1)\n");
-  int member_id = -1;
+  if (rank == 0)
+    fprintf(
+      stderr, "Test error: get_member_at_position with invalid position (-1)\n"
+    );
+  int member_id     = -1;
   bool caught_error = false;
   try {
     retcode = Fenix_Data_group_get_member_at_position(my_group, &member_id, -1);
     // If using C API without exceptions, check error code
     if (retcode != FENIX_SUCCESS) {
       caught_error = true;
-      if (rank == 0) fprintf(stderr, "Correctly returned error for position -1: %d\n", retcode);
+      if (rank == 0)
+        fprintf(
+          stderr, "Correctly returned error for position -1: %d\n", retcode
+        );
     }
   } catch (const fenix::RuntimeException& e) {
     caught_error = true;
-    if (rank == 0) fprintf(stderr, "Correctly caught exception for position -1: %s\n", e.what());
+    if (rank == 0)
+      fprintf(
+        stderr, "Correctly caught exception for position -1: %s\n", e.what()
+      );
   }
   fenix_require(caught_error);
 
-  if (rank == 0) fprintf(stderr, "Test error: get_member_at_position with position >= size\n");
+  if (rank == 0)
+    fprintf(
+      stderr, "Test error: get_member_at_position with position >= size\n"
+    );
   caught_error = false;
   try {
-    retcode = Fenix_Data_group_get_member_at_position(my_group, &member_id, num_members);
+    retcode = Fenix_Data_group_get_member_at_position(
+      my_group, &member_id, num_members
+    );
     // If using C API without exceptions, check error code
     if (retcode != FENIX_SUCCESS) {
       caught_error = true;
-      if (rank == 0) fprintf(stderr, "Correctly returned error for position %d: %d\n", num_members, retcode);
+      if (rank == 0)
+        fprintf(
+          stderr, "Correctly returned error for position %d: %d\n", num_members,
+          retcode
+        );
     }
   } catch (const fenix::RuntimeException& e) {
     caught_error = true;
-    if (rank == 0) fprintf(stderr, "Correctly caught exception for position %d: %s\n", num_members, e.what());
+    if (rank == 0)
+      fprintf(
+        stderr, "Correctly caught exception for position %d: %s\n", num_members,
+        e.what()
+      );
   }
   fenix_require(caught_error);
 

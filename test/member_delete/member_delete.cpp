@@ -21,7 +21,8 @@ int main(int argc, char** argv) {
   // Create a group
   group_create(my_group, {.depth = 1});
 
-  if (rank == 0) fprintf(stderr, "Test 1: Create multiple members and delete one\n");
+  if (rank == 0)
+    fprintf(stderr, "Test 1: Create multiple members and delete one\n");
 
   // Create 5 members
   std::vector<int> data1(10, 1);
@@ -79,7 +80,10 @@ int main(int argc, char** argv) {
   member_delete(my_group, 4);
   fenix_require(!member_created(my_group, 4));
 
-  if (rank == 0) fprintf(stderr, "Test 6: Try to delete non-existent member (should fail)\n");
+  if (rank == 0)
+    fprintf(
+      stderr, "Test 6: Try to delete non-existent member (should fail)\n"
+    );
 
   // This should throw an exception
   bool caught_exception = false;
@@ -91,7 +95,8 @@ int main(int argc, char** argv) {
   }
   fenix_require(caught_exception);
 
-  if (rank == 0) fprintf(stderr, "Test 7: Add members after deletion and delete again\n");
+  if (rank == 0)
+    fprintf(stderr, "Test 7: Add members after deletion and delete again\n");
 
   // Re-add some members
   member_create(my_group, 10, data1.data(), 10, MPI_INT);

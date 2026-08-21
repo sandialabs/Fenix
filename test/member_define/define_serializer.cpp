@@ -7,7 +7,7 @@
 
 using namespace fenix::data;
 
-constexpr int my_group = 0;
+constexpr int my_group  = 0;
 constexpr int my_member = 1;
 
 std::vector<int> dynamic_data;
@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(res_comm, &rank);
 
   if (num_ranks != 2) {
-    if (rank == 0) fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
+    if (rank == 0)
+      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
     Fenix_Finalize();
     MPI_Finalize();
     return 0;
@@ -31,7 +32,8 @@ int main(int argc, char** argv) {
 
   group_create(my_group, {.depth = 2});
 
-  if (rank == 0) fprintf(stderr, "Test: member_define with custom serializer\n");
+  if (rank == 0)
+    fprintf(stderr, "Test: member_define with custom serializer\n");
 
   // Test 1: Define member with serializer and checkpoint
   if (rank == 0) fprintf(stderr, "  Creating member with serializer\n");
@@ -86,19 +88,24 @@ int main(int argc, char** argv) {
   std::vector<int> expected_first = {rank * 10, rank * 10 + 1, rank * 10 + 2};
   dynamic_data.clear();
 
-  member_restore(my_group, my_member, FENIX_DATA_RESTORE_INPLACE,
-                 FENIX_DATA_RESTORE_FULL, 0);
+  member_restore(
+    my_group, my_member, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL, 0
+  );
 
   if (dynamic_data.size() != 3) {
-    fprintf(stderr, "Rank %d: ERROR restoring timestamp 0, size=%zu (expected 3)\n",
-            rank, dynamic_data.size());
+    fprintf(
+      stderr, "Rank %d: ERROR restoring timestamp 0, size=%zu (expected 3)\n",
+      rank, dynamic_data.size()
+    );
     MPI_Abort(res_comm, 1);
   }
 
   for (size_t i = 0; i < dynamic_data.size(); i++) {
     if (dynamic_data[i] != expected_first[i]) {
-      fprintf(stderr, "Rank %d: ERROR at [%zu], got %d, expected %d\n",
-              rank, i, dynamic_data[i], expected_first[i]);
+      fprintf(
+        stderr, "Rank %d: ERROR at [%zu], got %d, expected %d\n", rank, i,
+        dynamic_data[i], expected_first[i]
+      );
       MPI_Abort(res_comm, 1);
     }
   }
@@ -107,29 +114,37 @@ int main(int argc, char** argv) {
 
   // Test 4: Restore from second checkpoint (timestamp 1)
   if (rank == 0) fprintf(stderr, "  Restoring from timestamp 1\n");
-  std::vector<int> expected_second = {rank * 100, rank * 100 + 1, rank * 100 + 2, rank * 100 + 3};
+  std::vector<int> expected_second = {
+    rank * 100, rank * 100 + 1, rank * 100 + 2, rank * 100 + 3
+  };
   dynamic_data.clear();
 
-  member_restore(my_group, my_member, FENIX_DATA_RESTORE_INPLACE,
-                 FENIX_DATA_RESTORE_FULL, 1);
+  member_restore(
+    my_group, my_member, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL, 1
+  );
 
   if (dynamic_data.size() != 4) {
-    fprintf(stderr, "Rank %d: ERROR restoring timestamp 1, size=%zu (expected 4)\n",
-            rank, dynamic_data.size());
+    fprintf(
+      stderr, "Rank %d: ERROR restoring timestamp 1, size=%zu (expected 4)\n",
+      rank, dynamic_data.size()
+    );
     MPI_Abort(res_comm, 1);
   }
 
   for (size_t i = 0; i < dynamic_data.size(); i++) {
     if (dynamic_data[i] != expected_second[i]) {
-      fprintf(stderr, "Rank %d: ERROR at [%zu], got %d, expected %d\n",
-              rank, i, dynamic_data[i], expected_second[i]);
+      fprintf(
+        stderr, "Rank %d: ERROR at [%zu], got %d, expected %d\n", rank, i,
+        dynamic_data[i], expected_second[i]
+      );
       MPI_Abort(res_comm, 1);
     }
   }
 
   if (rank == 0) fprintf(stderr, "  ✓ Timestamp 1 restored correctly\n");
 
-  if (rank == 0) fprintf(stderr, "All member_define serializer tests passed!\n");
+  if (rank == 0)
+    fprintf(stderr, "All member_define serializer tests passed!\n");
 
   Fenix_Finalize();
   MPI_Finalize();

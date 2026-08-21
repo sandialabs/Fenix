@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
 
   if (rank == 0) fprintf(stderr, "Test 10: Take ownership of mmapped buffer\n");
   {
-    size_t size = 256;
+    size_t size    = 256;
     char* mmap_buf = (char*)mmap(
       nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0
     );
@@ -219,9 +219,10 @@ int main(int argc, char** argv) {
     // Destructor will munmap the buffer
   }
 
-  if (rank == 0) fprintf(stderr, "Test 11: Resize mmapped buffer (forces malloc copy)\n");
+  if (rank == 0)
+    fprintf(stderr, "Test 11: Resize mmapped buffer (forces malloc copy)\n");
   {
-    size_t size = 128;
+    size_t size    = 128;
     char* mmap_buf = (char*)mmap(
       nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0
     );
@@ -252,7 +253,7 @@ int main(int argc, char** argv) {
   if (rank == 0) fprintf(stderr, "Test 12: Resize from zero size\n");
   {
     DataBuffer buf;
-    buf.resize(0);  // Already zero, but test the path
+    buf.resize(0); // Already zero, but test the path
     buf.resize(100);
     if (buf.size() != 100) {
       fprintf(stderr, "FAIL: Should be able to resize from zero\n");

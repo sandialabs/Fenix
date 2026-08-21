@@ -34,11 +34,11 @@
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 // GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 // IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
@@ -69,51 +69,48 @@
 
 using namespace fenix;
 
-bool test_subtraction(const DataSubset& a, const DataSubset& b){
-   const DataSubset c = a - b;
+bool test_subtraction(const DataSubset& a, const DataSubset& b) {
+  const DataSubset c = a - b;
 
-   size_t start = std::min(a.start(), b.start());
-   size_t end;
-   if(a.end() == -1 || b.end() == -1){
-      end = start+1000;
-   } else {
-      end = std::max(a.end(), b.end()) + 10;
-   }
-   
-   for(int i = start; i <= end; i++){
-      if(c.includes(i) && !a.includes(i)){
-         if(!a.includes(i)){
-            printf("Result of a - b incorrectly includes index not in a\n");
-            return false;
-         }
-         if(b.includes(i)){
-            printf("Result of a - b incorrectly includes index in b\n");
-            return false;
-         }
-      }
-      if(!c.includes(i)){
-         if(a.includes(i) && !b.includes(i)){
-            printf("Result of a - b incorrectly excludes index in a but not b\n");
-            return false;
-         }
-      }
-   }
+  size_t start = std::min(a.start(), b.start());
+  size_t end;
+  if (a.end() == -1 || b.end() == -1) {
+    end = start + 1000;
+  } else {
+    end = std::max(a.end(), b.end()) + 10;
+  }
 
-   return true;
+  for (int i = start; i <= end; i++) {
+    if (c.includes(i) && !a.includes(i)) {
+      if (!a.includes(i)) {
+        printf("Result of a - b incorrectly includes index not in a\n");
+        return false;
+      }
+      if (b.includes(i)) {
+        printf("Result of a - b incorrectly includes index in b\n");
+        return false;
+      }
+    }
+    if (!c.includes(i)) {
+      if (a.includes(i) && !b.includes(i)) {
+        printf("Result of a - b incorrectly excludes index in a but not b\n");
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
-int main(int argc, char **argv)
-{
-   bool success = true;
+int main(int argc, char** argv) {
+  bool success = true;
 
-   auto subsets = get_subsets();
-   for(const auto& a : subsets){
-      for(const auto& b : subsets){
-         success &= test_subtraction(a, b);
-      }
-   }
+  auto subsets = get_subsets();
+  for (const auto& a : subsets) {
+    for (const auto& b : subsets) {
+      success &= test_subtraction(a, b);
+    }
+  }
 
-   return success ? 0 : 1;
+  return success ? 0 : 1;
 }
-
-
