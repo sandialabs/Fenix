@@ -205,7 +205,16 @@ int member_attr_set(
     int err = MPI_Type_size(*dtype, &dtype_size);
     if (err) throw RuntimeException("Invalid MPI_Datatype");
 
+    // Update datatype size and recalculate user_data size for fixed-size members
+    int old_count = mentry->elm_count();
     mentry->datatype_size = dtype_size;
+
+    // If this is a fixed-size member, update user_data to reflect new size
+    // based on the element count (which stays the same)
+    if (old_count != FENIX_RESIZEABLE) {
+      size_t new_size = old_count * dtype_size;
+      mentry->user_data = {mentry->user_data.data(), new_size};
+    }
     break;
   }
   default:

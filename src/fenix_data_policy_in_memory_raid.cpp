@@ -73,6 +73,7 @@
 #include "fenix_ext.hpp"
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
+#include "fenix_exception.hpp"
 #include "fenix_data_subset.hpp"
 #include "fenix_data_policy.hpp"
 #include "fenix_data_group.hpp"
@@ -1072,7 +1073,40 @@ int Group::member_set_attribute(
   fenix_member_entry_t* member, int attributename, void* attributevalue,
   int* flag
 ) {
-  //No mutable attributes (as of now) require any changes to this policy's info
+  // Check if this is a datatype or count change to a DIFFERENT value
+  if (attributename == FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE ||
+      attributename == FENIX_DATA_MEMBER_ATTRIBUTE_COUNT) {
+
+    // Check if the value is actually changing
+    bool value_changing = false;
+    if (attributename == FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE) {
+      MPI_Datatype* new_dtype = (MPI_Datatype*)attributevalue;
+      int new_dtype_size;
+      MPI_Type_size(*new_dtype, &new_dtype_size);
+      value_changing = (new_dtype_size != member->datatype_size);
+    } else { // FENIX_DATA_MEMBER_ATTRIBUTE_COUNT
+      int new_count = *((int*)attributevalue);
+      int old_count = member->elm_count();
+      value_changing = (new_count != old_count);
+    }
+
+    if (value_changing) {
+      // Find the IMR member data
+      Member* imr_member = find_member(member->memberid);
+      if (imr_member) {
+        // Check if member has been staged by examining entries
+        for (const Entry& entry : imr_member->entries) {
+          // Valid committed snapshot OR current stage with non-empty regions
+          if (entry.timestamp >= 0 ||
+              entry.region != SUBSET_EMPTY ||
+              entry.partner_region != SUBSET_EMPTY) {
+            FENIX_THROW(FENIX_ERROR_INVALID_LOGIC_CALL);
+          }
+        }
+      }
+    }
+  }
+
   return FENIX_SUCCESS;
 }
 
