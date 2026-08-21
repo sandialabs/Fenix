@@ -973,7 +973,7 @@ int Group::get_snapshot_at_position(int idx, int* snapshot) {
 }
 
 std::vector<int> Group::get_snapshots() {
-  return {timestamps.begin(), timestamps.end()};
+  return {timestamps.rbegin(), timestamps.rend()};
 }
 
 int Group::member_restore(

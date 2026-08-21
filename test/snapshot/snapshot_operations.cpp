@@ -98,24 +98,24 @@ int main(int argc, char** argv) {
   for (int& i : data) i = 0xCCCCCCCC;
   checkpoint(my_group, DataSubset({0, 9}));
 
-  // Test group_snapshots() returns {0, 1, 2}
-  if (rank == 0) fprintf(stderr, "Testing group_snapshots() returns {0, 1, 2}\n");
+  // Test group_snapshots() returns {2, 1, 0} (newest to oldest)
+  if (rank == 0) fprintf(stderr, "Testing group_snapshots() returns {2, 1, 0}\n");
   std::vector<int> snapshots = *group_snapshots(my_group);
   fenix_require(snapshots.size() == 3, "Expected 3 snapshots");
-  fenix_require(snapshots[0] == 0, "Expected first snapshot to be 0");
+  fenix_require(snapshots[0] == 2, "Expected first snapshot to be 2 (newest)");
   fenix_require(snapshots[1] == 1, "Expected second snapshot to be 1");
-  fenix_require(snapshots[2] == 2, "Expected third snapshot to be 2");
+  fenix_require(snapshots[2] == 0, "Expected third snapshot to be 0 (oldest)");
 
   // Delete timestamp 1
   if (rank == 0) fprintf(stderr, "Deleting snapshot with timestamp 1\n");
   snapshot_delete(my_group, 1);
 
-  // Verify group_snapshots() now returns {0, 2}
-  if (rank == 0) fprintf(stderr, "Testing group_snapshots() returns {0, 2}\n");
+  // Verify group_snapshots() now returns {2, 0} (newest to oldest)
+  if (rank == 0) fprintf(stderr, "Testing group_snapshots() returns {2, 0}\n");
   snapshots = *group_snapshots(my_group);
   fenix_require(snapshots.size() == 2, "Expected 2 snapshots after deletion");
-  fenix_require(snapshots[0] == 0, "Expected first snapshot to be 0");
-  fenix_require(snapshots[1] == 2, "Expected second snapshot to be 2");
+  fenix_require(snapshots[0] == 2, "Expected first snapshot to be 2 (newest)");
+  fenix_require(snapshots[1] == 0, "Expected second snapshot to be 0 (oldest)");
 
   // Verify we can still load from the remaining snapshots
   if (rank == 0) fprintf(stderr, "Verifying snapshot 0 can still be loaded\n");
