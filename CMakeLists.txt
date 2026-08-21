@@ -21,6 +21,7 @@ option(BUILD_EXAMPLES    "Builds example programs from the examples directory" O
 option(BUILD_TESTING     "Builds tests and test modes of files"                ON)
 option(BUILD_DOCS        "Builds documentation if is doxygen found"            ON)
 option(DOCS_ONLY         "Only build documentation"                            OFF)
+option(ENABLE_COVERAGE   "Enable code coverage reporting (gcov/lcov)"          OFF)
 
 option(FENIX_C_CATCH_RUNTIME_EXCEPTIONS
     "Catch runtime exceptions and return an error code in the C API" OFF)
@@ -38,6 +39,13 @@ if(NOT DOCS_ONLY)
 
     if(${FENIX_SYSTEM_INC_FIX})
       include(cmake/systemMPIOverride.cmake)
+    endif()
+
+    # Enable coverage reporting if requested
+    if(ENABLE_COVERAGE)
+        message(STATUS "Code coverage reporting enabled")
+        add_compile_options(--coverage -O0 -g)
+        add_link_options(--coverage)
     endif()
 
     add_subdirectory(src)

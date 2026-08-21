@@ -468,8 +468,9 @@ int __fenix_repair_ranks() {
           );
         }
 
-        if (fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
+        if (fenix_rt.fail_world != nullptr) {
           free(fenix_rt.fail_world);
+          fenix_rt.fail_world = nullptr;
         }
         fenix_rt.fail_world = __fenix_get_fail_ranks(
           survivor_world, survivor_world_size, fenix_rt.fail_world_size
@@ -561,12 +562,11 @@ int __fenix_repair_ranks() {
       fenix_rt.num_initial_ranks   = 0;
       fenix_rt.num_recovered_ranks = fenix_rt.fail_world_size;
 
-      if (fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
+      if (fenix_rt.fail_world != nullptr) {
         free(fenix_rt.fail_world);
+        fenix_rt.fail_world = nullptr;
       }
 
-      fenix_rt.fail_world =
-        (int*)s_malloc(fenix_rt.fail_world_size * sizeof(int));
       fenix_rt.fail_world = __fenix_get_fail_ranks(
         survivor_world, survivor_world_size, fenix_rt.fail_world_size
       );
@@ -768,6 +768,7 @@ void __fenix_finalize_spare() {
   MPI_Op_free(&fenix_rt.agree_op);
   MPI_Comm_set_errhandler(*fenix_rt.world, MPI_ERRORS_ARE_FATAL);
   MPI_Comm_free(fenix_rt.world);
+  free(fenix_rt.world);
 
   /* Free data recovery interface */
   __fenix_data_recovery_destroy(fenix_rt.data_recovery);
@@ -962,8 +963,9 @@ int Fenix_Finalize() {
     MPI_Comm_free(&fenix_rt.new_world);
   }
 
-  if (fenix_rt.role != FENIX_ROLE_INITIAL_RANK) {
+  if (fenix_rt.fail_world != nullptr) {
     free(fenix_rt.fail_world);
+    fenix_rt.fail_world = nullptr;
   }
 
   /* Free data recovery interface */

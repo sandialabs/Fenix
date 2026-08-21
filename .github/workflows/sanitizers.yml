@@ -1,0 +1,87 @@
+name: Sanitizer Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches:
+      - develop
+
+# Cancel previous runs on the same PR or branch
+concurrency:
+  group: sanitizers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sanitizers:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Spack
+        uses: spack/setup-spack@v3
+
+      - name: Add Spack packages
+        run: |
+          spack -e ./test/CI add openmpi@git.main=main +internal-hwloc +internal-libevent +internal-pmix
+          spack -e ./test/CI add cmake
+
+      - name: Concretize Spack packages
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: spack -e ./test/CI concretize
+
+      - name: Install Spack packages
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: spack -e ./test/CI install
+
+      - name: Push packages to build cache
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          spack -e ./test/CI buildcache push --base-image ubuntu:24.04 \
+            --allow-missing --update-index fenix-buildcache
+        if: ${{ !cancelled() }}
+
+      - name: Run Sanitizer Tests
+        shell: spack-bash {0}
+        run: |
+          spack env activate --dir ./test/CI
+          ./test/CI/sanitizers.sh
+        # Always run even if spack steps fail
+        if: ${{ !cancelled() }}
+
+      - name: Upload sanitizer reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanitizer-reports
+          path: |
+            build_memory_asan/memory_reports/
+          retention-days: 7
+
+      - name: Check for errors
+        if: always()
+        run: |
+          if [ -f build_memory_asan/memory_reports/asan_errors.txt ]; then
+            if [ -s build_memory_asan/memory_reports/asan_errors.txt ]; then
+              echo "::error::AddressSanitizer detected memory errors"
+              cat build_memory_asan/memory_reports/asan_errors.txt
+              exit 1
+            fi
+          fi
+
+          if [ -f build_memory_asan/memory_reports/ubsan_errors.txt ]; then
+            if [ -s build_memory_asan/memory_reports/ubsan_errors.txt ]; then
+              echo "::warning::UndefinedBehaviorSanitizer detected undefined behavior"
+              cat build_memory_asan/memory_reports/ubsan_errors.txt
+            fi
+          fi

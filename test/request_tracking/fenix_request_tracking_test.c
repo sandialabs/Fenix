@@ -69,6 +69,7 @@ int main(int argc, char **argv)
     free(bufs_recv);
     free(reqs);
     free(reqs_recv);
+    free(statuses);
 
 #ifndef RTT_NO_FENIX
     Fenix_Finalize();
