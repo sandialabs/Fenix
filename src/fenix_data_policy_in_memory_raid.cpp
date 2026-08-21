@@ -187,7 +187,7 @@ ParityMember::ParityMember(fenix_member_entry_t& my_mentry, Group& my_group)
 
 bool Member::snapshot_delete(int timestamp) {
   bool found = false;
-  for (int i = entries.size(); i >= 0; i--) {
+  for (int i = entries.size() - 1; i >= 0; i--) {
     if (entries[i].timestamp == timestamp) {
       assert(!found);
       found = true;

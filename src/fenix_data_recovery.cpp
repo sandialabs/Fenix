@@ -565,7 +565,7 @@ int Fenix_Data_member_attr_get(
 }
 
 int Fenix_Data_group_get_redundancy_policy(
-  int groupid, int* policy_name, int* policy_value, int* flag
+  int groupid, int* policy_name, void* policy_value, int* flag
 ) {
   FENIX_C_API_BEGIN
   return find_group(groupid)->get_redundant_policy(
