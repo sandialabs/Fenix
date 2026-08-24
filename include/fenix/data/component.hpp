@@ -5,7 +5,7 @@
 #include <set>
 #include <vector>
 #include <source_location>
-#include <fenix_data_group.hpp>
+#include "fenix/data/group.hpp"
 
 namespace fenix::data {
 

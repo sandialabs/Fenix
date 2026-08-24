@@ -65,7 +65,7 @@
 
 #include "fenix.h"
 #include "fenix_exception.hpp"
-#include "fenix_data_subset.hpp"
+#include "fenix/data/subset.hpp"
 
 namespace fenix {
 

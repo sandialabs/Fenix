@@ -1,7 +1,7 @@
-#include "fenix_data_component.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_policy_in_memory_raid.hpp"
-#include "fenix_data_policy_local.hpp"
+#include "fenix/data/component.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/policy_imr.hpp"
+#include "fenix/data/policy_local.hpp"
 #include "fenix_ext.hpp"
 #include <mpi.h>
 

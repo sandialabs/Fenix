@@ -57,7 +57,7 @@
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
 #include "fenix.hpp"
-#include "fenix_data_subset.hpp"
+#include "fenix/data/subset.hpp"
 
 #include <cassert>
 

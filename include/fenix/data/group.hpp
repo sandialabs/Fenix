@@ -65,8 +65,8 @@
 
 #include <mpi.h>
 #include "fenix.h"
-#include "fenix_data_member.hpp"
-#include "fenix_data_subset.hpp"
+#include "fenix/data/member.hpp"
+#include "fenix/data/subset.hpp"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
 

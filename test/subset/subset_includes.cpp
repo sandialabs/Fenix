@@ -64,8 +64,8 @@
 #include <unistd.h>
 #include <iostream>
 
-#include <fenix_data_subset.hpp>
-#include <fenix_data_buffer.hpp>
+#include "fenix/data/subset.hpp"
+#include "fenix/data/util/buffer.hpp"
 
 using namespace fenix;
 

@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include "fenix_data_group.hpp"
-#include "fenix_data_member.hpp"
-#include "fenix_data_subset.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/member.hpp"
+#include "fenix/data/subset.hpp"
 
 namespace fenix::data::local {
 

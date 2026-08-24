@@ -1,6 +1,6 @@
 #
 #  This file is part of Fenix
-#  Copyright (c) 2016 Rutgers University and  Sandia Corporation.
+#  Copyright (c) 2016 Rutgers University and Sandia Corporation.
 #  This software is distributed under the BSD License.
 #  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 #  the U.S. Government retains certain rights in this software.
@@ -9,7 +9,7 @@
 #
 
 target_sources(fenix PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/mfile.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/mstream.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/serializer.cpp
-)
+    buffer.cpp
+    mfile.cpp
+    mstream.cpp
+    serializer.cpp)

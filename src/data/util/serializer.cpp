@@ -11,7 +11,8 @@ namespace fenix::data::util {
 Serializer::Serializer(
   DataBuffer& stage_buf, std::optional<SerializeFunc>& f,
   const DataRef& user_buf, int direction, int element_size
-) : stage(stage_buf), user(user_buf), dir(direction), elm_size(element_size) {
+)
+  : stage(stage_buf), user(user_buf), dir(direction), elm_size(element_size) {
   dynamic = !user_buf.is_bounded() && dir == FENIX_SERIALIZE;
   if (dynamic) fenix_assert(f);
   else fenix_assert(size() % elm_size == 0);

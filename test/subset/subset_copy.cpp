@@ -64,8 +64,8 @@
 #include <iostream>
 
 #include <fenix.hpp>
-#include <fenix_data_member.hpp>
-#include <fenix_data_subset.hpp>
+#include "fenix/data/member.hpp"
+#include "fenix/data/subset.hpp"
 #include <fenix/data/util/data_ref.hpp>
 #include <fenix/data/util/serializer.hpp>
 

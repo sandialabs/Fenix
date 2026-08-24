@@ -61,9 +61,9 @@
 #include <memory>
 #include <source_location>
 
-#include "fenix_data_subset.hpp"
-#include "fenix_data_buffer.hpp"
-#include "fenix_data_snapshot.hpp"
+#include "fenix/data/subset.hpp"
+#include "fenix/data/util/buffer.hpp"
+#include "fenix/data/snapshot.hpp"
 #include "fenix/data/util/data_ref.hpp"
 #include "fenix/data/util/serializer.hpp"
 #include "fenix/tasks/task.hpp"
@@ -102,7 +102,7 @@ class DataMember {
 
   int memberid = -1;
   int datatype_size;
-  DataRef user_data;
+  util::DataRef user_data;
 
   int elm_count();
 
@@ -112,11 +112,11 @@ class DataMember {
   );
 
   // Serialize user_data into buf
-  virtual void serialize(const DataSubset& subset, DataBuffer& buf);
+  virtual void serialize(const DataSubset& subset, util::DataBuffer& buf);
 
   // Deserialize buf into dst
   virtual void deserialize(
-    const DataSubset& subset, DataBuffer& buf, const DataRef& dst
+    const DataSubset& subset, util::DataBuffer& buf, const util::DataRef& dst
   );
 
   // Data operations with default local-only implementations
@@ -194,11 +194,11 @@ class DataMember {
   // buffer until their destructor is called. So these should usually only be
   // used to construct temporaries that go to a subset's serialize call
   Serializer create_serializer(
-    std::optional<SerializeFunc>& sf, const DataSubset& s, DataBuffer& b
+    std::optional<SerializeFunc>& sf, const DataSubset& s, util::DataBuffer& b
   );
   Serializer create_deserializer(
-    std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf,
-    const DataRef& dst
+    std::optional<SerializeFunc>& sf, const DataSubset& subset,
+    util::DataBuffer& buf, const util::DataRef& dst
   );
 };
 

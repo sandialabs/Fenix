@@ -63,10 +63,10 @@
 #include <deque>
 #include <cassert>
 #include <string>
-#include "fenix_data_group.hpp"
-#include "fenix_data_buffer.hpp"
-#include "fenix_data_subset.hpp"
-#include "fenix_data_snapshot.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/util/buffer.hpp"
+#include "fenix/data/subset.hpp"
+#include "fenix/data/snapshot.hpp"
 #include "fenix/tasks/task.hpp"
 
 namespace fenix::data::imr {
@@ -112,8 +112,8 @@ struct IMRMember : public DataMember {
   IMRGroup& group;
   int id = memberid;
 
-  DataBuffer& send_buf;
-  DataBuffer& recv_buf;
+  util::DataBuffer& send_buf;
+  util::DataBuffer& recv_buf;
 };
 
 struct BuddyMember : public IMRMember {
@@ -148,7 +148,7 @@ struct IMRGroup : public DataGroup {
   int set_size, set_rank;
   static inline bool set_comm_revoke_callback = false;
 
-  DataBuffer send_buf, recv_buf;
+  util::DataBuffer send_buf, recv_buf;
 
   void sync_timestamps();
   void build_set_comm();

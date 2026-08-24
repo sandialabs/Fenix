@@ -15,14 +15,6 @@ set(Fenix_SOURCES
     fenix_opt.cpp
     fenix_process_recovery.cpp
     fenix_util.cpp
-    fenix_data_recovery.cpp
-    fenix_data_component.cpp
-    fenix_data_group.cpp
-    fenix_data_policy_in_memory_raid.cpp
-    fenix_data_member.cpp
-    fenix_data_snapshot.cpp
-    fenix_data_subset.cpp
-    fenix_data_buffer.cpp
     fenix_callbacks.cpp)
 add_library(fenix STATIC ${Fenix_SOURCES})
 

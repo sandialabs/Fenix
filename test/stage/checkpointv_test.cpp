@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
       restored_subset
     );
   } catch (const fenix::RuntimeException& e) {
-    ret_member10 = e.error; 
+    ret_member10 = e.error;
   }
 
   // Restore member 20
@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
       restored_subset
     );
   } catch (const fenix::RuntimeException& e) {
-    ret_member20 = e.error; 
+    ret_member20 = e.error;
   }
 
   // Restore member 30
@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
       restored_subset
     );
   } catch (const fenix::RuntimeException& e) {
-    ret_member30 = e.error; 
+    ret_member30 = e.error;
   }
 
   // Verify only valid return codes

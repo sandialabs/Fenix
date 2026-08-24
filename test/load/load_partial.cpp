@@ -77,8 +77,9 @@ int main(int argc, char** argv) {
   std::vector<int> large_buffer(150, -888);
 
   try {
-    ret =
-      member_load(my_group, my_member, large_buffer.data(), 150, 0, found_subset);
+    ret = member_load(
+      my_group, my_member, large_buffer.data(), 150, 0, found_subset
+    );
   } catch (const fenix::RuntimeException& e) {
     ret = e.error;
   }

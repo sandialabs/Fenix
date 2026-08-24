@@ -57,7 +57,7 @@
 #define __FENIX_DATA_SUBSET_HPP__
 
 #include "fenix_opt.hpp"
-#include "fenix_data_buffer.hpp"
+#include "fenix/data/util/buffer.hpp"
 
 #include <utility>
 #include <set>
@@ -169,7 +169,7 @@ struct DataSubset {
   //Merge two subsets
   DataSubset(const DataSubset& a, const DataSubset& b);
   //Create from serialized subset object
-  DataSubset(const DataBuffer& buf);
+  DataSubset(const data::util::DataBuffer& buf);
   explicit DataSubset(SubsetType special_type) : type(special_type) {};
 
   DataSubset operator+(const DataSubset& other) const;
@@ -200,13 +200,13 @@ struct DataSubset {
 
   //Serialize this subset object into buf
   //Will resize buf to fit exactly.
-  void serialize(DataBuffer& buf) const;
+  void serialize(data::util::DataBuffer& buf) const;
 
   //Will reset dst to fit
-  void pack_data(size_t elm_size, const DataBuffer& src, DataBuffer& dst) const;
+  void pack_data(size_t elm_size, const data::util::DataBuffer& src, data::util::DataBuffer& dst) const;
   //If dst.size()==0, will resize dst to fit
   void unpack_data(
-    size_t elm_size, const DataBuffer& src, DataBuffer& dst
+    size_t elm_size, const data::util::DataBuffer& src, data::util::DataBuffer& dst
   ) const;
 
   //Copy data using given Serializer

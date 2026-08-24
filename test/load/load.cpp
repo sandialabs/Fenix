@@ -50,7 +50,9 @@ int main(int argc, char** argv) {
   std::vector<int> ts = *group_snapshots(my_group);
   fenix_require(ts.size() == 3);
   if (rank == 0) {
-    fprintf(stderr, "Timestamps: ts[0]=%d, ts[1]=%d, ts[2]=%d\n", ts[0], ts[1], ts[2]);
+    fprintf(
+      stderr, "Timestamps: ts[0]=%d, ts[1]=%d, ts[2]=%d\n", ts[0], ts[1], ts[2]
+    );
   }
   data.resize(40);
   for (int& i : data) i = -1;

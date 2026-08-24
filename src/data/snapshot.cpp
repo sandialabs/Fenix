@@ -1,5 +1,5 @@
 #include "fenix.hpp"
-#include "fenix_data_snapshot.hpp"
+#include "fenix/data/snapshot.hpp"
 #include "fenix_opt.hpp"
 
 namespace fenix::data {

@@ -1,8 +1,8 @@
 #ifndef __FENIX_DATA_SNAPSHOT_HPP__
 #define __FENIX_DATA_SNAPSHOT_HPP__
 
-#include "fenix_data_buffer.hpp"
-#include "fenix_data_subset.hpp"
+#include "fenix/data/util/buffer.hpp"
+#include "fenix/data/subset.hpp"
 
 namespace fenix::data {
 
@@ -12,11 +12,11 @@ namespace fenix::data {
 // (e.g., partner buffers for redundancy in IMR policies).
 class DataSnapshot {
  protected:
-  DataBuffer buf_;    ///< Primary checkpoint data buffer
-  DataSubset region_; ///< Data region captured in this snapshot
-  int timestamp_;     ///< Snapshot version/commit timestamp
-  int elm_size_;      ///< Size of each element in bytes
-  int elm_max_count_; ///< Maximum number of elements
+  util::DataBuffer buf_; ///< Primary checkpoint data buffer
+  DataSubset region_;    ///< Data region captured in this snapshot
+  int timestamp_;        ///< Snapshot version/commit timestamp
+  int elm_size_;         ///< Size of each element in bytes
+  int elm_max_count_;    ///< Maximum number of elements
 
  public:
   DataSnapshot(int elm_size, int max_count);
@@ -47,7 +47,7 @@ class DataSnapshot {
   const DataSubset& region() const { return region_; }
   DataSubset& region() { return region_; }
 
-  DataBuffer& buf() { return buf_; }
+  util::DataBuffer& buf() { return buf_; }
 
   int elm_size() const { return elm_size_; }
   int elm_max_count() const { return elm_max_count_; }

@@ -55,10 +55,14 @@
 */
 
 #include "fenix_util.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_member.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/member.hpp"
 
 namespace fenix::data {
+
+using util::ConstDataRef;
+using util::DataBuffer;
+using util::DataRef;
 
 DataMemberPacket DataMember::to_packet() {
   DataMemberPacket to_ret;

@@ -61,8 +61,8 @@
 #include "fenix-config.h"
 #include "fenix_ext.hpp"
 #include "fenix_util.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_member.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/member.hpp"
 #include "fenix/mpi_util.hpp"
 
 namespace fenix::data {

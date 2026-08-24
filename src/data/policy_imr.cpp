@@ -74,13 +74,15 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 #include "fenix_exception.hpp"
-#include "fenix_data_subset.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_member.hpp"
-#include "fenix_data_policy_in_memory_raid.hpp"
+#include "fenix/data/subset.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/member.hpp"
+#include "fenix/data/policy_imr.hpp"
 #include "fenix/tasks/mpi.hpp"
 
 namespace fenix::data::imr {
+
+using util::DataBuffer;
 
 IMRSnapshot::IMRSnapshot(int size, int max_count)
   : DataSnapshot(size, max_count), partner(size, max_count) {}

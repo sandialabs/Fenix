@@ -56,6 +56,7 @@
 */
 
 #include <fenix.h>
+using fenix::data::util::DataBuffer;
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,7 +64,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <fenix_data_subset.hpp>
+#include "fenix/data/subset.hpp"
+using fenix::data::util::DataBuffer;
 
 #include "subset_common.hpp"
 

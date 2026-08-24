@@ -58,7 +58,7 @@
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
 #include "fenix_ext.hpp"
-#include "fenix_data_subset.hpp"
+#include "fenix/data/subset.hpp"
 #include "fenix/data/util/mstream.hpp"
 
 #include <cassert>

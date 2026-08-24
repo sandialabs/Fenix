@@ -64,8 +64,8 @@
 #include "fenix.h"
 #include "fenix.hpp"
 #include "fenix_opt.hpp"
-#include "fenix_data_group.hpp"
-#include "fenix_data_component.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/component.hpp"
 #include "fenix/logging/comm_log.h"
 
 namespace fenix {
