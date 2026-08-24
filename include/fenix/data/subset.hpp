@@ -203,10 +203,14 @@ struct DataSubset {
   void serialize(data::util::DataBuffer& buf) const;
 
   //Will reset dst to fit
-  void pack_data(size_t elm_size, const data::util::DataBuffer& src, data::util::DataBuffer& dst) const;
+  void pack_data(
+    size_t elm_size, const data::util::DataBuffer& src,
+    data::util::DataBuffer& dst
+  ) const;
   //If dst.size()==0, will resize dst to fit
   void unpack_data(
-    size_t elm_size, const data::util::DataBuffer& src, data::util::DataBuffer& dst
+    size_t elm_size, const data::util::DataBuffer& src,
+    data::util::DataBuffer& dst
   ) const;
 
   //Copy data using given Serializer
