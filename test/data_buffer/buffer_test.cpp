@@ -1,4 +1,5 @@
-#include <fenix_data_buffer.hpp>
+#include "fenix/data/util/buffer.hpp"
+using fenix::data::util::DataBuffer;
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>

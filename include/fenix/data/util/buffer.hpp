@@ -54,20 +54,105 @@
 //@HEADER
 */
 
-#ifndef __FENIX_DATA_POLICY_H__
-#define __FENIX_DATA_POLICY_H__
+#ifndef FENIX_DATA_BUFFER_HPP
+#define FENIX_DATA_BUFFER_HPP
+
+#include <memory>
+#include <vector>
 
 #include <mpi.h>
-#include "fenix.h"
-#include "fenix_data_group.hpp"
+#include "fenix/tasks/forward.hpp"
 
-namespace fenix::data {
+namespace fenix::data::util {
 
-fenix_group_t* new_group(
-  int groupid, MPI_Comm comm, int timestart, int depth, int policy_name,
-  void* policy_value, int* flag
-);
+class DataBuffer {
+ public:
+  using MPITask = tasks::mpi::MPITask;
 
-} // namespace fenix::data
+  DataBuffer() = default;
+  explicit DataBuffer(size_t init_size) { resize(init_size); }
 
-#endif //__FENIX_DATA_POLICY_H__
+  ~DataBuffer() { free_buf(); }
+
+  DataBuffer(const DataBuffer& o) = delete;
+
+  DataBuffer(DataBuffer&& o) { *this = std::move(o); }
+  DataBuffer& operator=(DataBuffer&& o) {
+    if (&o == this) return *this;
+    free_buf();
+    *this = o;
+    o.release_buf();
+    return *this;
+  }
+
+  void take_ownership(char* new_buf, size_t new_size) {
+    free_buf();
+    buf        = new_buf;
+    user_size  = new_size;
+    alloc_size = new_size;
+  }
+
+  void take_ownership_mmapped(char* new_buf, size_t new_size) {
+    free_buf();
+    buf         = new_buf;
+    user_size   = new_size;
+    alloc_size  = new_size;
+    mmap_buffer = true;
+  }
+
+  // Simple resize without overallocating.
+  // No ammortized growth cost, but we don't need it for our usage
+  void resize(size_t new_size);
+  void shrink_to_fit();
+  void clear() { resize(0); }
+
+  // Set to new size, discarding old data if reallocation is needed
+  void reset(size_t new_size = 0) {
+    resize(0);
+    resize(new_size);
+  }
+
+  void reserve(size_t new_size) {
+    size_t old_size = user_size;
+    resize(new_size);
+    resize(old_size);
+  }
+
+  char* data() { return buf; }
+  const char* data() const { return buf; }
+  size_t size() const { return user_size; }
+
+  MPITask send(int dst, int tag, MPI_Comm comm);
+
+  // Recv n bytes
+  MPITask recv(int n, int src, int tag, MPI_Comm comm);
+
+  // Recv an unknown amount of data and resize to fit
+  MPITask recv_unknown(int src, int tag, MPI_Comm comm);
+
+ private:
+  char* buf         = nullptr;
+  size_t user_size  = 0;
+  size_t alloc_size = 0;
+  bool mmap_buffer  = false;
+
+  DataBuffer& operator=(const DataBuffer& o) {
+    this->buf         = o.buf;
+    this->user_size   = o.user_size;
+    this->alloc_size  = o.alloc_size;
+    this->mmap_buffer = o.mmap_buffer;
+    return *this;
+  }
+  void free_buf();
+  void release_buf() {
+    buf         = nullptr;
+    user_size   = 0;
+    alloc_size  = 0;
+    mmap_buffer = false;
+  }
+  void realloc_buf(size_t new_size);
+};
+
+} // namespace fenix::data::util
+
+#endif //FENIX_DATA_BUFFER_HPP

@@ -1,8 +1,7 @@
 ---
 BasedOnStyle: LLVM
 
----
-Language: Cpp
+# Common settings for both C and C++
 PointerAlignment: Left
 AllowShortLoopsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
@@ -13,7 +12,10 @@ AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AlignAfterOpenBracket: BlockIndent
 
 # Align assignments not separated by non-assignment or empty line
-AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossComments: true
+  AcrossEmptyLines: false
 
 # Function calls and init lists try to fit args on same line
 PackConstructorInitializers: BinPack

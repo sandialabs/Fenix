@@ -1,11 +1,11 @@
 #ifndef FENIX_DATA_UTIL_DATA_REF_HPP
 #define FENIX_DATA_UTIL_DATA_REF_HPP
 
-#include "fenix_data_buffer.hpp"
+#include "fenix/data/util/buffer.hpp"
 
 #include <limits>
 
-namespace fenix::data {
+namespace fenix::data::util {
 
 namespace detail {
 
@@ -123,6 +123,6 @@ class ConstDataRef {
   detail::DataRefHolder<true> ref;
 };
 
-} //namespace fenix::data
+} //namespace fenix::data::util
 
 #endif

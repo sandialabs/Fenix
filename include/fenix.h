@@ -599,6 +599,7 @@ int Fenix_Finalize();
 
 #define FENIX_DATA_POLICY_IN_MEMORY_RAID 13
 #define FENIX_DATA_POLICY_IMR FENIX_DATA_POLICY_IN_MEMORY_RAID
+#define FENIX_DATA_POLICY_LOCAL 14
 
 #define FENIX_TIME_STAMP_IGNORE NULL
 
@@ -817,13 +818,13 @@ int Fenix_Data_test(Fenix_Request request, int* flag);
  *
  * @param group_id  Group of the member to stage to
  * @param member_id Member to stage to
- * @param subset_specifier Which subset of the data to stage.
+ * @param subset Which subset of the data to stage.
  *        FENIX_DATA_SUBSET_ALL is invalid if member size is FENIX_RESIZEABLE.
  *        FENIX_DATA_SUBSET_PRESTAGED is invalid.
  * @returnstatus
  **/
 int Fenix_Data_member_stage(
-  int group_id, int member_id, const Fenix_Data_subset subset_specifier
+  int group_id, int member_id, const Fenix_Data_subset subset
 );
 
 /**
@@ -895,35 +896,35 @@ int Fenix_Data_member_stage_end(int group_id, int member_id);
  *
  * The user can safely modify the member's data buffer after this call, as the
  * current state is copied immediately. Multiple calls may be used to
- * incrementally store data (using subset_specifiers), or overwrite old data
+ * incrementally store data (using subsets), or overwrite old data
  * prior to a commit.
  *
  * @param group_id All ranks must provide the same group_id
  * @param member_id All ranks must provide the same member_id
- * @param subset_specifier Which subset of the data to store.
+ * @param subset Which subset of the data to store.
  *        If this member was created with size FENIX_RESIZEABLE,
  * FENIX_DATA_SUBSET_ALL is an invalid input.
  * @return FENIX_SUCCESS, or an error value.
  */
 int Fenix_Data_member_store(
-  int group_id, int member_id, const Fenix_Data_subset subset_specifier
+  int group_id, int member_id, const Fenix_Data_subset subset
 );
 
 //!@unimplemented As [store](#Fenix_Data_member_store), but subsets may vary
 //!rank-to-rank.
 int Fenix_Data_member_storev(
-  int group_id, int member_id, const Fenix_Data_subset subset_specifier
+  int group_id, int member_id, const Fenix_Data_subset subset
 );
 
 //!@unimplemented As [store](#Fenix_Data_member_store), but asynchronous.
 int Fenix_Data_member_istore(
-  int group_id, int member_id, const Fenix_Data_subset subset_specifier,
+  int group_id, int member_id, const Fenix_Data_subset subset,
   Fenix_Request* request
 );
 
 //!@unimplemented As [istore](#Fenix_Data_member_istore), but asynchronous.
 int Fenix_Data_member_istorev(
-  int group_id, int member_id, const Fenix_Data_subset subset_specifier,
+  int group_id, int member_id, const Fenix_Data_subset subset,
   Fenix_Request* request
 );
 
@@ -992,9 +993,6 @@ int Fenix_Data_checkpoint(
   int group_id, const Fenix_Data_subset subset, int num_storev, int* storev_ids,
   int* time_stamp
 );
-
-//!@unimplemented Block until all ranks in the group have reached this point.
-int Fenix_Data_barrier(int group_id);
 
 /**
  * @brief Repair the resilient storage of committed data for this member.
@@ -1192,12 +1190,12 @@ int Fenix_Data_member_restore_from_rank(
  *                         block.
  * @param[in] end_offset The index of the last element in the first data block.
  * @param[in] stride Regular shift between successive data blocks.
- * @param[out] subset_specifier The created subset.
+ * @param[out] subset The created subset.
  * @returnstatus
  */
 int Fenix_Data_subset_create(
   int num_blocks, int start_offset, int end_offset, int stride,
-  Fenix_Data_subset* subset_specifier
+  Fenix_Data_subset* subset
 );
 
 /**
@@ -1216,11 +1214,11 @@ int Fenix_Data_subset_create(
  *            block.
  * @param[in] array_end_offsets The index of the last element in each data
  *            block.
- * @param[out] subset_specifier The created subset.
+ * @param[out] subset The created subset.
  */
 int Fenix_Data_subset_createv(
   int num_blocks, int* array_start_offsets, int* array_end_offsets,
-  Fenix_Data_subset* subset_specifier
+  Fenix_Data_subset* subset
 );
 
 /**
@@ -1228,10 +1226,10 @@ int Fenix_Data_subset_createv(
  *
  * Frees the memory associated with a data subset object.
  *
- * @param[in] subset_specifier The subset to delete.
+ * @param[in] subset The subset to delete.
  * @returnstatus
  */
-int Fenix_Data_subset_delete(Fenix_Data_subset* subset_specifier);
+int Fenix_Data_subset_delete(Fenix_Data_subset* subset);
 
 /**
  * @brief Get the number of members in a data group.
@@ -1288,7 +1286,7 @@ int Fenix_Data_group_get_snapshot_at_position(
 //!@unimplemented Get the value of a member's attribute.
 int Fenix_Data_member_attr_get(
   int group_id, int member_id, int attributename, void* attributevalue,
-  int* flag, int source_rank
+  int* flag
 );
 
 /**

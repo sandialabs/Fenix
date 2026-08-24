@@ -63,7 +63,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <fenix_data_subset.hpp>
+#include "fenix/data/subset.hpp"
 
 #include "subset_common.hpp"
 

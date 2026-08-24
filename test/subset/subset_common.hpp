@@ -56,7 +56,7 @@
 */
 
 #include <fenix.hpp>
-#include <fenix_data_subset.hpp>
+#include "fenix/data/subset.hpp"
 
 #include <vector>
 

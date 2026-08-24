@@ -65,7 +65,7 @@
 
 #include "fenix.h"
 #include "fenix_exception.hpp"
-#include "fenix_data_subset.hpp"
+#include "fenix/data/subset.hpp"
 
 namespace fenix {
 
@@ -248,6 +248,10 @@ int member_define(
 bool member_created(int group_id, int member_id);
 
 int member_attr_set(
+  int group_id, int member_id, int attr, void* value, int* flag
+);
+
+int member_attr_get(
   int group_id, int member_id, int attr, void* value, int* flag
 );
 

@@ -64,8 +64,8 @@
 #include <iostream>
 
 #include <fenix.hpp>
-#include <fenix_data_member.hpp>
-#include <fenix_data_subset.hpp>
+#include "fenix/data/member.hpp"
+#include "fenix/data/subset.hpp"
 #include <fenix/data/util/data_ref.hpp>
 #include <fenix/data/util/serializer.hpp>
 
@@ -112,10 +112,10 @@ bool test_copy(
   for (int& i : in) i = default_inval;
   for (int& i : out) i = default_outval;
 
-  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int), s);
+  DataMember member(0, in.data(), count, sizeof(int), 0, s);
 
-  mentry.serialize(a, b);
-  mentry.deserialize(a, b, out);
+  member.serialize(a, b);
+  member.deserialize(a, b, out);
 
   for (int i = 0; i < count; i++) {
     if (a.includes(i) && out[i] != default_inval) {

@@ -49,6 +49,11 @@ int main(int argc, char** argv) {
   if (rank == 0) fprintf(stderr, "Begin testing loading snapshots\n");
   std::vector<int> ts = *group_snapshots(my_group);
   fenix_require(ts.size() == 3);
+  if (rank == 0) {
+    fprintf(
+      stderr, "Timestamps: ts[0]=%d, ts[1]=%d, ts[2]=%d\n", ts[0], ts[1], ts[2]
+    );
+  }
   data.resize(40);
   for (int& i : data) i = -1;
   member_define(my_group, my_member, data.data(), FENIX_RESIZEABLE, MPI_INT);

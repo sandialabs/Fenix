@@ -54,7 +54,7 @@
 //@HEADER
 */
 
-#include "fenix_data_buffer.hpp"
+#include "fenix/data/util/buffer.hpp"
 #include "fenix_opt.hpp"
 #include "fenix/tasks/mpi.hpp"
 
@@ -64,7 +64,7 @@
 
 using namespace fenix::tasks::mpi;
 
-namespace fenix {
+namespace fenix::data::util {
 
 void DataBuffer::resize(size_t new_size) {
   if (new_size >= alloc_size) realloc_buf(new_size);
@@ -134,4 +134,4 @@ MPITask DataBuffer::recv_unknown(int src, int tag, MPI_Comm comm) {
   co_return co_await recv(n, src, tag, comm);
 }
 
-} //namespace fenix
+} //namespace fenix::data::util

@@ -58,14 +58,17 @@
 #include "fenix.h"
 #include "fenix_opt.hpp"
 #include "fenix_util.hpp"
-#include "fenix_data_subset.hpp"
-#include "fenix_data_buffer.hpp"
+#include "fenix/data/subset.hpp"
+#include "fenix/data/util/buffer.hpp"
 #include "fenix/data/util/serializer.hpp"
 
 #include <cstring>
 #include <cstdio>
 
 namespace fenix {
+
+using data::util::DataBuffer;
+
 namespace detail {
 
 std::pair<size_t, size_t> DataRegion::range() const {

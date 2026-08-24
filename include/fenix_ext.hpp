@@ -64,7 +64,8 @@
 #include "fenix.h"
 #include "fenix.hpp"
 #include "fenix_opt.hpp"
-#include "fenix_data_group.hpp"
+#include "fenix/data/group.hpp"
+#include "fenix/data/component.hpp"
 #include "fenix/logging/comm_log.h"
 
 namespace fenix {
@@ -125,7 +126,7 @@ struct fenix_t {
   MPI_Op agree_op;               // Global agreement call for data recovery API
   MPI_Errhandler mpi_errhandler; // Our custom error handler
 
-  fenix::data::fenix_data_recovery_t* data_recovery = nullptr;
+  fenix::data::DataComponent* data_recovery = nullptr;
 
   // -------------------------
   // Message logging variables

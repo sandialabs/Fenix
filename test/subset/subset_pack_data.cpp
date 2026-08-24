@@ -56,6 +56,7 @@
 */
 
 #include <fenix.h>
+using fenix::data::util::DataBuffer;
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,9 +64,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <fenix_data_subset.hpp>
-#include <fenix_data_member.hpp>
+#include "fenix/data/subset.hpp"
+using fenix::data::util::DataBuffer;
+#include "fenix/data/member.hpp"
+using fenix::data::util::DataBuffer;
 #include <fenix/data/util/serializer.hpp>
+using fenix::data::util::DataBuffer;
 
 #include "subset_common.hpp"
 
@@ -85,10 +89,10 @@ bool test_pack_data(const DataSubset& a) {
 
   DataBuffer in_buf, out_buf, packed_buf;
 
-  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int));
+  DataMember member(0, in.data(), count, sizeof(int), 0);
 
   // Data to in_buf
-  mentry.serialize(a, in_buf);
+  member.serialize(a, in_buf);
 
   // Pack in_buf into packed_buf
   a.pack_data(sizeof(int), in_buf, packed_buf);
@@ -98,7 +102,7 @@ bool test_pack_data(const DataSubset& a) {
   a.unpack_data(sizeof(int), packed_buf, out_buf);
 
   // Data from out_buf to out
-  mentry.deserialize(a, out_buf, out);
+  member.deserialize(a, out_buf, out);
 
   for (int i = 0; i < count; i++) {
     if (a.includes(i) && out[i] != 1) {

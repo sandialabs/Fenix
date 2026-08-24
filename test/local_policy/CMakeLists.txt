@@ -8,13 +8,9 @@
 #  directory.
 #
 
-target_sources(fenix PRIVATE
-    recovery.cpp
-    component.cpp
-    group.cpp
-    policy_imr.cpp
-    member.cpp
-    snapshot.cpp
-    subset.cpp)
-
-add_subdirectory(util)
+fenix_test(SRC local_basic.cpp)
+fenix_test(SRC local_basic.cpp RANKS 6 TESTNAME local_basic_multirank)
+fenix_test(SRC local_depth.cpp RANKS 6)
+fenix_test(SRC local_stage.cpp RANKS 6)
+fenix_test(SRC local_resizeable.cpp RANKS 6)
+fenix_test(SRC local_recovery.cpp RANKS 6)

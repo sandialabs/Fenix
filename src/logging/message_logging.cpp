@@ -79,7 +79,7 @@ int sync(int mlog_id, int region_id) {
 
 int create_data_member(int mlog_id, int group_id, int member_id) {
   FENIX_CPP_API_BEGIN
-  if (data::find_group(group_id)->search_member(member_id))
+  if (fenix_rt.data_recovery->search_member(group_id, member_id))
     FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
   return define_data_member(mlog_id, group_id, member_id);
   FENIX_CPP_API_END

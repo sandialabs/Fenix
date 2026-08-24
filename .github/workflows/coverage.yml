@@ -99,10 +99,13 @@ jobs:
           lcov --gcov-tool $LCOV_GCOV --remove coverage-pr.info '/usr/*' '*/test/*' '*/examples/*' --output-file coverage-pr-filtered.info
           lcov --list coverage-pr-filtered.info > coverage-pr-summary.txt
 
-      - name: Save comparison script from PR branch
+      - name: Save comparison script and HEAD ref from PR branch
         run: |
           # Copy the comparison script before switching branches
           cp test/CI/compare-coverage.py /tmp/compare-coverage.py
+          # Save the PR HEAD commit SHA for rename detection
+          git rev-parse HEAD > /tmp/pr-head-sha.txt
+          echo "PR HEAD: $(cat /tmp/pr-head-sha.txt)"
 
       - name: Checkout Base Branch
         run: |
@@ -145,11 +148,14 @@ jobs:
 
       - name: Compare Coverage and Generate Report
         run: |
+          PR_HEAD=$(cat /tmp/pr-head-sha.txt)
           python3 /tmp/compare-coverage.py \
             build-base/coverage-base-filtered.info \
             build-pr/coverage-pr-filtered.info \
             --output coverage-report.md \
-            --pr-number ${{ github.event.pull_request.number }}
+            --pr-number ${{ github.event.pull_request.number }} \
+            --base-ref origin/${{ github.event.pull_request.base.ref }} \
+            --head-ref $PR_HEAD
 
       - name: Post or Update Coverage Comment
         uses: actions/github-script@v7
