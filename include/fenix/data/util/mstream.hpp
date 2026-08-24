@@ -19,16 +19,16 @@ class OMmapStreamBuf : public std::streambuf {
 
 #ifdef FENIX_HAVE_MREMAP
   // Bytes of virtual address space claimed at a time
-  static constexpr size_t target_claim_chunk_size = 1024 * 1024 * 1024; // 1GB
+  static inline size_t target_claim_chunk_size = 1024 * 1024 * 1024; // 1GB
 #else
   // If we can't mremap, claim more virtual address space at once, since we
   // can't grow
-  static constexpr size_t target_claim_chunk_size =
-    20 * 1024 * 1024 * 1024; // 20GB
+  static inline size_t target_claim_chunk_size =
+    20ULL * 1024 * 1024 * 1024; // 20GB
 #endif
 
   // Bytes of claimed address space made writable at a time
-  static constexpr size_t target_write_chunk_size = 1024 * 1024; // 1KB
+  static inline size_t target_write_chunk_size = 1024 * 1024; // 1MB
 
   OMmapStreamBuf();
   ~OMmapStreamBuf() override;
@@ -48,6 +48,7 @@ class OMmapStreamBuf : public std::streambuf {
 
  private:
   void grow_len(size_t& len, size_t chunk, size_t target);
+  void ensure_space(size_t needed_len);
 
   char* mmap_address       = nullptr;
   size_t claim_len         = 0;

@@ -63,7 +63,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   volatile int status = 0;
 
   MPI_Init(&argc, &argv);
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   Fenix_Init(&fenix_role, MPI_COMM_WORLD, &res_comm, &argc, &argv, 0, &error);
   Fenix_set_option(FENIX_RESUME_MODE, FENIX_RESUME_THROW);
 
-  if(fenix_role == FENIX_ROLE_SURVIVOR_RANK){
+  if (fenix_role == FENIX_ROLE_SURVIVOR_RANK) {
     printf("FAILURE: longjmp instead of exception\n");
     status = 1;
   }
@@ -81,13 +81,13 @@ int main(int argc, char **argv) {
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
     int rank;
     MPI_Comm_rank(res_comm, &rank);
-    if(rank == 1) raise(SIGKILL);
+    if (rank == 1) raise(SIGKILL);
 
     try {
       MPI_Barrier(res_comm);
       printf("FAILURE: barrier finished without fault\n");
       status = 1;
-    } catch (fenix::CommException e){
+    } catch (fenix::CommException e) {
       printf("SUCCESS: caught CommException\n");
     }
   }

@@ -1,0 +1,203 @@
+name: Coverage Report
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'test/**'
+      - 'examples/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/coverage.yml'
+
+# Cancel previous runs on the same PR
+concurrency:
+  group: coverage-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Spack
+        uses: spack/setup-spack@v3
+
+      - name: Add Spack packages
+        run: |
+          spack -e ./test/CI add openmpi@git.main=main +internal-hwloc +internal-libevent +internal-pmix
+          spack -e ./test/CI add cmake
+          spack -e ./test/CI add lcov
+
+      - name: Concretize Spack packages
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: spack -e ./test/CI concretize
+
+      - name: Install Spack packages
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: spack -e ./test/CI install
+
+      - name: Push packages to Fenix's build cache
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          spack -e ./test/CI buildcache push --base-image ubuntu:24.04 \
+            --allow-missing --update-index fenix-buildcache
+        # Can safely push index even if some installs failed, only successful
+        # installs will be cached. May also fail if PR is from a fork.
+        continue-on-error: true
+
+      - name: Build Fenix with Coverage (PR)
+        shell: spack-bash {0}
+        run: |
+          spack env activate --dir ./test/CI
+          mkdir -p build-pr && cd build-pr
+          # Compile with same gcc as lcov
+          export OMPI_CC=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c')
+          export OMPI_CXX=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.cxx')
+          cmake ../ -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx \
+            -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
+            -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
+            -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+            -DBUILD_EXAMPLES=ON -DBUILD_TESTING=ON \
+            -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe;--mca;async_mpi_finalize;1" \
+            && make -j
+
+      - name: Run Tests with Coverage (PR)
+        shell: spack-bash {0}
+        run: |
+          spack env activate --dir ./test/CI
+          cd build-pr
+          ctest -V --timeout 20 || true
+
+      - name: Generate Coverage Report (PR)
+        shell: spack-bash {0}
+        run: |
+          spack env activate --dir ./test/CI
+          cd build-pr
+          LCOV_GCC=$(basename $(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c'))
+          LCOV_GCOV="gcov-${LCOV_GCC#gcc-}"
+          echo "LCOV_GCC=$LCOV_GCC, LCOV_GCOV=$LCOV_GCOV"
+          lcov --gcov-tool $LCOV_GCOV --capture --directory . --output-file coverage-pr.info
+          lcov --gcov-tool $LCOV_GCOV --remove coverage-pr.info '/usr/*' '*/test/*' '*/examples/*' --output-file coverage-pr-filtered.info
+          lcov --list coverage-pr-filtered.info > coverage-pr-summary.txt
+
+      - name: Save comparison script from PR branch
+        run: |
+          # Copy the comparison script before switching branches
+          cp test/CI/compare-coverage.py /tmp/compare-coverage.py
+
+      - name: Checkout Base Branch
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          git checkout origin/${{ github.event.pull_request.base.ref }}
+
+      - name: Build Fenix with Coverage (Base)
+        shell: spack-bash {0}
+        run: |
+          spack env activate --dir ./test/CI
+          mkdir -p build-base && cd build-base
+          export OMPI_CC=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c')
+          export OMPI_CXX=$(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.cxx')
+          cmake ../ -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx \
+            -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
+            -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
+            -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+            -DBUILD_EXAMPLES=ON -DBUILD_TESTING=ON \
+            -DMPIEXEC_PREFLAGS="--allow-run-as-root;--map-by;:oversubscribe;--mca;async_mpi_finalize;1" \
+            && make -j
+
+      - name: Run Tests with Coverage (Base)
+        shell: spack-bash {0}
+        run: |
+          spack env activate --dir ./test/CI
+          cd build-base
+          ctest -V --timeout 20 || true
+
+      - name: Generate Coverage Report (Base)
+        shell: spack-bash {0}
+        run: |
+          spack env activate --dir ./test/CI
+          cd build-base
+          LCOV_GCC=$(basename $(spack find --long --deps --json lcov | jq -r 'map(select(.name == "gcc"))[0].external.extra_attributes.compilers.c'))
+          LCOV_GCOV="gcov-${LCOV_GCC#gcc-}"
+          lcov --gcov-tool $LCOV_GCOV --capture --directory . --output-file coverage-base.info
+          lcov --gcov-tool $LCOV_GCOV --remove coverage-base.info '/usr/*' '*/test/*' '*/examples/*' --output-file coverage-base-filtered.info
+          lcov --list coverage-base-filtered.info > coverage-base-summary.txt
+
+      - name: Compare Coverage and Generate Report
+        run: |
+          python3 /tmp/compare-coverage.py \
+            build-base/coverage-base-filtered.info \
+            build-pr/coverage-pr-filtered.info \
+            --output coverage-report.md \
+            --pr-number ${{ github.event.pull_request.number }}
+
+      - name: Post or Update Coverage Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read the coverage report
+            const coverageReport = fs.readFileSync('coverage-report.md', 'utf8');
+
+            // Find existing comment from this workflow
+            const comments = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const botComment = comments.data.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('## Coverage Report')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              console.log(`Updating existing coverage comment (ID: ${botComment.id})...`);
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: coverageReport
+              });
+            } else {
+              // Create new comment
+              console.log('Creating new coverage comment...');
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: coverageReport
+              });
+            }
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            build-base/coverage-base-filtered.info
+            build-pr/coverage-pr-filtered.info
+            coverage-report.md
+          retention-days: 30

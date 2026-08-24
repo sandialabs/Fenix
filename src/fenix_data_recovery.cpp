@@ -205,7 +205,17 @@ int member_attr_set(
     int err = MPI_Type_size(*dtype, &dtype_size);
     if (err) throw RuntimeException("Invalid MPI_Datatype");
 
+    // Update datatype size and recalculate user_data size for fixed-size
+    // members
+    int old_count         = mentry->elm_count();
     mentry->datatype_size = dtype_size;
+
+    // If this is a fixed-size member, update user_data to reflect new size
+    // based on the element count (which stays the same)
+    if (old_count != FENIX_RESIZEABLE) {
+      size_t new_size   = old_count * dtype_size;
+      mentry->user_data = {mentry->user_data.data(), new_size};
+    }
     break;
   }
   default:
@@ -556,7 +566,7 @@ int Fenix_Data_member_attr_get(
 }
 
 int Fenix_Data_group_get_redundancy_policy(
-  int groupid, int* policy_name, int* policy_value, int* flag
+  int groupid, int* policy_name, void* policy_value, int* flag
 ) {
   FENIX_C_API_BEGIN
   return find_group(groupid)->get_redundant_policy(

@@ -8,6 +8,4 @@
 #  directory.
 #
 
-fenix_test(SRC load.cpp RANKS 2)
-fenix_test(SRC load_target.cpp RANKS 2)
-fenix_test(SRC load_partial.cpp RANKS 2)
+fenix_test(SRC snapshot_operations.cpp RANKS 2)

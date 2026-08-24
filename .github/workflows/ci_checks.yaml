@@ -2,6 +2,19 @@ name: Build & Test
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'test/**'
+      - 'examples/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/ci_checks.yaml'
+
+concurrency:
+  group: ci-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   test:

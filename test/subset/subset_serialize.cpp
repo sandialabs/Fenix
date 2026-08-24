@@ -34,11 +34,11 @@
 //
 // THIS SOFTWARE IS PROVIDED BY RUTGERS UNIVERSITY and SANDIA CORPORATION
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS 
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RUTGERS
 // UNIVERISY, SANDIA CORPORATION OR THE CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 // GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
 // IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
@@ -69,33 +69,32 @@
 
 using namespace fenix;
 
-bool test_serialize(const DataSubset& a){
-   DataBuffer buf;
-   
-   // Serialize subset itself
-   a.serialize(buf);
+bool test_serialize(const DataSubset& a) {
+  DataBuffer buf;
 
-   // Deserialize subset
-   const DataSubset b {buf};
+  // Serialize subset itself
+  a.serialize(buf);
 
-   if(a != b){
-      printf("Failed to serialize subset %s, deserialized to %s\n",
-         a.str().c_str(), b.str().c_str());
-      return false;
-   }
-   return true;
+  // Deserialize subset
+  const DataSubset b{buf};
+
+  if (a != b) {
+    printf(
+      "Failed to serialize subset %s, deserialized to %s\n", a.str().c_str(),
+      b.str().c_str()
+    );
+    return false;
+  }
+  return true;
 }
 
-int main(int argc, char **argv)
-{
-   bool success = true;
+int main(int argc, char** argv) {
+  bool success = true;
 
-   auto subsets = get_expanded_subsets();
-   for(const auto& a : subsets){
-      success &= test_serialize(a);
-   }
+  auto subsets = get_expanded_subsets();
+  for (const auto& a : subsets) {
+    success &= test_serialize(a);
+  }
 
-   return success ? 0 : 1;
+  return success ? 0 : 1;
 }
-
-

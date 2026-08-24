@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
   member_define(my_group, my_member, data.data(), FENIX_RESIZEABLE, MPI_INT);
 
   if (rank == 0) fprintf(stderr, "Test loading individual snapshots\n");
-  member_load(my_group, my_member, ts[0]);
+  member_load(my_group, my_member, ts[2]);
   for (int i = 0; i < 40; i++) {
     if (i < 30) fenix_require(data[i] == 0xAAAAAAAA);
     else fenix_require(data[i] == -1);
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
     else fenix_require(data[i] == -1);
   }
 
-  member_load(my_group, my_member, ts[2]);
+  member_load(my_group, my_member, ts[0]);
   for (int i = 0; i < 40; i++) {
     if (i < 10) fenix_require(data[i] == 0x55555555);
     else if (i < 20) fenix_require(data[i] == 0);

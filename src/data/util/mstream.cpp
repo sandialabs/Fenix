@@ -87,25 +87,7 @@ int_type OMmapStreamBuf::overflow(int_type ch) {
   if (Traits::eq_int_type(ch, Traits::eof())) return Traits::not_eof(ch);
 
   size_t needed_len = pptr() - mmap_address + 1;
-  if (claim_len < needed_len) {
-#ifdef FENIX_HAVE_MREMAP
-    size_t old_claim_len = claim_len;
-    grow_len(claim_len, claim_chunk_size, needed_len);
-    mmap_address = (char*)mremap(
-      mmap_address, old_claim_len, claim_len, MREMAP_MAYMOVE, nullptr
-    );
-
-    if (mmap_address == MAP_FAILED) {
-      fatal_print("Out of space for serialization");
-    }
-#else
-    fatal_print("Out of space for serialization");
-#endif
-  }
-  if (writable_len < needed_len) {
-    grow_len(writable_len, write_chunk_size, needed_len);
-    mprotect(mmap_address, writable_len, PROT_WRITE);
-  }
+  ensure_space(needed_len);
 
   *pptr() = Traits::to_char_type(ch);
   setp(pptr() + 1, mmap_address + writable_len);
@@ -116,6 +98,9 @@ int_type OMmapStreamBuf::overflow(int_type ch) {
 pos_type OMmapStreamBuf::seekpos(pos_type pos, std::ios_base::openmode which) {
   if (!(which & std::ios_base::out)) return 0;
   written_highwater = written_len();
+
+  ensure_space(pos);
+
   setp(mmap_address + pos, mmap_address + writable_len);
   return pos;
 }
@@ -131,8 +116,14 @@ pos_type OMmapStreamBuf::seekoff(
   else if (dir == std::ios_base::cur) new_ptr = pptr() + off;
   else new_ptr = mmap_address + written_len() + off;
 
+  size_t new_pos = new_ptr - mmap_address;
+  ensure_space(new_pos);
+
+  // Update pointer after potential mremap in ensure_space
+  new_ptr = mmap_address + new_pos;
+
   setp(new_ptr, mmap_address + writable_len);
-  return new_ptr - mmap_address;
+  return new_pos;
 }
 
 void OMmapStreamBuf::grow_len(size_t& len, size_t chunk, size_t target) {
@@ -140,6 +131,27 @@ void OMmapStreamBuf::grow_len(size_t& len, size_t chunk, size_t target) {
   len = (target / chunk) * chunk;
   if (target % chunk != 0) len += chunk;
   fenix_assert(len >= target);
+}
+
+void OMmapStreamBuf::ensure_space(size_t needed_len) {
+  if (claim_len < needed_len) {
+#ifdef FENIX_HAVE_MREMAP
+    size_t old_claim_len = claim_len;
+    grow_len(claim_len, claim_chunk_size, needed_len);
+    mmap_address = (char*)mremap(
+      mmap_address, old_claim_len, claim_len, MREMAP_MAYMOVE, nullptr
+    );
+    if (mmap_address == MAP_FAILED) {
+      fatal_print("Out of space for serialization");
+    }
+#else
+    fatal_print("Out of space for serialization");
+#endif
+  }
+  if (writable_len < needed_len) {
+    grow_len(writable_len, write_chunk_size, needed_len);
+    mprotect(mmap_address, writable_len, PROT_WRITE);
+  }
 }
 
 // --------------------
