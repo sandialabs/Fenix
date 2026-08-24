@@ -14,18 +14,18 @@ class DataComponent {
   DataComponent() = default;
   ~DataComponent();
 
-  std::set<std::shared_ptr<fenix_group_t>, GroupIdComparator> groups;
+  std::set<std::shared_ptr<DataGroup>, DataGroupIdComparator> groups;
   std::vector<int> group_order;
 
   // Search for group by id, returning null if not found
-  fenix_group_t* search_group(int id);
-  fenix_member_entry_t* search_member(int groupid, int memberid);
+  DataGroup* search_group(int id);
+  DataMember* search_member(int groupid, int memberid);
 
   // As search functions, but throw if not found
-  fenix_group_t* find_group(
+  DataGroup* find_group(
     int id, std::source_location loc = std::source_location::current()
   );
-  fenix_member_entry_t* find_member(
+  DataMember* find_member(
     int groupid, int memberid,
     std::source_location loc = std::source_location::current()
   );

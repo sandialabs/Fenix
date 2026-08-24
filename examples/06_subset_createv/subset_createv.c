@@ -70,7 +70,7 @@ const int kKillID = 2;
 int main(int argc, char **argv) {
 
   int i;
-  int subset[1000];
+  int data[1000];
   MPI_Status status;
 
   if (argc < 2) {
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
   int recovered = 0;
 
   // to create subset data
-  Fenix_Data_subset subset_specifier;
+  Fenix_Data_subset subset;
   int num_blocks = 2;
   int *start_offsets = (int *) malloc(sizeof(int) * num_blocks); 
   int *end_offsets = (int *) malloc(sizeof(int) * num_blocks); 
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     end_offsets[0] = 1;
   start_offsets[1] = 5;
     end_offsets[1] = 10;
-  Fenix_Data_subset_createv(num_blocks, start_offsets, end_offsets, &subset_specifier);
+  Fenix_Data_subset_createv(num_blocks, start_offsets, end_offsets, &subset);
 
   MPI_Init(&argc, &argv);
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
@@ -122,23 +122,23 @@ int main(int argc, char **argv) {
     // init my subset data 
     int index;
     for (index = 0; index < kCount; index++) {
-        subset[index] = -1;   
+        data[index] = -1;   
     }
 
-    Fenix_Data_member_create(my_group, 777, subset, kCount, MPI_INT);
+    Fenix_Data_member_create(my_group, 777, data, kCount, MPI_INT);
     Fenix_Data_member_store(my_group, 777, FENIX_DATA_SUBSET_FULL);
     Fenix_Data_commit(my_group, NULL);
   } else {
     fprintf(stderr, "Doing restore on rank %d\n", rank);
     Fenix_Data_member_restore(
-        my_group, 777, subset, kCount, FENIX_DATA_SNAPSHOT_ALL, NULL
+        my_group, 777, data, kCount, FENIX_DATA_SNAPSHOT_ALL, NULL
     );
     fprintf(stderr, "Finished restore on rank %d\n", rank);
     recovered = 1;
 
     int out_flag;
     Fenix_Data_member_attr_set(my_group, 777, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
-            subset, &out_flag);
+            data, &out_flag);
     
   }
 
@@ -147,11 +147,11 @@ int main(int argc, char **argv) {
       int subset_index;
       for (index = 0; index < max_iter; index++) {
           for (subset_index = 0; subset_index < kCount; subset_index++) {
-              subset[subset_index] = subset_index + 1; 
+              data[subset_index] = subset_index + 1; 
           }
       } 
 
-      Fenix_Data_member_store(my_group, 777, subset_specifier);
+      Fenix_Data_member_store(my_group, 777, subset);
       Fenix_Data_commit(my_group, NULL);
       
       MPI_Barrier(new_comm); //Make sure everyone is done committing before we kill and restart everyone
@@ -179,11 +179,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    if(in_subset && subset[index] != index+1){
-        fprintf(stderr, "Rank %d recovery error at index %d within subset. Found: %d\n", rank, index, subset[index]);
+    if(in_subset && data[index] != index+1){
+        fprintf(stderr, "Rank %d recovery error at index %d within subset. Found: %d\n", rank, index, data[index]);
         successful = 0;
-    } else if(!in_subset && subset[index] != -1){
-        fprintf(stderr, "Rank %d recovery error at index %d outside subset. Found: %d\n", rank, index, subset[index]);
+    } else if(!in_subset && data[index] != -1){
+        fprintf(stderr, "Rank %d recovery error at index %d outside subset. Found: %d\n", rank, index, data[index]);
         successful = 0;
     }
   }
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
       printf("FAILURE on rank %d\n", rank);
   }
 
-  Fenix_Data_subset_delete(&subset_specifier);
+  Fenix_Data_subset_delete(&subset);
   free(start_offsets);
   free(end_offsets);
 

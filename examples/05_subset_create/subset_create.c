@@ -71,7 +71,7 @@ const int my_member = 0;
 
 int main(int argc, char **argv) {
   int i;
-  int subset[kCount];
+  int data[kCount];
   MPI_Status status;
 
   if (argc < 2) {
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
   int recovered = 0;
 
   // to create subset data
-  Fenix_Data_subset subset_specifier;
+  Fenix_Data_subset subset;
   int num_blocks = 10;
   int start_offset = 0; 
   int end_offset= 2;
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   // Creating subset with fixed stride
   // This doesn't rely on any state information on the Fenix system, so can be called
   // prior to Fenix_Init.
-  Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset_specifier);
+  Fenix_Data_subset_create(num_blocks, start_offset, end_offset, stride, &subset);
 
   MPI_Init(&argc, &argv);
   MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
@@ -121,10 +121,10 @@ int main(int argc, char **argv) {
   if (fenix_role == FENIX_ROLE_INITIAL_RANK) {
     // init my subset data 
     for (int index = 0; index < kCount; index++) {
-        subset[index] = -1;
+        data[index] = -1;
     }
 
-    Fenix_Data_member_create(my_group, my_member, subset, kCount, MPI_INT);
+    Fenix_Data_member_create(my_group, my_member, data, kCount, MPI_INT);
     
     //Store the entire data set for the initial commit. This is not a requirement.
     Fenix_Data_member_store(my_group, my_member, FENIX_DATA_SUBSET_FULL);
@@ -136,11 +136,11 @@ int main(int argc, char **argv) {
 
     //Set all data to a value that was never stored
     for (int index = 0; index < kCount; index++) {
-        subset[index] = -2;
+        data[index] = -2;
     }
 
     int restore_ret = Fenix_Data_member_restore(
-        my_group, my_member, subset, kCount, FENIX_DATA_SNAPSHOT_ALL, NULL
+        my_group, my_member, data, kCount, FENIX_DATA_SNAPSHOT_ALL, NULL
     );
 
     if(restore_ret != FENIX_SUCCESS){
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 
     int out_flag;
     Fenix_Data_member_attr_set(my_group, my_member, FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER,
-        subset, &out_flag);
+        data, &out_flag);
 
     
     recovered = 1;
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
   if(recovered == 0){
       for (index = 0; index < max_iter; index++) {
           for (subset_index = 0; subset_index < kCount; subset_index++) {
-              subset[subset_index] = subset_index + 1; 
+              data[subset_index] = subset_index + 1; 
           }
       } 
   
@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
       //We'll store only the small subset that we specified, though.
       //This means that as far as Fenix is concerned only data within that
       //subset was ever changed from the initialized value of -1
-      Fenix_Data_member_store(my_group, my_member, subset_specifier);
+      Fenix_Data_member_store(my_group, my_member, subset);
       Fenix_Data_commit_barrier(my_group, NULL);
 
       MPI_Barrier(new_comm); //Make sure everyone is done committing before we kill and restart everyone
@@ -203,11 +203,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    if(in_subset && subset[i] != i + 1){
-        fprintf(stderr, "Rank %d recovery error at index %d within subset. Found: %d\n", rank, i, subset[i]);
+    if(in_subset && data[i] != i + 1){
+        fprintf(stderr, "Rank %d recovery error at index %d within subset. Found: %d\n", rank, i, data[i]);
         successful = 0;
-    } else if(!in_subset && subset[i] != -1){
-        fprintf(stderr, "Rank %d recovery error at index %d outside subset. Found: %d\n", rank, i, subset[i]);
+    } else if(!in_subset && data[i] != -1){
+        fprintf(stderr, "Rank %d recovery error at index %d outside subset. Found: %d\n", rank, i, data[i]);
         successful = 0;
     }
   }
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
   }
 
 
-  Fenix_Data_subset_delete(&subset_specifier);  
+  Fenix_Data_subset_delete(&subset);  
 
 
   Fenix_Finalize();

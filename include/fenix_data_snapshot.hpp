@@ -6,11 +6,11 @@
 
 namespace fenix::data {
 
-// Snapshot provides common storage and operations for checkpoint entries
+// DataSnapshot provides common storage and operations for checkpoint entries
 // used by data recovery policies.
 // Derived classes can extend with policy-specific storage and operations
 // (e.g., partner buffers for redundancy in IMR policies).
-class Snapshot {
+class DataSnapshot {
  protected:
   DataBuffer buf_;    ///< Primary checkpoint data buffer
   DataSubset region_; ///< Data region captured in this snapshot
@@ -19,15 +19,15 @@ class Snapshot {
   int elm_max_count_; ///< Maximum number of elements
 
  public:
-  Snapshot(int elm_size, int max_count);
-  virtual ~Snapshot() = default;
+  DataSnapshot(int elm_size, int max_count);
+  virtual ~DataSnapshot() = default;
 
-  Snapshot(Snapshot&&)            = default;
-  Snapshot& operator=(Snapshot&&) = default;
+  DataSnapshot(DataSnapshot&&)            = default;
+  DataSnapshot& operator=(DataSnapshot&&) = default;
 
-  // Snapshots are  move-only
-  Snapshot(const Snapshot&)            = delete;
-  Snapshot& operator=(const Snapshot&) = delete;
+  // DataSnapshots are  move-only
+  DataSnapshot(const DataSnapshot&)            = delete;
+  DataSnapshot& operator=(const DataSnapshot&) = delete;
 
   // Clear the buffer and region, reset timestamp to -2.
   void reset();
@@ -55,20 +55,21 @@ class Snapshot {
 
 // Heterogeneous comparator for snapshot timestamp ordering
 // Enables direct lookup by timestamp: commit_snapshots_.find(timestamp)
-struct SnapshotTimestampComparator {
+struct DataSnapshotTimestampComparator {
   using is_transparent = void; // Enables heterogeneous lookup
 
   bool operator()(
-    const std::unique_ptr<Snapshot>& a, const std::unique_ptr<Snapshot>& b
+    const std::unique_ptr<DataSnapshot>& a,
+    const std::unique_ptr<DataSnapshot>& b
   ) const {
     return a->timestamp() < b->timestamp();
   }
 
-  bool operator()(const std::unique_ptr<Snapshot>& a, int timestamp) const {
+  bool operator()(const std::unique_ptr<DataSnapshot>& a, int timestamp) const {
     return a->timestamp() < timestamp;
   }
 
-  bool operator()(int timestamp, const std::unique_ptr<Snapshot>& a) const {
+  bool operator()(int timestamp, const std::unique_ptr<DataSnapshot>& a) const {
     return timestamp < a->timestamp();
   }
 };

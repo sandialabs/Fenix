@@ -12,9 +12,9 @@
 
 namespace fenix::data::local {
 
-struct LocalGroup : public fenix_group_t {
+struct LocalGroup : public DataGroup {
   LocalGroup(int id, MPI_Comm c, int ts, int depth)
-    : fenix_group_t(id, c, ts, depth, FENIX_DATA_POLICY_LOCAL) {}
+    : DataGroup(id, c, ts, depth, FENIX_DATA_POLICY_LOCAL) {}
 
   void get_redundant_policy(int* name, void* value) override {
     *name = FENIX_DATA_POLICY_LOCAL;

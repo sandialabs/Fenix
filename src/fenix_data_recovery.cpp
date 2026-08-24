@@ -156,10 +156,10 @@ int member_attr_set(
   int groupid, int memberid, int attr, void* value, int* flag
 ) {
   FENIX_CPP_API_BEGIN
-  auto mentry = fenix_rt.data_recovery->find_member(groupid, memberid);
+  auto member = fenix_rt.data_recovery->find_member(groupid, memberid);
 
   // Set the attribute on the member (will throw on error)
-  mentry->attr_set(attr, value);
+  member->attr_set(attr, value);
 
   *flag = FENIX_SUCCESS;
   return FENIX_SUCCESS;
@@ -170,10 +170,10 @@ int member_attr_get(
   int groupid, int memberid, int attr, void* value, int* flag
 ) {
   FENIX_CPP_API_BEGIN
-  auto mentry = fenix_rt.data_recovery->find_member(groupid, memberid);
+  auto member = fenix_rt.data_recovery->find_member(groupid, memberid);
 
   // Get the attribute from the member (will throw on error)
-  mentry->attr_get(attr, value);
+  member->attr_get(attr, value);
 
   *flag = FENIX_SUCCESS;
   return FENIX_SUCCESS;
@@ -244,13 +244,13 @@ static int store(int groupid, int memberid, Args&&... args) {
 
 int member_store(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_BEGIN
-  return store<&fenix_member_entry_t::store>(groupid, memberid, specifier);
+  return store<&DataMember::store>(groupid, memberid, specifier);
   FENIX_CPP_API_END
 }
 
 int member_storev(int groupid, int memberid, const DataSubset& specifier) {
   FENIX_CPP_API_BEGIN
-  return store<&fenix_member_entry_t::storev>(groupid, memberid, specifier);
+  return store<&DataMember::storev>(groupid, memberid, specifier);
   FENIX_CPP_API_END
 }
 

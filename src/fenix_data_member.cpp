@@ -60,21 +60,21 @@
 
 namespace fenix::data {
 
-fenix_member_entry_packet_t fenix_member_entry_t::to_packet() {
-  fenix_member_entry_packet_t to_ret;
+DataMemberPacket DataMember::to_packet() {
+  DataMemberPacket to_ret;
   to_ret.memberid      = memberid;
   to_ret.datatype_size = datatype_size;
   to_ret.current_count = elm_count();
   return to_ret;
 }
 
-fenix_member_entry_t::fenix_member_entry_t(
+DataMember::DataMember(
   int id, void* d, int c, MPI_Datatype dt, int depth,
   std::optional<SerializeFunc> s
 )
-  : fenix_member_entry_t(id, d, c, __fenix_get_size(dt), depth, s) {}
+  : DataMember(id, d, c, __fenix_get_size(dt), depth, s) {}
 
-fenix_member_entry_t::fenix_member_entry_t(
+DataMember::DataMember(
   int id, void* data, int count, int dsize, int depth,
   std::optional<SerializeFunc> s
 )
@@ -89,7 +89,7 @@ fenix_member_entry_t::fenix_member_entry_t(
   // class during base constructor. Derived classes must call init_snapshots().
 };
 
-void fenix_member_entry_t::init_snapshots() {
+void DataMember::init_snapshots() {
   stage_snapshot_ = this->create_snapshot(datatype_size, elm_count());
   for (int i = 0; i < depth_ + 1; i++) {
     avail_snapshots_.push_back(
@@ -98,7 +98,7 @@ void fenix_member_entry_t::init_snapshots() {
   }
 }
 
-fenix_member_entry_t::fenix_member_entry_t(fenix_member_entry_t&& o) {
+DataMember::DataMember(DataMember&& o) {
   fenix_assert(!o.open_serializer);
   memberid   = o.memberid;
   o.memberid = -1;
@@ -121,26 +121,24 @@ fenix_member_entry_t::fenix_member_entry_t(fenix_member_entry_t&& o) {
   o.depth_          = 0;
 }
 
-int fenix_member_entry_t::elm_count() {
+int DataMember::elm_count() {
   if (!user_data.is_bounded()) return FENIX_RESIZEABLE;
 
   fenix_assert(user_data.size() % datatype_size == 0);
   return user_data.size() / datatype_size;
 }
 
-void fenix_member_entry_t::serialize(
-  const DataSubset& subset, DataBuffer& buf
-) {
+void DataMember::serialize(const DataSubset& subset, DataBuffer& buf) {
   subset.copy_data(create_serializer(ser_func, subset, buf));
 }
 
-void fenix_member_entry_t::deserialize(
+void DataMember::deserialize(
   const DataSubset& subset, DataBuffer& buf, const DataRef& dst
 ) {
   subset.copy_data(create_deserializer(ser_func, subset, buf, dst));
 }
 
-fenix::data::util::Serializer fenix_member_entry_t::create_serializer(
+fenix::data::util::Serializer DataMember::create_serializer(
   std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf
 ) {
   if (open_serializer) {
@@ -163,7 +161,7 @@ fenix::data::util::Serializer fenix_member_entry_t::create_serializer(
   return Serializer(buf, sf, output, FENIX_SERIALIZE, datatype_size);
 }
 
-fenix::data::util::Serializer fenix_member_entry_t::create_deserializer(
+fenix::data::util::Serializer DataMember::create_deserializer(
   std::optional<SerializeFunc>& sf, const DataSubset& subset, DataBuffer& buf,
   const DataRef& dst
 ) {
@@ -175,10 +173,10 @@ fenix::data::util::Serializer fenix_member_entry_t::create_deserializer(
   return Serializer(buf, sf, dst, FENIX_DESERIALIZE, datatype_size);
 }
 
-void fenix_member_entry_t::stage(const DataSubset& subset) {
+void DataMember::stage(const DataSubset& subset) {
   if (subset == SUBSET_PRESTAGED) FENIX_THROW("Cannot stage SUBSET_PRESTAGED");
 
-  Snapshot& snap = *stage_snapshot_;
+  DataSnapshot& snap = *stage_snapshot_;
   this->serialize(subset, snap.buf());
 
   fenix_assert(snap.buf().size() % datatype_size == 0);
@@ -188,10 +186,10 @@ void fenix_member_entry_t::stage(const DataSubset& subset) {
   snap.add_and_fit(subset.bounded(max_elm));
 }
 
-void fenix_member_entry_t::stage_inplace(void* buf, const DataSubset& subset) {
+void DataMember::stage_inplace(void* buf, const DataSubset& subset) {
   if (subset == SUBSET_PRESTAGED) FENIX_THROW("Cannot stage SUBSET_PRESTAGED");
 
-  Snapshot& snap = *stage_snapshot_;
+  DataSnapshot& snap = *stage_snapshot_;
   if (!user_data.is_bounded() && !subset.is_bounded()) {
     FENIX_THROW(
       "Cannot stage_inplace unbounded subset to FENIX_RESIZEABLE member"
@@ -206,7 +204,7 @@ void fenix_member_entry_t::stage_inplace(void* buf, const DataSubset& subset) {
   snap.add_and_fit(subset.bounded(count - 1));
 }
 
-void fenix_member_entry_t::stage_begin(FILE** fp) {
+void DataMember::stage_begin(FILE** fp) {
   std::optional<SerializeFunc> sf = SerializeFileFunc{};
   DataBuffer& buf                 = stage_snapshot_->buf();
   buf.resize(0);
@@ -214,7 +212,7 @@ void fenix_member_entry_t::stage_begin(FILE** fp) {
   *fp = open_serializer->get_file();
 }
 
-void fenix_member_entry_t::stage_begin(std::iostream** strm) {
+void DataMember::stage_begin(std::iostream** strm) {
   std::optional<SerializeFunc> sf = SerializeStreamFunc{};
   DataBuffer& buf                 = stage_snapshot_->buf();
   buf.resize(0);
@@ -222,22 +220,20 @@ void fenix_member_entry_t::stage_begin(std::iostream** strm) {
   *strm = open_serializer->get_stream();
 }
 
-void fenix_member_entry_t::stage_end() {
+void DataMember::stage_end() {
   if (!open_serializer) FENIX_THROW(FENIX_ERROR_INVALID_LOGIC_CALL);
   if (open_serializer->get_dir() != FENIX_SERIALIZE)
     FENIX_THROW(FENIX_ERROR_MEMBER_LOADING);
   open_serializer.reset();
 
-  Snapshot& snap = *stage_snapshot_;
+  DataSnapshot& snap = *stage_snapshot_;
   fenix_assert(snap.buf().size() % datatype_size == 0);
   snap.add_and_fit(DataSubset({0, (snap.buf().size() / datatype_size) - 1}));
 }
 
-void fenix_member_entry_t::load_begin(
-  FILE** fp, int timestamp, DataSubset& subset
-) {
-  Snapshot* snap = find_snapshot(timestamp);
-  subset         = snap->region();
+void DataMember::load_begin(FILE** fp, int timestamp, DataSubset& subset) {
+  DataSnapshot* snap = find_snapshot(timestamp);
+  subset             = snap->region();
 
   std::optional<SerializeFunc> sf = SerializeFileFunc{};
   DataBuffer& buf                 = snap->buf();
@@ -245,11 +241,11 @@ void fenix_member_entry_t::load_begin(
   *fp = open_serializer->get_file();
 }
 
-void fenix_member_entry_t::load_begin(
+void DataMember::load_begin(
   std::iostream** strm, int timestamp, DataSubset& subset
 ) {
-  Snapshot* snap = find_snapshot(timestamp);
-  subset         = snap->region();
+  DataSnapshot* snap = find_snapshot(timestamp);
+  subset             = snap->region();
 
   std::optional<SerializeFunc> sf = SerializeStreamFunc{};
   DataBuffer& buf                 = snap->buf();
@@ -257,14 +253,14 @@ void fenix_member_entry_t::load_begin(
   *strm = open_serializer->get_stream();
 }
 
-void fenix_member_entry_t::load_end() {
+void DataMember::load_end() {
   if (!open_serializer) FENIX_THROW(FENIX_ERROR_INVALID_LOGIC_CALL);
   if (open_serializer->get_dir() != FENIX_DESERIALIZE)
     FENIX_THROW(FENIX_ERROR_MEMBER_STAGING);
   open_serializer.reset();
 }
 
-void fenix_member_entry_t::load(
+void DataMember::load(
   void* target, int target_count, int timestamp, DataSubset& data_found
 ) {
   DataRef dst{(char*)target, static_cast<size_t>(target_count * datatype_size)};
@@ -273,8 +269,8 @@ void fenix_member_entry_t::load(
   if (target_count == FENIX_DATA_RESTORE_FULL) dst = {dst.data()};
 
   if (timestamp != FENIX_DATA_SNAPSHOT_ALL) {
-    Snapshot& snap = *find_snapshot(timestamp);
-    data_found     = snap.region();
+    DataSnapshot& snap = *find_snapshot(timestamp);
+    data_found         = snap.region();
     if (target_count > 0) deserialize(data_found, snap.buf(), dst);
   } else {
     if (commit_snapshots_.empty()) FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
@@ -282,7 +278,7 @@ void fenix_member_entry_t::load(
     data_found = {};
     for (auto it = commit_snapshots_.rbegin(); it != commit_snapshots_.rend();
          ++it) {
-      Snapshot& snap = **it;
+      DataSnapshot& snap = **it;
       fenix_assert(snap.timestamp() >= 0);
       if (target_count > 0) {
         this->deserialize(snap.region() - data_found, snap.buf(), dst);
@@ -300,34 +296,34 @@ void fenix_member_entry_t::load(
   }
 }
 
-int fenix_member_entry_t::store(const DataSubset& subset) {
+int DataMember::store(const DataSubset& subset) {
   // Default: call async version and wait
   return istore(subset).result();
 }
 
-int fenix_member_entry_t::storev(const DataSubset& subset) {
+int DataMember::storev(const DataSubset& subset) {
   // Default: call async version and wait
   return istorev(subset).result();
 }
 
-tasks::Task<int> fenix_member_entry_t::istore(const DataSubset& subset) {
+tasks::Task<int> DataMember::istore(const DataSubset& subset) {
   // Default: No data resilience
   if (subset != SUBSET_PRESTAGED) this->stage(subset);
   co_return FENIX_SUCCESS;
 }
 
-tasks::Task<int> fenix_member_entry_t::istorev(const DataSubset& subset) {
+tasks::Task<int> DataMember::istorev(const DataSubset& subset) {
   // Default: No data resilience
   if (subset != SUBSET_PRESTAGED) this->stage(subset);
   co_return FENIX_SUCCESS;
 }
 
-void fenix_member_entry_t::repair() {
+void DataMember::repair() {
   // Default: no-op repair
   return;
 }
 
-void fenix_member_entry_t::commit(int timestamp) {
+void DataMember::commit(int timestamp) {
   // Set timestamp on staging snapshot
   stage_snapshot_->set_timestamp(timestamp);
 
@@ -348,39 +344,37 @@ void fenix_member_entry_t::commit(int timestamp) {
   }
 }
 
-void fenix_member_entry_t::snapshot_delete(int timestamp) {
+void DataMember::snapshot_delete(int timestamp) {
   auto it = commit_snapshots_.find(timestamp);
   if (it != commit_snapshots_.end()) {
     snapshot_delete(it);
   }
 }
 
-void fenix_member_entry_t::snapshot_delete(CommitIter it) {
+void DataMember::snapshot_delete(CommitIter it) {
   if (it == commit_snapshots_.end()) FENIX_THROW(FENIX_ERROR_INVALID_TIMESTAMP);
   auto node = commit_snapshots_.extract(it);
   node.value()->reset();
   avail_snapshots_.push_back(std::move(node.value()));
 }
 
-std::unique_ptr<Snapshot> fenix_member_entry_t::create_snapshot(
+std::unique_ptr<DataSnapshot> DataMember::create_snapshot(
   int size, int max_count
 ) {
-  // Default implementation creates a base Snapshot
+  // Default implementation creates a base DataSnapshot
   // Derived classes override to create policy-specific Entry types
-  return std::make_unique<Snapshot>(size, max_count);
+  return std::make_unique<DataSnapshot>(size, max_count);
 }
 
-Snapshot& fenix_member_entry_t::current_snapshot() {
+DataSnapshot& DataMember::current_snapshot() {
   if (!stage_snapshot_) {
     FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
   }
   return *stage_snapshot_;
 }
 
-Snapshot* fenix_member_entry_t::search_snapshot(
-  int ts, std::source_location loc
-) {
-  Snapshot* ret = nullptr;
+DataSnapshot* DataMember::search_snapshot(int ts, std::source_location loc) {
+  DataSnapshot* ret = nullptr;
   if (ts == FENIX_DATA_SNAPSHOT_LATEST) {
     if (!commit_snapshots_.empty()) ret = commit_snapshots_.rbegin()->get();
   } else if (ts < 0) {
@@ -392,15 +386,13 @@ Snapshot* fenix_member_entry_t::search_snapshot(
   return ret;
 }
 
-Snapshot* fenix_member_entry_t::find_snapshot(
-  int ts, std::source_location loc
-) {
-  Snapshot* ret = search_snapshot(ts, loc);
+DataSnapshot* DataMember::find_snapshot(int ts, std::source_location loc) {
+  DataSnapshot* ret = search_snapshot(ts, loc);
   if (!ret) FENIX_THROW_FROM(FENIX_ERROR_NODATA_FOUND, loc);
   return ret;
 }
 
-void fenix_member_entry_t::attr_set(int attr, void* value) {
+void DataMember::attr_set(int attr, void* value) {
   switch (attr) {
   case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
     user_data = {(char*)value, user_data.size()};
@@ -445,7 +437,7 @@ void fenix_member_entry_t::attr_set(int attr, void* value) {
   }
 }
 
-void fenix_member_entry_t::attr_get(int attr, void* value) {
+void DataMember::attr_get(int attr, void* value) {
   switch (attr) {
   case FENIX_DATA_MEMBER_ATTRIBUTE_BUFFER:
     *((void**)value) = user_data.data();

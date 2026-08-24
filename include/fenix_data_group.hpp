@@ -74,10 +74,10 @@ namespace fenix::data {
 
 //We keep basic bookkeeping info here, policy specific
 //information is kept by the policy's data type.
-struct fenix_group_t {
-  fenix_group_t(int groupid, MPI_Comm c, int timestart, int depth, int policy);
+struct DataGroup {
+  DataGroup(int groupid, MPI_Comm c, int timestart, int depth, int policy);
 
-  virtual ~fenix_group_t() = default;
+  virtual ~DataGroup() = default;
 
   int groupid;
   MPI_Comm comm;
@@ -88,16 +88,16 @@ struct fenix_group_t {
   int depth;
   int policy_name;
   using MemberSet =
-    std::set<std::shared_ptr<fenix_member_entry_t>, MemberIdComparator>;
+    std::set<std::shared_ptr<DataMember>, DataMemberIdComparator>;
   MemberSet members;
   std::vector<int> member_order;
   std::set<int, std::greater<int>> timestamps; // Reverse sorted: newest first
 
   std::vector<int> get_member_ids();
   //Search for id, returning null if not found.
-  fenix_member_entry_t* search_member(int id);
+  DataMember* search_member(int id);
   //As search_member, but throw if not found
-  fenix_member_entry_t* find_member(
+  DataMember* find_member(
     int id, std::source_location loc = std::source_location::current()
   );
   void member_create(int id, void* data, int count, MPI_Datatype datatype);
@@ -109,7 +109,7 @@ struct fenix_group_t {
   virtual void member_delete(int memberid);
 
   // Create and emplace a policy-specific member into members map
-  virtual void emplace_member(fenix_member_entry_t&& mentry);
+  virtual void emplace_member(DataMember&& member);
 
   virtual void get_redundant_policy(int* name, void* value) = 0;
 
@@ -127,17 +127,16 @@ struct fenix_group_t {
   virtual std::vector<int> get_snapshots();
 };
 
-struct GroupIdComparator {
+struct DataGroupIdComparator {
   using is_transparent = void; // Enables heterogeneous lookup
 
   bool operator()(
-    const std::shared_ptr<fenix_group_t>& a,
-    const std::shared_ptr<fenix_group_t>& b
+    const std::shared_ptr<DataGroup>& a, const std::shared_ptr<DataGroup>& b
   ) const;
 
-  bool operator()(const std::shared_ptr<fenix_group_t>& a, int id) const;
+  bool operator()(const std::shared_ptr<DataGroup>& a, int id) const;
 
-  bool operator()(int id, const std::shared_ptr<fenix_group_t>& a) const;
+  bool operator()(int id, const std::shared_ptr<DataGroup>& a) const;
 };
 
 } //end namespace fenix::data

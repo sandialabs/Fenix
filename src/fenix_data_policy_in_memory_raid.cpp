@@ -82,23 +82,26 @@
 
 namespace fenix::data::imr {
 
-Entry::Entry(int size, int max_count)
-  : Snapshot(size, max_count), partner(size, max_count) {}
+IMRSnapshot::IMRSnapshot(int size, int max_count)
+  : DataSnapshot(size, max_count), partner(size, max_count) {}
 
-// Helper to access IMR Entry from base Snapshot
-static Entry& get_entry(Snapshot& snap) { return *static_cast<Entry*>(&snap); }
-
-static Entry& get_entry(std::unique_ptr<Snapshot>& snap) {
-  return *static_cast<Entry*>(snap.get());
+// Helper to access IMR Entry from base DataSnapshot
+static IMRSnapshot& get_entry(DataSnapshot& snap) {
+  return *static_cast<IMRSnapshot*>(&snap);
 }
 
-Member::Member(fenix_member_entry_t&& my_mentry, Group& my_group)
-  : fenix_member_entry_t(std::move(my_mentry)), group(my_group),
-    send_buf(group.send_buf), recv_buf(group.recv_buf) {}
+static IMRSnapshot& get_entry(std::unique_ptr<DataSnapshot>& snap) {
+  return *static_cast<IMRSnapshot*>(snap.get());
+}
 
-BuddyMember::BuddyMember(fenix_member_entry_t&& my_mentry, Group& my_group)
-  : Member(std::move(my_mentry), my_group) {
-  // Initialize snapshots (creates Entry objects via virtual create_snapshot)
+IMRMember::IMRMember(DataMember&& member, IMRGroup& my_group)
+  : DataMember(std::move(member)), group(my_group), send_buf(group.send_buf),
+    recv_buf(group.recv_buf) {}
+
+BuddyMember::BuddyMember(DataMember&& member, IMRGroup& my_group)
+  : IMRMember(std::move(member), my_group) {
+  // Initialize snapshots (creates IMRSnapshot objects via virtual
+  // create_snapshot)
   init_snapshots();
 
   if (user_data.is_bounded()) {
@@ -112,9 +115,10 @@ BuddyMember::BuddyMember(fenix_member_entry_t&& my_mentry, Group& my_group)
   }
 }
 
-ParityMember::ParityMember(fenix_member_entry_t&& my_mentry, Group& my_group)
-  : Member(std::move(my_mentry), my_group) {
-  // Initialize snapshots (creates Entry objects via virtual create_snapshot)
+ParityMember::ParityMember(DataMember&& member, IMRGroup& my_group)
+  : IMRMember(std::move(member), my_group) {
+  // Initialize snapshots (creates IMRSnapshot objects via virtual
+  // create_snapshot)
   init_snapshots();
 
   int data_len   = user_data.is_bounded() ? user_data.size() : 0;
@@ -135,7 +139,7 @@ ParityMember::ParityMember(fenix_member_entry_t&& my_mentry, Group& my_group)
 
 // Staging functions now use base class default implementations
 
-tasks::Task<int> Member::istorev(const DataSubset& subset) {
+tasks::Task<int> IMRMember::istorev(const DataSubset& subset) {
   if (subset != SUBSET_PRESTAGED) stage(subset);
 
   if (subset != SUBSET_PRESTAGED && subset != SUBSET_FULL) {
@@ -152,7 +156,7 @@ tasks::Task<int> BuddyMember::exch(
   const int left  = rank == 0 ? group.set_size - 1 : rank - 1;
   const int right = rank == group.set_size - 1 ? 0 : rank + 1;
 
-  Entry& e = get_entry(*stage_snapshot_);
+  IMRSnapshot& e = get_entry(*stage_snapshot_);
   e.partner.add_and_fit(partner_subset);
 
   int recv_count = partner_subset.count(e.elm_max_count() - 1);
@@ -187,7 +191,7 @@ tasks::Task<int> BuddyMember::istorev_impl(const DataSubset& subset) {
   co_return co_await exch(subset, partner_subset);
 }
 
-tasks::Task<int> Member::istore(const DataSubset& subset) {
+tasks::Task<int> IMRMember::istore(const DataSubset& subset) {
   if (subset != SUBSET_PRESTAGED) stage(subset);
 
   if (subset != SUBSET_PRESTAGED && subset != SUBSET_FULL) {
@@ -202,7 +206,7 @@ tasks::Task<int> BuddyMember::istore_impl(const DataSubset& subset) {
 }
 
 tasks::Task<int> ParityMember::istore_impl(const DataSubset& subset) {
-  Entry& entry = get_entry(*stage_snapshot_);
+  IMRSnapshot& entry = get_entry(*stage_snapshot_);
 
   int parity_size = entry.size() / (group.set_size - 1);
   int remainder   = entry.size() % (group.set_size - 1);
@@ -249,7 +253,7 @@ tasks::Task<int> ParityMember::istore_impl(const DataSubset& subset) {
   co_return FENIX_SUCCESS;
 }
 
-void Member::repair() {
+void IMRMember::repair() {
   // Remove committed snapshots not in group's timestamp list
   for (auto it = commit_snapshots_.begin(); it != commit_snapshots_.end();) {
     auto found = std::find(
@@ -261,7 +265,7 @@ void Member::repair() {
     }
 
     // Not in group timestamps, extract and move to available pool
-    std::unique_ptr<Snapshot> snap =
+    std::unique_ptr<DataSnapshot> snap =
       std::move(commit_snapshots_.extract(it++).value());
     snap->reset();
     avail_snapshots_.push_back(std::move(snap));
@@ -291,8 +295,8 @@ void BuddyMember::repair_impl() {
     found_here = snap_it != commit_snapshots_.end();
     fenix_assert(found_here || !avail_snapshots_.empty());
 
-    Snapshot& snap = found_here ? **snap_it : *avail_snapshots_.back();
-    Entry& e       = get_entry(snap);
+    DataSnapshot& snap = found_here ? **snap_it : *avail_snapshots_.back();
+    IMRSnapshot& e     = get_entry(snap);
 
     MPI_Allgather(MPI_IN_PLACE, 1, MPI_INT, found, 1, MPI_INT, group.set_comm);
 
@@ -363,8 +367,8 @@ void ParityMember::repair_impl() {
     found_here = snap_it != commit_snapshots_.end();
     fenix_assert(found_here || !avail_snapshots_.empty());
 
-    Snapshot& snap = found_here ? **snap_it : *avail_snapshots_.back();
-    Entry& e       = get_entry(snap);
+    DataSnapshot& snap = found_here ? **snap_it : *avail_snapshots_.back();
+    IMRSnapshot& e     = get_entry(snap);
 
     MPI_Allgather(
       &found_here, 1, MPI_INT, found.data(), 1, MPI_INT, group.set_comm
@@ -437,10 +441,10 @@ void ParityMember::repair_impl() {
   }
 }
 
-Group::Group(
+IMRGroup::IMRGroup(
   int m_id, MPI_Comm m_comm, int m_timestart, int m_depth, int* policy_vals
 )
-  : fenix_group_t(m_id, m_comm, m_timestart, m_depth, FENIX_DATA_POLICY_IMR) {
+  : DataGroup(m_id, m_comm, m_timestart, m_depth, FENIX_DATA_POLICY_IMR) {
   mode = policy_vals ? policy_vals[0] : 1;
   rank_separation =
     policy_vals ? policy_vals[1] : __fenix_get_world_size(m_comm) / 2;
@@ -537,7 +541,7 @@ Group::Group(
   reinit();
 }
 
-void Group::build_set_comm() {
+void IMRGroup::build_set_comm() {
   if (set_comm != MPI_COMM_NULL) {
     MPI_Comm_free(&set_comm);
     set_comm = MPI_COMM_NULL;
@@ -566,7 +570,7 @@ void Group::build_set_comm() {
         for (auto& group_ptr : dc->groups) {
           auto g = group_ptr.get();
           if (g->policy_name != FENIX_DATA_POLICY_IMR) continue;
-          auto imr_g = static_cast<fenix::data::imr::Group*>(g);
+          auto imr_g = static_cast<fenix::data::imr::IMRGroup*>(g);
 
           if (imr_g->set_comm == MPI_COMM_NULL) continue;
           MPIX_Comm_revoke(imr_g->set_comm);
@@ -577,7 +581,7 @@ void Group::build_set_comm() {
   }
 }
 
-std::string Group::str() {
+std::string IMRGroup::str() {
   std::stringstream ss;
   ss << "Group " << groupid << " set ";
   ss << "[" << partners[0];
@@ -586,29 +590,29 @@ std::string Group::str() {
   return ss.str();
 }
 
-void Group::emplace_member(fenix_member_entry_t&& mentry) {
+void IMRGroup::emplace_member(DataMember&& member) {
   // Create and insert the policy-specific Member into members map
-  std::shared_ptr<Member> m;
+  std::shared_ptr<IMRMember> m;
   if (mode == 1) {
-    m = std::make_shared<BuddyMember>(std::move(mentry), *this);
+    m = std::make_shared<BuddyMember>(std::move(member), *this);
   } else if (mode == 5) {
-    m = std::make_shared<ParityMember>(std::move(mentry), *this);
+    m = std::make_shared<ParityMember>(std::move(member), *this);
   } else {
     assert(false);
   }
   members.insert(m);
 }
 
-void Group::commit() {
-  fenix_group_t::commit();
+void IMRGroup::commit() {
+  DataGroup::commit();
   send_buf.clear();
   send_buf.shrink_to_fit();
   recv_buf.clear();
   recv_buf.shrink_to_fit();
 }
 
-void Group::member_repair(int member_id) {
-  fenix_member_entry_t* member = search_member(member_id);
+void IMRGroup::member_repair(int member_id) {
+  DataMember* member = search_member(member_id);
 
   std::vector<int> found_members(set_size);
   found_members[set_rank] = member ? 1 : 0;
@@ -641,13 +645,13 @@ void Group::member_repair(int member_id) {
     }
     FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
   } else if (n_missing == 1) {
-    fenix_member_entry_packet_t packet;
+    DataMemberPacket packet;
     if (set_rank == first_found) packet = member->to_packet();
 
     MPI_Bcast(&packet, sizeof(packet), MPI_BYTE, first_found, set_comm);
 
     if (!found_members[set_rank]) {
-      fenix_group_t::member_create(
+      DataGroup::member_create(
         packet.memberid, nullptr, packet.current_count, packet.datatype_size
       );
       member = find_member(member_id);
@@ -662,19 +666,19 @@ void Group::member_repair(int member_id) {
   recv_buf.shrink_to_fit();
 }
 
-void Group::member_restore_from_rank(
+void IMRGroup::member_restore_from_rank(
   int member_id, void* target_buffer, int max_count, int timestamp,
   int source_rank
 ) {
   fenix_assert(false, "restore_from_rank is not supported yet!");
 }
 
-void Group::reinit() {
+void IMRGroup::reinit() {
   build_set_comm();
   sync_timestamps();
 }
 
-void Group::sync_timestamps() {
+void IMRGroup::sync_timestamps() {
   int n_snapshots = timestamps.size();
   MPI_Allreduce(MPI_IN_PLACE, &n_snapshots, 1, MPI_INT, MPI_MAX, set_comm);
 
@@ -696,7 +700,7 @@ void Group::sync_timestamps() {
   else timestamp = -1;
 }
 
-void Group::get_redundant_policy(int* policy_name, void* policy_value) {
+void IMRGroup::get_redundant_policy(int* policy_name, void* policy_value) {
   *policy_name = FENIX_DATA_POLICY_IN_MEMORY_RAID;
 
   int* policy_vals = (int*)policy_value;

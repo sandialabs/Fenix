@@ -4,18 +4,18 @@
 
 namespace fenix::data {
 
-Snapshot::Snapshot(int elm_size, int max_count)
+DataSnapshot::DataSnapshot(int elm_size, int max_count)
   : timestamp_(-2), elm_size_(elm_size), elm_max_count_(max_count) {
   if (max_count != -1) buf_.reserve(elm_size * max_count);
 }
 
-void Snapshot::reset() {
+void DataSnapshot::reset() {
   timestamp_ = -2;
   buf_.clear();
   region_ = {};
 }
 
-void Snapshot::add_and_fit(const DataSubset& subset) {
+void DataSnapshot::add_and_fit(const DataSubset& subset) {
   fenix_assert(subset != SUBSET_PRESTAGED);
   fenix_assert(region_ != SUBSET_PRESTAGED);
   fenix_assert(region_.max_count() > 0 || region_.empty());

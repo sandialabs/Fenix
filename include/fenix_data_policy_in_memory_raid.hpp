@@ -71,30 +71,32 @@
 
 namespace fenix::data::imr {
 
-struct Entry : public fenix::data::Snapshot {
-  Entry(int size, int max_count);
+struct IMRSnapshot : public fenix::data::DataSnapshot {
+  IMRSnapshot(int size, int max_count);
 
-  //IMR-specific partner data as a second Snapshot
-  Snapshot partner;
+  //IMR-specific partner data as a second DataSnapshot
+  DataSnapshot partner;
 
   //Accessor for partner snapshot
-  Snapshot& partner_snapshot() { return partner; }
+  DataSnapshot& partner_snapshot() { return partner; }
 };
 
-struct Group;
+struct IMRGroup;
 
-struct Member : public fenix_member_entry_t {
-  Member(fenix_member_entry_t&& mentry, Group& group);
+struct IMRMember : public DataMember {
+  IMRMember(DataMember&& member, IMRGroup& group);
 
-  // Override create_snapshot to return IMR Entry type
-  std::unique_ptr<Snapshot> create_snapshot(int size, int max_count) override {
-    return std::make_unique<imr::Entry>(size, max_count);
+  // Override create_snapshot to return IMR IMRSnapshot type
+  std::unique_ptr<DataSnapshot> create_snapshot(
+    int size, int max_count
+  ) override {
+    return std::make_unique<imr::IMRSnapshot>(size, max_count);
   }
 
   // Staging and loading functions use base class default implementations
 
-  // Member::istore(v) handle local data and region, while istore(v)_impl handle
-  // partner data and region
+  // IMRMember::istore(v) handle local data and region, while istore(v)_impl
+  // handle partner data and region
   tasks::Task<int> istore(const DataSubset& subset) override;
   virtual tasks::Task<int> istore_impl(const DataSubset& subset) = 0;
 
@@ -107,15 +109,15 @@ struct Member : public fenix_member_entry_t {
   void repair();
   virtual void repair_impl() = 0;
 
-  Group& group;
+  IMRGroup& group;
   int id = memberid;
 
   DataBuffer& send_buf;
   DataBuffer& recv_buf;
 };
 
-struct BuddyMember : public Member {
-  BuddyMember(fenix_member_entry_t&& mentry, Group& group);
+struct BuddyMember : public IMRMember {
+  BuddyMember(DataMember&& member, IMRGroup& group);
   void repair_impl() override;
   tasks::Task<int> istore_impl(const DataSubset& subset) override;
   tasks::Task<int> istorev_impl(const DataSubset& subset) override;
@@ -124,8 +126,8 @@ struct BuddyMember : public Member {
   );
 };
 
-struct ParityMember : public Member {
-  ParityMember(fenix_member_entry_t&& mentry, Group& group);
+struct ParityMember : public IMRMember {
+  ParityMember(DataMember&& member, IMRGroup& group);
   void repair_impl() override;
   tasks::Task<int> istore_impl(const DataSubset& subset) override;
 
@@ -135,8 +137,8 @@ struct ParityMember : public Member {
   }
 };
 
-struct Group : public fenix_group_t {
-  Group(int id, MPI_Comm comm, int timestart, int depth, int* policy);
+struct IMRGroup : public DataGroup {
+  IMRGroup(int id, MPI_Comm comm, int timestart, int depth, int* policy);
 
   int mode;
   int rank_separation;
@@ -153,7 +155,7 @@ struct Group : public fenix_group_t {
 
   std::string str();
 
-  void emplace_member(fenix_member_entry_t&& mentry) override;
+  void emplace_member(DataMember&& member) override;
   void get_redundant_policy(int* name, void* value) override;
 
   void commit() override;

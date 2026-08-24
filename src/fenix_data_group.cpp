@@ -67,7 +67,7 @@
 
 namespace fenix::data {
 
-fenix_group_t::fenix_group_t(
+DataGroup::DataGroup(
   int m_groupid, MPI_Comm m_comm, int m_timestart, int m_depth, int m_policy
 ) {
   groupid      = m_groupid;
@@ -80,16 +80,14 @@ fenix_group_t::fenix_group_t(
   policy_name  = m_policy;
 }
 
-fenix_member_entry_t* fenix_group_t::search_member(int id) {
+DataMember* DataGroup::search_member(int id) {
   auto iter = members.find(id);
   if (iter == members.end()) return nullptr;
   assert((*iter)->memberid == id);
   return iter->get();
 }
 
-fenix_member_entry_t* fenix_group_t::find_member(
-  int id, std::source_location loc
-) {
+DataMember* DataGroup::find_member(int id, std::source_location loc) {
   auto member = search_member(id);
   if (!member) FENIX_THROW_FROM(FENIX_ERROR_INVALID_MEMBERID, loc);
   return member;
@@ -98,7 +96,7 @@ fenix_member_entry_t* fenix_group_t::find_member(
 // Create a member with MPI_Datatype
 // Creates temporary base entry, calls emplace_member to replace with policy
 // type, then calls virtual member_create for initialization
-void fenix_group_t::member_create(
+void DataGroup::member_create(
   int id, void* data, int count, MPI_Datatype datatype
 ) {
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
@@ -114,7 +112,7 @@ void fenix_group_t::member_create(
 }
 
 // Create a member with MPI_Datatype and custom serialization function
-void fenix_group_t::member_create(
+void DataGroup::member_create(
   int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
 ) {
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
@@ -129,7 +127,7 @@ void fenix_group_t::member_create(
 }
 
 // Create a member with explicit datatype size
-void fenix_group_t::member_create(
+void DataGroup::member_create(
   int id, void* data, int count, int datatype_size
 ) {
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
@@ -144,11 +142,11 @@ void fenix_group_t::member_create(
   (*iter)->init_snapshots();
 }
 
-void fenix_group_t::emplace_member(fenix_member_entry_t&& mentry) {
-  members.insert(std::make_shared<fenix_member_entry_t>(std::move(mentry)));
+void DataGroup::emplace_member(DataMember&& member) {
+  members.insert(std::make_shared<DataMember>(std::move(member)));
 }
 
-void fenix_group_t::member_delete(int id) {
+void DataGroup::member_delete(int id) {
   auto iter = members.find(id);
   if (iter == members.end()) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
   members.erase(iter);
@@ -160,9 +158,9 @@ void fenix_group_t::member_delete(int id) {
   }
 }
 
-std::vector<int> fenix_group_t::get_member_ids() { return member_order; }
+std::vector<int> DataGroup::get_member_ids() { return member_order; }
 
-void fenix_group_t::commit() {
+void DataGroup::commit() {
   if (timestamps.size() == depth + 1) {
     // Remove oldest timestamp (last in reverse-sorted set)
     timestamps.erase(--timestamps.end());
@@ -171,7 +169,7 @@ void fenix_group_t::commit() {
   for (auto& member : members) member->commit(timestamp);
 }
 
-void fenix_group_t::snapshot_delete(int ts) {
+void DataGroup::snapshot_delete(int ts) {
   if (timestamps.empty()) {
     FENIX_THROW(FENIX_ERROR_INVALID_TIMESTAMP);
   } else if (ts == FENIX_DATA_SNAPSHOT_ALL) {
@@ -187,9 +185,9 @@ void fenix_group_t::snapshot_delete(int ts) {
   }
 }
 
-int fenix_group_t::get_number_of_snapshots() { return timestamps.size(); }
+int DataGroup::get_number_of_snapshots() { return timestamps.size(); }
 
-int fenix_group_t::get_snapshot_at_position(int position) {
+int DataGroup::get_snapshot_at_position(int position) {
   if (position < 0 || position >= timestamps.size())
     FENIX_THROW(FENIX_ERROR_INVALID_POSITION);
   auto it = timestamps.begin();
@@ -197,7 +195,7 @@ int fenix_group_t::get_snapshot_at_position(int position) {
   return *it;
 }
 
-std::vector<int> fenix_group_t::get_snapshots() {
+std::vector<int> DataGroup::get_snapshots() {
   return {timestamps.begin(), timestamps.end()};
 }
 

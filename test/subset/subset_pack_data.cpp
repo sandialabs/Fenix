@@ -85,10 +85,10 @@ bool test_pack_data(const DataSubset& a) {
 
   DataBuffer in_buf, out_buf, packed_buf;
 
-  fenix_member_entry_t mentry(0, in.data(), count, sizeof(int), 0);
+  DataMember member(0, in.data(), count, sizeof(int), 0);
 
   // Data to in_buf
-  mentry.serialize(a, in_buf);
+  member.serialize(a, in_buf);
 
   // Pack in_buf into packed_buf
   a.pack_data(sizeof(int), in_buf, packed_buf);
@@ -98,7 +98,7 @@ bool test_pack_data(const DataSubset& a) {
   a.unpack_data(sizeof(int), packed_buf, out_buf);
 
   // Data from out_buf to out
-  mentry.deserialize(a, out_buf, out);
+  member.deserialize(a, out_buf, out);
 
   for (int i = 0; i < count; i++) {
     if (a.includes(i) && out[i] != 1) {
