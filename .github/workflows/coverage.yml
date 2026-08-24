@@ -3,6 +3,14 @@ name: Coverage Report
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'test/**'
+      - 'examples/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/coverage.yml'
 
 # Cancel previous runs on the same PR
 concurrency:
