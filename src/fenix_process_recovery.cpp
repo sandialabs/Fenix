@@ -786,10 +786,10 @@ void __fenix_finalize_spare() {
 }
 
 void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
+  if (!fenix_rt.fenix_init_flag) return;
+
   util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   fenix_rt.mpi_fail_code = *pret;
-
-  if (!fenix_rt.fenix_init_flag) return;
 
   constexpr bool throw_new = true;
 
@@ -808,6 +808,9 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
     MPIX_Comm_revoke(*fenix_rt.world);
     MPIX_Comm_revoke(fenix_rt.new_world);
     if (fenix_rt.user_world_exists) MPIX_Comm_revoke(*fenix_rt.user_world);
+
+    // Revoke all data recovery cohort communicators
+    if (fenix_rt.data_recovery) fenix_rt.data_recovery->revoke();
 
     callback_invoke_all(fenix::PRE_RECOVERY);
     fenix_rt.repair_result = __fenix_repair_ranks();

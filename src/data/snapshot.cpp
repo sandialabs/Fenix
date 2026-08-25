@@ -12,20 +12,85 @@ DataSnapshot::DataSnapshot(int elm_size, int max_count)
 void DataSnapshot::reset() {
   timestamp_ = -2;
   buf_.clear();
-  region_ = {};
+  protected_subsets.clear();
+  staged_subsets.clear();
+  cohort_rank = -1;
+  if (cohort_ != MPI_GROUP_NULL) {
+    MPI_Group_free(&cohort_);
+    cohort_ = MPI_GROUP_NULL;
+  }
+}
+
+void DataSnapshot::init_cohort(MPI_Comm cohort_comm) {
+  if (cohort_ == MPI_GROUP_NULL) {
+    MPI_Comm_group(cohort_comm, &cohort_);
+
+    // Get cohort size and this rank's position
+    int cohort_size;
+    MPI_Group_size(cohort_, &cohort_size);
+    MPI_Comm_rank(cohort_comm, &cohort_rank);
+
+    // Allocate vectors (one per cohort member, including self)
+    protected_subsets.resize(cohort_size);
+    staged_subsets.resize(cohort_size);
+  }
+}
+
+void DataSnapshot::reinit_cohort(MPI_Comm cohort_comm) {
+  // Free existing cohort if present
+  if (cohort_ != MPI_GROUP_NULL) {
+    MPI_Group_free(&cohort_);
+  }
+
+  // Get fresh cohort group
+  MPI_Comm_group(cohort_comm, &cohort_);
+
+  // Get cohort size and this rank's position
+  int cohort_size;
+  MPI_Group_size(cohort_, &cohort_size);
+  MPI_Comm_rank(cohort_comm, &cohort_rank);
+
+  // Allocate or resize vectors (one per cohort member, including self)
+  protected_subsets.resize(cohort_size);
+  staged_subsets.resize(cohort_size);
+}
+
+util::Serializer DataSnapshot::create_serializer(
+  const util::DataRef& source, std::optional<SerializeFunc>& sf,
+  const DataSubset& subset
+) {
+  util::DataRef output = source;
+  if (subset.is_bounded()) {
+    output = output.bounded(subset.max_count() * elm_size_);
+  }
+
+  if (output.is_bounded()) {
+    if (buf_.size() < output.size()) buf_.resize(output.size());
+  } else if (!sf) {
+    FENIX_THROW(FENIX_ERROR_INVALID_SUBSET);
+  }
+
+  return util::Serializer(buf_, sf, output, FENIX_SERIALIZE, elm_size_);
+}
+
+util::Serializer DataSnapshot::create_deserializer(
+  const util::DataRef& dst, std::optional<SerializeFunc>& sf,
+  const DataSubset& subset
+) {
+  return util::Serializer(buf_, sf, dst, FENIX_DESERIALIZE, elm_size_);
 }
 
 void DataSnapshot::add_and_fit(const DataSubset& subset) {
   fenix_assert(subset != SUBSET_PRESTAGED);
-  fenix_assert(region_ != SUBSET_PRESTAGED);
-  fenix_assert(region_.max_count() > 0 || region_.empty());
+  fenix_assert(staged_subset() != SUBSET_PRESTAGED);
+  fenix_assert(staged_subset().max_count() > 0 || staged_subset().empty());
 
-  region_ += subset;
-  if (elm_max_count_) region_.bound(elm_max_count_ - 1);
+  staged_subset() += subset;
+  if (elm_max_count_) staged_subset().bound(elm_max_count_ - 1);
 
   int new_count = elm_max_count_;
-  if (!new_count) new_count = region_.max_count();
-  fenix_assert(new_count || region_.empty());
+  if (!new_count) new_count = staged_subset().max_count();
+  fenix_assert(new_count || staged_subset().empty());
 
   int new_size = new_count * elm_size_;
   if (new_size > buf_.size()) buf_.resize(new_size);

@@ -53,5 +53,6 @@ function(fenix_test)
   endif()
 
   set_tests_properties(${args_TESTNAME} PROPERTIES
-    FAIL_REGULAR_EXPRESSION "${fail_regex}")
+    FAIL_REGULAR_EXPRESSION "${fail_regex}"
+    TIMEOUT 10)
 endfunction()

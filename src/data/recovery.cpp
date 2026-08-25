@@ -471,6 +471,14 @@ std::optional<std::vector<int>> group_snapshots(int group_id) {
   return {};
 }
 
+MPI_Group group_cohort(int group_id) {
+  assert(initialized());
+  auto group = fenix_rt.data_recovery->find_group(group_id);
+  MPI_Group cohort;
+  MPI_Comm_group(group->cohort_comm, &cohort);
+  return cohort;
+}
+
 int snapshot_delete(int group_id, int time_stamp) {
   FENIX_CPP_API_BEGIN
   if (time_stamp < 0) FENIX_THROW(FENIX_ERROR_INVALID_TIMESTAMP);
@@ -513,6 +521,14 @@ int Fenix_Data_group_get_snapshot_at_position(
     fenix_rt.data_recovery->find_group(groupid)->get_snapshot_at_position(
       position
     );
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_Data_group_get_cohort(int group_id, MPI_Group* cohort) {
+  FENIX_C_API_BEGIN
+  auto group = fenix_rt.data_recovery->find_group(group_id);
+  MPI_Comm_group(group->cohort_comm, cohort);
   return FENIX_SUCCESS;
   FENIX_C_API_END
 }

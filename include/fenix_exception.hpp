@@ -118,6 +118,10 @@ struct RuntimeException : public std::exception {
   const std::string_view error_string;
   const std::source_location location;
 
+  // Allow direct comparison with error codes
+  bool operator==(int error_code) const noexcept { return error == error_code; }
+  bool operator!=(int error_code) const noexcept { return error != error_code; }
+
  private:
   mutable std::string m_string;
 };

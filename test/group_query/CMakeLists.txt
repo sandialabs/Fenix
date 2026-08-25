@@ -9,4 +9,4 @@
 #
 
 fenix_test(SRC group_query.cpp RANKS 2)
-fenix_test(SRC redundancy_policy.cpp RANKS 2)
+fenix_test(SRC redundancy_policy.cpp RANKS 3)

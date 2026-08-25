@@ -13,7 +13,7 @@ namespace fenix::tasks {
 // WARNING: eager tasks can cause gross double free errors, due to some
 // early wonkiness in the C++ spec and in compiler implementations
 template <typename T, bool eager /*= false*/>
-class Task {
+class [[nodiscard("Must wait/await tasks")]] Task {
  public:
   using PromiseT     = Promise<T, eager>;
   using TaskT        = Task<T, eager>;
@@ -55,7 +55,9 @@ class Task {
 
   auto result() {
     this->wait();
-    return promise().result();
+    if constexpr (!std::is_same_v<T, void>) {
+      return promise().result();
+    }
   }
 
  private:

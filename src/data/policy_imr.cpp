@@ -87,6 +87,16 @@ using util::DataBuffer;
 IMRSnapshot::IMRSnapshot(int size, int max_count)
   : DataSnapshot(size, max_count), partner(size, max_count) {}
 
+void IMRSnapshot::init_cohort(MPI_Comm cohort_comm) {
+  DataSnapshot::init_cohort(cohort_comm);
+  partner.init_cohort(cohort_comm);
+}
+
+void IMRSnapshot::reinit_cohort(MPI_Comm cohort_comm) {
+  DataSnapshot::reinit_cohort(cohort_comm);
+  partner.reinit_cohort(cohort_comm);
+}
+
 // Helper to access IMR Entry from base DataSnapshot
 static IMRSnapshot& get_entry(DataSnapshot& snap) {
   return *static_cast<IMRSnapshot*>(&snap);
@@ -96,12 +106,9 @@ static IMRSnapshot& get_entry(std::unique_ptr<DataSnapshot>& snap) {
   return *static_cast<IMRSnapshot*>(snap.get());
 }
 
-IMRMember::IMRMember(DataMember&& member, IMRGroup& my_group)
-  : DataMember(std::move(member)), group(my_group), send_buf(group.send_buf),
-    recv_buf(group.recv_buf) {}
-
 BuddyMember::BuddyMember(DataMember&& member, IMRGroup& my_group)
-  : IMRMember(std::move(member), my_group) {
+  : DataMember(std::move(member)), send_buf(my_group.send_buf),
+    recv_buf(my_group.recv_buf) {
   // Initialize snapshots (creates IMRSnapshot objects via virtual
   // create_snapshot)
   init_snapshots();
@@ -118,19 +125,20 @@ BuddyMember::BuddyMember(DataMember&& member, IMRGroup& my_group)
 }
 
 ParityMember::ParityMember(DataMember&& member, IMRGroup& my_group)
-  : IMRMember(std::move(member), my_group) {
+  : DataMember(std::move(member)), send_buf(my_group.send_buf),
+    recv_buf(my_group.recv_buf) {
   // Initialize snapshots (creates IMRSnapshot objects via virtual
   // create_snapshot)
   init_snapshots();
 
   int data_len   = user_data.is_bounded() ? user_data.size() : 0;
-  int parity_len = data_len / (group.set_size - 1);
+  int parity_len = data_len / (group->cohort_size - 1);
 
-  int remainder = data_len % (group.set_size - 1);
+  int remainder = data_len % (group->cohort_size - 1);
   if (remainder) remainder++;
-  if (remainder < group.set_rank) parity_len++;
+  if (remainder < group->cohort_rank) parity_len++;
 
-  // Resize partner buffers for staging snapshot
+  // Resize partner buffers for staging snapshot (parity_len is in bytes)
   get_entry(*stage_snapshot_).partner.resize(parity_len);
 
   // Resize partner buffers for available snapshots
@@ -139,150 +147,112 @@ ParityMember::ParityMember(DataMember&& member, IMRGroup& my_group)
   }
 }
 
-// Staging functions now use base class default implementations
+tasks::Task<int> BuddyMember::iprotect() {
+  const int rank  = group->cohort_rank;
+  const int left  = rank == 0 ? group->cohort_size - 1 : rank - 1;
+  const int right = rank == group->cohort_size - 1 ? 0 : rank + 1;
 
-tasks::Task<int> IMRMember::istorev(const DataSubset& subset) {
-  if (subset != SUBSET_PRESTAGED) stage(subset);
+  IMRSnapshot& snap = *static_cast<IMRSnapshot*>(stage_snapshot_.get());
 
-  if (subset != SUBSET_PRESTAGED && subset != SUBSET_FULL) {
-    return this->istorev_impl(subset);
-  } else {
-    return this->istorev_impl(get_entry(*stage_snapshot_).region());
-  }
-}
+  const DataSubset& subset         = snap.staged_subset();
+  const DataSubset& partner_subset = snap.staged_subsets[left];
 
-tasks::Task<int> BuddyMember::exch(
-  const DataSubset& subset, const DataSubset& partner_subset
-) {
-  const int rank  = group.set_rank;
-  const int left  = rank == 0 ? group.set_size - 1 : rank - 1;
-  const int right = rank == group.set_size - 1 ? 0 : rank + 1;
+  snap.partner.add_and_fit(partner_subset);
+  int recv_count = partner_subset.count(snap.elm_max_count() - 1);
+  recv_buf.reset(snap.elm_size() * recv_count);
 
-  IMRSnapshot& e = get_entry(*stage_snapshot_);
-  e.partner.add_and_fit(partner_subset);
-
-  int recv_count = partner_subset.count(e.elm_max_count() - 1);
-  recv_buf.reset(e.elm_size() * recv_count);
-
-  subset.pack_data(e.elm_size(), e.buf(), send_buf);
+  subset.pack_data(snap.elm_size(), snap.buf(), send_buf);
   co_await tasks::mpi::sendrecv(
     send_buf.data(), send_buf.size(), MPI_BYTE, right, 0,
     recv_buf.data(), recv_buf.size(), MPI_BYTE,  left, 0,
-    group.set_comm
+    group->cohort_comm
   );
 
-  partner_subset.unpack_data(e.elm_size(), recv_buf, e.partner.buf());
+  partner_subset.unpack_data(snap.elm_size(), recv_buf, snap.partner.buf());
+
+  for (int i = 0; i < snap.staged_subsets.size(); i++) {
+    snap.protected_subsets[i] += snap.staged_subsets[i];
+    snap.staged_subsets[i] = {};
+  }
+
   co_return FENIX_SUCCESS;
 }
 
-tasks::Task<int> BuddyMember::istorev_impl(const DataSubset& subset) {
-  //My partner ranks (within set_comm)
-  const int rank  = group.set_rank;
-  const int left  = rank == 0 ? group.set_size - 1 : rank - 1;
-  const int right = rank == group.set_size - 1 ? 0 : rank + 1;
-
-  DataBuffer send_buf, recv_buf;
-  subset.serialize(send_buf);
-
-  for (int i = 0; i < group.set_size; i++) {
-    if (i == rank) co_await send_buf.send(right, 0, group.set_comm);
-    if (i == left) co_await recv_buf.recv_unknown(left, 0, group.set_comm);
+std::vector<int> ParityMember::prepare_for_parity(IMRSnapshot& snap) {
+  size_t data_count = 0;
+  for (const auto& subset : snap.staged_subsets) {
+    data_count = std::max(data_count, subset.max_count());
+  }
+  for (const auto& subset : snap.protected_subsets) {
+    data_count = std::max(data_count, subset.max_count());
   }
 
-  DataSubset partner_subset(recv_buf);
-  co_return co_await exch(subset, partner_subset);
+  int data_bytes = data_count * snap.elm_size();
+  int n_partners = snap.staged_subsets.size() - 1;
+
+  int parity_bytes    = data_bytes / n_partners;
+  int remainder_bytes = data_bytes % n_partners;
+
+  // If we have any remainder, we need one extra remainder, since the ranks that
+  // calculate the 1-larger parity are missing one byte of protection.
+  if (remainder_bytes) remainder_bytes++;
+
+  std::vector<int> ret(n_partners + 1, parity_bytes);
+  for (int i = 0; i < remainder_bytes; i++) ++ret[i];
+  int local_parity = ret[group->cohort_rank];
+
+  if (snap.size() < data_bytes) snap.resize(data_bytes);
+  snap.partner.resize(local_parity);
+
+  return ret;
 }
 
-tasks::Task<int> IMRMember::istore(const DataSubset& subset) {
-  if (subset != SUBSET_PRESTAGED) stage(subset);
+tasks::Task<int> ParityMember::iprotect() {
+  IMRSnapshot& snap = *static_cast<IMRSnapshot*>(stage_snapshot_.get());
+  auto parity_bytes = prepare_for_parity(snap);
 
-  if (subset != SUBSET_PRESTAGED && subset != SUBSET_FULL) {
-    return this->istore_impl(subset);
-  } else {
-    return this->istore_impl(get_entry(*stage_snapshot_).region());
-  }
-}
-
-tasks::Task<int> BuddyMember::istore_impl(const DataSubset& subset) {
-  return exch(subset, subset);
-}
-
-tasks::Task<int> ParityMember::istore_impl(const DataSubset& subset) {
-  IMRSnapshot& entry = get_entry(*stage_snapshot_);
-
-  int parity_size = entry.size() / (group.set_size - 1);
-  int remainder   = entry.size() % (group.set_size - 1);
-
-  //If we have any remainder, treat as if we have one more, since a rank
-  //storing a larger parity block wasn't able to store a larger data block, so
-  //all such ranks need one extra larger data block.
-  if (remainder) remainder++;
-
-  int m_parity_size = parity_size;
-  if (group.set_rank < remainder) m_parity_size++;
-  entry.partner.resize(m_parity_size);
+  fenix_assert(parity_bytes.size() == group->cohort_size);
 
   //Zero out the parity data before computing, so old data doesn't contribute
-  std::memset(entry.partner.data(), 0, entry.partner.size());
+  std::memset(snap.partner.data(), 0, snap.partner.size());
 
   int offset = 0;
-  for (int i = 0; i < group.set_size; i++) {
-    int len = i < remainder ? parity_size + 1 : parity_size;
+  for (int root = 0; root < parity_bytes.size(); root++) {
+    int len = parity_bytes[root];
+
+    bool local_root = group->cohort_rank == root;
 
     char* input;
-    if (group.set_rank == i) {
-      //The rank storing this parity region contributes the all zero input
-      //as a way of not contributing
-      input = entry.partner.data();
+    if (local_root) {
+      input = snap.partner.data();
     } else {
-      if (offset + len > entry.size()) {
-        //Since we pretend to have an extra remainder if there is any
-        assert(remainder);
-        assert(group.set_rank >= remainder);
-        assert(offset + len == entry.size() + 1);
+      input = snap.data() + offset;
+      offset += len;
+      if (input + len > snap.data() + snap.size()) {
+        fenix_assert(input + len == snap.data() + snap.size() + 1);
+        input--;
         offset--;
       }
-      input = entry.data() + offset;
-      offset += len;
     }
 
     co_await tasks::mpi::reduce(
-      MPI_IN_PLACE, input, len, MPI_BYTE, MPI_BXOR, i, group.set_comm
+      local_root ? MPI_IN_PLACE : input, input, len, MPI_BYTE, MPI_BXOR, root,
+      group->cohort_comm
     );
   }
 
-  assert(offset == entry.size());
+  for (int i = 0; i < snap.staged_subsets.size(); i++) {
+    snap.protected_subsets[i] += snap.staged_subsets[i];
+    snap.staged_subsets[i] = {};
+  }
   co_return FENIX_SUCCESS;
 }
 
-void IMRMember::repair() {
-  // Remove committed snapshots not in group's timestamp list
-  for (auto it = commit_snapshots_.begin(); it != commit_snapshots_.end();) {
-    auto found = std::find(
-      group.timestamps.begin(), group.timestamps.end(), (*it)->timestamp()
-    );
-    if (found != group.timestamps.end()) {
-      ++it;
-      continue;
-    }
-
-    // Not in group timestamps, extract and move to available pool
-    std::unique_ptr<DataSnapshot> snap =
-      std::move(commit_snapshots_.extract(it++).value());
-    snap->reset();
-    avail_snapshots_.push_back(std::move(snap));
-  }
-
-  // Reset the current store buffer entry
-  get_entry(*stage_snapshot_).reset();
-  this->repair_impl();
-}
-
-void BuddyMember::repair_impl() {
+void BuddyMember::repair() {
   //My partner ranks (within set_comm)
-  const int rank  = group.set_rank;
-  const int left  = rank == 0 ? group.set_size - 1 : rank - 1;
-  const int right = rank == group.set_size - 1 ? 0 : rank + 1;
+  const int rank  = group->cohort_rank;
+  const int left  = rank == 0 ? group->cohort_size - 1 : rank - 1;
+  const int right = rank == group->cohort_size - 1 ? 0 : rank + 1;
 
   //Data on which partners have found each snapshot
   int found[3];
@@ -290,8 +260,11 @@ void BuddyMember::repair_impl() {
   int& found_left  = found[left];
   int& found_right = found[right];
 
+  // Reinitialize cohort in stage snapshot
+  stage_snapshot_->reinit_cohort(group->cohort_comm);
+
   // Iterate through committed timestamps (newest to oldest)
-  for (const int& ts : group.timestamps) {
+  for (const int& ts : group->timestamps) {
     auto snap_it = commit_snapshots_.find(ts);
 
     found_here = snap_it != commit_snapshots_.end();
@@ -299,71 +272,79 @@ void BuddyMember::repair_impl() {
 
     DataSnapshot& snap = found_here ? **snap_it : *avail_snapshots_.back();
     IMRSnapshot& e     = get_entry(snap);
+    if (!found_here) e.reset();
 
-    MPI_Allgather(MPI_IN_PLACE, 1, MPI_INT, found, 1, MPI_INT, group.set_comm);
+    MPI_Allgather(
+      MPI_IN_PLACE, 1, MPI_INT, found, 1, MPI_INT, group->cohort_comm
+    );
 
-    int n_missing = 0;
-    for (int i = 0; i < group.set_size; i++) n_missing += found[i] ? 0 : 1;
+    int n_missing = 0, bcast_root = -1;
+    for (int i = 0; i < group->cohort_size; i++) {
+      if (found[i]) bcast_root = i;
+      else n_missing++;
+    }
+
     if (n_missing == 0) continue;
     if (n_missing > 1) {
-      if (group.set_rank == 0) {
+      if (group->cohort_rank == 0) {
         debug_print(
           "WARNING Fenix_Data_member_restore: %s member %d timestamp %d "
           "unrecoverable",
-          group.str().c_str(), id, ts
+          group->str().c_str(), memberid, ts
         );
       }
       continue;
     }
 
-    if (!found_here) {
-      //Fetch my data region from right partner
-      recv_buf.recv_unknown(right, 0, group.set_comm).wait();
-      e.add_and_fit({recv_buf});
-      //Fetch my data
-      int m_count = e.region().count(e.elm_max_count() - 1);
-      recv_buf.recv(m_count * e.elm_size(), right, 0, group.set_comm).wait();
-      e.region().unpack_data(e.elm_size(), recv_buf, e.buf());
+    e.reinit_cohort(group->cohort_comm);
+    broadcast_subsets(e.protected_subsets, bcast_root).wait();
 
-      //Fetch left partner's region
-      recv_buf.recv_unknown(left, 0, group.set_comm).wait();
-      e.partner.add_and_fit({recv_buf});
-      //Fetch data
-      int p_count = e.partner.region().count(e.elm_max_count() - 1);
-      recv_buf.recv(p_count * e.elm_size(), left, 0, group.set_comm).wait();
-      e.partner.region().unpack_data(e.elm_size(), recv_buf, e.partner.buf());
+    if (!found_here) {
+      //Fetch my data
+      e.add_and_fit(e.protected_subset());
+      int m_count = e.protected_subset().count(e.elm_max_count() - 1);
+      recv_buf.recv(m_count * e.elm_size(), right, 0, group->cohort_comm)
+        .wait();
+      e.protected_subset().unpack_data(e.elm_size(), recv_buf, e.buf());
+
+      //Fetch partner's data
+      e.partner.add_and_fit(e.protected_subsets[left]);
+      int p_count = e.partner.staged_subset().count(e.elm_max_count() - 1);
+      recv_buf.recv(p_count * e.elm_size(), left, 0, group->cohort_comm).wait();
+      e.partner.staged_subset().unpack_data(
+        e.elm_size(), recv_buf, e.partner.buf()
+      );
 
       e.set_timestamp(ts);
       commit_snapshots_.insert(std::move(avail_snapshots_.back()));
       avail_snapshots_.pop_back();
     }
     if (!found_left) {
-      //Send partner's data region
-      e.partner.region().serialize(send_buf);
-      send_buf.send(left, 0, group.set_comm).wait();
       //Send their data
-      e.partner.region().pack_data(e.elm_size(), e.partner.buf(), send_buf);
-      send_buf.send(left, 0, group.set_comm).wait();
+      e.partner.staged_subset().pack_data(
+        e.elm_size(), e.partner.buf(), send_buf
+      );
+      send_buf.send(left, 0, group->cohort_comm).wait();
     }
     if (!found_right) {
-      //Send my data region
-      e.region().serialize(send_buf);
-      send_buf.send(right, 0, group.set_comm).wait();
       //Send my data
-      e.region().pack_data(e.elm_size(), e.buf(), send_buf);
-      send_buf.send(right, 0, group.set_comm).wait();
+      e.protected_subset().pack_data(e.elm_size(), e.buf(), send_buf);
+      send_buf.send(right, 0, group->cohort_comm).wait();
     }
   }
 }
 
-void ParityMember::repair_impl() {
+void ParityMember::repair() {
   //Data on which partners have found each snapshot
   std::vector<int> found;
-  found.resize(group.set_size);
+  found.resize(group->cohort_size);
   int found_here;
 
+  // Reinitialize cohort in stage snapshot
+  stage_snapshot_->reinit_cohort(group->cohort_comm);
+
   // Iterate through committed timestamps (newest to oldest)
-  for (const int& ts : group.timestamps) {
+  for (const int& ts : group->timestamps) {
     auto snap_it = commit_snapshots_.find(ts);
 
     found_here = snap_it != commit_snapshots_.end();
@@ -371,20 +352,21 @@ void ParityMember::repair_impl() {
 
     DataSnapshot& snap = found_here ? **snap_it : *avail_snapshots_.back();
     IMRSnapshot& e     = get_entry(snap);
+    if (!found_here) e.reset();
 
     MPI_Allgather(
-      &found_here, 1, MPI_INT, found.data(), 1, MPI_INT, group.set_comm
+      &found_here, 1, MPI_INT, found.data(), 1, MPI_INT, group->cohort_comm
     );
 
     int recovering = -1;
-    for (int i = 0; i < group.set_size; i++) {
+    for (int i = 0; i < group->cohort_size; i++) {
       if (found[i]) continue;
       if (recovering != -1) {
-        if (group.set_rank == 0) {
+        if (group->cohort_rank == 0) {
           debug_print(
             "WARNING Fenix_Data_member_restore: %s member %d timestamp %d "
             "unrecoverable",
-            group.str().c_str(), id, ts
+            group->str().c_str(), memberid, ts
           );
         }
         recovering = -1;
@@ -394,24 +376,13 @@ void ParityMember::repair_impl() {
       }
     }
     if (recovering == -1) continue;
+    e.reinit_cohort(group->cohort_comm);
 
+    // Broadcast protected_subsets from a sender who has the data
     int sender = recovering == 0 ? 1 : 0;
-    if (group.set_rank == sender) {
-      e.region().serialize(send_buf);
-      send_buf.send(recovering, 0, group.set_comm).wait();
-    } else if (!found_here) {
-      recv_buf.recv_unknown(sender, 0, group.set_comm).wait();
-      e.add_and_fit({recv_buf});
-    }
+    broadcast_subsets(e.protected_subsets, sender).wait();
 
-    //Use the same logic as store, but recovering rank is always root and
-    //zeroes out the local data region before participating.
-    int parity_size = e.size() / (group.set_size - 1);
-    int remainder   = e.size() % (group.set_size - 1);
-    if (remainder) remainder++;
-    int m_parity_size = parity_size;
-    if (group.set_rank < remainder) m_parity_size++;
-    e.partner.resize(m_parity_size);
+    auto parity_bytes = prepare_for_parity(e);
 
     if (!found_here) {
       std::memset(e.data(), 0, e.size());
@@ -419,21 +390,26 @@ void ParityMember::repair_impl() {
     }
 
     int offset = 0;
-    for (int i = 0; i < group.set_size; i++) {
-      int len = i < remainder ? parity_size + 1 : parity_size;
+    for (int i = 0; i < parity_bytes.size(); i++) {
+      int len = parity_bytes[i];
+
       char* input;
-      if (group.set_rank == i) {
+      if (group->cohort_rank == i) {
         input = e.partner.data();
       } else {
-        if (offset + len > e.size()) offset--;
         input = e.data() + offset;
         offset += len;
+        if (input + len > snap.data() + snap.size()) {
+          fenix_require(input + len == snap.data() + snap.size() + 1);
+          input--;
+          offset--;
+        }
       }
       MPI_Reduce(
-        MPI_IN_PLACE, input, len, MPI_BYTE, MPI_BXOR, recovering, group.set_comm
+        found_here ? input : MPI_IN_PLACE, input, len, MPI_BYTE, MPI_BXOR,
+        recovering, group->cohort_comm
       );
     }
-    assert(offset == e.size());
 
     if (!found_here) {
       e.set_timestamp(ts);
@@ -443,38 +419,39 @@ void ParityMember::repair_impl() {
   }
 }
 
-IMRGroup::IMRGroup(
-  int m_id, MPI_Comm m_comm, int m_timestart, int m_depth, int* policy_vals
-)
-  : DataGroup(m_id, m_comm, m_timestart, m_depth, FENIX_DATA_POLICY_IMR) {
-  mode = policy_vals ? policy_vals[0] : 1;
-  rank_separation =
-    policy_vals ? policy_vals[1] : __fenix_get_world_size(m_comm) / 2;
+int IMRGroup::get_mode(int* policy_vals) {
+  return policy_vals ? policy_vals[0] : 1;
+}
 
-  comm = m_comm;
+int IMRGroup::get_rank_sep(int* policy_vals, MPI_Comm comm) {
+  return policy_vals ? policy_vals[1] : __fenix_get_world_size(comm) / 2;
+}
+
+MPI_Group IMRGroup::create_cohort() {
+  int mode_val     = mode;
+  int rank_sep_val = rank_separation;
 
   int my_rank, comm_size;
   MPI_Comm_size(comm, &comm_size);
   MPI_Comm_rank(comm, &my_rank);
-  current_rank = my_rank;
 
   std::set<int> partner_set;
   partner_set.insert(my_rank);
 
-  if (mode == 1) {
+  if (mode_val == 1) {
     //odd-sized groups take some extra handling.
     bool isOdd = ((comm_size % 2) != 0);
 
     int remaining_size = comm_size;
     if (isOdd) remaining_size -= 3;
 
-    //We want to form groups of rank_separation*2 to pair within
-    int n_full_groups = remaining_size / (rank_separation * 2);
+    //We want to form groups of rank_sep_val*2 to pair within
+    int n_full_groups = remaining_size / (rank_sep_val * 2);
 
     //We don't always get what we want though, one group may need to be
     //smaller.
     int mini_group_size =
-      (remaining_size - n_full_groups * rank_separation * 2) / 2;
+      (remaining_size - n_full_groups * rank_sep_val * 2) / 2;
 
     int start_rank = mini_group_size + (isOdd ? 1 : 0);
     int mid_rank   = comm_size / 2; //Only used when isOdd
@@ -495,12 +472,12 @@ IMRGroup::IMRGroup(
       if (isOdd && my_rank > mid_rank) --e_rank; //Skip middle rank when isOdd
 
       int my_partner;
-      if (((e_rank / rank_separation) % 2) == 0) {
+      if (((e_rank / rank_sep_val) % 2) == 0) {
         //Look forward for partner.
-        my_partner = my_rank + rank_separation;
+        my_partner = my_rank + rank_sep_val;
         if (isOdd && my_rank < mid_rank && my_partner >= mid_rank) ++my_partner;
       } else {
-        my_partner = my_rank - rank_separation;
+        my_partner = my_rank - rank_sep_val;
         if (isOdd && my_rank > mid_rank && my_partner <= mid_rank) --my_partner;
       }
 
@@ -524,77 +501,41 @@ IMRGroup::IMRGroup(
         (partner_set.size() == 3 || (comm_size == 1 && partner_set.size() == 1))
       );
     }
-  } else if (mode == 5) {
-    set_size = policy_vals[2];
+  } else if (mode_val == 5) {
+    int set_size_val = set_size_policy;
 
     //User is responsible for giving values that "make sense" for set size and
     //rank separation given a comm size.
-    int my_set_pos = (my_rank / rank_separation) % set_size;
-    for (int i = 0; i < set_size; i++) {
+    int my_set_pos = (my_rank / rank_sep_val) % set_size_val;
+    for (int i = 0; i < set_size_val; i++) {
       int partner =
-        (comm_size + my_rank - rank_separation * (my_set_pos - i)) % comm_size;
+        (comm_size + my_rank - rank_sep_val * (my_set_pos - i)) % comm_size;
       partner_set.insert(partner);
     }
   }
 
-  partners = {partner_set.begin(), partner_set.end()};
-
-  //Make same MPI calls as reinit
-  reinit();
-}
-
-void IMRGroup::build_set_comm() {
-  if (set_comm != MPI_COMM_NULL) {
-    MPI_Comm_free(&set_comm);
-    set_comm = MPI_COMM_NULL;
-  }
-
-  MPI_Group comm_group, set_group;
+  // Create cohort group from computed partners
+  std::vector<int> partner_vec(partner_set.begin(), partner_set.end());
+  MPI_Group comm_group, cohort_group;
   MPI_Comm_group(comm, &comm_group);
-  MPI_Group_incl(comm_group, partners.size(), partners.data(), &set_group);
-  MPI_Comm_create_group(comm, set_group, 0, &(set_comm));
-
+  MPI_Group_incl(
+    comm_group, partner_vec.size(), partner_vec.data(), &cohort_group
+  );
   MPI_Group_free(&comm_group);
-  MPI_Group_free(&set_group);
-
-  MPI_Comm_size(set_comm, &set_size);
-  MPI_Comm_rank(set_comm, &set_rank);
-
-  if (!set_comm_revoke_callback) {
-    //TODO: This isn't great, and doesn't work w/ fenix restarts
-    // (ie finalize then init), we need a better way to refer to callbacks
-    // than just push/pop. Maybe a push/pop stack and an add/del map?
-    set_comm_revoke_callback = true;
-    fenix::callback_register(
-      [](MPI_Comm, int) {
-        auto dc = fenix_rt.data_recovery;
-        if (NULL == dc) return;
-        for (auto& group_ptr : dc->groups) {
-          auto g = group_ptr.get();
-          if (g->policy_name != FENIX_DATA_POLICY_IMR) continue;
-          auto imr_g = static_cast<fenix::data::imr::IMRGroup*>(g);
-
-          if (imr_g->set_comm == MPI_COMM_NULL) continue;
-          MPIX_Comm_revoke(imr_g->set_comm);
-        }
-      },
-      PRE_RECOVERY
-    );
-  }
+  return cohort_group;
 }
 
-std::string IMRGroup::str() {
-  std::stringstream ss;
-  ss << "Group " << groupid << " set ";
-  ss << "[" << partners[0];
-  for (int i = 1; i < partners.size(); i++) ss << ", " << partners[i];
-  ss << "]";
-  return ss.str();
-}
+IMRGroup::IMRGroup(
+  int m_id, MPI_Comm m_comm, int m_timestart, int m_depth, int* policy_vals
+)
+  : DataGroup(m_id, m_comm, m_timestart, m_depth, FENIX_DATA_POLICY_IMR),
+    mode(get_mode(policy_vals)),
+    rank_separation(get_rank_sep(policy_vals, m_comm)),
+    set_size_policy(policy_vals && mode == 5 ? policy_vals[2] : 0) {}
 
 void IMRGroup::emplace_member(DataMember&& member) {
   // Create and insert the policy-specific Member into members map
-  std::shared_ptr<IMRMember> m;
+  std::shared_ptr<DataMember> m;
   if (mode == 1) {
     m = std::make_shared<BuddyMember>(std::move(member), *this);
   } else if (mode == 5) {
@@ -614,54 +555,10 @@ void IMRGroup::commit() {
 }
 
 void IMRGroup::member_repair(int member_id) {
-  DataMember* member = search_member(member_id);
+  // Call parent to handle member repair across cohort
+  DataGroup::member_repair(member_id);
 
-  std::vector<int> found_members(set_size);
-  found_members[set_rank] = member ? 1 : 0;
-
-  int allgather_ret = MPI_Allgather(
-    MPI_IN_PLACE, 1, MPI_INT, found_members.data(), 1, MPI_INT, set_comm
-  );
-
-  int n_missing   = 0;
-  int first_found = -1, missing_rank = -1;
-  for (int i = 0; i < found_members.size(); i++) {
-    if (!found_members[i]) {
-      n_missing++;
-      missing_rank = i;
-    }
-    if (found_members[i] && first_found == -1) first_found = i;
-  }
-
-  if (n_missing > 1) {
-    if (set_rank != 0) FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
-
-    if (n_missing == set_size) {
-      debug_print(
-        "ERROR %s member_id %d not found\n", this->str().c_str(), member_id
-      );
-    } else {
-      debug_print(
-        "ERROR %s member_id %d unrecoverable\n", this->str().c_str(), member_id
-      );
-    }
-    FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
-  } else if (n_missing == 1) {
-    DataMemberPacket packet;
-    if (set_rank == first_found) packet = member->to_packet();
-
-    MPI_Bcast(&packet, sizeof(packet), MPI_BYTE, first_found, set_comm);
-
-    if (!found_members[set_rank]) {
-      DataGroup::member_create(
-        packet.memberid, nullptr, packet.current_count, packet.datatype_size
-      );
-      member = find_member(member_id);
-    }
-  }
-
-  member->repair();
-
+  // Clear IMR-specific buffers
   send_buf.clear();
   send_buf.shrink_to_fit();
   recv_buf.clear();
@@ -675,31 +572,20 @@ void IMRGroup::member_restore_from_rank(
   fenix_assert(false, "restore_from_rank is not supported yet!");
 }
 
-void IMRGroup::reinit() {
-  build_set_comm();
-  sync_timestamps();
-}
+void IMRGroup::init() {
+  // Call parent to create cohort and cohort_comm (includes sync_timestamps)
+  DataGroup::init();
 
-void IMRGroup::sync_timestamps() {
-  int n_snapshots = timestamps.size();
-  MPI_Allreduce(MPI_IN_PLACE, &n_snapshots, 1, MPI_INT, MPI_MAX, set_comm);
-
-  // Create vector with current timestamps, pad with -1 if needed
-  std::vector<int> ts(timestamps.begin(), timestamps.end());
-  ts.resize(n_snapshots, -1);
-
-  MPI_Allreduce(
-    MPI_IN_PLACE, ts.data(), n_snapshots, MPI_INT, MPI_MAX, set_comm
-  );
-
-  // Rebuild set from vector (automatically reverse sorted)
-  timestamps.clear();
-  for (int t : ts) {
-    timestamps.insert(t);
+  // Validate parity mode requirements
+  if (mode == 5 && cohort_size < 3) {
+    if (cohort_rank == 0) {
+      debug_print(
+        "ERROR: Parity mode (mode 5) requires cohort_size >= 3, but got %d",
+        cohort_size
+      );
+    }
+    FENIX_THROW(FENIX_ERROR_INVALID_POLICY_VALUE);
   }
-
-  if (!timestamps.empty()) timestamp = *timestamps.begin(); // Newest first
-  else timestamp = -1;
 }
 
 void IMRGroup::get_redundant_policy(int* policy_name, void* policy_value) {
@@ -708,7 +594,7 @@ void IMRGroup::get_redundant_policy(int* policy_name, void* policy_value) {
   int* policy_vals = (int*)policy_value;
   policy_vals[0]   = mode;
   policy_vals[1]   = rank_separation;
-  if (mode == 5) policy_vals[2] = set_size;
+  if (mode == 5) policy_vals[2] = set_size_policy;
 }
 
 } // namespace fenix::data::imr

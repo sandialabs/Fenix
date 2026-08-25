@@ -71,6 +71,9 @@ int main(int argc, char** argv) {
   MPI_Comm_size(res_comm, &num_ranks);
   MPI_Comm_rank(res_comm, &rank);
 
+  // Test requires at least 3 ranks for parity mode
+  fenix_require(num_ranks >= 3);
+
   if (rank == 0) fprintf(stderr, "Test: Query redundancy policy\n");
 
   // Create a group with FENIX_DATA_POLICY_IN_MEMORY_RAID policy
