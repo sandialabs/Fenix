@@ -114,7 +114,7 @@ struct fenix_t {
     callbacks;
   fenix_debug_opt_t options; // This is reserved to store the user options
 
-  MPI_Comm* world;      // Duplicate of comm provided by user
+  MPI_Comm world;       // Duplicate of comm provided by user
   MPI_Comm* user_world; // User-facing comm with repaired ranks and no spares
   MPI_Comm new_world;   // Internal duplicate of user_world
   int new_world_exists = false, user_world_exists = false;
