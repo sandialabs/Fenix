@@ -105,10 +105,20 @@ static inline int type_size(MPI_Datatype d) {
   return size;
 }
 
-static inline bool mpi_finalized() {
+static inline bool mpi_finalized() noexcept {
   int flag;
   MPI_Finalized(&flag);
   return flag;
+}
+
+static inline bool mpi_initialized() noexcept {
+  int flag;
+  MPI_Initialized(&flag);
+  return flag;
+}
+
+static inline bool mpi_active() noexcept {
+  return mpi_initialized() && !mpi_finalized();
 }
 
 // C++ type corresponding to MPI_Datatype index pairs
@@ -125,7 +135,7 @@ struct Indexed {
 
 // Helpers for getting an MPI_Datatype and count from some number of a c++ type
 template <typename T>
-MPI_Datatype datatype(){
+MPI_Datatype datatype() {
   using U = std::remove_cv_t<std::remove_pointer_t<std::decay_t<T>>>;
   static_assert(std::is_trivially_copyable_v<U>);
   // clang-format off
@@ -161,7 +171,7 @@ MPI_Datatype datatype(T&& t) {
 }
 
 template <typename T>
-constexpr int datatype_count(T&& t, int in_count){
+constexpr int datatype_count(T&& t, int in_count) {
   if (datatype<T>() == MPI_BYTE) {
     return in_count * sizeof(std::remove_pointer_t<std::decay_t<T>>);
   }

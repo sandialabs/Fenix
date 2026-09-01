@@ -24,6 +24,7 @@ target_link_libraries(mlog INTERFACE fenix)
 
 add_subdirectory(data)
 add_subdirectory(logging)
+add_subdirectory(mpixx)
 
 set(Fenix_INCLUDE ${CMAKE_SOURCE_DIR}/include)
 FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
