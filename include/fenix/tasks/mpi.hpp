@@ -129,6 +129,18 @@ auto allreduce(const std::vector<T, A>& sv, T& rb, MPI_Op o, MPI_Comm c) {
   return allreduce(&sv[0], rb, sv.size(), o, c);
 }
 
+// Template for pointer types - pass pointer directly to MPI
+template <typename T>
+MPITask reduce(
+  const void* sb, T* rb, int n, MPI_Datatype d, MPI_Op o, int r, MPI_Comm c
+) {
+  MPI_Request request;
+  Status ret = MPI_Ireduce(sb, rb, n, d, o, r, c, &request);
+  if (ret) ret = co_await request;
+  co_return ret;
+}
+
+// Template for reference types - take address of reference
 template <typename T>
 MPITask reduce(
   const void* sb, T& rb, int n, MPI_Datatype d, MPI_Op o, int r, MPI_Comm c
@@ -169,6 +181,44 @@ auto bcast(T& b, int r, MPI_Comm c) {
 template <typename T, typename A>
 auto bcast(std::vector<T, A>& v, int r, MPI_Comm c) {
   return bcast(&v[0], v.size(), r, c);
+}
+
+template <typename ST, typename RT>
+MPITask allgather(
+  const ST* sb, int sn, MPI_Datatype sd, RT* rb, int rn, MPI_Datatype rd,
+  MPI_Comm c
+) {
+  MPI_Request request;
+  Status ret = MPI_Iallgather(sb, sn, sd, rb, rn, rd, c, &request);
+  if (ret) ret = co_await request;
+  co_return ret;
+}
+template <typename ST, typename RT>
+auto allgather(const ST* sb, int sn, RT* rb, int rn, MPI_Comm c) {
+  return allgather(
+    sb, util::count(sb, sn), util::datatype(sb), rb, util::count(rb, rn),
+    util::datatype(rb), c
+  );
+}
+
+template <typename ST, typename RT>
+MPITask allgatherv(
+  const ST* sb, int sn, MPI_Datatype sd, RT* rb, const int* rn,
+  const int* displs, MPI_Datatype rd, MPI_Comm c
+) {
+  MPI_Request request;
+  Status ret = MPI_Iallgatherv(sb, sn, sd, rb, rn, displs, rd, c, &request);
+  if (ret) ret = co_await request;
+  co_return ret;
+}
+template <typename ST, typename RT>
+auto allgatherv(
+  const ST* sb, int sn, RT* rb, const int* rn, const int* displs, MPI_Comm c
+) {
+  return allgatherv(
+    sb, util::count(sb, sn), util::datatype(sb), rb, rn, displs,
+    util::datatype(rb), c
+  );
 }
 
 inline MPITask probe(int src, int tag, MPI_Comm comm) {

@@ -56,8 +56,12 @@
 
 #include <cassert>
 #include <algorithm>
+#include <sstream>
 
 #include "mpi.h"
+#ifndef MPICH_VERSION
+#include <mpi-ext.h>
+#endif
 #include "fenix-config.h"
 #include "fenix_ext.hpp"
 #include "fenix_util.hpp"
@@ -78,6 +82,15 @@ DataGroup::DataGroup(
   timestamp    = -1;
   depth        = m_depth;
   policy_name  = m_policy;
+}
+
+DataGroup::~DataGroup() {
+  if (cohort != MPI_GROUP_NULL) {
+    MPI_Group_free(&cohort);
+  }
+  if (cohort_comm != MPI_COMM_NULL) {
+    MPI_Comm_free(&cohort_comm);
+  }
 }
 
 DataMember* DataGroup::search_member(int id) {
@@ -102,7 +115,7 @@ void DataGroup::member_create(
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
 
   // Let policy replace with its specific Member type
-  this->emplace_member({id, data, count, datatype, depth});
+  this->emplace_member({*this, id, data, count, datatype, depth});
 
   auto iter = members.find(id);
   fenix_assert(iter != members.end(), "emplace_member failed");
@@ -117,7 +130,7 @@ void DataGroup::member_create(
 ) {
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
 
-  this->emplace_member({id, data, count, datatype, depth, s});
+  this->emplace_member({*this, id, data, count, datatype, depth, s});
 
   auto iter = members.find(id);
   fenix_assert(iter != members.end(), "emplace_member failed");
@@ -133,7 +146,7 @@ void DataGroup::member_create(
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
 
   // Let policy replace with its specific Member type
-  this->emplace_member({id, data, count, datatype_size, depth});
+  this->emplace_member({*this, id, data, count, datatype_size, depth});
 
   auto iter = members.find(id);
   fenix_assert(iter != members.end(), "emplace_member failed");
@@ -161,6 +174,13 @@ void DataGroup::member_delete(int id) {
 std::vector<int> DataGroup::get_member_ids() { return member_order; }
 
 void DataGroup::commit() {
+  // Check that all members have stored their data
+  for (auto& member : members) {
+    if (member->has_unstored_data()) {
+      FENIX_THROW(FENIX_ERROR_MEMBER_UNSTORED);
+    }
+  }
+
   if (timestamps.size() == depth + 1) {
     // Remove oldest timestamp (last in reverse-sorted set)
     timestamps.erase(--timestamps.end());
@@ -197,6 +217,131 @@ int DataGroup::get_snapshot_at_position(int position) {
 
 std::vector<int> DataGroup::get_snapshots() {
   return {timestamps.begin(), timestamps.end()};
+}
+
+void DataGroup::revoke() {
+  if (cohort_comm != MPI_COMM_NULL) {
+    MPIX_Comm_revoke(cohort_comm);
+    cohort_comm = MPI_COMM_NULL;
+  }
+}
+
+std::string DataGroup::str() {
+  // Extract partners from cohort group
+  int cohort_size;
+  MPI_Group_size(cohort, &cohort_size);
+
+  std::vector<int> cohort_ranks(cohort_size);
+  for (int i = 0; i < cohort_size; i++) cohort_ranks[i] = i;
+
+  std::vector<int> partners(cohort_size);
+  MPI_Group comm_group;
+  MPI_Comm_group(comm, &comm_group);
+  MPI_Group_translate_ranks(
+    cohort, cohort_size, cohort_ranks.data(), comm_group, partners.data()
+  );
+  MPI_Group_free(&comm_group);
+
+  std::stringstream ss;
+  ss << "Group " << groupid << " set ";
+  ss << "[" << partners[0];
+  for (int i = 1; i < partners.size(); i++) ss << ", " << partners[i];
+  ss << "]";
+  return ss.str();
+}
+
+void DataGroup::sync_timestamps() {
+  fenix_assert(
+    cohort_comm != MPI_COMM_NULL, "sync_timestamps called with NULL cohort_comm"
+  );
+
+  int n_snapshots = timestamps.size();
+  MPI_Allreduce(MPI_IN_PLACE, &n_snapshots, 1, MPI_INT, MPI_MAX, cohort_comm);
+
+  // Create vector with current timestamps, pad with -1 if needed
+  std::vector<int> ts(timestamps.begin(), timestamps.end());
+  ts.resize(n_snapshots, -1);
+
+  MPI_Allreduce(
+    MPI_IN_PLACE, ts.data(), n_snapshots, MPI_INT, MPI_MAX, cohort_comm
+  );
+
+  // Rebuild set from vector (automatically reverse sorted)
+  timestamps.clear();
+  for (int t : ts) {
+    timestamps.insert(t);
+  }
+
+  if (!timestamps.empty()) timestamp = *timestamps.begin(); // Newest first
+  else timestamp = -1;
+
+  // Remove committed snapshots from members that are not in synced timestamps
+  for (auto& member : members) {
+    member->cleanup_timestamps(timestamps);
+  }
+}
+
+void DataGroup::member_repair(int member_id) {
+  fenix_assert(
+    cohort_comm != MPI_COMM_NULL, "member_repair called with NULL cohort_comm"
+  );
+
+  DataMember* member = search_member(member_id);
+
+  // Query cohort size and rank
+  int cohort_size, cohort_rank;
+  MPI_Comm_size(cohort_comm, &cohort_size);
+  MPI_Comm_rank(cohort_comm, &cohort_rank);
+
+  // Gather which cohort members have this member
+  std::vector<int> found_members(cohort_size);
+  found_members[cohort_rank] = member ? 1 : 0;
+
+  MPI_Allgather(
+    MPI_IN_PLACE, 1, MPI_INT, found_members.data(), 1, MPI_INT, cohort_comm
+  );
+
+  // Count missing and find first rank that has it
+  int n_missing   = 0;
+  int first_found = -1;
+  for (int i = 0; i < cohort_size; i++) {
+    if (!found_members[i]) {
+      n_missing++;
+    }
+    if (found_members[i] && first_found == -1) {
+      first_found = i;
+    }
+  }
+
+  // Only throw if NO cohort member knows about this member
+  if (n_missing == cohort_size) {
+    if (cohort_rank == 0) {
+      debug_print(
+        "ERROR Group %d member_id %d not found in any cohort member\n", groupid,
+        member_id
+      );
+    }
+    FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
+  }
+
+  // If any rank is missing the member, broadcast the packet
+  if (n_missing > 0) {
+    DataMemberPacket packet;
+    if (cohort_rank == first_found) packet = member->to_packet();
+
+    MPI_Bcast(&packet, sizeof(packet), MPI_BYTE, first_found, cohort_comm);
+
+    // If I'm missing it, create it now
+    if (!found_members[cohort_rank]) {
+      member_create(
+        packet.memberid, nullptr, packet.current_count, packet.datatype_size
+      );
+      member = find_member(member_id);
+    }
+  }
+
+  // Let the member handle policy-specific repair
+  member->repair();
 }
 
 } //end namespace fenix::data

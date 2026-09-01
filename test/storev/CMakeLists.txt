@@ -9,3 +9,5 @@
 #
 
 fenix_test(SRC storev.cpp RANKS 6)
+fenix_test(SRC store_parity.cpp RANKS 7)
+fenix_test(SRC storev_parity.cpp RANKS 7)

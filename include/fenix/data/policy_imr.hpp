@@ -79,81 +79,59 @@ struct IMRSnapshot : public fenix::data::DataSnapshot {
 
   //Accessor for partner snapshot
   DataSnapshot& partner_snapshot() { return partner; }
+
+  // Override to also initialize partner's cohort
+  void init_cohort(MPI_Comm cohort_comm) override;
+  void reinit_cohort(MPI_Comm cohort_comm) override;
 };
 
 struct IMRGroup;
 
-struct IMRMember : public DataMember {
-  IMRMember(DataMember&& member, IMRGroup& group);
+struct BuddyMember : public DataMember {
+  BuddyMember(DataMember&& member, IMRGroup& group);
+  void repair() override;
+  tasks::Task<int> iprotect() override;
 
-  // Override create_snapshot to return IMR IMRSnapshot type
-  std::unique_ptr<DataSnapshot> create_snapshot(
-    int size, int max_count
-  ) override {
-    return std::make_unique<imr::IMRSnapshot>(size, max_count);
+  std::unique_ptr<DataSnapshot> create_snapshot(int size, int count) override {
+    return std::make_unique<imr::IMRSnapshot>(size, count);
   }
-
-  // Staging and loading functions use base class default implementations
-
-  // IMRMember::istore(v) handle local data and region, while istore(v)_impl
-  // handle partner data and region
-  tasks::Task<int> istore(const DataSubset& subset) override;
-  virtual tasks::Task<int> istore_impl(const DataSubset& subset) = 0;
-
-  tasks::Task<int> istorev(const DataSubset& subset) override;
-  virtual tasks::Task<int> istorev_impl(const DataSubset& subset) = 0;
-
-  //Restore all internal snapshot data
-  //Moves snapshots to align with the group's list of timestamps.
-  //Impl must handle actually restoring snapshot data
-  void repair();
-  virtual void repair_impl() = 0;
-
-  IMRGroup& group;
-  int id = memberid;
 
   util::DataBuffer& send_buf;
   util::DataBuffer& recv_buf;
 };
 
-struct BuddyMember : public IMRMember {
-  BuddyMember(DataMember&& member, IMRGroup& group);
-  void repair_impl() override;
-  tasks::Task<int> istore_impl(const DataSubset& subset) override;
-  tasks::Task<int> istorev_impl(const DataSubset& subset) override;
-  tasks::Task<int> exch(
-    const DataSubset& subset, const DataSubset& partner_subset
-  );
-};
-
-struct ParityMember : public IMRMember {
+struct ParityMember : public DataMember {
   ParityMember(DataMember&& member, IMRGroup& group);
-  void repair_impl() override;
-  tasks::Task<int> istore_impl(const DataSubset& subset) override;
+  void repair() override;
+  tasks::Task<int> iprotect() override;
 
-  tasks::Task<int> istorev_impl(const DataSubset& subset) override {
-    fatal_print("IMR mode 5 cannot storev");
-    co_return 0;
+  // Ensures snapshot sized appropriately.
+  // Returns vector of parity bytes for each cohort member, including self.
+  std::vector<int> prepare_for_parity(IMRSnapshot& snap);
+
+  std::unique_ptr<DataSnapshot> create_snapshot(int size, int count) override {
+    return std::make_unique<imr::IMRSnapshot>(size, count);
   }
+
+  util::DataBuffer& send_buf;
+  util::DataBuffer& recv_buf;
 };
 
 struct IMRGroup : public DataGroup {
   IMRGroup(int id, MPI_Comm comm, int timestart, int depth, int* policy);
 
+  // Helpers to extract mode and rank_separation from policy_vals
+  static int get_mode(int* policy_vals);
+  static int get_rank_sep(int* policy_vals, MPI_Comm comm);
+
+  MPI_Group create_cohort() override;
+  void init() override;
+
   int mode;
   int rank_separation;
-  std::vector<int> partners;
-
-  MPI_Comm set_comm = MPI_COMM_NULL;
-  int set_size, set_rank;
-  static inline bool set_comm_revoke_callback = false;
+  int set_size_policy; // For mode 5, the set_size from policy_vals
 
   util::DataBuffer send_buf, recv_buf;
-
-  void sync_timestamps();
-  void build_set_comm();
-
-  std::string str();
 
   void emplace_member(DataMember&& member) override;
   void get_redundant_policy(int* name, void* value) override;
@@ -164,8 +142,6 @@ struct IMRGroup : public DataGroup {
   void member_restore_from_rank(
     int member_id, void* buffer, int max, int timestamp, int source_rank
   ) override;
-
-  void reinit() override;
 };
 
 } // namespace fenix::data::imr

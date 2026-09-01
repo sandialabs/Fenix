@@ -77,7 +77,22 @@ namespace fenix::data {
 struct DataGroup {
   DataGroup(int groupid, MPI_Comm c, int timestart, int depth, int policy);
 
-  virtual ~DataGroup() = default;
+  virtual ~DataGroup();
+
+  // Create the cohort group for this policy
+  virtual MPI_Group create_cohort() = 0;
+
+  // Synchronize timestamps across cohort members
+  virtual void sync_timestamps();
+
+  // Initialize group after construction (creates cohort_comm, syncs state)
+  virtual void init() {
+    cohort = create_cohort();
+    MPI_Comm_create_group(comm, cohort, 0, &cohort_comm);
+    MPI_Comm_size(cohort_comm, &cohort_size);
+    MPI_Comm_rank(cohort_comm, &cohort_rank);
+    sync_timestamps();
+  }
 
   int groupid;
   MPI_Comm comm;
@@ -87,11 +102,16 @@ struct DataGroup {
   int timestamp;
   int depth;
   int policy_name;
-  using MemberSet =
-    std::set<std::shared_ptr<DataMember>, DataMemberIdComparator>;
-  MemberSet members;
+
+  std::set<std::shared_ptr<DataMember>, DataMemberIdComparator> members;
   std::vector<int> member_order;
+
   std::set<int, std::greater<int>> timestamps; // Reverse sorted: newest first
+
+  MPI_Group cohort     = MPI_GROUP_NULL;
+  MPI_Comm cohort_comm = MPI_COMM_NULL;
+  int cohort_size      = -1;
+  int cohort_rank      = -1;
 
   std::vector<int> get_member_ids();
   //Search for id, returning null if not found.
@@ -113,11 +133,10 @@ struct DataGroup {
 
   virtual void get_redundant_policy(int* name, void* value) = 0;
 
-  virtual void member_repair(int member_id) = 0;
+  virtual void member_repair(int member_id);
   virtual void member_restore_from_rank(
     int member_id, void* target_bugger, int max, int timestamp, int source_rank
-  )                     = 0;
-  virtual void reinit() = 0;
+  ) = 0;
 
   // Default implementations using timestamps
   virtual void commit();
@@ -125,6 +144,14 @@ struct DataGroup {
   virtual int get_number_of_snapshots();
   virtual int get_snapshot_at_position(int position);
   virtual std::vector<int> get_snapshots();
+
+  // Revoke cohort_comm (called before recovery to invalidate communicator)
+  virtual void revoke();
+
+  MPI_Group get_cohort() const { return cohort; }
+
+  // String representation, for debugging
+  std::string str();
 };
 
 struct DataGroupIdComparator {

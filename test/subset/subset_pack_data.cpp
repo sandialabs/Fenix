@@ -65,9 +65,8 @@ using fenix::data::util::DataBuffer;
 #include <unistd.h>
 
 #include "fenix/data/subset.hpp"
-using fenix::data::util::DataBuffer;
-#include "fenix/data/member.hpp"
-using fenix::data::util::DataBuffer;
+#include "fenix/data/snapshot.hpp"
+#include "fenix/data/util/data_ref.hpp"
 #include <fenix/data/util/serializer.hpp>
 using fenix::data::util::DataBuffer;
 
@@ -87,22 +86,27 @@ bool test_pack_data(const DataSubset& a) {
   for (int& i : in) i = 1;
   for (int& i : out) i = 0;
 
-  DataBuffer in_buf, out_buf, packed_buf;
+  DataBuffer packed_buf;
+  //fenix::data::util::DataRef in_ref((char*)in.data(), count * sizeof(int));
+  //fenix::data::util::DataRef out_ref((char*)out.data(), count * sizeof(int));
+  std::optional<SerializeFunc> no_func;
 
-  DataMember member(0, in.data(), count, sizeof(int), 0);
+  // Create snapshots for testing
+  DataSnapshot in_snap(sizeof(int), count);
+  DataSnapshot out_snap(sizeof(int), count);
 
-  // Data to in_buf
-  member.serialize(a, in_buf);
+  // Data to in_buf via snapshot
+  a.copy_data(in_snap.create_serializer(in, no_func, a));
 
-  // Pack in_buf into packed_buf
-  a.pack_data(sizeof(int), in_buf, packed_buf);
+  // Pack in_snap.buf() into packed_buf
+  a.pack_data(sizeof(int), in_snap.buf(), packed_buf);
 
-  // Unpack back to out_buf
-  out_buf.reset(sizeof(int) * count);
-  a.unpack_data(sizeof(int), packed_buf, out_buf);
+  // Unpack back to out_snap.buf()
+  out_snap.buf().reset(sizeof(int) * count);
+  a.unpack_data(sizeof(int), packed_buf, out_snap.buf());
 
-  // Data from out_buf to out
-  member.deserialize(a, out_buf, out);
+  // Data from out_snap to out
+  a.copy_data(out_snap.create_deserializer(out, no_func, a));
 
   for (int i = 0; i < count; i++) {
     if (a.includes(i) && out[i] != 1) {

@@ -64,7 +64,7 @@
 #include <iostream>
 
 #include <fenix.hpp>
-#include "fenix/data/member.hpp"
+#include "fenix/data/snapshot.hpp"
 #include "fenix/data/subset.hpp"
 #include <fenix/data/util/data_ref.hpp>
 #include <fenix/data/util/serializer.hpp>
@@ -107,15 +107,19 @@ bool test_copy(
   in.resize(count);
   out.resize(count);
 
-  DataBuffer b(count);
-
   for (int& i : in) i = default_inval;
   for (int& i : out) i = default_outval;
 
-  DataMember member(0, in.data(), count, sizeof(int), 0, s);
+  // Create snapshot for testing serialization
+  DataSnapshot snap(sizeof(int), count);
+  DataRef in_ref((char*)in.data(), count * sizeof(int));
+  DataRef out_ref((char*)out.data(), count * sizeof(int));
 
-  member.serialize(a, b);
-  member.deserialize(a, b, out);
+  // Serialize from in to snapshot
+  a.copy_data(snap.create_serializer(in_ref, s, a));
+
+  // Deserialize from snapshot to out
+  a.copy_data(snap.create_deserializer(out_ref, s, a));
 
   for (int i = 0; i < count; i++) {
     if (a.includes(i) && out[i] != default_inval) {

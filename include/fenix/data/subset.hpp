@@ -77,11 +77,11 @@ struct DataRegion {
 
   DataRegion(std::pair<size_t, size_t> b) : DataRegion(b, 0, MAX) {};
   DataRegion(std::pair<size_t, size_t> b, size_t m_reps, size_t m_stride)
-    : start(b.first),
-      end(
-        (b.second != MAX && b.second + 1 == b.first + m_stride)
-          ? b.second + m_reps * m_stride : b.second
-      ),
+    : start(b.first), end(
+                        (b.second != MAX && b.second + 1 == b.first + m_stride)
+                          ? b.second + m_reps * m_stride
+                          : b.second
+                      ),
       reps(
         (b.second == MAX || b.second + 1 == b.first + m_stride) ? 0 : m_reps
       ),

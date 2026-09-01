@@ -63,13 +63,16 @@ void DataComponent::group_create(
     // Add to component
     groups.insert(std::shared_ptr<DataGroup>(new_group));
     group_order.push_back(groupid);
+
+    // Initialize the group (creates cohort, cohort_comm, syncs state)
+    new_group->init();
   } else {
     // Already created. Renew the MPI communicator
     group->comm = comm;
     MPI_Comm_rank(comm, &(group->current_rank));
 
     // Reinit group metadata as needed w/ new communicator
-    group->reinit();
+    group->init();
   }
 }
 
@@ -96,6 +99,12 @@ DataMember* DataComponent::find_member(
   int groupid, int memberid, std::source_location loc
 ) {
   return this->find_group(groupid, loc)->find_member(memberid, loc);
+}
+
+void DataComponent::revoke() {
+  for (auto& group : groups) {
+    group->revoke();
+  }
 }
 
 } // namespace fenix::data

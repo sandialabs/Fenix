@@ -396,6 +396,9 @@ std::optional<std::vector<int>> group_members(int group_id);
  */
 std::optional<std::vector<int>> group_snapshots(int group_id);
 
+//@!brief Overload of #Fenix_Data_group_get_cohort
+MPI_Group group_cohort(int group_id);
+
 //@!brief Overload of #Fenix_Data_snapshot_delete
 int snapshot_delete(int group_id, int timestamp);
 

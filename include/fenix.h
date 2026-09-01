@@ -104,11 +104,13 @@ typedef enum {
   FENIX_ERROR_MEMBER_EXISTS,
   FENIX_ERROR_MEMBER_STAGING,
   FENIX_ERROR_MEMBER_LOADING,
+  FENIX_ERROR_MEMBER_UNSTORED,
   FENIX_ERROR_COMMIT_BARRIER,
   FENIX_ERROR_INVALID_GROUPID,
   FENIX_ERROR_INVALID_MEMBERID,
   FENIX_ERROR_INVALID_LOGIC_CALL,
   FENIX_ERROR_INVALID_POLICY_NAME,
+  FENIX_ERROR_INVALID_POLICY_VALUE,
   FENIX_ERROR_INVALID_TIMESTAMP,
   FENIX_ERROR_INVALID_TIMESTART,
   FENIX_ERROR_INVALID_DEPTH,
@@ -1282,6 +1284,23 @@ int Fenix_Data_group_get_number_of_snapshots(
 int Fenix_Data_group_get_snapshot_at_position(
   int group_id, int position, int* time_stamp
 );
+
+/**
+ * @brief Get the cohort (redundancy partner group) for a data group.
+ *
+ * The cohort is the set of ranks that participate in backing up each other's
+ * data for this group. It includes the calling rank and all partner ranks.
+ * For local-only policies with no redundancy, the cohort contains only the
+ * calling rank.
+ *
+ * The returned group is a duplicate and must be freed by the caller with
+ * MPI_Group_free when no longer needed.
+ *
+ * @param[in] group_id The group to query
+ * @param[out] cohort The cohort group (never MPI_GROUP_NULL)
+ * @returnstatus
+ */
+int Fenix_Data_group_get_cohort(int group_id, MPI_Group* cohort);
 
 //!@unimplemented Get the value of a member's attribute.
 int Fenix_Data_member_attr_get(

@@ -88,11 +88,11 @@ class DataMember {
   DataMember() = delete;
 
   DataMember(
-    int id, void* data, int count, MPI_Datatype datatype, int depth,
-    std::optional<SerializeFunc> s = {}
+    DataGroup& g, int id, void* data, int count, MPI_Datatype datatype,
+    int depth, std::optional<SerializeFunc> s = {}
   );
   DataMember(
-    int id, void* data, int count, int datatype_size, int depth,
+    DataGroup& g, int id, void* data, int count, int datatype_size, int depth,
     std::optional<SerializeFunc> s = {}
   );
 
@@ -103,20 +103,13 @@ class DataMember {
   int memberid = -1;
   int datatype_size;
   util::DataRef user_data;
+  DataGroup* group;
 
   int elm_count();
 
   // Create a (possibly policy-specific) snapshot with specified capacity
   virtual std::unique_ptr<DataSnapshot> create_snapshot(
     int size, int max_count
-  );
-
-  // Serialize user_data into buf
-  virtual void serialize(const DataSubset& subset, util::DataBuffer& buf);
-
-  // Deserialize buf into dst
-  virtual void deserialize(
-    const DataSubset& subset, util::DataBuffer& buf, const util::DataRef& dst
   );
 
   // Data operations with default local-only implementations
@@ -137,6 +130,7 @@ class DataMember {
   virtual int storev(const DataSubset& subset);
   virtual tasks::Task<int> istore(const DataSubset& subset);
   virtual tasks::Task<int> istorev(const DataSubset& subset);
+  virtual tasks::Task<int> iprotect();
   virtual void repair();
   virtual void commit(int timestamp);
   virtual void snapshot_delete(int timestamp);
@@ -145,6 +139,24 @@ class DataMember {
 
   virtual void attr_set(int attr, void* value);
   virtual void attr_get(int attr, void* value);
+
+  // Returns true if staging snapshot contains unstored data
+  virtual bool has_unstored_data();
+
+  // Essentially an inplace allgather within the cohort - each rank sends the
+  // subset at its cohort rank index.
+  tasks::Task<void> exchange_subsets(std::vector<DataSubset>& subsets);
+
+  // Broadcast subset vector from root to all ranks in cohort
+  tasks::Task<void> broadcast_subsets(
+    const std::vector<DataSubset>& input, std::vector<DataSubset>& output,
+    int root
+  );
+  tasks::Task<void> broadcast_subsets(
+    std::vector<DataSubset>& subsets, int root
+  ) {
+    return broadcast_subsets(subsets, subsets, root);
+  }
 
   virtual ~DataMember() = default;
 
@@ -189,17 +201,18 @@ class DataMember {
     int timestamp, std::source_location loc = std::source_location::current()
   );
 
+  // Remove committed snapshots not in the provided timestamp set
+  // Used by DataGroup::sync_timestamps() to clean up after recovery
+  void cleanup_timestamps(
+    const std::set<int, std::greater<int>>& valid_timestamps
+  );
+
+  friend class DataGroup;
+
  private:
   // Note that Serializers aren't guaranteed to have written their data to the
   // buffer until their destructor is called. So these should usually only be
-  // used to construct temporaries that go to a subset's serialize call
-  Serializer create_serializer(
-    std::optional<SerializeFunc>& sf, const DataSubset& s, util::DataBuffer& b
-  );
-  Serializer create_deserializer(
-    std::optional<SerializeFunc>& sf, const DataSubset& subset,
-    util::DataBuffer& buf, const util::DataRef& dst
-  );
+  // used to construct temporaries that go to a subset's copy_data call
 };
 
 struct DataMemberIdComparator {
