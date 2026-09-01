@@ -67,6 +67,7 @@
 #include "fenix.h"
 #include "fenix/data/member.hpp"
 #include "fenix/data/subset.hpp"
+#include "fenix/mpixx/comm.hpp"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
 
@@ -87,15 +88,15 @@ struct DataGroup {
 
   // Initialize group after construction (creates cohort_comm, syncs state)
   virtual void init() {
-    cohort = create_cohort();
-    MPI_Comm_create_group(comm, cohort, 0, &cohort_comm);
-    MPI_Comm_size(cohort_comm, &cohort_size);
-    MPI_Comm_rank(cohort_comm, &cohort_rank);
+    cohort      = create_cohort();
+    cohort_comm = mpixx::Comm::create_group(comm, cohort, 0);
+    cohort_size = cohort_comm.size();
+    cohort_rank = cohort_comm.rank();
     sync_timestamps();
   }
 
   int groupid;
-  MPI_Comm comm;
+  mpixx::CommRef comm;
   int comm_size;
   int current_rank;
   int timestart;
@@ -108,10 +109,10 @@ struct DataGroup {
 
   std::set<int, std::greater<int>> timestamps; // Reverse sorted: newest first
 
-  MPI_Group cohort     = MPI_GROUP_NULL;
-  MPI_Comm cohort_comm = MPI_COMM_NULL;
-  int cohort_size      = -1;
-  int cohort_rank      = -1;
+  MPI_Group cohort = MPI_GROUP_NULL;
+  mpixx::Comm cohort_comm;
+  int cohort_size = -1;
+  int cohort_rank = -1;
 
   std::vector<int> get_member_ids();
   //Search for id, returning null if not found.

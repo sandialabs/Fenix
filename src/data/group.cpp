@@ -76,8 +76,8 @@ DataGroup::DataGroup(
 ) {
   groupid      = m_groupid;
   comm         = m_comm;
-  comm_size    = mpixx::comm_size(comm);
-  current_rank = mpixx::comm_rank(comm);
+  comm_size    = comm.size();
+  current_rank = comm.rank();
   timestart    = m_timestart;
   timestamp    = -1;
   depth        = m_depth;
@@ -88,9 +88,7 @@ DataGroup::~DataGroup() {
   if (cohort != MPI_GROUP_NULL) {
     MPI_Group_free(&cohort);
   }
-  if (cohort_comm != MPI_COMM_NULL) {
-    MPI_Comm_free(&cohort_comm);
-  }
+  // cohort_comm is automatically freed by mpixx::Comm destructor
 }
 
 DataMember* DataGroup::search_member(int id) {
@@ -220,9 +218,9 @@ std::vector<int> DataGroup::get_snapshots() {
 }
 
 void DataGroup::revoke() {
-  if (cohort_comm != MPI_COMM_NULL) {
-    MPIX_Comm_revoke(cohort_comm);
-    cohort_comm = MPI_COMM_NULL;
+  if (cohort_comm) {
+    cohort_comm.revoke();
+    cohort_comm.free();
   }
 }
 
@@ -251,9 +249,7 @@ std::string DataGroup::str() {
 }
 
 void DataGroup::sync_timestamps() {
-  fenix_assert(
-    cohort_comm != MPI_COMM_NULL, "sync_timestamps called with NULL cohort_comm"
-  );
+  fenix_assert(cohort_comm, "sync_timestamps called with invalid cohort_comm");
 
   int n_snapshots = timestamps.size();
   MPI_Allreduce(MPI_IN_PLACE, &n_snapshots, 1, MPI_INT, MPI_MAX, cohort_comm);
@@ -282,16 +278,13 @@ void DataGroup::sync_timestamps() {
 }
 
 void DataGroup::member_repair(int member_id) {
-  fenix_assert(
-    cohort_comm != MPI_COMM_NULL, "member_repair called with NULL cohort_comm"
-  );
+  fenix_assert(cohort_comm, "member_repair called with invalid cohort_comm");
 
   DataMember* member = search_member(member_id);
 
-  // Query cohort size and rank
-  int cohort_size, cohort_rank;
-  MPI_Comm_size(cohort_comm, &cohort_size);
-  MPI_Comm_rank(cohort_comm, &cohort_rank);
+  // Query cohort size and rank (using cached values)
+  int cohort_size = this->cohort_size;
+  int cohort_rank = this->cohort_rank;
 
   // Gather which cohort members have this member
   std::vector<int> found_members(cohort_size);
