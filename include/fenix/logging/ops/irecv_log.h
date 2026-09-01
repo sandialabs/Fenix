@@ -4,7 +4,6 @@
 #include <cstring>
 #include <string>
 #include <mpi.h>
-#include "fenix/mpi_util.hpp"
 
 namespace fenix::logging {
 

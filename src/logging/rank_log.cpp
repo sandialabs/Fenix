@@ -1,7 +1,8 @@
 #include <algorithm>
 
 #include "fenix.hpp"
-#include "fenix/tasks/mpi.hpp"
+#include "fenix/mpixx/tasks.hpp"
+#include "fenix/mpixx/status.hpp"
 #include "fenix/logging/message_logging.h"
 #include "fenix/logging/util.h"
 #include "fenix/logging/rank_log.h"
@@ -154,8 +155,6 @@ void RankLog::recover_invalid(std::vector<Region>& a, std::vector<Region>& b) {
 }
 
 TaskT RankLog::form_consistency() {
-  using namespace fenix::tasks::mpi;
-
   if (!cur_region.valid()) {
     assert(!active_irecv);
     // Still invalid, but let them know what my active region is
@@ -166,7 +165,7 @@ TaskT RankLog::form_consistency() {
 
   std::vector<Region> remote_regions(regions.size());
   // clang-format off
-  co_await sendrecv(
+  co_await mpixx::sendrecv(
            regions, rank, CONSISTENCY_TAG,
     remote_regions, rank, CONSISTENCY_TAG, comm_log.comm
   );
@@ -277,13 +276,13 @@ int RankLog::irecv(void* b, int n, MPI_Datatype d, int t, MPI_Request* r) {
   }
 }
 
-fenix::tasks::Status RankLog::wait(MPI_Request* r) {
+mpixx::Status RankLog::wait(MPI_Request* r) {
   fenix_assert(r != NULL);
   fenix_assert(*r != MPI_REQUEST_NULL);
   fenix_assert(active_irecv);
   fenix_assert(r == active_irecv);
 
-  fenix::tasks::Status ret;
+  mpixx::Status ret;
 
   while (true) {
     try {

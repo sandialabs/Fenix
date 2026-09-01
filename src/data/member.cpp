@@ -57,7 +57,7 @@
 #include "fenix_util.hpp"
 #include "fenix/data/group.hpp"
 #include "fenix/data/member.hpp"
-#include "fenix/tasks/mpi.hpp"
+#include "fenix/mpixx/tasks.hpp"
 #include <cstring>
 
 namespace fenix::data {
@@ -374,7 +374,7 @@ tasks::Task<void> DataMember::exchange_subsets(
   // Gather sizes from all cohort members
   int local_size = send_buf.size();
   std::vector<int> all_sizes(cohort_size);
-  co_await tasks::mpi::allgather(
+  co_await mpixx::allgather(
     &local_size, 1, MPI_INT, all_sizes.data(), 1, MPI_INT, group->cohort_comm
   );
 
@@ -389,7 +389,7 @@ tasks::Task<void> DataMember::exchange_subsets(
   recv_buf.resize(total_size);
 
   // Gather all subsets - each rank contributes its own index
-  co_await tasks::mpi::allgatherv(
+  co_await mpixx::allgatherv(
     send_buf.data(), local_size, MPI_BYTE, recv_buf.data(), all_sizes.data(),
     displs.data(), MPI_BYTE, group->cohort_comm
   );
@@ -442,7 +442,7 @@ tasks::Task<void> DataMember::broadcast_subsets(
   }
 
   // Broadcast total size
-  co_await tasks::mpi::bcast(&total_size, 1, MPI_INT, root, group->cohort_comm);
+  co_await mpixx::bcast(&total_size, 1, MPI_INT, root, group->cohort_comm);
 
   // Allocate buffer on non-root
   if (cohort_rank != root) {
@@ -450,7 +450,7 @@ tasks::Task<void> DataMember::broadcast_subsets(
   }
 
   // Broadcast data
-  co_await tasks::mpi::bcast(
+  co_await mpixx::bcast(
     send_buf.data(), total_size, MPI_BYTE, root, group->cohort_comm
   );
 

@@ -67,7 +67,7 @@
 #include "fenix_util.hpp"
 #include "fenix/data/group.hpp"
 #include "fenix/data/member.hpp"
-#include "fenix/mpi_util.hpp"
+#include "fenix/mpixx/util.hpp"
 
 namespace fenix::data {
 
@@ -76,8 +76,8 @@ DataGroup::DataGroup(
 ) {
   groupid      = m_groupid;
   comm         = m_comm;
-  comm_size    = fenix::util::comm_size(comm);
-  current_rank = fenix::util::comm_rank(comm);
+  comm_size    = mpixx::comm_size(comm);
+  current_rank = mpixx::comm_rank(comm);
   timestart    = m_timestart;
   timestamp    = -1;
   depth        = m_depth;

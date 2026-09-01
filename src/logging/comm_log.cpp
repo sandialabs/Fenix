@@ -4,8 +4,8 @@
 #include "fenix.hpp"
 #include "fenix_ext.hpp"
 #include "fenix_util.hpp"
-#include "fenix/tasks/request.hpp"
-#include "fenix/tasks/mpi.hpp"
+#include "fenix/mpixx/request.hpp"
+#include "fenix/mpixx/tasks.hpp"
 #include "fenix/logging/message_logging.h"
 #include "fenix/logging/comm_log.h"
 #include "fenix/logging/util.h"
@@ -16,13 +16,13 @@ using namespace fenix::tasks;
 std::optional<CommLog> comm_log;
 
 CommLog::CommLog(MPI_Comm& c, int m_max_regions)
-  : comm(c), m_rank(util::comm_rank(c)), max_regions(m_max_regions) {
+  : comm(c), m_rank(mpixx::comm_rank(c)), max_regions(m_max_regions) {
   init_mpi_records();
   regions.resize(max_regions);
 }
 
 CommLog::CommLog(MPI_Comm& c, std::istream& i)
-  : comm(c), m_rank(util::comm_rank(c)) {
+  : comm(c), m_rank(mpixx::comm_rank(c)) {
   using namespace serialize;
   init_mpi_records();
   int rank = read<int>(i);
@@ -87,9 +87,9 @@ void CommLog::progress_through(TaskT t) {
   }
 }
 
-Status CommLog::progress_through(MPI_Request* r) {
+mpixx::Status CommLog::progress_through(MPI_Request* r) {
   int complete = 0;
-  Status ret;
+  mpixx::Status ret;
   while (!complete) {
     ret = PMPI_Test(r, &complete, ret);
     progress();
@@ -145,7 +145,7 @@ void CommLog::fenix_pre_recovery() {
 
 void CommLog::reset_consistency(int target_region) {
   MLOG("%s resetting to region %d\n", str().c_str(), target_region);
-  assert(m_rank == util::comm_rank(comm)); // No support for changing ranks
+  assert(m_rank == mpixx::comm_rank(comm)); // No support for changing ranks
   assert(target_region >= -1);
   assert(tasks.empty());
   util::ScopedActiveMlog setting(FENIX_MLOG_NONE);
@@ -251,9 +251,9 @@ void CommLog::begin_region(int region_id) {
 }
 
 TaskT CommLog::form_consistency() {
-  using namespace fenix::tasks::mpi;
+  using namespace fenix::mpixx;
 
-  int n_ranks    = util::comm_size(comm);
+  int n_ranks    = mpixx::comm_size(comm);
   int left_rank  = (m_rank + n_ranks - 1) % n_ranks;
   int right_rank = (m_rank + 1) % n_ranks;
   // This just serves as a notification to other ranks that we do need to

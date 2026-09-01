@@ -78,7 +78,7 @@
 #include "fenix/data/group.hpp"
 #include "fenix/data/member.hpp"
 #include "fenix/data/policy_imr.hpp"
-#include "fenix/tasks/mpi.hpp"
+#include "fenix/mpixx/tasks.hpp"
 
 namespace fenix::data::imr {
 
@@ -162,7 +162,7 @@ tasks::Task<int> BuddyMember::iprotect() {
   recv_buf.reset(snap.elm_size() * recv_count);
 
   subset.pack_data(snap.elm_size(), snap.buf(), send_buf);
-  co_await tasks::mpi::sendrecv(
+  co_await mpixx::sendrecv(
     send_buf.data(), send_buf.size(), MPI_BYTE, right, 0,
     recv_buf.data(), recv_buf.size(), MPI_BYTE,  left, 0,
     group->cohort_comm
@@ -235,7 +235,7 @@ tasks::Task<int> ParityMember::iprotect() {
       }
     }
 
-    co_await tasks::mpi::reduce(
+    co_await mpixx::reduce(
       local_root ? MPI_IN_PLACE : input, input, len, MPI_BYTE, MPI_BXOR, root,
       group->cohort_comm
     );

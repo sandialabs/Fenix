@@ -1,18 +1,12 @@
-#ifndef FENIX_TASKS_REQUEST_HPP
-#define FENIX_TASKS_REQUEST_HPP
-
-#include <coroutine>
-#include <exception>
-#include <cassert>
+#ifndef FENIX_MPIXX_REQUEST_HPP
+#define FENIX_MPIXX_REQUEST_HPP
 
 #include <mpi.h>
 
-#include "subtask.hpp"
-#include "fenix/mpi_util.hpp"
+#include "fenix_opt.hpp"
+#include "fenix/mpixx/status.hpp"
 
-namespace fenix::tasks {
-
-using util::Status;
+namespace fenix::mpixx {
 
 // Note that this 'takes ownership' of the request - if RequestBase is destroyed
 // before completing, it frees the MPI_Request to ensure proper cleanup if a
@@ -62,7 +56,7 @@ class Request {
   bool done() { return test(); }
   void resume() { test(); }
   auto result() {
-    assert(done());
+    fenix_assert(is_complete());
     return ret;
   }
 
@@ -79,6 +73,6 @@ class Request {
   int complete = false;
 };
 
-} // namespace fenix::tasks
+} // namespace fenix::mpixx
 
-#endif //FENIX_TASKS_REQUEST_HPP
+#endif //FENIX_MPIXX_REQUEST_HPP

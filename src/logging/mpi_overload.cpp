@@ -1,6 +1,6 @@
 #include <mpi.h>
 #include "fenix.hpp"
-#include "fenix/tasks/request.hpp"
+#include "fenix/mpixx/status.hpp"
 #include "fenix/logging/message_logging.h"
 
 using namespace fenix;
@@ -72,7 +72,7 @@ int MPI_Wait(MPI_Request* req, MPI_Status* status) {
     return PMPI_Wait(req, status);
   }
 
-  fenix::tasks::Status ret;
+  mpixx::Status ret;
 
   for (auto& [rank, log] : fenix_rt.active_mlog->rank_logs) {
     if (log.active_irecv == req) {

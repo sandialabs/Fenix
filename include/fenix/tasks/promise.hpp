@@ -3,11 +3,13 @@
 
 #include <coroutine>
 #include <exception>
-#include "subtask.hpp"
-#include "awaiter.hpp"
-#include "request.hpp"
-
 #include <cstdio>
+
+#include <mpi.h>
+
+#include "fenix/tasks/subtask.hpp"
+#include "fenix/tasks/awaiter.hpp"
+#include "fenix/mpixx/request.hpp"
 
 namespace fenix::tasks {
 
@@ -90,11 +92,11 @@ class Promise : public impl::ReturnHolder<T> {
     }
     return subtask.get();
   }
-  Awaiter<Request> await_transform(MPI_Request*& r) {
-    return await_transform(Request(r));
+  Awaiter<mpixx::Request> await_transform(MPI_Request*& r) {
+    return await_transform(mpixx::Request(r));
   }
-  Awaiter<Request> await_transform(MPI_Request& r) {
-    return await_transform(Request(&r));
+  Awaiter<mpixx::Request> await_transform(MPI_Request& r) {
+    return await_transform(mpixx::Request(&r));
   }
   auto await_transform(const std::suspend_always& s) {
     subtask.reset();

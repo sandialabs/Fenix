@@ -1,35 +1,20 @@
-#ifndef FENIX_TASKS_MPI_HPP
-#define FENIX_TASKS_MPI_HPP
+#ifndef FENIX_MPIXX_TASKS_HPP
+#define FENIX_MPIXX_TASKS_HPP
 
 #include <type_traits>
 #include <utility>
 #include <vector>
+
 #include <mpi.h>
-#include "task.hpp"
 
-namespace fenix::util {
-template <typename T>
-MPI_Datatype datatype();
+#include "fenix/mpixx/status.hpp"
+#include "fenix/mpixx/request.hpp"
+#include "fenix/mpixx/util.hpp"
+#include "fenix/tasks/task.hpp"
 
-template <typename T>
-MPI_Datatype datatype(T&& t) {
-  return datatype<T>();
-}
+namespace fenix::mpixx {
 
-template <typename T>
-constexpr int count(T&& t, int in_count);
-}
-
-namespace fenix::tasks::mpi {
-// C++ type corresponding to MPI_Datatype index pairs
-template <typename T>
-struct Indexed {
-  static_assert(std::is_trivially_copyable_v<T>);
-  T value;
-  int index;
-};
-
-using MPITask = Task<Status>;
+using MPITask = fenix::tasks::Task<Status>;
 
 template <typename T>
 MPITask recv(T* b, int n, MPI_Datatype d, int r, int t, MPI_Comm c) {
@@ -40,7 +25,7 @@ MPITask recv(T* b, int n, MPI_Datatype d, int r, int t, MPI_Comm c) {
 }
 template <typename T>
 auto recv(T* b, int n, int r, int t, MPI_Comm c) {
-  return recv(b, util::count(b, n), util::datatype(b), r, t, c);
+  return recv(b, datatype_count(b, n), datatype(b), r, t, c);
 }
 template <typename T>
 auto recv(T& b, int r, int t, MPI_Comm c) {
@@ -60,7 +45,7 @@ MPITask send(const T* b, int n, MPI_Datatype d, int r, int t, MPI_Comm c) {
 }
 template <typename T>
 auto send(const T* b, int n, int r, int t, MPI_Comm c) {
-  return send(b, util::count(b, n), util::datatype(b), r, t, c);
+  return send(b, datatype_count(b, n), datatype(b), r, t, c);
 }
 template <typename T>
 auto send(const T& b, int r, int t, MPI_Comm c) {
@@ -88,8 +73,8 @@ auto sendrecv(
         RT* rb, int rn, int rr, int rt, MPI_Comm c
 ) {
   return sendrecv(
-    sb, util::count(sb, sn), util::datatype(sb), sr, st,
-    rb, util::count(rb, rn), util::datatype(rb), rr, rt, c
+    sb, datatype_count(sb, sn), datatype(sb), sr, st,
+    rb, datatype_count(rb, rn), datatype(rb), rr, rt, c
   );
 }
 template <typename ST, typename RT>
@@ -118,7 +103,7 @@ MPITask allreduce(
 }
 template <typename T>
 auto allreduce(const T* sb, T& rb, int n, MPI_Op o, MPI_Comm c) {
-  return allreduce(sb, rb, util::count(sb, n), util::datatype(sb), o, c);
+  return allreduce(sb, rb, datatype_count(sb, n), datatype(sb), o, c);
 }
 template <typename T>
 auto allreduce(const T& sb, T& rb, MPI_Op o, MPI_Comm c) {
@@ -152,7 +137,7 @@ MPITask reduce(
 }
 template <typename T>
 auto reduce(const T* sb, T& rb, int n, MPI_Op o, int r, MPI_Comm c) {
-  return reduce(sb, rb, util::count(sb, n), util::datatype(sb), o, r, c);
+  return reduce(sb, rb, datatype_count(sb, n), datatype(sb), o, r, c);
 }
 template <typename T>
 auto reduce(const T& sb, T& rb, MPI_Op o, int r, MPI_Comm c) {
@@ -172,7 +157,7 @@ MPITask bcast(T* b, int n, MPI_Datatype d, int r, MPI_Comm c) {
 }
 template <typename T>
 auto bcast(T* b, int n, int r, MPI_Comm c) {
-  return bcast(b, util::count(b, n), util::datatype(b), r, c);
+  return bcast(b, datatype_count(b, n), datatype(b), r, c);
 }
 template <typename T>
 auto bcast(T& b, int r, MPI_Comm c) {
@@ -196,8 +181,8 @@ MPITask allgather(
 template <typename ST, typename RT>
 auto allgather(const ST* sb, int sn, RT* rb, int rn, MPI_Comm c) {
   return allgather(
-    sb, util::count(sb, sn), util::datatype(sb), rb, util::count(rb, rn),
-    util::datatype(rb), c
+    sb, datatype_count(sb, sn), datatype(sb), rb, datatype_count(rb, rn),
+    datatype(rb), c
   );
 }
 
@@ -216,8 +201,8 @@ auto allgatherv(
   const ST* sb, int sn, RT* rb, const int* rn, const int* displs, MPI_Comm c
 ) {
   return allgatherv(
-    sb, util::count(sb, sn), util::datatype(sb), rb, rn, displs,
-    util::datatype(rb), c
+    sb, datatype_count(sb, sn), datatype(sb), rb, rn, displs,
+    datatype(rb), c
   );
 }
 
@@ -231,52 +216,7 @@ inline MPITask probe(int src, int tag, MPI_Comm comm) {
     co_await std::suspend_always{};
   } while (true);
 }
-} // namespace fenix::tasks::mpi
 
-namespace fenix::util {
+} // namespace fenix::mpixx
 
-#define MPI_TASK_TYPE(u, r, ...)                                               \
-  if constexpr (std::is_same_v<u, __VA_ARGS__>) return r;
-
-template <typename T>
-MPI_Datatype datatype() {
-  using namespace fenix::tasks::mpi;
-  using U = std::remove_cv_t<std::remove_pointer_t<std::decay_t<T>>>;
-  static_assert(std::is_trivially_copyable_v<U>);
-  // clang-format off
-  MPI_TASK_TYPE(U, MPI_CHAR,            char);
-  MPI_TASK_TYPE(U, MPI_FLOAT,           float);
-  MPI_TASK_TYPE(U, MPI_DOUBLE,          double);
-  MPI_TASK_TYPE(U, MPI_SHORT,           short);
-  MPI_TASK_TYPE(U, MPI_UNSIGNED_SHORT,  unsigned short);
-  MPI_TASK_TYPE(U, MPI_INT,             int);
-  MPI_TASK_TYPE(U, MPI_UNSIGNED,        unsigned int);
-  MPI_TASK_TYPE(U, MPI_LONG,            long);
-  MPI_TASK_TYPE(U, MPI_UNSIGNED_LONG,   unsigned long);
-  MPI_TASK_TYPE(U, MPI_LOGICAL,         bool);
-  MPI_TASK_TYPE(U, MPI_FLOAT_INT,       Indexed<float>);
-  MPI_TASK_TYPE(U, MPI_DOUBLE_INT,      Indexed<double>);
-  MPI_TASK_TYPE(U, MPI_LONG_INT,        Indexed<long>);
-  MPI_TASK_TYPE(U, MPI_2INT,            Indexed<int>);
-  MPI_TASK_TYPE(U, MPI_SHORT_INT,       Indexed<short>);
-  MPI_TASK_TYPE(U, MPI_LONG_DOUBLE_INT, Indexed<long double>);
-  // clang-format on
-
-  // Technically sketch to just make this MPI_BYTE, but only when heterogenenous
-  // so we'll cross that bridge when we get there. Convenient for trivial custom
-  // types for now
-  return MPI_BYTE;
-}
-
-#undef MPI_TASK_TYPE
-
-template <typename T>
-constexpr int count(T&& t, int in_count) {
-  if (datatype<T>() == MPI_BYTE) {
-    return in_count * sizeof(std::remove_pointer_t<std::decay_t<T>>);
-  }
-  return in_count;
-}
-} // namespace fenix::util
-
-#endif // FENIX_TASKS_MPI_HPP
+#endif // FENIX_MPIXX_TASKS_HPP

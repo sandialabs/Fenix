@@ -53,11 +53,10 @@
 //@HEADER
 */
 
-#ifndef __FENIX_MPI_UTIL__
-#define __FENIX_MPI_UTIL__
+#ifndef FENIX_MPIXX_UTIL_HPP
+#define FENIX_MPIXX_UTIL_HPP
 
 #include <mpi.h>
-#include <tuple>
 #include <string>
 
 namespace fenix::tags {
@@ -76,7 +75,7 @@ static_assert(FENIX_TAG_MAX < (1 << 15));
 
 } // namespace fenix::tags
 
-namespace fenix::util {
+namespace fenix::mpixx {
 
 inline std::string mpi_error_string(int errcode) {
   std::string ret;
@@ -112,49 +111,63 @@ static inline bool mpi_finalized() {
   return flag;
 }
 
-class Status {
- public:
-  int return_value;
-  MPI_Status status;
-
-  Status() = default;
-  Status(int r) : return_value(r) {}
-  auto operator=(int r) {
-    return_value = r;
-    return *this;
-  }
-
-  operator bool() const { return return_value == MPI_SUCCESS; }
-
-  operator int() const { return return_value; }
-  bool operator==(int r) const { return return_value == r; }
-
-  operator MPI_Status() const { return status; }
-  operator MPI_Status*() { return &status; }
-
-  // to support structured unbinding
-  template <size_t I>
-  auto&& get() && {
-    if constexpr (I == 0) return std::move(return_value);
-    if constexpr (I == 1) return std::move(status);
-  }
+// C++ type corresponding to MPI_Datatype index pairs
+template <typename T>
+struct Indexed {
+  static_assert(std::is_trivially_copyable_v<T>);
+  T value;
+  int index;
 };
 
-} // namespace fenix::util
+// Internal macro, undefined before end of this file
+#define MPI_TASK_TYPE(u, r, ...)                                               \
+  if constexpr (std::is_same_v<u, __VA_ARGS__>) return r;
 
-// Supporting structured unbinding for Status
-namespace std {
-template <>
-struct tuple_size<fenix::util::Status> : std::integral_constant<size_t, 2> {};
+// Helpers for getting an MPI_Datatype and count from some number of a c++ type
+template <typename T>
+MPI_Datatype datatype(){
+  using U = std::remove_cv_t<std::remove_pointer_t<std::decay_t<T>>>;
+  static_assert(std::is_trivially_copyable_v<U>);
+  // clang-format off
+  MPI_TASK_TYPE(U, MPI_CHAR,            char);
+  MPI_TASK_TYPE(U, MPI_FLOAT,           float);
+  MPI_TASK_TYPE(U, MPI_DOUBLE,          double);
+  MPI_TASK_TYPE(U, MPI_SHORT,           short);
+  MPI_TASK_TYPE(U, MPI_UNSIGNED_SHORT,  unsigned short);
+  MPI_TASK_TYPE(U, MPI_INT,             int);
+  MPI_TASK_TYPE(U, MPI_UNSIGNED,        unsigned int);
+  MPI_TASK_TYPE(U, MPI_LONG,            long);
+  MPI_TASK_TYPE(U, MPI_UNSIGNED_LONG,   unsigned long);
+  MPI_TASK_TYPE(U, MPI_LOGICAL,         bool);
+  MPI_TASK_TYPE(U, MPI_FLOAT_INT,       Indexed<float>);
+  MPI_TASK_TYPE(U, MPI_DOUBLE_INT,      Indexed<double>);
+  MPI_TASK_TYPE(U, MPI_LONG_INT,        Indexed<long>);
+  MPI_TASK_TYPE(U, MPI_2INT,            Indexed<int>);
+  MPI_TASK_TYPE(U, MPI_SHORT_INT,       Indexed<short>);
+  MPI_TASK_TYPE(U, MPI_LONG_DOUBLE_INT, Indexed<long double>);
+  // clang-format on
 
-template <>
-struct tuple_element<0, fenix::util::Status> {
-  using type = int;
-};
-template <>
-struct tuple_element<1, fenix::util::Status> {
-  using type = MPI_Status;
-};
+  // Technically sketch to just make this MPI_BYTE, but only when heterogenenous
+  // so we'll cross that bridge when we get there. Convenient for trivial custom
+  // types for now
+  return MPI_BYTE;
 }
 
-#endif
+#undef MPI_TASK_TYPE
+
+template <typename T>
+MPI_Datatype datatype(T&& t) {
+  return datatype<T>();
+}
+
+template <typename T>
+constexpr int datatype_count(T&& t, int in_count){
+  if (datatype<T>() == MPI_BYTE) {
+    return in_count * sizeof(std::remove_pointer_t<std::decay_t<T>>);
+  }
+  return in_count;
+}
+
+} // namespace fenix::mpixx
+
+#endif // FENIX_MPIXX_UTIL_HPP

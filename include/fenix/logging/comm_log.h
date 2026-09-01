@@ -10,7 +10,6 @@
 
 #include <mpi.h>
 
-#include "fenix/tasks/request.hpp"
 #include "fenix/logging/task.h"
 #include "fenix/logging/rank_log.h"
 #include "fenix/logging/collective_log_holder.h"
@@ -63,7 +62,7 @@ struct CommLog {
   void progress();
   // Progress pending tasks and this one until this task completes
   void progress_through(TaskT t);
-  fenix::tasks::Status progress_through(MPI_Request* r);
+  mpixx::Status progress_through(MPI_Request* r);
 
   int send(const void* b, int n, MPI_Datatype d, int dst, int t) {
     return logs(dst).send(b, n, d, t);

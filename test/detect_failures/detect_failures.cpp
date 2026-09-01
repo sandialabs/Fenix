@@ -1,5 +1,4 @@
 #include <fenix.hpp>
-#include <fenix/mpi_util.hpp>
 #include <mpi.h>
 #include <mpi-ext.h>
 #include <stdio.h>

@@ -3,7 +3,7 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
-#include "fenix/mpi_util.hpp"
+#include "fenix/mpixx/util.hpp"
 #include "fenix/logging/op_log.h"
 
 namespace fenix::logging {
@@ -15,7 +15,7 @@ class BcastLog : public CollectiveLog {
     int idx
   )
     : CollectiveLog(idx), root(root_rank) {
-    if (root == util::comm_rank(c)) {
+    if (root == mpixx::comm_rank(c)) {
       buf = MPIBuffer::copy(buffer, count, type);
     } else {
       buf = MPIBuffer::wrap(buffer, count, type);

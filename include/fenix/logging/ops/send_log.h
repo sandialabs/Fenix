@@ -3,7 +3,6 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
-#include "fenix/mpi_util.hpp"
 #include "fenix/logging/serialize.h"
 #include "fenix/logging/op_log.h"
 

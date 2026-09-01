@@ -823,7 +823,7 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
 
   default:
     // This is an error type not handled by Fenix
-    std::string errstr = util::mpi_error_string(fenix_rt.mpi_fail_code);
+    std::string errstr = mpixx::mpi_error_string(fenix_rt.mpi_fail_code);
     switch (fenix_rt.settings.unhandled) {
     case ABORT:
       fprintf(stderr, "UNHANDLED ERR: %s\n", errstr.c_str());
