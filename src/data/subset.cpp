@@ -308,6 +308,8 @@ struct BlockIter {
   BlockIter(std::shared_ptr<set_t> m_regions)
     : region_holder(m_regions), regions(*region_holder), it(regions.begin()),
       rep(0) {}
+  BlockIter(const set_t& m_regions)
+    : region_holder(nullptr), regions(m_regions), it(regions.begin()), rep(0) {}
   BlockIter(const BlockIter& other)
     : region_holder(other.region_holder), regions(other.regions), it(other.it),
       rep(other.rep) {
@@ -322,7 +324,13 @@ struct BlockIter {
   }
   bool operator!=(const BlockIter& other) const { return !(*this == other); }
 
-  BlockIter begin() { return BlockIter(region_holder); }
+  BlockIter begin() {
+    if (region_holder) {
+      return BlockIter(region_holder);
+    } else {
+      return BlockIter(regions);
+    }
+  }
 
   BlockIter end() {
     auto ret = begin();
@@ -824,30 +832,15 @@ mpixx::Datatype DataSubset::to_datatype(mpixx::DatatypeRef base) const {
   fenix_assert(type == BasicSubset, "Can only create datatype for BasicSubset");
   fenix_assert(is_bounded(), "Cannot create datatype for unbounded subset");
 
-  if (empty()) {
-    auto result = mpixx::Datatype::contiguous(0, base);
-    result.commit();
-    return result;
-  }
-
+  std::vector<int> displacements;
   std::vector<int> blocklengths;
-  std::vector<MPI_Aint> displacements;
 
-  int base_extent = base.extent();
-
-  for (const auto& region : regions) {
-    if (region.reps == 0) {
-      blocklengths.push_back(static_cast<int>(region.end - region.start + 1));
-      displacements.push_back(static_cast<MPI_Aint>(region.start * base_extent));
-    } else {
-      for (size_t rep = 0; rep <= region.reps; rep++) {
-        blocklengths.push_back(static_cast<int>(region.end - region.start + 1));
-        displacements.push_back(static_cast<MPI_Aint>((region.start + rep * region.stride) * base_extent));
-      }
-    }
+  for (const auto& b : BlockIter(regions)) {
+    displacements.push_back(static_cast<int>(b.start));
+    blocklengths.push_back(static_cast<int>(b.end - b.start + 1));
   }
 
-  auto result = mpixx::Datatype::hindexed(
+  auto result = mpixx::Datatype::indexed(
     static_cast<int>(blocklengths.size()),
     blocklengths.data(),
     displacements.data(),
