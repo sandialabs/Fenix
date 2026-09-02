@@ -226,7 +226,7 @@ unsigned get_option(SettingName setting) {
 void throw_exception() {
   assert(initialized());
   throw CommException(
-    *fenix_rt.user_world, *fenix_rt.ret_error, MPI_ERR_UNKNOWN
+    fenix_rt.user_world, *fenix_rt.ret_error, MPI_ERR_UNKNOWN
   );
 }
 
@@ -263,7 +263,7 @@ DataSubset SUBSET_IGNORE           = SUBSET_EMPTY;
 
 int group_create(int group_id, GroupCreateArgs args) {
   FENIX_CPP_API_BEGIN
-  if (args.comm == MPI_COMM_NULL) args.comm = *fenix_rt.user_world;
+  if (args.comm == MPI_COMM_NULL) args.comm = fenix_rt.user_world;
   int ignore;
   if (args.flag == nullptr) args.flag = &ignore;
   return group_create(

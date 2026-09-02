@@ -67,6 +67,7 @@
 #include "fenix/data/group.hpp"
 #include "fenix/data/component.hpp"
 #include "fenix/logging/comm_log.h"
+#include "fenix/mpixx/comm.hpp"
 
 namespace fenix {
 
@@ -114,10 +115,10 @@ struct fenix_t {
     callbacks;
   fenix_debug_opt_t options; // This is reserved to store the user options
 
-  MPI_Comm world;       // Duplicate of comm provided by user
-  MPI_Comm* user_world; // User-facing comm with repaired ranks and no spares
-  MPI_Comm new_world;   // Internal duplicate of user_world
-  int new_world_exists = false, user_world_exists = false;
+  mpixx::Comm world;       // Duplicate of comm provided by user
+  mpixx::Comm user_world;  // User-facing comm with repaired ranks and no spares
+  MPI_Comm* user_world_ptr = nullptr; // Pointer to application's MPI_Comm
+  mpixx::Comm new_world;   // Internal duplicate of user_world
 
   //Values used for Fenix_Process_detect_failures
   int dummy_recv_buffer;
