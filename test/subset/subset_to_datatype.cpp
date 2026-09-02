@@ -70,16 +70,13 @@ using namespace fenix;
 
 // Sentinel values to detect buffer overruns
 constexpr int SENTINEL_BEFORE = 0xDEADBEEF;
-constexpr int SENTINEL_AFTER = 0xCAFEBABE;
+constexpr int SENTINEL_AFTER  = 0xCAFEBABE;
 
 // Test helper: verify only expected data was written
-template<typename T>
+template <typename T>
 bool test_with_sentinels(
-  const DataSubset& subset,
-  MPI_Datatype base_type,
-  const std::vector<T>& src_data,
-  int partner_rank,
-  int tag
+  const DataSubset& subset, MPI_Datatype base_type,
+  const std::vector<T>& src_data, int partner_rank, int tag
 ) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -91,24 +88,31 @@ bool test_with_sentinels(
 
   if (rank == 0) {
     auto dt = subset.to_datatype(mpixx::DatatypeRef(base_type));
-    MPI_Send(const_cast<T*>(src_data.data()), 1, dt, partner_rank, tag, MPI_COMM_WORLD);
+    MPI_Send(
+      const_cast<T*>(src_data.data()), 1, dt, partner_rank, tag, MPI_COMM_WORLD
+    );
   } else if (rank == partner_rank) {
-    // Allocate receive buffer same size as source, use datatype to place data correctly
+    // Allocate receive buffer same size as source, use datatype to place data
+    // correctly
     int before_sentinel = SENTINEL_BEFORE;
     std::vector<T> recv_data(src_data.size(), static_cast<T>(-1));
     int after_sentinel = SENTINEL_AFTER;
 
     auto dt = subset.to_datatype(mpixx::DatatypeRef(base_type));
-    MPI_Recv(recv_data.data(), 1, dt, 0, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data.data(), 1, dt, 0, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
 
     // Check sentinels weren't overwritten
     fenix_require(
       before_sentinel == SENTINEL_BEFORE,
-      "Buffer underrun for subset %s: sentinel before data was overwritten", subset_str.c_str()
+      "Buffer underrun for subset %s: sentinel before data was overwritten",
+      subset_str.c_str()
     );
     fenix_require(
       after_sentinel == SENTINEL_AFTER,
-      "Buffer overrun for subset %s: sentinel after data was overwritten", subset_str.c_str()
+      "Buffer overrun for subset %s: sentinel after data was overwritten",
+      subset_str.c_str()
     );
 
     // Verify received data matches expected subset elements
@@ -123,7 +127,8 @@ bool test_with_sentinels(
         T expected_untouched = static_cast<T>(-1);
         fenix_require(
           std::memcmp(&recv_data[i], &expected_untouched, sizeof(T)) == 0,
-          "Non-subset index %zu was modified for subset %s", i, subset_str.c_str()
+          "Non-subset index %zu was modified for subset %s", i,
+          subset_str.c_str()
         );
       }
     }
@@ -133,8 +138,10 @@ bool test_with_sentinels(
 }
 
 // Test with builtin types of various sizes
-template<typename T>
-bool test_builtin_type(const DataSubset& subset, MPI_Datatype mpi_type, int tag) {
+template <typename T>
+bool test_builtin_type(
+  const DataSubset& subset, MPI_Datatype mpi_type, int tag
+) {
   // Array must be large enough to hold all indices referenced by the subset
   size_t array_size = subset.empty() ? 100 : (subset.end() + 1);
 
@@ -159,9 +166,7 @@ struct CustomStruct {
   bool operator==(const CustomStruct& other) const {
     return a == other.a && b == other.b && c == other.c;
   }
-  bool operator!=(const CustomStruct& other) const {
-    return !(*this == other);
-  }
+  bool operator!=(const CustomStruct& other) const { return !(*this == other); }
 };
 
 bool test_custom_struct_type(const DataSubset& subset, int tag) {
@@ -174,14 +179,16 @@ bool test_custom_struct_type(const DataSubset& subset, int tag) {
   size_t array_size = subset.empty() ? 100 : (subset.end() + 1);
   std::vector<CustomStruct> src_data(array_size);
   for (size_t i = 0; i < array_size; i++) {
-    src_data[i] = {static_cast<int32_t>(i * 13 + 7), static_cast<double>(i * 13 + 7), static_cast<int16_t>(i * 13 + 7)};
+    src_data[i] = {
+      static_cast<int32_t>(i * 13 + 7), static_cast<double>(i * 13 + 7),
+      static_cast<int16_t>(i * 13 + 7)
+    };
   }
 
   // Create MPI struct datatype
-  int blocklengths[] = {1, 1, 1};
+  int blocklengths[]       = {1, 1, 1};
   MPI_Aint displacements[] = {
-    offsetof(CustomStruct, a),
-    offsetof(CustomStruct, b),
+    offsetof(CustomStruct, a), offsetof(CustomStruct, b),
     offsetof(CustomStruct, c)
   };
   MPI_Datatype types[] = {MPI_INT32_T, MPI_DOUBLE, MPI_INT16_T};
@@ -200,7 +207,9 @@ bool test_custom_struct_type(const DataSubset& subset, int tag) {
     std::vector<CustomStruct> recv_data(array_size, sentinel);
 
     auto dt = subset.to_datatype(mpixx::DatatypeRef(custom_type));
-    MPI_Recv(recv_data.data(), 1, dt, 0, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data.data(), 1, dt, 0, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
 
     // Verify received data matches expected subset elements
     for (size_t i = 0; i < array_size; i++) {
@@ -213,7 +222,8 @@ bool test_custom_struct_type(const DataSubset& subset, int tag) {
         // Verify non-subset elements weren't touched
         fenix_require(
           recv_data[i] == sentinel,
-          "Non-subset index %zu was modified for subset %s", i, subset_str.c_str()
+          "Non-subset index %zu was modified for subset %s", i,
+          subset_str.c_str()
         );
       }
     }
@@ -244,7 +254,8 @@ bool test_vector_datatype(const DataSubset& subset, int tag) {
     // Leave indices i*5+3 and i*5+4 as zero (padding)
   }
 
-  // Create a type that contains 3 ints but has extent of 5 ints (to match array layout)
+  // Create a type that contains 3 ints but has extent of 5 ints (to match array
+  // layout)
   MPI_Datatype contiguous_type;
   MPI_Type_contiguous(3, MPI_INT, &contiguous_type);
 
@@ -262,7 +273,9 @@ bool test_vector_datatype(const DataSubset& subset, int tag) {
     std::vector<int> recv_data(array_size * 5, -1);
 
     auto dt = subset.to_datatype(mpixx::DatatypeRef(vec_type));
-    MPI_Recv(recv_data.data(), 1, dt, 0, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data.data(), 1, dt, 0, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
 
     // Verify received data matches expected subset elements
     // Each element consists of 3 ints at positions [i*5, i*5+1, i*5+2]
@@ -273,14 +286,16 @@ bool test_vector_datatype(const DataSubset& subset, int tag) {
         for (int j = 0; j < 3; j++) {
           fenix_require(
             recv_data[i * 5 + j] == src_data[i * 5 + j],
-            "Data mismatch for subset %s at element %zu, offset %d", subset_str.c_str(), i, j
+            "Data mismatch for subset %s at element %zu, offset %d",
+            subset_str.c_str(), i, j
           );
         }
         // Padding should still be -1
         for (int j = 3; j < 5; j++) {
           fenix_require(
             recv_data[i * 5 + j] == -1,
-            "Padding mismatch for subset %s at element %zu, offset %d", subset_str.c_str(), i, j
+            "Padding mismatch for subset %s at element %zu, offset %d",
+            subset_str.c_str(), i, j
           );
         }
       } else {
@@ -288,7 +303,8 @@ bool test_vector_datatype(const DataSubset& subset, int tag) {
         for (int j = 0; j < 5; j++) {
           fenix_require(
             recv_data[i * 5 + j] == -1,
-            "Non-subset element %zu was modified at offset %d for subset %s", i, j, subset_str.c_str()
+            "Non-subset element %zu was modified at offset %d for subset %s", i,
+            j, subset_str.c_str()
           );
         }
       }
@@ -354,8 +370,10 @@ int main(int argc, char** argv) {
   }
 
   if (rank == 0) {
-    printf("Testing to_datatype() with %zu bounded subsets (out of %zu total)\n",
-           subsets.size(), all_subsets.size());
+    printf(
+      "Testing to_datatype() with %zu bounded subsets (out of %zu total)\n",
+      subsets.size(), all_subsets.size()
+    );
   }
 
   // Test 1: Empty subset (special case, doesn't need to be bounded)
@@ -459,7 +477,9 @@ int main(int argc, char** argv) {
 
   if (rank == 0) {
     printf("\n=================================\n");
-    printf("SUBSET TO_DATATYPE TESTS: %d / %d PASSED\n", pass_count, test_count);
+    printf(
+      "SUBSET TO_DATATYPE TESTS: %d / %d PASSED\n", pass_count, test_count
+    );
     printf("=================================\n");
 
     if (pass_count == test_count) {

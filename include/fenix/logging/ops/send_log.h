@@ -38,7 +38,7 @@ class SendLog : public OpLog {
 
   std::string str() const override {
     return "Send " + std::to_string(m_idx) + " (tag " + std::to_string(tag) +
-           ")";
+      ")";
   }
 
  private:

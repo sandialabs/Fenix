@@ -23,55 +23,55 @@ enum class TypeCombiner : uint8_t {
   DATATYPE_NULL = 0xFF,
 
   // Builtin types (0x00 - 0x3F)
-  BUILTIN_CHAR = 0x00,
-  BUILTIN_SHORT = 0x01,
-  BUILTIN_INT = 0x02,
-  BUILTIN_LONG = 0x03,
-  BUILTIN_LONG_LONG = 0x04,
-  BUILTIN_SIGNED_CHAR = 0x05,
-  BUILTIN_UNSIGNED_CHAR = 0x06,
-  BUILTIN_UNSIGNED_SHORT = 0x07,
-  BUILTIN_UNSIGNED = 0x08,
-  BUILTIN_UNSIGNED_LONG = 0x09,
+  BUILTIN_CHAR               = 0x00,
+  BUILTIN_SHORT              = 0x01,
+  BUILTIN_INT                = 0x02,
+  BUILTIN_LONG               = 0x03,
+  BUILTIN_LONG_LONG          = 0x04,
+  BUILTIN_SIGNED_CHAR        = 0x05,
+  BUILTIN_UNSIGNED_CHAR      = 0x06,
+  BUILTIN_UNSIGNED_SHORT     = 0x07,
+  BUILTIN_UNSIGNED           = 0x08,
+  BUILTIN_UNSIGNED_LONG      = 0x09,
   BUILTIN_UNSIGNED_LONG_LONG = 0x0A,
-  BUILTIN_FLOAT = 0x0B,
-  BUILTIN_DOUBLE = 0x0C,
-  BUILTIN_LONG_DOUBLE = 0x0D,
-  BUILTIN_BYTE = 0x0E,
-  BUILTIN_PACKED = 0x0F,
-  BUILTIN_WCHAR = 0x10,
-  BUILTIN_C_BOOL = 0x11,
-  BUILTIN_INT8_T = 0x12,
-  BUILTIN_INT16_T = 0x13,
-  BUILTIN_INT32_T = 0x14,
-  BUILTIN_INT64_T = 0x15,
-  BUILTIN_UINT8_T = 0x16,
-  BUILTIN_UINT16_T = 0x17,
-  BUILTIN_UINT32_T = 0x18,
-  BUILTIN_UINT64_T = 0x19,
-  BUILTIN_AINT = 0x1A,
-  BUILTIN_COUNT = 0x1B,
-  BUILTIN_OFFSET = 0x1C,
-  BUILTIN_FLOAT_INT = 0x1D,
-  BUILTIN_DOUBLE_INT = 0x1E,
-  BUILTIN_LONG_INT = 0x1F,
-  BUILTIN_SHORT_INT = 0x20,
-  BUILTIN_2INT = 0x21,
-  BUILTIN_LONG_DOUBLE_INT = 0x22,
+  BUILTIN_FLOAT              = 0x0B,
+  BUILTIN_DOUBLE             = 0x0C,
+  BUILTIN_LONG_DOUBLE        = 0x0D,
+  BUILTIN_BYTE               = 0x0E,
+  BUILTIN_PACKED             = 0x0F,
+  BUILTIN_WCHAR              = 0x10,
+  BUILTIN_C_BOOL             = 0x11,
+  BUILTIN_INT8_T             = 0x12,
+  BUILTIN_INT16_T            = 0x13,
+  BUILTIN_INT32_T            = 0x14,
+  BUILTIN_INT64_T            = 0x15,
+  BUILTIN_UINT8_T            = 0x16,
+  BUILTIN_UINT16_T           = 0x17,
+  BUILTIN_UINT32_T           = 0x18,
+  BUILTIN_UINT64_T           = 0x19,
+  BUILTIN_AINT               = 0x1A,
+  BUILTIN_COUNT              = 0x1B,
+  BUILTIN_OFFSET             = 0x1C,
+  BUILTIN_FLOAT_INT          = 0x1D,
+  BUILTIN_DOUBLE_INT         = 0x1E,
+  BUILTIN_LONG_INT           = 0x1F,
+  BUILTIN_SHORT_INT          = 0x20,
+  BUILTIN_2INT               = 0x21,
+  BUILTIN_LONG_DOUBLE_INT    = 0x22,
 
   // Derived combiners (0x40 - 0xFE)
-  COMBINER_DUP = 0x40,
-  COMBINER_CONTIGUOUS = 0x41,
-  COMBINER_VECTOR = 0x42,
-  COMBINER_HVECTOR = 0x43,
-  COMBINER_INDEXED = 0x44,
-  COMBINER_HINDEXED = 0x45,
-  COMBINER_INDEXED_BLOCK = 0x46,
+  COMBINER_DUP            = 0x40,
+  COMBINER_CONTIGUOUS     = 0x41,
+  COMBINER_VECTOR         = 0x42,
+  COMBINER_HVECTOR        = 0x43,
+  COMBINER_INDEXED        = 0x44,
+  COMBINER_HINDEXED       = 0x45,
+  COMBINER_INDEXED_BLOCK  = 0x46,
   COMBINER_HINDEXED_BLOCK = 0x47,
-  COMBINER_STRUCT = 0x48,
-  COMBINER_SUBARRAY = 0x49,
-  COMBINER_DARRAY = 0x4A,
-  COMBINER_RESIZED = 0x4B,
+  COMBINER_STRUCT         = 0x48,
+  COMBINER_SUBARRAY       = 0x49,
+  COMBINER_DARRAY         = 0x4A,
+  COMBINER_RESIZED        = 0x4B,
 };
 
 // Lookup table for bidirectional mapping between MPI_Datatype and TypeCombiner
@@ -177,7 +177,7 @@ TypeCombiner mpi_combiner_to_enum(int mpi_combiner) {
 Datatype& Datatype::operator=(Datatype&& other) noexcept {
   if (this != &other) {
     free();
-    type_ = other.type_;
+    type_       = other.type_;
     other.type_ = MPI_DATATYPE_NULL;
   }
   return *this;
@@ -185,33 +185,28 @@ Datatype& Datatype::operator=(Datatype&& other) noexcept {
 
 MPI_Datatype Datatype::release() noexcept {
   MPI_Datatype tmp = type_;
-  type_ = MPI_DATATYPE_NULL;
+  type_            = MPI_DATATYPE_NULL;
   return tmp;
 }
 
 // ========== Builtin Type Detection ==========
 
 bool Datatype::is_builtin_type(MPI_Datatype type) noexcept {
-  if (type == MPI_DATATYPE_NULL)
-    return false;
-  if (!mpi_active())
-    return false;
+  if (type == MPI_DATATYPE_NULL) return false;
+  if (!mpi_active()) return false;
 
   int num_integers, num_addresses, num_datatypes, combiner;
   int err = MPI_Type_get_envelope(
     type, &num_integers, &num_addresses, &num_datatypes, &combiner
   );
 
-  if (err != MPI_SUCCESS)
-    return false;
+  if (err != MPI_SUCCESS) return false;
 
   // MPI_COMBINER_NAMED indicates a builtin/predefined type
   return combiner == MPI_COMBINER_NAMED;
 }
 
-bool Datatype::is_builtin() const noexcept {
-  return is_builtin_type(type_);
-}
+bool Datatype::is_builtin() const noexcept { return is_builtin_type(type_); }
 
 void Datatype::free() {
   if (type_ != MPI_DATATYPE_NULL && mpi_active() && !is_builtin()) {
@@ -285,7 +280,8 @@ Datatype Datatype::hvector(
   int count, int blocklength, MPI_Aint stride, MPI_Datatype oldtype
 ) {
   MPI_Datatype newtype;
-  int err = MPI_Type_create_hvector(count, blocklength, stride, oldtype, &newtype);
+  int err =
+    MPI_Type_create_hvector(count, blocklength, stride, oldtype, &newtype);
   if (err != MPI_SUCCESS) {
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -293,10 +289,8 @@ Datatype Datatype::hvector(
 }
 
 Datatype Datatype::indexed(
-  int count,
-  const int* array_of_blocklengths,
-  const int* array_of_displacements,
-  MPI_Datatype oldtype
+  int count, const int* array_of_blocklengths,
+  const int* array_of_displacements, MPI_Datatype oldtype
 ) {
   MPI_Datatype newtype;
   int err = MPI_Type_indexed(
@@ -309,10 +303,8 @@ Datatype Datatype::indexed(
 }
 
 Datatype Datatype::hindexed(
-  int count,
-  const int* array_of_blocklengths,
-  const MPI_Aint* array_of_displacements,
-  MPI_Datatype oldtype
+  int count, const int* array_of_blocklengths,
+  const MPI_Aint* array_of_displacements, MPI_Datatype oldtype
 ) {
   MPI_Datatype newtype;
   int err = MPI_Type_create_hindexed(
@@ -325,7 +317,8 @@ Datatype Datatype::hindexed(
 }
 
 Datatype Datatype::indexed_block(
-  int count, int blocklength, const int* array_of_displacements, MPI_Datatype oldtype
+  int count, int blocklength, const int* array_of_displacements,
+  MPI_Datatype oldtype
 ) {
   MPI_Datatype newtype;
   int err = MPI_Type_create_indexed_block(
@@ -338,9 +331,7 @@ Datatype Datatype::indexed_block(
 }
 
 Datatype Datatype::hindexed_block(
-  int count,
-  int blocklength,
-  const MPI_Aint* array_of_displacements,
+  int count, int blocklength, const MPI_Aint* array_of_displacements,
   MPI_Datatype oldtype
 ) {
   MPI_Datatype newtype;
@@ -354,14 +345,13 @@ Datatype Datatype::hindexed_block(
 }
 
 Datatype Datatype::create_struct(
-  int count,
-  const int* array_of_blocklengths,
-  const MPI_Aint* array_of_displacements,
-  const MPI_Datatype* array_of_types
+  int count, const int* array_of_blocklengths,
+  const MPI_Aint* array_of_displacements, const MPI_Datatype* array_of_types
 ) {
   MPI_Datatype newtype;
   int err = MPI_Type_create_struct(
-    count, array_of_blocklengths, array_of_displacements, array_of_types, &newtype
+    count, array_of_blocklengths, array_of_displacements, array_of_types,
+    &newtype
   );
   if (err != MPI_SUCCESS) {
     FENIX_THROW(FENIX_ERROR_INTERN);
@@ -370,21 +360,12 @@ Datatype Datatype::create_struct(
 }
 
 Datatype Datatype::subarray(
-  int ndims,
-  const int* array_of_sizes,
-  const int* array_of_subsizes,
-  const int* array_of_starts,
-  int order,
-  MPI_Datatype oldtype
+  int ndims, const int* array_of_sizes, const int* array_of_subsizes,
+  const int* array_of_starts, int order, MPI_Datatype oldtype
 ) {
   MPI_Datatype newtype;
   int err = MPI_Type_create_subarray(
-    ndims,
-    array_of_sizes,
-    array_of_subsizes,
-    array_of_starts,
-    order,
-    oldtype,
+    ndims, array_of_sizes, array_of_subsizes, array_of_starts, order, oldtype,
     &newtype
   );
   if (err != MPI_SUCCESS) {
@@ -394,28 +375,14 @@ Datatype Datatype::subarray(
 }
 
 Datatype Datatype::darray(
-  int size,
-  int rank,
-  int ndims,
-  const int* array_of_gsizes,
-  const int* array_of_distribs,
-  const int* array_of_dargs,
-  const int* array_of_psizes,
-  int order,
-  MPI_Datatype oldtype
+  int size, int rank, int ndims, const int* array_of_gsizes,
+  const int* array_of_distribs, const int* array_of_dargs,
+  const int* array_of_psizes, int order, MPI_Datatype oldtype
 ) {
   MPI_Datatype newtype;
   int err = MPI_Type_create_darray(
-    size,
-    rank,
-    ndims,
-    array_of_gsizes,
-    array_of_distribs,
-    array_of_dargs,
-    array_of_psizes,
-    order,
-    oldtype,
-    &newtype
+    size, rank, ndims, array_of_gsizes, array_of_distribs, array_of_dargs,
+    array_of_psizes, order, oldtype, &newtype
   );
   if (err != MPI_SUCCESS) {
     FENIX_THROW(FENIX_ERROR_INTERN);
@@ -470,13 +437,8 @@ Datatype::TypeInfo Datatype::introspect(MPI_Datatype type) {
   // Get contents
   if (num_ints > 0 || num_addrs > 0 || num_dtypes > 0) {
     err = MPI_Type_get_contents(
-      type,
-      num_ints,
-      num_addrs,
-      num_dtypes,
-      info.integers.data(),
-      info.addresses.data(),
-      info.datatypes.data()
+      type, num_ints, num_addrs, num_dtypes, info.integers.data(),
+      info.addresses.data(), info.datatypes.data()
     );
     if (err != MPI_SUCCESS) {
       FENIX_THROW(FENIX_ERROR_INTERN);
@@ -489,12 +451,11 @@ Datatype::TypeInfo Datatype::introspect(MPI_Datatype type) {
 // Helper to write value to buffer with optional type conversion
 // SerialT: the type to serialize as (e.g., int32_t, int64_t)
 // SrcT: the source value type (deduced, e.g., int, MPI_Aint)
-template<typename SerialT, typename SrcT = SerialT>
+template <typename SerialT, typename SrcT = SerialT>
 void write_val(std::vector<uint8_t>& buffer, SrcT value) {
   SerialT serialized = static_cast<SerialT>(value);
   buffer.insert(
-    buffer.end(),
-    reinterpret_cast<const uint8_t*>(&serialized),
+    buffer.end(), reinterpret_cast<const uint8_t*>(&serialized),
     reinterpret_cast<const uint8_t*>(&serialized) + sizeof(SerialT)
   );
 }
@@ -502,7 +463,7 @@ void write_val(std::vector<uint8_t>& buffer, SrcT value) {
 // Helper to read value from buffer with optional type conversion
 // SerialT: the type to deserialize from (e.g., int32_t, int64_t)
 // DstT: the destination value type (defaults to SerialT)
-template<typename SerialT, typename DstT = SerialT>
+template <typename SerialT, typename DstT = SerialT>
 DstT read_val(const uint8_t*& ptr, const uint8_t* end) {
   if (ptr + sizeof(SerialT) > end) {
     FENIX_THROW("Unexpected end of serialized datatype buffer");
@@ -516,7 +477,7 @@ DstT read_val(const uint8_t*& ptr, const uint8_t* end) {
 // Helper to write array to buffer with automatic type conversion
 // SerialT: the type to serialize as (e.g., int32_t, int64_t)
 // SrcT: the source array type (e.g., int, MPI_Aint)
-template<typename SerialT, typename SrcT>
+template <typename SerialT, typename SrcT>
 void write_array(std::vector<uint8_t>& buffer, const SrcT* values, int count) {
   for (int i = 0; i < count; ++i) {
     write_val<SerialT>(buffer, values[i]);
@@ -526,8 +487,10 @@ void write_array(std::vector<uint8_t>& buffer, const SrcT* values, int count) {
 // Helper to read array from buffer with automatic type conversion
 // SerialT: the type to deserialize from (e.g., int32_t, int64_t)
 // DstT: the destination array type (e.g., int, MPI_Aint)
-template<typename SerialT, typename DstT>
-void read_array(const uint8_t*& ptr, const uint8_t* end, DstT* values, int count) {
+template <typename SerialT, typename DstT>
+void read_array(
+  const uint8_t*& ptr, const uint8_t* end, DstT* values, int count
+) {
   for (int i = 0; i < count; ++i) {
     values[i] = read_val<SerialT, DstT>(ptr, end);
   }
@@ -536,14 +499,18 @@ void read_array(const uint8_t*& ptr, const uint8_t* end, DstT* values, int count
 // Helper to read array from buffer and return as vector
 // DstT: the destination element type (e.g., int, MPI_Aint)
 // SerialT: the type to deserialize from (e.g., int32_t, int64_t)
-template<typename DstT, typename SerialT>
-std::vector<DstT> read_vector(const uint8_t*& ptr, const uint8_t* end, int count) {
+template <typename DstT, typename SerialT>
+std::vector<DstT> read_vector(
+  const uint8_t*& ptr, const uint8_t* end, int count
+) {
   std::vector<DstT> result(count);
   read_array<SerialT>(ptr, end, result.data(), count);
   return result;
 }
 
-void Datatype::serialize_recursive(MPI_Datatype type, std::vector<uint8_t>& buffer) {
+void Datatype::serialize_recursive(
+  MPI_Datatype type, std::vector<uint8_t>& buffer
+) {
   // Handle MPI_DATATYPE_NULL specially
   if (type == MPI_DATATYPE_NULL) {
     buffer.push_back(static_cast<uint8_t>(detail::TypeCombiner::DATATYPE_NULL));
@@ -608,7 +575,7 @@ void Datatype::serialize_recursive(MPI_Datatype type, std::vector<uint8_t>& buff
 std::vector<uint8_t> Datatype::serialize() const {
   fenix_assert(mpi_active(), "MPI not initialized");
   std::vector<uint8_t> buffer;
-  uint32_t magic = 0x46445450;  // 'FDTP'
+  uint32_t magic = 0x46445450; // 'FDTP'
   write_val<uint32_t>(buffer, magic);
   serialize_recursive(type_, buffer);
   return buffer;
@@ -616,7 +583,9 @@ std::vector<uint8_t> Datatype::serialize() const {
 
 // ========== Deserialization ==========
 
-Datatype Datatype::deserialize_recursive(const uint8_t*& ptr, const uint8_t* end) {
+Datatype Datatype::deserialize_recursive(
+  const uint8_t*& ptr, const uint8_t* end
+) {
   if (ptr >= end) {
     FENIX_THROW("Unexpected end of serialized datatype buffer");
   }
@@ -642,62 +611,72 @@ Datatype Datatype::deserialize_recursive(const uint8_t*& ptr, const uint8_t* end
   }
 
   case detail::TypeCombiner::COMBINER_CONTIGUOUS: {
-    int32_t count = read_val<int32_t>(ptr, end);
+    int32_t count  = read_val<int32_t>(ptr, end);
     Datatype child = deserialize_recursive(ptr, end);
     return Datatype::contiguous(count, child);
   }
 
   case detail::TypeCombiner::COMBINER_VECTOR: {
-    int32_t count = read_val<int32_t>(ptr, end);
+    int32_t count       = read_val<int32_t>(ptr, end);
     int32_t blocklength = read_val<int32_t>(ptr, end);
-    int32_t stride = read_val<int32_t>(ptr, end);
-    Datatype child = deserialize_recursive(ptr, end);
+    int32_t stride      = read_val<int32_t>(ptr, end);
+    Datatype child      = deserialize_recursive(ptr, end);
     return Datatype::vector(count, blocklength, stride, child);
   }
 
   case detail::TypeCombiner::COMBINER_HVECTOR: {
-    int32_t count = read_val<int32_t>(ptr, end);
+    int32_t count       = read_val<int32_t>(ptr, end);
     int32_t blocklength = read_val<int32_t>(ptr, end);
-    int64_t stride = read_val<int64_t>(ptr, end);
-    Datatype child = deserialize_recursive(ptr, end);
-    return Datatype::hvector(count, blocklength, static_cast<MPI_Aint>(stride), child);
+    int64_t stride      = read_val<int64_t>(ptr, end);
+    Datatype child      = deserialize_recursive(ptr, end);
+    return Datatype::hvector(
+      count, blocklength, static_cast<MPI_Aint>(stride), child
+    );
   }
 
   case detail::TypeCombiner::COMBINER_INDEXED: {
-    int32_t count = read_val<int32_t>(ptr, end);
-    auto blocklengths = read_vector<int, int32_t>(ptr, end, count);
+    int32_t count      = read_val<int32_t>(ptr, end);
+    auto blocklengths  = read_vector<int, int32_t>(ptr, end, count);
     auto displacements = read_vector<int, int32_t>(ptr, end, count);
-    Datatype child = deserialize_recursive(ptr, end);
-    return Datatype::indexed(count, blocklengths.data(), displacements.data(), child);
+    Datatype child     = deserialize_recursive(ptr, end);
+    return Datatype::indexed(
+      count, blocklengths.data(), displacements.data(), child
+    );
   }
 
   case detail::TypeCombiner::COMBINER_HINDEXED: {
-    int32_t count = read_val<int32_t>(ptr, end);
-    auto blocklengths = read_vector<int, int32_t>(ptr, end, count);
+    int32_t count      = read_val<int32_t>(ptr, end);
+    auto blocklengths  = read_vector<int, int32_t>(ptr, end, count);
     auto displacements = read_vector<MPI_Aint, int64_t>(ptr, end, count);
-    Datatype child = deserialize_recursive(ptr, end);
-    return Datatype::hindexed(count, blocklengths.data(), displacements.data(), child);
+    Datatype child     = deserialize_recursive(ptr, end);
+    return Datatype::hindexed(
+      count, blocklengths.data(), displacements.data(), child
+    );
   }
 
   case detail::TypeCombiner::COMBINER_INDEXED_BLOCK: {
-    int32_t count = read_val<int32_t>(ptr, end);
+    int32_t count       = read_val<int32_t>(ptr, end);
     int32_t blocklength = read_val<int32_t>(ptr, end);
-    auto displacements = read_vector<int, int32_t>(ptr, end, count);
-    Datatype child = deserialize_recursive(ptr, end);
-    return Datatype::indexed_block(count, blocklength, displacements.data(), child);
+    auto displacements  = read_vector<int, int32_t>(ptr, end, count);
+    Datatype child      = deserialize_recursive(ptr, end);
+    return Datatype::indexed_block(
+      count, blocklength, displacements.data(), child
+    );
   }
 
   case detail::TypeCombiner::COMBINER_HINDEXED_BLOCK: {
-    int32_t count = read_val<int32_t>(ptr, end);
+    int32_t count       = read_val<int32_t>(ptr, end);
     int32_t blocklength = read_val<int32_t>(ptr, end);
-    auto displacements = read_vector<MPI_Aint, int64_t>(ptr, end, count);
-    Datatype child = deserialize_recursive(ptr, end);
-    return Datatype::hindexed_block(count, blocklength, displacements.data(), child);
+    auto displacements  = read_vector<MPI_Aint, int64_t>(ptr, end, count);
+    Datatype child      = deserialize_recursive(ptr, end);
+    return Datatype::hindexed_block(
+      count, blocklength, displacements.data(), child
+    );
   }
 
   case detail::TypeCombiner::COMBINER_STRUCT: {
-    int32_t count = read_val<int32_t>(ptr, end);
-    auto blocklengths = read_vector<int, int32_t>(ptr, end, count);
+    int32_t count      = read_val<int32_t>(ptr, end);
+    auto blocklengths  = read_vector<int, int32_t>(ptr, end, count);
     auto displacements = read_vector<MPI_Aint, int64_t>(ptr, end, count);
     std::vector<Datatype> children;
     children.reserve(count);
@@ -708,45 +687,51 @@ Datatype Datatype::deserialize_recursive(const uint8_t*& ptr, const uint8_t* end
     for (int i = 0; i < count; i++) {
       types[i] = children[i];
     }
-    return Datatype::create_struct(count, blocklengths.data(), displacements.data(), types.data());
+    return Datatype::create_struct(
+      count, blocklengths.data(), displacements.data(), types.data()
+    );
   }
 
   case detail::TypeCombiner::COMBINER_SUBARRAY: {
-    int32_t ndims = read_val<int32_t>(ptr, end);
-    auto sizes = read_vector<int, int32_t>(ptr, end, ndims);
-    auto subsizes = read_vector<int, int32_t>(ptr, end, ndims);
-    auto starts = read_vector<int, int32_t>(ptr, end, ndims);
-    int32_t order = read_val<int32_t>(ptr, end);
+    int32_t ndims  = read_val<int32_t>(ptr, end);
+    auto sizes     = read_vector<int, int32_t>(ptr, end, ndims);
+    auto subsizes  = read_vector<int, int32_t>(ptr, end, ndims);
+    auto starts    = read_vector<int, int32_t>(ptr, end, ndims);
+    int32_t order  = read_val<int32_t>(ptr, end);
     Datatype child = deserialize_recursive(ptr, end);
-    return Datatype::subarray(ndims, sizes.data(), subsizes.data(), starts.data(), order, child);
+    return Datatype::subarray(
+      ndims, sizes.data(), subsizes.data(), starts.data(), order, child
+    );
   }
 
   case detail::TypeCombiner::COMBINER_DARRAY: {
-    int32_t size = read_val<int32_t>(ptr, end);
-    int32_t rank = read_val<int32_t>(ptr, end);
-    int32_t ndims = read_val<int32_t>(ptr, end);
-    auto gsizes = read_vector<int, int32_t>(ptr, end, ndims);
-    auto distribs = read_vector<int, int32_t>(ptr, end, ndims);
-    auto dargs = read_vector<int, int32_t>(ptr, end, ndims);
-    auto psizes = read_vector<int, int32_t>(ptr, end, ndims);
-    int32_t order = read_val<int32_t>(ptr, end);
+    int32_t size   = read_val<int32_t>(ptr, end);
+    int32_t rank   = read_val<int32_t>(ptr, end);
+    int32_t ndims  = read_val<int32_t>(ptr, end);
+    auto gsizes    = read_vector<int, int32_t>(ptr, end, ndims);
+    auto distribs  = read_vector<int, int32_t>(ptr, end, ndims);
+    auto dargs     = read_vector<int, int32_t>(ptr, end, ndims);
+    auto psizes    = read_vector<int, int32_t>(ptr, end, ndims);
+    int32_t order  = read_val<int32_t>(ptr, end);
     Datatype child = deserialize_recursive(ptr, end);
     return Datatype::darray(
-      size, rank, ndims, gsizes.data(), distribs.data(),
-      dargs.data(), psizes.data(), order, child
+      size, rank, ndims, gsizes.data(), distribs.data(), dargs.data(),
+      psizes.data(), order, child
     );
   }
 
   case detail::TypeCombiner::COMBINER_RESIZED: {
-    int64_t lb = read_val<int64_t>(ptr, end);
+    int64_t lb     = read_val<int64_t>(ptr, end);
     int64_t extent = read_val<int64_t>(ptr, end);
     Datatype child = deserialize_recursive(ptr, end);
-    return Datatype::resized(child, static_cast<MPI_Aint>(lb), static_cast<MPI_Aint>(extent));
+    return Datatype::resized(
+      child, static_cast<MPI_Aint>(lb), static_cast<MPI_Aint>(extent)
+    );
   }
 
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
-    return Datatype(MPI_DATATYPE_NULL);  // Unreachable
+    return Datatype(MPI_DATATYPE_NULL); // Unreachable
   }
 }
 

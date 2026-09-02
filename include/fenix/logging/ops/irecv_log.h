@@ -35,7 +35,7 @@ struct IrecvLog {
   operator bool() const { return request != nullptr; }
   std::string str() const {
     return "Recv 0x" + std::to_string((uintptr_t)request) + " (tag " +
-           std::to_string(tag) + ")";
+      std::to_string(tag) + ")";
   }
 };
 

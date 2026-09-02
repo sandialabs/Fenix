@@ -71,7 +71,8 @@ DataMember::DataMember(
   DataGroup& g, int id, void* d, int c, MPI_Datatype dt, int depth,
   std::optional<SerializeFunc> s
 )
-  : memberid(id), datatype_(mpixx::Datatype::dup(dt)), depth_(depth), group(&g) {
+  : memberid(id), datatype_(mpixx::Datatype::dup(dt)), depth_(depth),
+    group(&g) {
   int dsize = datatype_.extent();
   if (c == FENIX_RESIZEABLE) user_data = DataRef((char*)d);
   else user_data = DataRef((char*)d, c * dsize);
@@ -100,8 +101,12 @@ void DataMember::init_snapshots() {
 
 DataMember::DataMember(DataGroup& g, const DataBuffer& buf, int depth)
   : depth_(depth), group(&g) {
-  // Deserialize: memberid (int), current_count (int), datatype_size (int), datatype_data
-  fenix_assert(buf.size() >= sizeof(int) * 3, "Buffer too small for DataMember deserialization");
+  // Deserialize: memberid (int), current_count (int), datatype_size (int),
+  // datatype_data
+  fenix_assert(
+    buf.size() >= sizeof(int) * 3,
+    "Buffer too small for DataMember deserialization"
+  );
 
   int offset = 0;
   std::memcpy(&memberid, buf.data() + offset, sizeof(int));
@@ -115,7 +120,9 @@ DataMember::DataMember(DataGroup& g, const DataBuffer& buf, int depth)
   std::memcpy(&dt_size, buf.data() + offset, sizeof(int));
   offset += sizeof(int);
 
-  fenix_assert(buf.size() >= offset + dt_size, "Buffer too small for datatype data");
+  fenix_assert(
+    buf.size() >= offset + dt_size, "Buffer too small for datatype data"
+  );
 
   // Deserialize datatype (cast to uint8_t* as required)
   datatype_ = mpixx::Datatype::deserialize(
@@ -160,7 +167,8 @@ DataMember::DataMember(DataMember&& o) {
 }
 
 DataBuffer DataMember::serialize() const {
-  // Serialize: memberid (int), current_count (int), datatype_size (int), datatype_data
+  // Serialize: memberid (int), current_count (int), datatype_size (int),
+  // datatype_data
   auto dt_buf = datatype_.serialize();
 
   size_t total_size = sizeof(int) * 3 + dt_buf.size();
@@ -247,7 +255,9 @@ void DataMember::stage_end() {
 
   DataSnapshot& snap = *stage_snapshot_;
   fenix_assert(snap.buf().size() % datatype_.extent() == 0);
-  snap.add_and_fit(DataSubset({0, (snap.buf().size() / datatype_.extent()) - 1}));
+  snap.add_and_fit(
+    DataSubset({0, (snap.buf().size() / datatype_.extent()) - 1})
+  );
 }
 
 void DataMember::load_begin(FILE** fp, int timestamp, DataSubset& subset) {
@@ -280,7 +290,9 @@ void DataMember::load_end() {
 void DataMember::load(
   void* target, int target_count, int timestamp, DataSubset& data_found
 ) {
-  DataRef dst{(char*)target, static_cast<size_t>(target_count * datatype_.extent())};
+  DataRef dst{
+    (char*)target, static_cast<size_t>(target_count * datatype_.extent())
+  };
   if (target == FENIX_DATA_RESTORE_INPLACE)
     dst = {user_data.data(), dst.size()};
   if (target_count == FENIX_DATA_RESTORE_FULL) dst = {dst.data()};

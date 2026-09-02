@@ -133,9 +133,8 @@ static int preinit(
     fenix_rt.num_initial_ranks = fenix_rt.new_world.size();
     if (fenix_rt.options.verbose == 0) {
       verbose_print(
-        "rank: %d, role: %d, number_initial_ranks: %d\n",
-        fenix_rt.world.rank(), fenix_rt.role,
-        fenix_rt.num_initial_ranks
+        "rank: %d, role: %d, number_initial_ranks: %d\n", fenix_rt.world.rank(),
+        fenix_rt.role, fenix_rt.num_initial_ranks
       );
     }
 
@@ -144,9 +143,8 @@ static int preinit(
 
     if (fenix_rt.options.verbose == 0) {
       verbose_print(
-        "rank: %d, role: %d, number_initial_ranks: %d\n",
-        fenix_rt.world.rank(), fenix_rt.role,
-        fenix_rt.num_initial_ranks
+        "rank: %d, role: %d, number_initial_ranks: %d\n", fenix_rt.world.rank(),
+        fenix_rt.role, fenix_rt.num_initial_ranks
       );
     }
   }
@@ -162,7 +160,7 @@ static int preinit(
   }
 
   if (fenix_rt.role != FENIX_ROLE_RECOVERED_RANK) {
-    fenix_rt.user_world = fenix_rt.new_world.dup();
+    fenix_rt.user_world      = fenix_rt.new_world.dup();
     *fenix_rt.user_world_ptr = fenix_rt.user_world;
   }
 
@@ -247,9 +245,7 @@ void spare_rank_loop() {
 #ifdef MPICH_VERSION
       MPIX_Comm_failure_ack(fenix_rt.world);
 #else
-      MPIX_Comm_ack_failed(
-        fenix_rt.world, fenix_rt.world.size(), &a
-      );
+      MPIX_Comm_ack_failed(fenix_rt.world, fenix_rt.world.size(), &a);
 #endif
     }
   }
@@ -276,25 +272,19 @@ int __fenix_create_new_world_from(mpixx::CommRef from_comm) {
     /*************************************************************************/
 
     if (fenix_rt.options.verbose == 1) {
-      verbose_print(
-        "rank: %d, role: %d\n", from_comm.rank(),
-        fenix_rt.role
-      );
+      verbose_print("rank: %d, role: %d\n", from_comm.rank(), fenix_rt.role);
     }
 
     fenix_rt.new_world = from_comm.split(MPI_UNDEFINED, current_rank);
     // Spares always report success
-    local_result = FENIX_SUCCESS;
+    local_result       = FENIX_SUCCESS;
 
   } else {
 
     int current_rank = from_comm.rank();
 
     if (fenix_rt.options.verbose == 1) {
-      verbose_print(
-        "rank: %d, role: %d\n", from_comm.rank(),
-        fenix_rt.role
-      );
+      verbose_print("rank: %d, role: %d\n", from_comm.rank(), fenix_rt.role);
     }
 
     fenix_rt.new_world = from_comm.split(0, current_rank);
@@ -665,7 +655,7 @@ int __fenix_repair_ranks() {
     num_try++;
   }
 
-  fenix_rt.world = std::move(fixed_world);
+  fenix_rt.world           = std::move(fixed_world);
   *fenix_rt.user_world_ptr = fenix_rt.user_world;
   return rt_code;
 }
@@ -753,9 +743,7 @@ void __fenix_finalize_spare() {
       );
     }
     if (ret != MPI_SUCCESS) {
-      MPIX_Comm_ack_failed(
-        fenix_rt.world, fenix_rt.world.size(), &unused
-      );
+      MPIX_Comm_ack_failed(fenix_rt.world, fenix_rt.world.size(), &unused);
     }
   }
 
@@ -887,8 +875,8 @@ void __fenix_postinit() {
 
   if (fenix_rt.options.verbose == 9) {
     verbose_print(
-      "After barrier. current_rank: %d, role: %d\n",
-      fenix_rt.new_world.rank(), fenix_rt.role
+      "After barrier. current_rank: %d, role: %d\n", fenix_rt.new_world.rank(),
+      fenix_rt.role
     );
   }
 }

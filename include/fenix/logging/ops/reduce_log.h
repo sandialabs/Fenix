@@ -47,7 +47,7 @@ class ReduceLog : public CollectiveLog {
 
   std::string str() const override {
     return "Reduce " + std::to_string(m_idx) +
-           " (root = " + std::to_string(root) + ")";
+      " (root = " + std::to_string(root) + ")";
   }
 
   int begin(MPI_Comm c) const override {

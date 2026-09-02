@@ -15,29 +15,20 @@ void verify_type_properties(
   MPI_Type_size(original, &orig_size);
   MPI_Type_size(reconstructed, &recon_size);
   fenix_require(
-    orig_size == recon_size,
-    "%s: size mismatch (orig=%d, recon=%d)",
-    test_name,
-    orig_size,
-    recon_size
+    orig_size == recon_size, "%s: size mismatch (orig=%d, recon=%d)", test_name,
+    orig_size, recon_size
   );
 
   MPI_Aint orig_lb, orig_extent, recon_lb, recon_extent;
   MPI_Type_get_extent(original, &orig_lb, &orig_extent);
   MPI_Type_get_extent(reconstructed, &recon_lb, &recon_extent);
   fenix_require(
-    orig_lb == recon_lb,
-    "%s: lower bound mismatch (orig=%ld, recon=%ld)",
-    test_name,
-    (long)orig_lb,
-    (long)recon_lb
+    orig_lb == recon_lb, "%s: lower bound mismatch (orig=%ld, recon=%ld)",
+    test_name, (long)orig_lb, (long)recon_lb
   );
   fenix_require(
-    orig_extent == recon_extent,
-    "%s: extent mismatch (orig=%ld, recon=%ld)",
-    test_name,
-    (long)orig_extent,
-    (long)recon_extent
+    orig_extent == recon_extent, "%s: extent mismatch (orig=%ld, recon=%ld)",
+    test_name, (long)orig_extent, (long)recon_extent
   );
 }
 
@@ -48,10 +39,8 @@ void test_builtin_types(int rank) {
   }
 
   // Test various builtin types
-  MPI_Datatype builtins[] = {
-    MPI_INT, MPI_DOUBLE, MPI_FLOAT, MPI_CHAR, MPI_LONG, MPI_UNSIGNED,
-    MPI_BYTE, MPI_PACKED
-  };
+  MPI_Datatype builtins[] = {MPI_INT,  MPI_DOUBLE,   MPI_FLOAT, MPI_CHAR,
+                             MPI_LONG, MPI_UNSIGNED, MPI_BYTE,  MPI_PACKED};
 
   for (auto builtin : builtins) {
     Datatype dt(builtin);
@@ -92,11 +81,12 @@ void test_contiguous(int rank) {
 
   fenix_require(!contig.is_builtin(), "Contiguous type should not be builtin");
   fenix_require(
-    contig.size() == 10 * sizeof(double), "Contiguous type size should be correct"
+    contig.size() == 10 * sizeof(double),
+    "Contiguous type size should be correct"
   );
 
   // Serialize and deserialize
-  auto buffer = contig.serialize();
+  auto buffer            = contig.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -111,10 +101,13 @@ void test_contiguous(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 0, MPI_COMM_WORLD);
   } else if (rank == 1) {
     double recv_data[10] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     for (int i = 0; i < 10; i++) {
       fenix_require(
-        recv_data[i] == i * 1.5, "Contiguous: received data mismatch at index %d", i
+        recv_data[i] == i * 1.5,
+        "Contiguous: received data mismatch at index %d", i
       );
     }
   }
@@ -137,7 +130,7 @@ void test_vector(int rank) {
   fenix_require(!vec.is_builtin(), "Vector type should not be builtin");
 
   // Serialize and deserialize
-  auto buffer = vec.serialize();
+  auto buffer            = vec.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -149,11 +142,19 @@ void test_vector(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 1, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[12] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     // Should receive: 1,2,x,x,3,4,x,x,5,6,x,x (only indices 0,1,4,5,8,9)
-    fenix_require(recv_data[0] == 1 && recv_data[1] == 2, "Vector: block 0 mismatch");
-    fenix_require(recv_data[4] == 3 && recv_data[5] == 4, "Vector: block 1 mismatch");
-    fenix_require(recv_data[8] == 5 && recv_data[9] == 6, "Vector: block 2 mismatch");
+    fenix_require(
+      recv_data[0] == 1 && recv_data[1] == 2, "Vector: block 0 mismatch"
+    );
+    fenix_require(
+      recv_data[4] == 3 && recv_data[5] == 4, "Vector: block 1 mismatch"
+    );
+    fenix_require(
+      recv_data[8] == 5 && recv_data[9] == 6, "Vector: block 2 mismatch"
+    );
   }
 
   if (rank == 0) {
@@ -168,13 +169,13 @@ void test_indexed(int rank) {
   }
 
   // Create indexed: blocks at different offsets
-  int blocklengths[3] = {2, 3, 1};
+  int blocklengths[3]  = {2, 3, 1};
   int displacements[3] = {0, 3, 8};
   Datatype indexed = Datatype::indexed(3, blocklengths, displacements, MPI_INT);
   indexed.commit();
 
   // Serialize and deserialize
-  auto buffer = indexed.serialize();
+  auto buffer            = indexed.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -186,7 +187,9 @@ void test_indexed(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 2, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[10] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     fenix_require(
       recv_data[0] == 10 && recv_data[1] == 20, "Indexed: block 0 mismatch"
     );
@@ -217,16 +220,17 @@ void test_struct(int rank) {
 
   int blocklengths[3] = {1, 1, 3};
   MPI_Aint displacements[3];
-  displacements[0] = offsetof(TestStruct, a);
-  displacements[1] = offsetof(TestStruct, b);
-  displacements[2] = offsetof(TestStruct, c);
+  displacements[0]      = offsetof(TestStruct, a);
+  displacements[1]      = offsetof(TestStruct, b);
+  displacements[2]      = offsetof(TestStruct, c);
   MPI_Datatype types[3] = {MPI_INT, MPI_DOUBLE, MPI_CHAR};
 
-  Datatype struct_type = Datatype::create_struct(3, blocklengths, displacements, types);
+  Datatype struct_type =
+    Datatype::create_struct(3, blocklengths, displacements, types);
   struct_type.commit();
 
   // Serialize and deserialize
-  auto buffer = struct_type.serialize();
+  auto buffer            = struct_type.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -238,7 +242,9 @@ void test_struct(int rank) {
     MPI_Send(&send_val, 1, reconstructed, 1, 3, MPI_COMM_WORLD);
   } else if (rank == 1) {
     TestStruct recv_val = {0, 0.0, {0, 0, 0}};
-    MPI_Recv(&recv_val, 1, reconstructed, 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      &recv_val, 1, reconstructed, 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     fenix_require(recv_val.a == 42, "Struct: int field mismatch");
     fenix_require(
       recv_val.b > 3.14 && recv_val.b < 3.15, "Struct: double field mismatch"
@@ -269,7 +275,7 @@ void test_nested_types(int rank) {
   nested.commit();
 
   // Serialize and deserialize
-  auto buffer = nested.serialize();
+  auto buffer            = nested.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -282,7 +288,9 @@ void test_nested_types(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 4, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[12] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     fenix_require(
       recv_data[0] == 1 && recv_data[1] == 2, "Nested: pair 0 mismatch"
     );
@@ -315,21 +323,19 @@ void test_resized(int rank) {
 
   // Resize to have extent of 5 ints (adds padding)
   MPI_Aint new_extent = 5 * sizeof(int);
-  Datatype resized = Datatype::resized(base, 0, new_extent);
+  Datatype resized    = Datatype::resized(base, 0, new_extent);
   resized.commit();
 
   // Verify new extent
   MPI_Aint new_lb, actual_extent;
   resized.get_extent(&new_lb, &actual_extent);
   fenix_require(
-    actual_extent == new_extent,
-    "Resized: extent should be %ld, got %ld",
-    (long)new_extent,
-    (long)actual_extent
+    actual_extent == new_extent, "Resized: extent should be %ld, got %ld",
+    (long)new_extent, (long)actual_extent
   );
 
   // Serialize and deserialize
-  auto buffer = resized.serialize();
+  auto buffer            = resized.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -342,7 +348,9 @@ void test_resized(int rank) {
     MPI_Send(send_data, 2, reconstructed, 1, 5, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[10] = {0};
-    MPI_Recv(recv_data, 2, reconstructed, 0, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 2, reconstructed, 0, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     fenix_require(
       recv_data[0] == 1 && recv_data[1] == 2 && recv_data[2] == 3,
       "Resized: first instance mismatch"
@@ -370,7 +378,7 @@ void test_cross_rank_serialization(int rank) {
 
   if (rank == 0) {
     // Rank 0: Create a complex type (indexed block)
-    int blocklength = 2;
+    int blocklength      = 2;
     int displacements[4] = {0, 3, 7, 10};
     dt = Datatype::indexed_block(4, blocklength, displacements, MPI_DOUBLE);
     dt.commit();
@@ -384,10 +392,8 @@ void test_cross_rank_serialization(int rank) {
     MPI_Send(buffer.data(), buffer_size, MPI_BYTE, 1, 7, MPI_COMM_WORLD);
 
     // Send test data
-    double send_data[15] = {
-      1.0, 2.0,  99,    3.0, 4.0,  99,    99,   5.0,
-      6.0, 99,   7.0,   8.0, 99,   99,    99
-    };
+    double send_data[15] = {1.0, 2.0, 99,  3.0, 4.0, 99, 99, 5.0,
+                            6.0, 99,  7.0, 8.0, 99,  99, 99};
     MPI_Send(send_data, 1, dt, 1, 8, MPI_COMM_WORLD);
   } else if (rank == 1) {
     // Rank 1: Receive and deserialize
@@ -395,7 +401,10 @@ void test_cross_rank_serialization(int rank) {
     MPI_Recv(&buffer_size, 1, MPI_INT, 0, 6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     buffer.resize(buffer_size);
-    MPI_Recv(buffer.data(), buffer_size, MPI_BYTE, 0, 7, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      buffer.data(), buffer_size, MPI_BYTE, 0, 7, MPI_COMM_WORLD,
+      MPI_STATUS_IGNORE
+    );
 
     // Deserialize
     dt = Datatype::deserialize(buffer);
@@ -414,16 +423,13 @@ void test_cross_rank_serialization(int rank) {
 
     // Verify received data
     fenix_require(
-      recv_data[0] == 1.0 && recv_data[1] == 2.0,
-      "Cross-rank: block 0 mismatch"
+      recv_data[0] == 1.0 && recv_data[1] == 2.0, "Cross-rank: block 0 mismatch"
     );
     fenix_require(
-      recv_data[3] == 3.0 && recv_data[4] == 4.0,
-      "Cross-rank: block 1 mismatch"
+      recv_data[3] == 3.0 && recv_data[4] == 4.0, "Cross-rank: block 1 mismatch"
     );
     fenix_require(
-      recv_data[7] == 5.0 && recv_data[8] == 6.0,
-      "Cross-rank: block 2 mismatch"
+      recv_data[7] == 5.0 && recv_data[8] == 6.0, "Cross-rank: block 2 mismatch"
     );
     fenix_require(
       recv_data[10] == 7.0 && recv_data[11] == 8.0,
@@ -444,11 +450,11 @@ void test_hvector(int rank) {
 
   // Create hvector: 3 blocks of 2 ints, byte stride
   MPI_Aint stride = 5 * sizeof(int); // Larger than needed
-  Datatype hvec = Datatype::hvector(3, 2, stride, MPI_INT);
+  Datatype hvec   = Datatype::hvector(3, 2, stride, MPI_INT);
   hvec.commit();
 
   // Serialize and deserialize
-  auto buffer = hvec.serialize();
+  auto buffer            = hvec.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -460,7 +466,9 @@ void test_hvector(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 9, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[15] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     fenix_require(
       recv_data[0] == 1 && recv_data[1] == 2, "Hvector: block 0 mismatch"
     );
@@ -483,13 +491,14 @@ void test_hindexed(int rank) {
     printf("TEST: Hindexed type\n");
   }
 
-  int blocklengths[2] = {3, 2};
+  int blocklengths[2]       = {3, 2};
   MPI_Aint displacements[2] = {0, 6 * sizeof(int)};
-  Datatype hindexed = Datatype::hindexed(2, blocklengths, displacements, MPI_INT);
+  Datatype hindexed =
+    Datatype::hindexed(2, blocklengths, displacements, MPI_INT);
   hindexed.commit();
 
   // Serialize and deserialize
-  auto buffer = hindexed.serialize();
+  auto buffer            = hindexed.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -501,7 +510,9 @@ void test_hindexed(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 10, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[10] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 10, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 10, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     fenix_require(
       recv_data[0] == 10 && recv_data[1] == 20 && recv_data[2] == 30,
       "Hindexed: block 0 mismatch"
@@ -523,13 +534,14 @@ void test_indexed_block(int rank) {
   }
 
   // All blocks have same length, but different displacements
-  int blocklength = 2;
+  int blocklength      = 2;
   int displacements[3] = {0, 4, 9};
-  Datatype iblock = Datatype::indexed_block(3, blocklength, displacements, MPI_INT);
+  Datatype iblock =
+    Datatype::indexed_block(3, blocklength, displacements, MPI_INT);
   iblock.commit();
 
   // Serialize and deserialize
-  auto buffer = iblock.serialize();
+  auto buffer            = iblock.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -541,15 +553,20 @@ void test_indexed_block(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 11, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[12] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    fenix_require(
-      recv_data[0] == 10 && recv_data[1] == 20, "Indexed_block: block 0 mismatch"
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE
     );
     fenix_require(
-      recv_data[4] == 30 && recv_data[5] == 40, "Indexed_block: block 1 mismatch"
+      recv_data[0] == 10 && recv_data[1] == 20,
+      "Indexed_block: block 0 mismatch"
     );
     fenix_require(
-      recv_data[9] == 50 && recv_data[10] == 60, "Indexed_block: block 2 mismatch"
+      recv_data[4] == 30 && recv_data[5] == 40,
+      "Indexed_block: block 1 mismatch"
+    );
+    fenix_require(
+      recv_data[9] == 50 && recv_data[10] == 60,
+      "Indexed_block: block 2 mismatch"
     );
   }
 
@@ -564,13 +581,14 @@ void test_hindexed_block(int rank) {
     printf("TEST: Hindexed_block type\n");
   }
 
-  int blocklength = 3;
+  int blocklength           = 3;
   MPI_Aint displacements[2] = {0, 7 * sizeof(int)};
-  Datatype hblock = Datatype::hindexed_block(2, blocklength, displacements, MPI_INT);
+  Datatype hblock =
+    Datatype::hindexed_block(2, blocklength, displacements, MPI_INT);
   hblock.commit();
 
   // Serialize and deserialize
-  auto buffer = hblock.serialize();
+  auto buffer            = hblock.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -582,7 +600,9 @@ void test_hindexed_block(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 12, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[12] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 12, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 12, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     fenix_require(
       recv_data[0] == 1 && recv_data[1] == 2 && recv_data[2] == 3,
       "Hindexed_block: block 0 mismatch"
@@ -605,16 +625,16 @@ void test_subarray(int rank) {
   }
 
   // 5x5 array, extract 3x3 subarray starting at (1,1)
-  int ndims = 2;
-  int sizes[2] = {5, 5};
+  int ndims       = 2;
+  int sizes[2]    = {5, 5};
   int subsizes[2] = {3, 3};
-  int starts[2] = {1, 1};
+  int starts[2]   = {1, 1};
   Datatype subarray =
     Datatype::subarray(ndims, sizes, subsizes, starts, MPI_ORDER_C, MPI_INT);
   subarray.commit();
 
   // Serialize and deserialize
-  auto buffer = subarray.serialize();
+  auto buffer            = subarray.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -628,7 +648,9 @@ void test_subarray(int rank) {
     MPI_Send(send_data, 1, reconstructed, 1, 13, MPI_COMM_WORLD);
   } else if (rank == 1) {
     int recv_data[25] = {0};
-    MPI_Recv(recv_data, 1, reconstructed, 0, 13, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(
+      recv_data, 1, reconstructed, 0, 13, MPI_COMM_WORLD, MPI_STATUS_IGNORE
+    );
     // Should receive elements at positions: 6,7,8, 11,12,13, 16,17,18
     fenix_require(recv_data[6] == 6, "Subarray: element (1,1) mismatch");
     fenix_require(recv_data[7] == 7, "Subarray: element (1,2) mismatch");
@@ -649,11 +671,11 @@ void test_darray(int rank, int size) {
   }
 
   // Simple 1D block distribution across ranks
-  int ndims = 1;
-  int gsizes[1] = {8};  // Global size
+  int ndims       = 1;
+  int gsizes[1]   = {8}; // Global size
   int distribs[1] = {MPI_DISTRIBUTE_BLOCK};
-  int dargs[1] = {MPI_DISTRIBUTE_DFLT_DARG};
-  int psizes[1] = {size};
+  int dargs[1]    = {MPI_DISTRIBUTE_DFLT_DARG};
+  int psizes[1]   = {size};
 
   Datatype darray = Datatype::darray(
     size, rank, ndims, gsizes, distribs, dargs, psizes, MPI_ORDER_C, MPI_INT
@@ -661,7 +683,7 @@ void test_darray(int rank, int size) {
   darray.commit();
 
   // Serialize and deserialize
-  auto buffer = darray.serialize();
+  auto buffer            = darray.serialize();
   Datatype reconstructed = Datatype::deserialize(buffer);
   reconstructed.commit();
 
@@ -716,12 +738,12 @@ void test_datatype_ref(int rank) {
   // Test copying
   {
     DatatypeRef ref1(raw_type);
-    DatatypeRef ref2(ref1);  // Copy constructor
+    DatatypeRef ref2(ref1); // Copy constructor
     fenix_require(ref1.get() == raw_type, "Source should be unchanged");
     fenix_require(ref2.get() == raw_type, "Copy should reference same type");
 
     DatatypeRef ref3(MPI_INT);
-    ref3 = ref1;  // Copy assignment
+    ref3 = ref1; // Copy assignment
     fenix_require(ref3.get() == raw_type, "Copy assignment should work");
   }
 
@@ -796,7 +818,9 @@ void test_release_custom(int rank) {
   MPI_Datatype released = dt.release();
   fenix_require(released == raw, "Released handle should match");
   fenix_require(!dt, "After release, Datatype should be empty");
-  fenix_require(dt.get() == MPI_DATATYPE_NULL, "After release, get() should return NULL");
+  fenix_require(
+    dt.get() == MPI_DATATYPE_NULL, "After release, get() should return NULL"
+  );
 
   // Verify type is still valid (not freed)
   int size;
@@ -847,8 +871,7 @@ void test_misc_features(int rank) {
 
     fenix_require(true_lb == 0, "True lower bound should be 0");
     fenix_require(
-      true_extent == 10 * sizeof(int),
-      "True extent should be 10 ints"
+      true_extent == 10 * sizeof(int), "True extent should be 10 ints"
     );
   }
 
@@ -869,7 +892,7 @@ void test_edge_cases(int rank) {
     zero_count.commit();
     fenix_require(zero_count.size() == 0, "Zero-count type should have size 0");
 
-    auto buffer = zero_count.serialize();
+    auto buffer            = zero_count.serialize();
     Datatype reconstructed = Datatype::deserialize(buffer);
     reconstructed.commit();
     fenix_require(
@@ -888,7 +911,7 @@ void test_edge_cases(int rank) {
     Datatype level3 = Datatype::contiguous(4, level2);
     level3.commit();
 
-    auto buffer = level3.serialize();
+    auto buffer            = level3.serialize();
     Datatype reconstructed = Datatype::deserialize(buffer);
     reconstructed.commit();
 
@@ -904,29 +927,31 @@ void test_edge_cases(int rank) {
     Datatype base = Datatype::contiguous(3, MPI_INT);
     base.commit();
 
-    MPI_Aint new_lb = 8;  // Non-zero lower bound
+    MPI_Aint new_lb     = 8; // Non-zero lower bound
     MPI_Aint new_extent = 20;
-    Datatype resized = Datatype::resized(base, new_lb, new_extent);
+    Datatype resized    = Datatype::resized(base, new_lb, new_extent);
     resized.commit();
 
     MPI_Aint lb, extent;
     resized.get_extent(&lb, &extent);
-    fenix_require(lb == new_lb, "Resized: lower bound should be %ld, got %ld", (long)new_lb, (long)lb);
-    fenix_require(extent == new_extent, "Resized: extent should be %ld, got %ld", (long)new_extent, (long)extent);
+    fenix_require(
+      lb == new_lb, "Resized: lower bound should be %ld, got %ld", (long)new_lb,
+      (long)lb
+    );
+    fenix_require(
+      extent == new_extent, "Resized: extent should be %ld, got %ld",
+      (long)new_extent, (long)extent
+    );
 
     // Serialize and verify
-    auto buffer = resized.serialize();
+    auto buffer            = resized.serialize();
     Datatype reconstructed = Datatype::deserialize(buffer);
     reconstructed.commit();
 
     MPI_Aint recon_lb, recon_extent;
     reconstructed.get_extent(&recon_lb, &recon_extent);
-    fenix_require(
-      recon_lb == new_lb, "Reconstructed: lower bound mismatch"
-    );
-    fenix_require(
-      recon_extent == new_extent, "Reconstructed: extent mismatch"
-    );
+    fenix_require(recon_lb == new_lb, "Reconstructed: lower bound mismatch");
+    fenix_require(recon_extent == new_extent, "Reconstructed: extent mismatch");
   }
 
   if (rank == 0) {
@@ -944,17 +969,17 @@ void test_error_conditions(int rank) {
   {
     bool caught_exception = false;
     try {
-      std::vector<uint8_t> truncated(3);  // Too short (header is 4 bytes)
+      std::vector<uint8_t> truncated(3); // Too short (header is 4 bytes)
       Datatype dt = Datatype::deserialize(truncated);
     } catch (const std::exception& e) {
       caught_exception = true;
       if (rank == 0) {
-        printf("    Caught expected exception for truncated buffer: %s\n", e.what());
+        printf(
+          "    Caught expected exception for truncated buffer: %s\n", e.what()
+        );
       }
     }
-    fenix_require(
-      caught_exception, "Truncated buffer should throw exception"
-    );
+    fenix_require(caught_exception, "Truncated buffer should throw exception");
   }
 
   // Test invalid magic number
@@ -969,7 +994,9 @@ void test_error_conditions(int rank) {
     } catch (const std::exception& e) {
       caught_exception = true;
       if (rank == 0) {
-        printf("    Caught expected exception for invalid magic: %s\n", e.what());
+        printf(
+          "    Caught expected exception for invalid magic: %s\n", e.what()
+        );
       }
     }
     fenix_require(
@@ -987,18 +1014,19 @@ void test_error_conditions(int rank) {
       auto buffer = dt.serialize();
 
       // Truncate to just past header (will fail reading the type data)
-      // Header is 4 bytes, so truncate to 6 bytes (won't have full int32 count + child)
+      // Header is 4 bytes, so truncate to 6 bytes (won't have full int32 count
+      // + child)
       buffer.resize(6);
       Datatype reconstructed = Datatype::deserialize(buffer);
     } catch (const std::exception& e) {
       caught_exception = true;
       if (rank == 0) {
-        printf("    Caught expected exception for buffer underrun: %s\n", e.what());
+        printf(
+          "    Caught expected exception for buffer underrun: %s\n", e.what()
+        );
       }
     }
-    fenix_require(
-      caught_exception, "Buffer underrun should throw exception"
-    );
+    fenix_require(caught_exception, "Buffer underrun should throw exception");
   }
 
   if (rank == 0) {
@@ -1012,12 +1040,12 @@ void test_more_builtins(int rank) {
     printf("TEST: Additional builtin types\n");
   }
 
-  MPI_Datatype more_builtins[] = {
-    MPI_INT8_T, MPI_INT16_T, MPI_INT32_T, MPI_INT64_T,
-    MPI_UINT8_T, MPI_UINT16_T, MPI_UINT32_T, MPI_UINT64_T,
-    MPI_C_BOOL, MPI_AINT, MPI_COUNT, MPI_OFFSET,
-    MPI_2INT, MPI_FLOAT_INT, MPI_DOUBLE_INT, MPI_LONG_INT
-  };
+  MPI_Datatype more_builtins[] = {MPI_INT8_T,   MPI_INT16_T,   MPI_INT32_T,
+                                  MPI_INT64_T,  MPI_UINT8_T,   MPI_UINT16_T,
+                                  MPI_UINT32_T, MPI_UINT64_T,  MPI_C_BOOL,
+                                  MPI_AINT,     MPI_COUNT,     MPI_OFFSET,
+                                  MPI_2INT,     MPI_FLOAT_INT, MPI_DOUBLE_INT,
+                                  MPI_LONG_INT};
 
   for (auto builtin : more_builtins) {
     Datatype dt(builtin);
@@ -1025,7 +1053,8 @@ void test_more_builtins(int rank) {
 
     auto buffer = dt.serialize();
     fenix_require(
-      buffer.size() == 5, "Builtin serialization should be 5 bytes (header + combiner)"
+      buffer.size() == 5,
+      "Builtin serialization should be 5 bytes (header + combiner)"
     );
 
     Datatype reconstructed = Datatype::deserialize(buffer);
@@ -1053,7 +1082,8 @@ void test_datatype_null(int rank) {
 
     auto buffer = dt.serialize();
     fenix_require(
-      buffer.size() == 5, "NULL serialization should be 5 bytes (header + NULL marker)"
+      buffer.size() == 5,
+      "NULL serialization should be 5 bytes (header + NULL marker)"
     );
 
     Datatype reconstructed = Datatype::deserialize(buffer);
@@ -1066,9 +1096,9 @@ void test_datatype_null(int rank) {
 
   // Test NULL in a struct (nested)
   if (rank == 0) {
-    int blocklengths[2] = {1, 1};
+    int blocklengths[2]       = {1, 1};
     MPI_Aint displacements[2] = {0, 8};
-    MPI_Datatype types[2] = {MPI_INT, MPI_DATATYPE_NULL};
+    MPI_Datatype types[2]     = {MPI_INT, MPI_DATATYPE_NULL};
 
     // MPI_Type_create_struct should reject NULL types, so we test
     // that our serialization can handle it if it appears in introspection
@@ -1088,9 +1118,7 @@ int main(int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   fenix_require(
-    size >= 2,
-    "This test requires at least 2 MPI ranks, got %d",
-    size
+    size >= 2, "This test requires at least 2 MPI ranks, got %d", size
   );
 
   // Run all tests

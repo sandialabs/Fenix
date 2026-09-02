@@ -201,8 +201,7 @@ auto allgatherv(
   const ST* sb, int sn, RT* rb, const int* rn, const int* displs, MPI_Comm c
 ) {
   return allgatherv(
-    sb, datatype_count(sb, sn), datatype(sb), rb, rn, displs,
-    datatype(rb), c
+    sb, datatype_count(sb, sn), datatype(sb), rb, rn, displs, datatype(rb), c
   );
 }
 

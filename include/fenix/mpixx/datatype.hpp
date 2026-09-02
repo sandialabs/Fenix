@@ -34,7 +34,7 @@ class Datatype {
   Datatype(Datatype&& o) noexcept { *this = std::move(o); }
 
   // Delete copy operations (move-only)
-  Datatype(const Datatype&) = delete;
+  Datatype(const Datatype&)            = delete;
   Datatype& operator=(const Datatype&) = delete;
 
   // Accessors
@@ -80,65 +80,45 @@ class Datatype {
 
   // Create indexed type (variable blocks and displacements in element units)
   static Datatype indexed(
-    int count,
-    const int* array_of_blocklengths,
-    const int* array_of_displacements,
-    MPI_Datatype oldtype
+    int count, const int* array_of_blocklengths,
+    const int* array_of_displacements, MPI_Datatype oldtype
   );
 
   // Create hindexed (indexed with byte displacements)
   static Datatype hindexed(
-    int count,
-    const int* array_of_blocklengths,
-    const MPI_Aint* array_of_displacements,
-    MPI_Datatype oldtype
+    int count, const int* array_of_blocklengths,
+    const MPI_Aint* array_of_displacements, MPI_Datatype oldtype
   );
 
   // Create indexed_block (all blocks same length, element displacements)
   static Datatype indexed_block(
-    int count,
-    int blocklength,
-    const int* array_of_displacements,
+    int count, int blocklength, const int* array_of_displacements,
     MPI_Datatype oldtype
   );
 
   // Create hindexed_block (indexed_block with byte displacements)
   static Datatype hindexed_block(
-    int count,
-    int blocklength,
-    const MPI_Aint* array_of_displacements,
+    int count, int blocklength, const MPI_Aint* array_of_displacements,
     MPI_Datatype oldtype
   );
 
   // Create struct type (heterogeneous)
   static Datatype create_struct(
-    int count,
-    const int* array_of_blocklengths,
-    const MPI_Aint* array_of_displacements,
-    const MPI_Datatype* array_of_types
+    int count, const int* array_of_blocklengths,
+    const MPI_Aint* array_of_displacements, const MPI_Datatype* array_of_types
   );
 
   // Create subarray type (multidimensional subarray)
   static Datatype subarray(
-    int ndims,
-    const int* array_of_sizes,
-    const int* array_of_subsizes,
-    const int* array_of_starts,
-    int order,
-    MPI_Datatype oldtype
+    int ndims, const int* array_of_sizes, const int* array_of_subsizes,
+    const int* array_of_starts, int order, MPI_Datatype oldtype
   );
 
   // Create darray (distributed array) type
   static Datatype darray(
-    int size,
-    int rank,
-    int ndims,
-    const int* array_of_gsizes,
-    const int* array_of_distribs,
-    const int* array_of_dargs,
-    const int* array_of_psizes,
-    int order,
-    MPI_Datatype oldtype
+    int size, int rank, int ndims, const int* array_of_gsizes,
+    const int* array_of_distribs, const int* array_of_dargs,
+    const int* array_of_psizes, int order, MPI_Datatype oldtype
   );
 
   // Create resized type (change lower bound and extent)
@@ -183,34 +163,26 @@ class DatatypeRef : public Datatype {
  public:
   // Implicit constructor from MPI_Datatype
   DatatypeRef(MPI_Datatype type = MPI_DATATYPE_NULL) : Datatype(type) {}
-
-  // Construct from Datatype (non-owning reference)
   DatatypeRef(const Datatype& dt) : Datatype(dt.get()) {}
-
-  // Copy operations (allowed for non-owning reference)
   DatatypeRef(const DatatypeRef& other) : Datatype(other.get()) {}
+
   DatatypeRef& operator=(const DatatypeRef& other) {
     *this = other.get();
     return *this;
   }
-
-  // Assign from Datatype (non-owning reference)
   DatatypeRef& operator=(const Datatype& dt) {
     *this = dt.get();
     return *this;
   }
-
-  // Move assignment - release old type without freeing it
   DatatypeRef& operator=(DatatypeRef&& other) {
     if (this != &other) {
-      (void)release();        // Just release the old one, don't free
-      *this = other.release(); // Assign the new type via operator=(MPI_Datatype)
+      (void)release();
+      *this = other.release();
     }
     return *this;
   }
-
   DatatypeRef& operator=(MPI_Datatype type) {
-    (void)release(); // Just release the old one, don't free
+    (void)release();
     // Call base class constructor via placement new to set new type
     new (this) Datatype(type);
     return *this;

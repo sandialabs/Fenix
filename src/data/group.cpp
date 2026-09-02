@@ -336,7 +336,9 @@ void DataGroup::member_repair(int member_id) {
     if (cohort_rank != first_found) {
       metadata_buf.resize(metadata_size);
     }
-    MPI_Bcast(metadata_buf.data(), metadata_size, MPI_BYTE, first_found, cohort_comm);
+    MPI_Bcast(
+      metadata_buf.data(), metadata_size, MPI_BYTE, first_found, cohort_comm
+    );
 
     // If I'm missing it, create it now
     if (!found_members[cohort_rank]) {

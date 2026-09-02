@@ -841,10 +841,8 @@ mpixx::Datatype DataSubset::to_datatype(mpixx::DatatypeRef base) const {
   }
 
   auto result = mpixx::Datatype::indexed(
-    static_cast<int>(blocklengths.size()),
-    blocklengths.data(),
-    displacements.data(),
-    base
+    static_cast<int>(blocklengths.size()), blocklengths.data(),
+    displacements.data(), base
   );
   result.commit();
   return result;
