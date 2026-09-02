@@ -183,8 +183,8 @@ class DatatypeRef : public Datatype {
   }
   DatatypeRef& operator=(MPI_Datatype type) {
     (void)release();
-    // Call base class constructor via placement new to set new type
-    new (this) Datatype(type);
+    // Directly assign to base class via Datatype's assignment operator
+    Datatype::operator=(Datatype(type));
     return *this;
   }
 

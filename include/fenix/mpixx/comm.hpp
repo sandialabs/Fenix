@@ -122,8 +122,8 @@ class CommRef : public Comm {
   }
   CommRef& operator=(MPI_Comm c) {
     (void)release(); // Just release the old one, don't free
-    // Call base class constructor via placement new to set new comm
-    new (this) Comm(c);
+    // Directly assign to base class via Comm's assignment operator
+    Comm::operator=(Comm(c));
     return *this;
   }
 
