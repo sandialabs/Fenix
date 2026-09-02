@@ -57,6 +57,7 @@
 #include "fenix_util.hpp"
 #include "fenix/data/group.hpp"
 #include "fenix/data/member.hpp"
+#include "fenix/mpixx/datatype.hpp"
 #include "fenix/mpixx/tasks.hpp"
 #include <cstring>
 
@@ -66,37 +67,24 @@ using util::ConstDataRef;
 using util::DataBuffer;
 using util::DataRef;
 
-DataMemberPacket DataMember::to_packet() {
-  DataMemberPacket to_ret;
-  to_ret.memberid      = memberid;
-  to_ret.datatype_size = datatype_size;
-  to_ret.current_count = elm_count();
-  return to_ret;
-}
-
 DataMember::DataMember(
   DataGroup& g, int id, void* d, int c, MPI_Datatype dt, int depth,
   std::optional<SerializeFunc> s
 )
-  : DataMember(g, id, d, c, __fenix_get_size(dt), depth, s) {}
-
-DataMember::DataMember(
-  DataGroup& g, int id, void* data, int count, int dsize, int depth,
-  std::optional<SerializeFunc> s
-)
-  : memberid(id), datatype_size(dsize), depth_(depth), group(&g) {
-  if (count == FENIX_RESIZEABLE) user_data = DataRef((char*)data);
-  else user_data = DataRef((char*)data, count * dsize);
+  : memberid(id), datatype_(mpixx::Datatype::dup(dt)), depth_(depth), group(&g) {
+  int dsize = datatype_.extent();
+  if (c == FENIX_RESIZEABLE) user_data = DataRef((char*)d);
+  else user_data = DataRef((char*)d, c * dsize);
 
   ser_func = s;
 
   // Note: stage_snapshot_ and avail_snapshots_ are NOT created here
   // because create_snapshot() is virtual and won't dispatch to derived
   // class during base constructor. Derived classes must call init_snapshots().
-};
+}
 
 void DataMember::init_snapshots() {
-  stage_snapshot_ = this->create_snapshot(datatype_size, elm_count());
+  stage_snapshot_ = this->create_snapshot(datatype_.extent(), elm_count());
 
   // Initialize cohort on the staging snapshot
   if (group && group->cohort_comm != MPI_COMM_NULL) {
@@ -105,9 +93,45 @@ void DataMember::init_snapshots() {
 
   for (int i = 0; i < depth_ + 1; i++) {
     avail_snapshots_.push_back(
-      this->create_snapshot(datatype_size, elm_count())
+      this->create_snapshot(datatype_.extent(), elm_count())
     );
   }
+}
+
+DataMember::DataMember(DataGroup& g, const DataBuffer& buf, int depth)
+  : depth_(depth), group(&g) {
+  // Deserialize: memberid (int), current_count (int), datatype_size (int), datatype_data
+  fenix_assert(buf.size() >= sizeof(int) * 3, "Buffer too small for DataMember deserialization");
+
+  int offset = 0;
+  std::memcpy(&memberid, buf.data() + offset, sizeof(int));
+  offset += sizeof(int);
+
+  int count;
+  std::memcpy(&count, buf.data() + offset, sizeof(int));
+  offset += sizeof(int);
+
+  int dt_size;
+  std::memcpy(&dt_size, buf.data() + offset, sizeof(int));
+  offset += sizeof(int);
+
+  fenix_assert(buf.size() >= offset + dt_size, "Buffer too small for datatype data");
+
+  // Deserialize datatype (cast to uint8_t* as required)
+  datatype_ = mpixx::Datatype::deserialize(
+    reinterpret_cast<const uint8_t*>(buf.data() + offset), dt_size
+  );
+
+  // Initialize user_data (nullptr for now, will be set by user later)
+  int dsize = datatype_.extent();
+  if (count == FENIX_RESIZEABLE) {
+    user_data = DataRef(nullptr);
+  } else {
+    user_data = DataRef(nullptr, count * dsize);
+  }
+
+  // Note: stage_snapshot_ and avail_snapshots_ are NOT created here
+  // because create_snapshot() is virtual. Caller must call init_snapshots().
 }
 
 DataMember::DataMember(DataMember&& o) {
@@ -115,8 +139,7 @@ DataMember::DataMember(DataMember&& o) {
   memberid   = o.memberid;
   o.memberid = -1;
 
-  datatype_size   = o.datatype_size;
-  o.datatype_size = 0;
+  datatype_ = std::move(o.datatype_);
 
   user_data   = o.user_data;
   o.user_data = {nullptr};
@@ -136,11 +159,35 @@ DataMember::DataMember(DataMember&& o) {
   o.group = nullptr;
 }
 
-int DataMember::elm_count() {
+DataBuffer DataMember::serialize() const {
+  // Serialize: memberid (int), current_count (int), datatype_size (int), datatype_data
+  auto dt_buf = datatype_.serialize();
+
+  size_t total_size = sizeof(int) * 3 + dt_buf.size();
+  DataBuffer result(total_size);
+
+  int offset = 0;
+  std::memcpy(result.data() + offset, &memberid, sizeof(int));
+  offset += sizeof(int);
+
+  int current_count = elm_count();
+  std::memcpy(result.data() + offset, &current_count, sizeof(int));
+  offset += sizeof(int);
+
+  int dt_size = static_cast<int>(dt_buf.size());
+  std::memcpy(result.data() + offset, &dt_size, sizeof(int));
+  offset += sizeof(int);
+
+  std::memcpy(result.data() + offset, dt_buf.data(), dt_buf.size());
+
+  return result;
+}
+
+int DataMember::elm_count() const {
   if (!user_data.is_bounded()) return FENIX_RESIZEABLE;
 
-  fenix_assert(user_data.size() % datatype_size == 0);
-  return user_data.size() / datatype_size;
+  fenix_assert(user_data.size() % datatype_.extent() == 0);
+  return user_data.size() / datatype_.extent();
 }
 
 void DataMember::stage(const DataSubset& subset) {
@@ -149,10 +196,10 @@ void DataMember::stage(const DataSubset& subset) {
   DataSnapshot& snap = *stage_snapshot_;
   subset.copy_data(snap.create_serializer(user_data, ser_func, subset));
 
-  fenix_assert(snap.buf().size() % datatype_size == 0);
+  fenix_assert(snap.buf().size() % datatype_.extent() == 0);
   fenix_assert(snap.buf().size() <= user_data.size());
 
-  size_t max_elm = (snap.buf().size() / datatype_size) - 1;
+  size_t max_elm = (snap.buf().size() / datatype_.extent()) - 1;
   snap.add_and_fit(subset.bounded(max_elm));
 }
 
@@ -199,8 +246,8 @@ void DataMember::stage_end() {
   open_serializer.reset();
 
   DataSnapshot& snap = *stage_snapshot_;
-  fenix_assert(snap.buf().size() % datatype_size == 0);
-  snap.add_and_fit(DataSubset({0, (snap.buf().size() / datatype_size) - 1}));
+  fenix_assert(snap.buf().size() % datatype_.extent() == 0);
+  snap.add_and_fit(DataSubset({0, (snap.buf().size() / datatype_.extent()) - 1}));
 }
 
 void DataMember::load_begin(FILE** fp, int timestamp, DataSubset& subset) {
@@ -233,7 +280,7 @@ void DataMember::load_end() {
 void DataMember::load(
   void* target, int target_count, int timestamp, DataSubset& data_found
 ) {
-  DataRef dst{(char*)target, static_cast<size_t>(target_count * datatype_size)};
+  DataRef dst{(char*)target, static_cast<size_t>(target_count * datatype_.extent())};
   if (target == FENIX_DATA_RESTORE_INPLACE)
     dst = {user_data.data(), dst.size()};
   if (target_count == FENIX_DATA_RESTORE_FULL) dst = {dst.data()};
@@ -329,7 +376,7 @@ void DataMember::commit(int timestamp) {
     stage_snapshot_ = std::move(avail_snapshots_.back());
     avail_snapshots_.pop_back();
   } else {
-    stage_snapshot_ = this->create_snapshot(datatype_size, elm_count());
+    stage_snapshot_ = this->create_snapshot(datatype_.extent(), elm_count());
   }
 
   // Initialize cohort for the new stage snapshot
@@ -519,7 +566,7 @@ void DataMember::attr_set(int attr, void* value) {
     if (new_count == FENIX_RESIZEABLE) {
       user_data = {user_data.data()};
     } else {
-      user_data = {user_data.data(), (size_t)new_count * datatype_size};
+      user_data = {user_data.data(), (size_t)new_count * datatype_.extent()};
     }
     break;
   }
@@ -529,7 +576,7 @@ void DataMember::attr_set(int attr, void* value) {
     int err = MPI_Type_size(*dtype, &dtype_size);
     if (err) FENIX_THROW("Invalid MPI_Datatype");
 
-    if (dtype_size != datatype_size &&
+    if (dtype_size != datatype_.extent() &&
         (!commit_snapshots_.empty() ||
          stage_snapshot_->staged_subset() != SUBSET_EMPTY ||
          stage_snapshot_->protected_subset() != SUBSET_EMPTY)) {
@@ -537,7 +584,9 @@ void DataMember::attr_set(int attr, void* value) {
     }
 
     int old_count = elm_count();
-    datatype_size = dtype_size;
+
+    // Replace the datatype with a dup of the new one
+    datatype_ = mpixx::Datatype::dup(*dtype);
 
     if (user_data.is_bounded()) {
       size_t new_size = old_count * dtype_size;
@@ -567,10 +616,11 @@ void DataMember::attr_get(int attr, void* value) {
   case FENIX_DATA_MEMBER_ATTRIBUTE_COUNT:
     *((int*)value) = elm_count();
     break;
-  case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE:
-    // Can't reconstruct original MPI_Datatype from size alone
-    FENIX_THROW(FENIX_ERROR_INVALID_ATTRIBUTE_NAME);
+  case FENIX_DATA_MEMBER_ATTRIBUTE_DATATYPE: {
+    // Duplicated datatype that user must free
+    *((MPI_Datatype*)value) = mpixx::Datatype::dup(datatype_).release();
     break;
+  }
   case FENIX_DATA_MEMBER_ATTRIBUTE_SIZE:
     *((size_t*)value) = user_data.size();
     break;

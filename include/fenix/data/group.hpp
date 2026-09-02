@@ -125,7 +125,7 @@ struct DataGroup {
   void member_create(
     int id, void* data, int count, MPI_Datatype datatype, SerializeFunc& s
   );
-  void member_create(int id, void* data, int count, int datatype_size);
+  void member_create(const util::DataBuffer& serialized);
 
   virtual void member_delete(int memberid);
 

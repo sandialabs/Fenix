@@ -67,16 +67,11 @@
 #include "fenix/data/util/data_ref.hpp"
 #include "fenix/data/util/serializer.hpp"
 #include "fenix/tasks/task.hpp"
+#include "fenix/mpixx/datatype.hpp"
 
 namespace fenix::data {
 
 struct DataGroup;
-
-struct DataMemberPacket {
-  int memberid;
-  int datatype_size;
-  int current_count;
-};
 
 class DataMember {
  public:
@@ -91,21 +86,19 @@ class DataMember {
     DataGroup& g, int id, void* data, int count, MPI_Datatype datatype,
     int depth, std::optional<SerializeFunc> s = {}
   );
-  DataMember(
-    DataGroup& g, int id, void* data, int count, int datatype_size, int depth,
-    std::optional<SerializeFunc> s = {}
-  );
+  DataMember(DataGroup& g, const util::DataBuffer& serialized, int depth);
 
   DataMember(DataMember&& other);
 
-  DataMemberPacket to_packet();
+  // Serialize member metadata (memberid, count, datatype)
+  util::DataBuffer serialize() const;
 
   int memberid = -1;
-  int datatype_size;
+  mpixx::Datatype datatype_;
   util::DataRef user_data;
   DataGroup* group;
 
-  int elm_count();
+  int elm_count() const;
 
   // Create a (possibly policy-specific) snapshot with specified capacity
   virtual std::unique_ptr<DataSnapshot> create_snapshot(

@@ -67,6 +67,7 @@
 #include "fenix_util.hpp"
 #include "fenix/data/group.hpp"
 #include "fenix/data/member.hpp"
+#include "fenix/mpixx/datatype.hpp"
 #include "fenix/mpixx/util.hpp"
 
 namespace fenix::data {
@@ -137,14 +138,16 @@ void DataGroup::member_create(
   (*iter)->init_snapshots();
 }
 
-// Create a member with explicit datatype size
-void DataGroup::member_create(
-  int id, void* data, int count, int datatype_size
-) {
+// Create a member from serialized data
+void DataGroup::member_create(const util::DataBuffer& serialized) {
+  // Create the member first to get its ID
+  DataMember member{*this, serialized, depth};
+  int id = member.memberid;
+
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
 
   // Let policy replace with its specific Member type
-  this->emplace_member({*this, id, data, count, datatype_size, depth});
+  this->emplace_member(std::move(member));
 
   auto iter = members.find(id);
   fenix_assert(iter != members.end(), "emplace_member failed");
@@ -317,18 +320,27 @@ void DataGroup::member_repair(int member_id) {
     FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
   }
 
-  // If any rank is missing the member, broadcast the packet
+  // If any rank is missing the member, broadcast the member metadata
   if (n_missing > 0) {
-    DataMemberPacket packet;
-    if (cohort_rank == first_found) packet = member->to_packet();
+    util::DataBuffer metadata_buf;
 
-    MPI_Bcast(&packet, sizeof(packet), MPI_BYTE, first_found, cohort_comm);
+    if (cohort_rank == first_found) {
+      metadata_buf = member->serialize();
+    }
+
+    // Broadcast metadata buffer size
+    int metadata_size = static_cast<int>(metadata_buf.size());
+    MPI_Bcast(&metadata_size, 1, MPI_INT, first_found, cohort_comm);
+
+    // Broadcast metadata
+    if (cohort_rank != first_found) {
+      metadata_buf.resize(metadata_size);
+    }
+    MPI_Bcast(metadata_buf.data(), metadata_size, MPI_BYTE, first_found, cohort_comm);
 
     // If I'm missing it, create it now
     if (!found_members[cohort_rank]) {
-      member_create(
-        packet.memberid, nullptr, packet.current_count, packet.datatype_size
-      );
+      member_create(metadata_buf);
       member = find_member(member_id);
     }
   }
