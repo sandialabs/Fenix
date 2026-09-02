@@ -61,9 +61,11 @@
 #include "fenix/data/subset.hpp"
 #include "fenix/data/util/buffer.hpp"
 #include "fenix/data/util/serializer.hpp"
+#include "fenix/mpixx/datatype.hpp"
 
 #include <cstring>
 #include <cstdio>
+#include <vector>
 
 namespace fenix {
 
@@ -816,6 +818,43 @@ std::string DataSubset::str() const {
   }
   ret += "}";
   return ret;
+}
+
+mpixx::Datatype DataSubset::to_datatype(mpixx::DatatypeRef base) const {
+  fenix_assert(type == BasicSubset, "Can only create datatype for BasicSubset");
+  fenix_assert(is_bounded(), "Cannot create datatype for unbounded subset");
+
+  if (empty()) {
+    auto result = mpixx::Datatype::contiguous(0, base);
+    result.commit();
+    return result;
+  }
+
+  std::vector<int> blocklengths;
+  std::vector<MPI_Aint> displacements;
+
+  int base_extent = base.extent();
+
+  for (const auto& region : regions) {
+    if (region.reps == 0) {
+      blocklengths.push_back(static_cast<int>(region.end - region.start + 1));
+      displacements.push_back(static_cast<MPI_Aint>(region.start * base_extent));
+    } else {
+      for (size_t rep = 0; rep <= region.reps; rep++) {
+        blocklengths.push_back(static_cast<int>(region.end - region.start + 1));
+        displacements.push_back(static_cast<MPI_Aint>((region.start + rep * region.stride) * base_extent));
+      }
+    }
+  }
+
+  auto result = mpixx::Datatype::hindexed(
+    static_cast<int>(blocklengths.size()),
+    blocklengths.data(),
+    displacements.data(),
+    base
+  );
+  result.commit();
+  return result;
 }
 
 } // namespace fenix
