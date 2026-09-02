@@ -82,7 +82,6 @@ bool test_with_sentinels(
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   size_t expected_count = subset.count(subset.end());
-  if (expected_count == 0) return true;
 
   std::string subset_str = subset.str();
 
@@ -174,7 +173,6 @@ bool test_custom_struct_type(const DataSubset& subset, int tag) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   size_t expected_count = subset.count(subset.end());
-  if (expected_count == 0) return true;
 
   size_t array_size = subset.empty() ? 100 : (subset.end() + 1);
   std::vector<CustomStruct> src_data(array_size);
@@ -239,7 +237,6 @@ bool test_vector_datatype(const DataSubset& subset, int tag) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   size_t expected_count = subset.count(subset.end());
-  if (expected_count == 0) return true;
 
   size_t array_size = subset.empty() ? 100 : (subset.end() + 1);
 
