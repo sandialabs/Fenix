@@ -260,7 +260,7 @@ void spare_rank_loop() {
 }
 
 int __fenix_create_new_world_from(mpixx::CommRef c) {
-  bool am_spare = __fenix_spare_rank_within(c) == 1;
+  bool am_spare      = __fenix_spare_rank_within(c) == 1;
   fenix_rt.new_world = c.split(am_spare ? MPI_UNDEFINED : 0, c.rank());
 
   int result = FENIX_SUCCESS;
