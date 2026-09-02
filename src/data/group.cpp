@@ -85,13 +85,6 @@ DataGroup::DataGroup(
   policy_name  = m_policy;
 }
 
-DataGroup::~DataGroup() {
-  if (cohort != MPI_GROUP_NULL) {
-    MPI_Group_free(&cohort);
-  }
-  // cohort_comm is automatically freed by mpixx::Comm destructor
-}
-
 DataMember* DataGroup::search_member(int id) {
   auto iter = members.find(id);
   if (iter == members.end()) return nullptr;
@@ -229,19 +222,8 @@ void DataGroup::revoke() {
 
 std::string DataGroup::str() {
   // Extract partners from cohort group
-  int cohort_size;
-  MPI_Group_size(cohort, &cohort_size);
-
-  std::vector<int> cohort_ranks(cohort_size);
-  for (int i = 0; i < cohort_size; i++) cohort_ranks[i] = i;
-
-  std::vector<int> partners(cohort_size);
-  MPI_Group comm_group;
-  MPI_Comm_group(comm, &comm_group);
-  MPI_Group_translate_ranks(
-    cohort, cohort_size, cohort_ranks.data(), comm_group, partners.data()
-  );
-  MPI_Group_free(&comm_group);
+  mpixx::Group comm_group   = mpixx::Group::from_comm(comm);
+  std::vector<int> partners = cohort.translate_ranks(comm_group);
 
   std::stringstream ss;
   ss << "Group " << groupid << " set ";

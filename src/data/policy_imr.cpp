@@ -426,7 +426,7 @@ int IMRGroup::get_rank_sep(int* policy_vals, MPI_Comm comm) {
   return policy_vals ? policy_vals[1] : __fenix_get_world_size(comm) / 2;
 }
 
-MPI_Group IMRGroup::create_cohort() {
+mpixx::Group IMRGroup::create_cohort() {
   int mode_val     = mode;
   int rank_sep_val = rank_separation;
 
@@ -515,13 +515,8 @@ MPI_Group IMRGroup::create_cohort() {
 
   // Create cohort group from computed partners
   std::vector<int> partner_vec(partner_set.begin(), partner_set.end());
-  MPI_Group comm_group, cohort_group;
-  MPI_Comm_group(comm, &comm_group);
-  MPI_Group_incl(
-    comm_group, partner_vec.size(), partner_vec.data(), &cohort_group
-  );
-  MPI_Group_free(&comm_group);
-  return cohort_group;
+  mpixx::Group comm_group = mpixx::Group::from_comm(comm);
+  return mpixx::Group::incl(comm_group, partner_vec);
 }
 
 IMRGroup::IMRGroup(

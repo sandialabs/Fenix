@@ -8,4 +8,4 @@
 #  directory.
 #
 
-target_sources(fenix PRIVATE comm.cpp datatype.cpp)
+target_sources(fenix PRIVATE comm.cpp datatype.cpp group.cpp)

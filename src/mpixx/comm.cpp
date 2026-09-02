@@ -57,6 +57,8 @@ void Comm::free() {
   comm_ = MPI_COMM_NULL;
 }
 
+Group Comm::group() const { return group(get()); }
+
 // Member functions for communicator creation
 
 Comm Comm::dup() const { return dup(get()); }
@@ -182,6 +184,8 @@ int Comm::revoke(MPI_Comm comm) {
   fenix_assert(mpi_active());
   return MPIX_Comm_revoke(comm);
 }
+
+Group Comm::group(MPI_Comm comm) { return Group::from_comm(comm); }
 
 bool Comm::is_revoked(MPI_Comm comm) {
   fenix_assert(comm != MPI_COMM_NULL);
