@@ -68,6 +68,7 @@
 #include "fenix/data/member.hpp"
 #include "fenix/data/subset.hpp"
 #include "fenix/mpixx/comm.hpp"
+#include "fenix/mpixx/group.hpp"
 
 #define __FENIX_DEFAULT_GROUP_SIZE 32
 
@@ -78,20 +79,16 @@ namespace fenix::data {
 struct DataGroup {
   DataGroup(int groupid, MPI_Comm c, int timestart, int depth, int policy);
 
-  virtual ~DataGroup();
+  virtual ~DataGroup() = default;
 
   // Create the cohort group for this policy
-  virtual MPI_Group create_cohort() = 0;
+  virtual mpixx::Group create_cohort() = 0;
 
   // Synchronize timestamps across cohort members
   virtual void sync_timestamps();
 
   // Initialize group after construction (creates cohort_comm, syncs state)
   virtual void init() {
-    // Free old cohort if re-initializing (e.g., during recovery)
-    if (cohort != MPI_GROUP_NULL) {
-      MPI_Group_free(&cohort);
-    }
     cohort      = create_cohort();
     cohort_comm = mpixx::Comm::create_group(comm, cohort, 0);
     cohort_size = cohort_comm.size();
@@ -113,7 +110,7 @@ struct DataGroup {
 
   std::set<int, std::greater<int>> timestamps; // Reverse sorted: newest first
 
-  MPI_Group cohort = MPI_GROUP_NULL;
+  mpixx::Group cohort;
   mpixx::Comm cohort_comm;
   int cohort_size = -1;
   int cohort_rank = -1;
@@ -153,7 +150,7 @@ struct DataGroup {
   // Revoke cohort_comm (called before recovery to invalidate communicator)
   virtual void revoke();
 
-  MPI_Group get_cohort() const { return cohort; }
+  const mpixx::Group& get_cohort() const { return cohort; }
 
   // String representation, for debugging
   std::string str();

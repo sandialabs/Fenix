@@ -9,11 +9,7 @@ DataSnapshot::DataSnapshot(int elm_size, int max_count)
   if (max_count != -1) buf_.reserve(elm_size * max_count);
 }
 
-DataSnapshot::~DataSnapshot() {
-  if (cohort_ != MPI_GROUP_NULL) {
-    MPI_Group_free(&cohort_);
-  }
-}
+DataSnapshot::~DataSnapshot() = default;
 
 void DataSnapshot::reset() {
   timestamp_ = -2;
@@ -21,19 +17,15 @@ void DataSnapshot::reset() {
   protected_subsets.clear();
   staged_subsets.clear();
   cohort_rank = -1;
-  if (cohort_ != MPI_GROUP_NULL) {
-    MPI_Group_free(&cohort_);
-    cohort_ = MPI_GROUP_NULL;
-  }
+  cohort_     = mpixx::Group(); // Reset to null group
 }
 
 void DataSnapshot::init_cohort(MPI_Comm cohort_comm) {
-  if (cohort_ == MPI_GROUP_NULL) {
-    MPI_Comm_group(cohort_comm, &cohort_);
+  if (!cohort_) {
+    cohort_ = mpixx::Group::from_comm(cohort_comm);
 
     // Get cohort size and this rank's position
-    int cohort_size;
-    MPI_Group_size(cohort_, &cohort_size);
+    int cohort_size = cohort_.size();
     MPI_Comm_rank(cohort_comm, &cohort_rank);
 
     // Allocate vectors (one per cohort member, including self)
@@ -43,17 +35,11 @@ void DataSnapshot::init_cohort(MPI_Comm cohort_comm) {
 }
 
 void DataSnapshot::reinit_cohort(MPI_Comm cohort_comm) {
-  // Free existing cohort if present
-  if (cohort_ != MPI_GROUP_NULL) {
-    MPI_Group_free(&cohort_);
-  }
-
-  // Get fresh cohort group
-  MPI_Comm_group(cohort_comm, &cohort_);
+  // Get fresh cohort group (automatically frees old one via move assignment)
+  cohort_ = mpixx::Group::from_comm(cohort_comm);
 
   // Get cohort size and this rank's position
-  int cohort_size;
-  MPI_Group_size(cohort_, &cohort_size);
+  int cohort_size = cohort_.size();
   MPI_Comm_rank(cohort_comm, &cohort_rank);
 
   // Allocate or resize vectors (one per cohort member, including self)
