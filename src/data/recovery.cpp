@@ -293,7 +293,7 @@ int commit_barrier(int groupid, int* timestamp) {
   //Our error handler also enters an agree, with a unique location bit set.
   //So if we aren't all here, we've hit an error already.
   int location      = FENIX_DATA_COMMIT_BARRIER_LOC;
-  int err           = MPIX_Comm_agree(*fenix_rt.user_world, &location);
+  int err           = MPIX_Comm_agree(fenix_rt.user_world, &location);
   bool can_commit   = location == FENIX_DATA_COMMIT_BARRIER_LOC;
   bool must_recover = !can_commit || err != MPI_SUCCESS;
 
@@ -305,7 +305,7 @@ int commit_barrier(int groupid, int* timestamp) {
     ret = FENIX_SUCCESS;
   }
   if (must_recover) {
-    MPI_Comm_call_errhandler(*fenix_rt.user_world, MPI_ERR_PROC_FAILED);
+    MPI_Comm_call_errhandler(fenix_rt.user_world, MPI_ERR_PROC_FAILED);
   }
   return ret;
   FENIX_CPP_API_END

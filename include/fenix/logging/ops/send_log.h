@@ -3,7 +3,6 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
-#include "fenix/mpi_util.hpp"
 #include "fenix/logging/serialize.h"
 #include "fenix/logging/op_log.h"
 
@@ -39,7 +38,7 @@ class SendLog : public OpLog {
 
   std::string str() const override {
     return "Send " + std::to_string(m_idx) + " (tag " + std::to_string(tag) +
-           ")";
+      ")";
   }
 
  private:

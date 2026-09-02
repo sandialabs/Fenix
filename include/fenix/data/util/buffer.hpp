@@ -61,13 +61,13 @@
 #include <vector>
 
 #include <mpi.h>
-#include "fenix/tasks/forward.hpp"
+#include "fenix/mpixx/tasks.hpp"
 
 namespace fenix::data::util {
 
 class DataBuffer {
  public:
-  using MPITask = tasks::mpi::MPITask;
+  using MPITask = mpixx::MPITask;
 
   DataBuffer() = default;
   explicit DataBuffer(size_t init_size) { resize(init_size); }

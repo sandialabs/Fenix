@@ -56,6 +56,7 @@
 #ifndef __FENIX_DATA_SUBSET_HPP__
 #define __FENIX_DATA_SUBSET_HPP__
 
+#include "fenix.h"
 #include "fenix_opt.hpp"
 #include "fenix/data/util/buffer.hpp"
 
@@ -142,6 +143,12 @@ namespace data::util {
 class Serializer;
 }
 
+namespace mpixx {
+// Forward declarations
+class Datatype;
+class DatatypeRef;
+}
+
 struct DataSubset {
   static constexpr size_t MAX = detail::DataRegion::MAX;
 
@@ -222,7 +229,12 @@ struct DataSubset {
   //Whether this subset includes the entire range [0, end] without gaps
   bool includes_all(size_t end) const;
 
-  bool is_bounded() const { return end() != MAX; }
+  bool is_bounded() const { return empty() || end() != MAX; }
+
+  //Create MPI datatype representing this subset's memory layout
+  //base: the datatype of each element in the array
+  //Returns a committed MPI datatype (wrapped in mpixx::Datatype)
+  mpixx::Datatype to_datatype(mpixx::DatatypeRef base) const;
 
   //Return a DataSubset consisting of bounded_regions(max_index)
   DataSubset bounded(size_t max_index) const;

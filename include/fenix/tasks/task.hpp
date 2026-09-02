@@ -4,9 +4,8 @@
 #include <cassert>
 #include <memory>
 
-#include "promise.hpp"
-#include "request.hpp"
-#include "forward.hpp"
+#include "fenix/tasks/promise.hpp"
+#include "fenix/tasks/forward.hpp"
 
 namespace fenix::tasks {
 

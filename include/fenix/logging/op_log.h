@@ -4,7 +4,7 @@
 #include <istream>
 #include <ostream>
 #include "fenix_opt.hpp"
-#include "fenix/mpi_util.hpp"
+#include "fenix/mpixx/util.hpp"
 #include "fenix/logging/serialize.h"
 
 namespace fenix::logging {
@@ -54,7 +54,7 @@ class OpLog {
   }
   void req_free() const {
     if (req_obj != MPI_REQUEST_NULL) {
-      if (!util::mpi_finalized()) MPI_Request_free(&req_obj);
+      if (!mpixx::mpi_finalized()) MPI_Request_free(&req_obj);
       req_obj = MPI_REQUEST_NULL;
     }
     m_req = &req_obj;
@@ -126,10 +126,10 @@ class MPIBuffer {
   operator bool() const { return m_type != MPI_DATATYPE_NULL; }
 
   void copy_to(void* out) {
-    std::memcpy(out, buf(), m_count * util::type_size(m_type));
+    std::memcpy(out, buf(), m_count * mpixx::type_size(m_type));
   }
   void copy_from(void* in) {
-    std::memcpy(buf(), in, m_count * util::type_size(m_type));
+    std::memcpy(buf(), in, m_count * mpixx::type_size(m_type));
   }
 
   // Release pointer to user buffer, to avoid use-after-free
@@ -164,9 +164,9 @@ class MPIBuffer {
       // We're allocating the buffer to store unused output data into during
       // replay, so track that this should not be serialized
       garbage_data = true;
-      internal_buf.resize(m_count * util::type_size(m_type));
+      internal_buf.resize(m_count * mpixx::type_size(m_type));
     }
-    fenix_assert(internal_buf.size() == m_count * util::type_size(m_type));
+    fenix_assert(internal_buf.size() == m_count * mpixx::type_size(m_type));
     return internal_buf.data();
   };
   int count() const { return m_count; }
@@ -182,7 +182,7 @@ class MPIBuffer {
     : user_buf(user_buffer), m_count(count), m_type(type) {};
   // Copying constructor
   MPIBuffer(int count, MPI_Datatype type, const char* b)
-    : internal_buf(b, b + count * util::type_size(type)), m_count(count),
+    : internal_buf(b, b + count * mpixx::type_size(type)), m_count(count),
       m_type(type) {};
   // Creating constructor
   MPIBuffer(int count, MPI_Datatype type) : m_count(count), m_type(type) {};

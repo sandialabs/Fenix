@@ -3,7 +3,7 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
-#include "fenix/mpi_util.hpp"
+#include "fenix/mpixx/util.hpp"
 #include "fenix/logging/op_log.h"
 
 namespace fenix::logging {
@@ -15,7 +15,7 @@ class BcastLog : public CollectiveLog {
     int idx
   )
     : CollectiveLog(idx), root(root_rank) {
-    if (root == util::comm_rank(c)) {
+    if (root == mpixx::comm_rank(c)) {
       buf = MPIBuffer::copy(buffer, count, type);
     } else {
       buf = MPIBuffer::wrap(buffer, count, type);
@@ -43,7 +43,7 @@ class BcastLog : public CollectiveLog {
 
   std::string str() const override {
     return "Bcast " + std::to_string(m_idx) +
-           " (root = " + std::to_string(root) + ")";
+      " (root = " + std::to_string(root) + ")";
   }
 
   int begin(MPI_Comm c) const override {

@@ -3,7 +3,7 @@
 #include <cstring>
 #include <istream>
 #include <ostream>
-#include "fenix/mpi_util.hpp"
+#include "fenix/mpixx/util.hpp"
 #include "fenix/logging/op_log.h"
 
 namespace fenix::logging {
@@ -16,7 +16,7 @@ class ReduceLog : public CollectiveLog {
   )
     : CollectiveLog(idx), root(root_rank), op(o),
       sbuf(MPIBuffer::copy(send == MPI_IN_PLACE ? recv : send, count, type)) {
-    if (root == util::comm_rank(c)) {
+    if (root == mpixx::comm_rank(c)) {
       rbuf = MPIBuffer::wrap(recv, count, type);
     }
   }
@@ -47,12 +47,12 @@ class ReduceLog : public CollectiveLog {
 
   std::string str() const override {
     return "Reduce " + std::to_string(m_idx) +
-           " (root = " + std::to_string(root) + ")";
+      " (root = " + std::to_string(root) + ")";
   }
 
   int begin(MPI_Comm c) const override {
     req_free();
-    void* recv = root == util::comm_rank(c) ? rbuf.buf() : nullptr;
+    void* recv = root == mpixx::comm_rank(c) ? rbuf.buf() : nullptr;
     int ret    = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
     if (ret == MPI_SUCCESS) ret = PMPI_Wait(req(), MPI_STATUS_IGNORE);
     // Release references to any user buffers if we get this far
@@ -62,7 +62,7 @@ class ReduceLog : public CollectiveLog {
 
   void replay(MPI_Comm c) const override {
     req_free();
-    void* recv = root == util::comm_rank(c) ? rbuf.buf() : nullptr;
+    void* recv = root == mpixx::comm_rank(c) ? rbuf.buf() : nullptr;
     int ret    = PMPI_Ireduce(sbuf, recv, sbuf, sbuf, op, root, c, req());
     fenix_assert(
       ret == MPI_SUCCESS, "Non-process MPI error during collective replay\n"

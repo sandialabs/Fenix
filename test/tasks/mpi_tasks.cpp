@@ -65,10 +65,10 @@
 #include <fenix_opt.hpp>
 
 #include <fenix/tasks/task.hpp>
-#include <fenix/tasks/mpi.hpp>
+#include <fenix/mpixx/tasks.hpp>
 
 using namespace fenix::tasks;
-using namespace fenix::tasks::mpi;
+using namespace fenix::mpixx;
 
 Task<int> get_partner_rank() {
   int n_ranks, me;

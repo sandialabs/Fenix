@@ -78,7 +78,7 @@
 #include "fenix/data/group.hpp"
 #include "fenix/data/member.hpp"
 #include "fenix/data/policy_imr.hpp"
-#include "fenix/tasks/mpi.hpp"
+#include "fenix/mpixx/tasks.hpp"
 
 namespace fenix::data::imr {
 
@@ -158,17 +158,16 @@ tasks::Task<int> BuddyMember::iprotect() {
   const DataSubset& partner_subset = snap.staged_subsets[left];
 
   snap.partner.add_and_fit(partner_subset);
-  int recv_count = partner_subset.count(snap.elm_max_count() - 1);
-  recv_buf.reset(snap.elm_size() * recv_count);
 
-  subset.pack_data(snap.elm_size(), snap.buf(), send_buf);
-  co_await tasks::mpi::sendrecv(
-    send_buf.data(), send_buf.size(), MPI_BYTE, right, 0,
-    recv_buf.data(), recv_buf.size(), MPI_BYTE,  left, 0,
+  // Create datatypes for direct send/recv without serialization
+  auto send_type = subset.to_datatype(datatype_);
+  auto recv_type = partner_subset.to_datatype(datatype_);
+
+  co_await mpixx::sendrecv(
+    snap.data(), 1, send_type, right, 0,
+    snap.partner.data(), 1, recv_type, left, 0,
     group->cohort_comm
   );
-
-  partner_subset.unpack_data(snap.elm_size(), recv_buf, snap.partner.buf());
 
   for (int i = 0; i < snap.staged_subsets.size(); i++) {
     snap.protected_subsets[i] += snap.staged_subsets[i];
@@ -235,7 +234,7 @@ tasks::Task<int> ParityMember::iprotect() {
       }
     }
 
-    co_await tasks::mpi::reduce(
+    co_await mpixx::reduce(
       local_root ? MPI_IN_PLACE : input, input, len, MPI_BYTE, MPI_BXOR, root,
       group->cohort_comm
     );

@@ -32,7 +32,7 @@ class DataSnapshot {
     staged_subsets; ///< Subsets staged by each cohort member (including self)
 
   DataSnapshot(int elm_size, int max_count);
-  virtual ~DataSnapshot() = default;
+  virtual ~DataSnapshot();
 
   DataSnapshot(DataSnapshot&&)            = default;
   DataSnapshot& operator=(DataSnapshot&&) = default;

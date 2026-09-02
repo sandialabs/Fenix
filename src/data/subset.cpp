@@ -61,9 +61,11 @@
 #include "fenix/data/subset.hpp"
 #include "fenix/data/util/buffer.hpp"
 #include "fenix/data/util/serializer.hpp"
+#include "fenix/mpixx/datatype.hpp"
 
 #include <cstring>
 #include <cstdio>
+#include <vector>
 
 namespace fenix {
 
@@ -306,6 +308,8 @@ struct BlockIter {
   BlockIter(std::shared_ptr<set_t> m_regions)
     : region_holder(m_regions), regions(*region_holder), it(regions.begin()),
       rep(0) {}
+  BlockIter(const set_t& m_regions)
+    : region_holder(nullptr), regions(m_regions), it(regions.begin()), rep(0) {}
   BlockIter(const BlockIter& other)
     : region_holder(other.region_holder), regions(other.regions), it(other.it),
       rep(other.rep) {
@@ -320,7 +324,13 @@ struct BlockIter {
   }
   bool operator!=(const BlockIter& other) const { return !(*this == other); }
 
-  BlockIter begin() { return BlockIter(region_holder); }
+  BlockIter begin() {
+    if (region_holder) {
+      return BlockIter(region_holder);
+    } else {
+      return BlockIter(regions);
+    }
+  }
 
   BlockIter end() {
     auto ret = begin();
@@ -816,6 +826,26 @@ std::string DataSubset::str() const {
   }
   ret += "}";
   return ret;
+}
+
+mpixx::Datatype DataSubset::to_datatype(mpixx::DatatypeRef base) const {
+  fenix_assert(type == BasicSubset, "Can only create datatype for BasicSubset");
+  fenix_assert(is_bounded(), "Cannot create datatype for unbounded subset");
+
+  std::vector<int> displacements;
+  std::vector<int> blocklengths;
+
+  for (const auto& b : BlockIter(regions)) {
+    displacements.push_back(static_cast<int>(b.start));
+    blocklengths.push_back(static_cast<int>(b.end - b.start + 1));
+  }
+
+  auto result = mpixx::Datatype::indexed(
+    static_cast<int>(blocklengths.size()), blocklengths.data(),
+    displacements.data(), base
+  );
+  result.commit();
+  return result;
 }
 
 } // namespace fenix

@@ -67,7 +67,8 @@
 #include "fenix_util.hpp"
 #include "fenix/data/group.hpp"
 #include "fenix/data/member.hpp"
-#include "fenix/mpi_util.hpp"
+#include "fenix/mpixx/datatype.hpp"
+#include "fenix/mpixx/util.hpp"
 
 namespace fenix::data {
 
@@ -76,8 +77,8 @@ DataGroup::DataGroup(
 ) {
   groupid      = m_groupid;
   comm         = m_comm;
-  comm_size    = fenix::util::comm_size(comm);
-  current_rank = fenix::util::comm_rank(comm);
+  comm_size    = comm.size();
+  current_rank = comm.rank();
   timestart    = m_timestart;
   timestamp    = -1;
   depth        = m_depth;
@@ -88,9 +89,7 @@ DataGroup::~DataGroup() {
   if (cohort != MPI_GROUP_NULL) {
     MPI_Group_free(&cohort);
   }
-  if (cohort_comm != MPI_COMM_NULL) {
-    MPI_Comm_free(&cohort_comm);
-  }
+  // cohort_comm is automatically freed by mpixx::Comm destructor
 }
 
 DataMember* DataGroup::search_member(int id) {
@@ -139,14 +138,16 @@ void DataGroup::member_create(
   (*iter)->init_snapshots();
 }
 
-// Create a member with explicit datatype size
-void DataGroup::member_create(
-  int id, void* data, int count, int datatype_size
-) {
+// Create a member from serialized data
+void DataGroup::member_create(const util::DataBuffer& serialized) {
+  // Create the member first to get its ID
+  DataMember member{*this, serialized, depth};
+  int id = member.memberid;
+
   if (members.find(id) != members.end()) FENIX_THROW(FENIX_ERROR_MEMBER_EXISTS);
 
   // Let policy replace with its specific Member type
-  this->emplace_member({*this, id, data, count, datatype_size, depth});
+  this->emplace_member(std::move(member));
 
   auto iter = members.find(id);
   fenix_assert(iter != members.end(), "emplace_member failed");
@@ -220,9 +221,9 @@ std::vector<int> DataGroup::get_snapshots() {
 }
 
 void DataGroup::revoke() {
-  if (cohort_comm != MPI_COMM_NULL) {
-    MPIX_Comm_revoke(cohort_comm);
-    cohort_comm = MPI_COMM_NULL;
+  if (cohort_comm) {
+    cohort_comm.revoke();
+    cohort_comm.free();
   }
 }
 
@@ -251,9 +252,7 @@ std::string DataGroup::str() {
 }
 
 void DataGroup::sync_timestamps() {
-  fenix_assert(
-    cohort_comm != MPI_COMM_NULL, "sync_timestamps called with NULL cohort_comm"
-  );
+  fenix_assert(cohort_comm, "sync_timestamps called with invalid cohort_comm");
 
   int n_snapshots = timestamps.size();
   MPI_Allreduce(MPI_IN_PLACE, &n_snapshots, 1, MPI_INT, MPI_MAX, cohort_comm);
@@ -282,16 +281,13 @@ void DataGroup::sync_timestamps() {
 }
 
 void DataGroup::member_repair(int member_id) {
-  fenix_assert(
-    cohort_comm != MPI_COMM_NULL, "member_repair called with NULL cohort_comm"
-  );
+  fenix_assert(cohort_comm, "member_repair called with invalid cohort_comm");
 
   DataMember* member = search_member(member_id);
 
-  // Query cohort size and rank
-  int cohort_size, cohort_rank;
-  MPI_Comm_size(cohort_comm, &cohort_size);
-  MPI_Comm_rank(cohort_comm, &cohort_rank);
+  // Query cohort size and rank (using cached values)
+  int cohort_size = this->cohort_size;
+  int cohort_rank = this->cohort_rank;
 
   // Gather which cohort members have this member
   std::vector<int> found_members(cohort_size);
@@ -324,18 +320,29 @@ void DataGroup::member_repair(int member_id) {
     FENIX_THROW(FENIX_ERROR_INVALID_MEMBERID);
   }
 
-  // If any rank is missing the member, broadcast the packet
+  // If any rank is missing the member, broadcast the member metadata
   if (n_missing > 0) {
-    DataMemberPacket packet;
-    if (cohort_rank == first_found) packet = member->to_packet();
+    util::DataBuffer metadata_buf;
 
-    MPI_Bcast(&packet, sizeof(packet), MPI_BYTE, first_found, cohort_comm);
+    if (cohort_rank == first_found) {
+      metadata_buf = member->serialize();
+    }
+
+    // Broadcast metadata buffer size
+    int metadata_size = static_cast<int>(metadata_buf.size());
+    MPI_Bcast(&metadata_size, 1, MPI_INT, first_found, cohort_comm);
+
+    // Broadcast metadata
+    if (cohort_rank != first_found) {
+      metadata_buf.resize(metadata_size);
+    }
+    MPI_Bcast(
+      metadata_buf.data(), metadata_size, MPI_BYTE, first_found, cohort_comm
+    );
 
     // If I'm missing it, create it now
     if (!found_members[cohort_rank]) {
-      member_create(
-        packet.memberid, nullptr, packet.current_count, packet.datatype_size
-      );
+      member_create(metadata_buf);
       member = find_member(member_id);
     }
   }

@@ -76,7 +76,7 @@ struct RankLog {
   void fenix_pre_recovery() { task = TaskT(); }
   int send(const void* b, int n, MPI_Datatype d, int t);
   int irecv(void* b, int n, MPI_Datatype d, int t, MPI_Request* r);
-  fenix::tasks::Status wait(MPI_Request* r);
+  mpixx::Status wait(MPI_Request* r);
 
   std::string str() const;
 

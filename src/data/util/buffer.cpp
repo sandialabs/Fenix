@@ -56,13 +56,13 @@
 
 #include "fenix/data/util/buffer.hpp"
 #include "fenix_opt.hpp"
-#include "fenix/tasks/mpi.hpp"
+#include "fenix/mpixx/tasks.hpp"
 
 #include <sys/mman.h>
 #include <cstring>
 #include <cstdlib>
 
-using namespace fenix::tasks::mpi;
+using namespace fenix::mpixx;
 
 namespace fenix::data::util {
 
@@ -115,18 +115,18 @@ void DataBuffer::free_buf() {
 }
 
 MPITask DataBuffer::send(int dst, int tag, MPI_Comm comm) {
-  return tasks::mpi::send(data(), size(), MPI_BYTE, dst, tag, comm);
+  return mpixx::send(data(), size(), MPI_BYTE, dst, tag, comm);
 }
 
 //Recv n bytes
 MPITask DataBuffer::recv(int n, int src, int tag, MPI_Comm comm) {
   reset(n);
-  return tasks::mpi::recv(data(), size(), MPI_BYTE, src, tag, comm);
+  return mpixx::recv(data(), size(), MPI_BYTE, src, tag, comm);
 }
 
 //Recv an unknown amount of data and resize to fit
 MPITask DataBuffer::recv_unknown(int src, int tag, MPI_Comm comm) {
-  auto status = co_await tasks::mpi::probe(src, tag, comm);
+  auto status = co_await mpixx::probe(src, tag, comm);
   if (MPI_SUCCESS != status) co_return status;
 
   int n;
