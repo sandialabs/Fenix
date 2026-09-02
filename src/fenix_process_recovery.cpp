@@ -259,43 +259,15 @@ void spare_rank_loop() {
   MPI_T_finalize();
 }
 
-int __fenix_create_new_world_from(mpixx::CommRef from_comm) {
-  int local_result;
+int __fenix_create_new_world_from(mpixx::CommRef c) {
+  bool am_spare = __fenix_spare_rank_within(c) == 1;
+  fenix_rt.new_world = c.split(am_spare ? MPI_UNDEFINED : 0, c.rank());
 
-  if (__fenix_spare_rank_within(from_comm) == 1) {
-    int current_rank = from_comm.rank();
+  int result = FENIX_SUCCESS;
+  if (!am_spare && !fenix_rt.new_world) result = FENIX_ERROR_CANCELLED;
+  MPIX_Comm_agree(c, &result);
 
-    /*************************************************************************/
-    /** MPI_UNDEFINED makes the new communicator "undefined" at spare ranks **/
-    /** This means no data is allocated at spare ranks                      **/
-    /** Use of the new communicator triggers the program to abort .         **/
-    /*************************************************************************/
-
-    if (fenix_rt.options.verbose == 1) {
-      verbose_print("rank: %d, role: %d\n", from_comm.rank(), fenix_rt.role);
-    }
-
-    fenix_rt.new_world = from_comm.split(MPI_UNDEFINED, current_rank);
-    // Spares always report success
-    local_result       = FENIX_SUCCESS;
-
-  } else {
-
-    int current_rank = from_comm.rank();
-
-    if (fenix_rt.options.verbose == 1) {
-      verbose_print("rank: %d, role: %d\n", from_comm.rank(), fenix_rt.role);
-    }
-
-    fenix_rt.new_world = from_comm.split(0, current_rank);
-    // Active ranks report error if split failed
-    local_result = fenix_rt.new_world ? FENIX_SUCCESS : FENIX_ERROR_CANCELLED;
-  }
-
-  // Agree on the result across all ranks
-  int agreed_result = local_result;
-  MPIX_Comm_agree(from_comm, &agreed_result);
-  return agreed_result;
+  return result;
 }
 
 int __fenix_create_new_world() {

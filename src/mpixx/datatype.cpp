@@ -177,8 +177,7 @@ TypeCombiner mpi_combiner_to_enum(int mpi_combiner) {
 Datatype& Datatype::operator=(Datatype&& other) noexcept {
   if (this != &other) {
     free();
-    type_       = other.type_;
-    other.type_ = MPI_DATATYPE_NULL;
+    type_ = other.release();
   }
   return *this;
 }
@@ -193,16 +192,13 @@ MPI_Datatype Datatype::release() noexcept {
 
 bool Datatype::is_builtin_type(MPI_Datatype type) noexcept {
   if (type == MPI_DATATYPE_NULL) return false;
-  if (!mpi_active()) return false;
 
   int num_integers, num_addresses, num_datatypes, combiner;
   int err = MPI_Type_get_envelope(
     type, &num_integers, &num_addresses, &num_datatypes, &combiner
   );
+  fenix_assert(err == MPI_SUCCESS);
 
-  if (err != MPI_SUCCESS) return false;
-
-  // MPI_COMBINER_NAMED indicates a builtin/predefined type
   return combiner == MPI_COMBINER_NAMED;
 }
 
