@@ -9,6 +9,12 @@ DataSnapshot::DataSnapshot(int elm_size, int max_count)
   if (max_count != -1) buf_.reserve(elm_size * max_count);
 }
 
+DataSnapshot::~DataSnapshot() {
+  if (cohort_ != MPI_GROUP_NULL) {
+    MPI_Group_free(&cohort_);
+  }
+}
+
 void DataSnapshot::reset() {
   timestamp_ = -2;
   buf_.clear();

@@ -415,6 +415,7 @@ struct Datatype::TypeInfo {
   std::vector<int> integers;
   std::vector<MPI_Aint> addresses;
   std::vector<MPI_Datatype> datatypes;
+  std::vector<Datatype> datatype_owners; // RAII wrappers to free datatypes
 };
 
 Datatype::TypeInfo Datatype::introspect(MPI_Datatype type) {
@@ -443,6 +444,13 @@ Datatype::TypeInfo Datatype::introspect(MPI_Datatype type) {
     if (err != MPI_SUCCESS) {
       FENIX_THROW(FENIX_ERROR_INTERN);
     }
+  }
+
+  // Transfer ownership of MPI_Datatype handles to RAII wrappers
+  // MPI_Type_get_contents creates new handles that must be freed
+  info.datatype_owners.reserve(num_dtypes);
+  for (int i = 0; i < num_dtypes; i++) {
+    info.datatype_owners.emplace_back(info.datatypes[i]);
   }
 
   return info;

@@ -88,6 +88,10 @@ struct DataGroup {
 
   // Initialize group after construction (creates cohort_comm, syncs state)
   virtual void init() {
+    // Free old cohort if re-initializing (e.g., during recovery)
+    if (cohort != MPI_GROUP_NULL) {
+      MPI_Group_free(&cohort);
+    }
     cohort      = create_cohort();
     cohort_comm = mpixx::Comm::create_group(comm, cohort, 0);
     cohort_size = cohort_comm.size();
