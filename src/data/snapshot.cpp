@@ -22,7 +22,7 @@ void DataSnapshot::reset() {
 
 void DataSnapshot::init_cohort(MPI_Comm cohort_comm) {
   if (!cohort_) {
-    cohort_ = mpixx::Group::from_comm(cohort_comm);
+    cohort_ = cohort_comm;
 
     // Get cohort size and this rank's position
     int cohort_size = cohort_.size();
@@ -36,7 +36,7 @@ void DataSnapshot::init_cohort(MPI_Comm cohort_comm) {
 
 void DataSnapshot::reinit_cohort(MPI_Comm cohort_comm) {
   // Get fresh cohort group (automatically frees old one via move assignment)
-  cohort_ = mpixx::Group::from_comm(cohort_comm);
+  cohort_ = cohort_comm;
 
   // Get cohort size and this rank's position
   int cohort_size = cohort_.size();

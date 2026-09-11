@@ -222,7 +222,7 @@ void DataGroup::revoke() {
 
 std::string DataGroup::str() {
   // Extract partners from cohort group
-  mpixx::Group comm_group   = mpixx::Group::from_comm(comm);
+  mpixx::Group comm_group   = comm;
   std::vector<int> partners = cohort.translate_ranks(comm_group);
 
   std::stringstream ss;

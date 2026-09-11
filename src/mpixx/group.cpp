@@ -9,8 +9,22 @@
 #include "fenix.h"
 #include "fenix_exception.hpp"
 #include "fenix_opt.hpp"
+#include "fenix/mpixx/comm.hpp"
 
 namespace fenix::mpixx {
+
+// ========== Constructors ==========
+
+Group::Group(MPI_Comm comm) {
+  MPI_Group group;
+  int err = MPI_Comm_group(comm, &group);
+  if (err != MPI_SUCCESS) {
+    FENIX_THROW(FENIX_ERROR_INTERN);
+  }
+  group_ = group;
+}
+
+Group::Group(const Comm& comm) : Group(comm.get()) {}
 
 // ========== Move assignment ==========
 
@@ -151,15 +165,6 @@ Group& Group::operator-=(const Group& other) {
 }
 
 // ========== Factory methods ==========
-
-Group Group::from_comm(MPI_Comm comm) {
-  MPI_Group group;
-  int err = MPI_Comm_group(comm, &group);
-  if (err != MPI_SUCCESS) {
-    FENIX_THROW(FENIX_ERROR_INTERN);
-  }
-  return Group(group);
-}
 
 Group Group::incl(MPI_Group source, const std::vector<int>& ranks) {
   if (ranks.empty()) {

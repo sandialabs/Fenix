@@ -185,7 +185,7 @@ int Comm::revoke(MPI_Comm comm) {
   return MPIX_Comm_revoke(comm);
 }
 
-Group Comm::group(MPI_Comm comm) { return Group::from_comm(comm); }
+Group Comm::group(MPI_Comm comm) { return Group(comm); }
 
 bool Comm::is_revoked(MPI_Comm comm) {
   fenix_assert(comm != MPI_COMM_NULL);

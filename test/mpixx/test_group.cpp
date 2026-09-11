@@ -32,7 +32,7 @@ void test_basic_construction() {
   fenix_require(!g2, "EMPTY group should be falsy");
 
   // Get group from COMM_WORLD
-  Group world_group = Group::from_comm(MPI_COMM_WORLD);
+  Group world_group = Group(MPI_COMM_WORLD);
   fenix_require(world_group, "COMM_WORLD group should be truthy");
   fenix_require(world_group.get() != MPI_GROUP_NULL, "should not be NULL");
   fenix_require(world_group.get() != MPI_GROUP_EMPTY, "should not be EMPTY");
@@ -43,7 +43,7 @@ void test_basic_construction() {
 void test_group_properties() {
   printf("Test: group properties (size, rank)\n");
 
-  Group world_group = Group::from_comm(MPI_COMM_WORLD);
+  Group world_group = Group(MPI_COMM_WORLD);
 
   int world_size, world_rank;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -62,7 +62,7 @@ void test_group_properties() {
 void test_move_semantics() {
   printf("Test: move semantics\n");
 
-  Group g1            = Group::from_comm(MPI_COMM_WORLD);
+  Group g1            = Group(MPI_COMM_WORLD);
   MPI_Group raw_group = g1.get();
 
   // Move constructor
@@ -82,7 +82,7 @@ void test_move_semantics() {
 void test_release() {
   printf("Test: release ownership\n");
 
-  Group g       = Group::from_comm(MPI_COMM_WORLD);
+  Group g       = Group(MPI_COMM_WORLD);
   MPI_Group raw = g.release();
 
   fenix_require(
@@ -99,8 +99,8 @@ void test_release() {
 void test_comparison() {
   printf("Test: comparison (identical and similar)\n");
 
-  Group world1 = Group::from_comm(MPI_COMM_WORLD);
-  Group world2 = Group::from_comm(MPI_COMM_WORLD);
+  Group world1 = Group(MPI_COMM_WORLD);
+  Group world2 = Group(MPI_COMM_WORLD);
 
   // Different handles to same group should be IDENT
   fenix_require(world1 == world2, "two COMM_WORLD groups should be identical");
@@ -132,7 +132,7 @@ void test_comparison() {
 void test_incl_excl() {
   printf("Test: incl and excl\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 2) {
@@ -163,7 +163,7 @@ void test_incl_excl() {
 void test_range_incl_excl() {
   printf("Test: range_incl and range_excl\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 4) {
@@ -192,7 +192,7 @@ void test_range_incl_excl() {
 void test_union() {
   printf("Test: union (+ operator)\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 4) {
@@ -224,7 +224,7 @@ void test_union() {
 void test_intersection() {
   printf("Test: intersection (| operator)\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 4) {
@@ -263,7 +263,7 @@ void test_intersection() {
 void test_difference() {
   printf("Test: difference (- operator)\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 3) {
@@ -298,7 +298,7 @@ void test_difference() {
 void test_translate_ranks() {
   printf("Test: translate_ranks\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 2) {
@@ -351,7 +351,7 @@ void test_translate_ranks() {
 void test_group_ref() {
   printf("Test: GroupRef (non-owning reference)\n");
 
-  Group world         = Group::from_comm(MPI_COMM_WORLD);
+  Group world         = Group(MPI_COMM_WORLD);
   MPI_Group raw_group = world.get();
 
   // Create GroupRef from Group
@@ -401,7 +401,7 @@ void test_comm_group_method() {
 void test_complex_operations() {
   printf("Test: complex operations (combining multiple ops)\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 6) {
@@ -452,7 +452,7 @@ void test_empty_group_operations() {
   Group empty(MPI_GROUP_EMPTY);
   fenix_require(empty.size() == 0, "empty group should have size 0");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
 
   // Union with empty
   Group union_empty = world + empty;
@@ -479,7 +479,7 @@ void test_empty_group_operations() {
 void test_compound_assignment() {
   printf("Test: compound assignment operators (+=, -=, |=)\n");
 
-  Group world = Group::from_comm(MPI_COMM_WORLD);
+  Group world = Group(MPI_COMM_WORLD);
   int size    = world.size();
 
   if (size >= 4) {
@@ -519,7 +519,7 @@ void test_compound_assignment() {
     );
 
     // Test -= (difference)
-    Group g5 = Group::from_comm(MPI_COMM_WORLD);
+    Group g5 = Group(MPI_COMM_WORLD);
     Group g6 = Group::incl(world, {0, 1});
     g5 -= g6;
     fenix_require(g5.size() == size - 2, "-= should remove specified ranks");

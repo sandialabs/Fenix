@@ -10,6 +10,8 @@
 
 namespace fenix::mpixx {
 
+class Comm; // Forward declaration
+
 // RAII wrapper for MPI_Group with move-only semantics
 // Owns an MPI_Group handle and automatically frees it on destruction.
 // Does NOT free MPI_GROUP_EMPTY or MPI_GROUP_NULL.
@@ -22,6 +24,12 @@ class Group {
 
   // Default constructor creates MPI_GROUP_NULL
   Group() noexcept : Group(MPI_GROUP_NULL) {}
+
+  // Implicit constructor from MPI_Comm (creates group from communicator)
+  Group(MPI_Comm comm);
+
+  // Implicit constructor from mpixx::Comm (creates group from communicator)
+  Group(const Comm& comm);
 
   // Destructor automatically frees non-builtin groups
   virtual ~Group() { free(); }
@@ -100,9 +108,6 @@ class Group {
   Group& operator-=(const Group& other); // Difference and assign
 
   // ========== Group Construction Factory Methods ==========
-
-  // Create group from communicator
-  static Group from_comm(MPI_Comm comm);
 
   // Create group containing specified ranks from source group
   static Group incl(MPI_Group source, const std::vector<int>& ranks);

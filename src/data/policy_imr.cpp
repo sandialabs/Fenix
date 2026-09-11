@@ -515,7 +515,7 @@ mpixx::Group IMRGroup::create_cohort() {
 
   // Create cohort group from computed partners
   std::vector<int> partner_vec(partner_set.begin(), partner_set.end());
-  mpixx::Group comm_group = mpixx::Group::from_comm(comm);
+  mpixx::Group comm_group = comm;
   return mpixx::Group::incl(comm_group, partner_vec);
 }
 

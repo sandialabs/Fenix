@@ -17,7 +17,7 @@ struct LocalGroup : public DataGroup {
     : DataGroup(id, c, ts, depth, FENIX_DATA_POLICY_LOCAL) {}
 
   mpixx::Group create_cohort() override {
-    mpixx::Group comm_group = mpixx::Group::from_comm(comm);
+    mpixx::Group comm_group = comm;
     int rank;
     MPI_Comm_rank(comm, &rank);
     return mpixx::Group::incl(comm_group, {rank});
