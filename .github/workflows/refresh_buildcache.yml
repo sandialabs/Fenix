@@ -1,0 +1,62 @@
+name: Refresh MPI Buildcache
+
+on:
+  schedule:
+    # Run every Monday at 2:34 AM UTC
+    - cron: '34 2 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+  pull_request:
+    paths:
+      - '.github/workflows/refresh_buildcache.yml'
+
+jobs:
+  refresh-mpi:
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mpi_version: "openmpi@git.main=main"
+            mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
+          - mpi_version: "openmpi@git.v5.0.x=main"
+            mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
+          - mpi_version: "openmpi@git.v6.0.x=main"
+            mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
+
+    name: Rebuild ${{ matrix.mpi_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Spack
+        uses: spack/setup-spack@v3
+
+      - name: Add Spack packages
+        run: |
+          spack -e ./test/CI add ${{ matrix.mpi_version }} ${{ matrix.mpi_options }}
+          spack -e ./test/CI add cmake
+
+      - name: Concretize Spack packages (fresh)
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: spack -e ./test/CI concretize --fresh
+
+      - name: Install Spack packages (force rebuild)
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: spack -e ./test/CI install --no-cache
+
+      - name: Push packages to Fenix's build cache
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          spack -e ./test/CI buildcache push --base-image ubuntu:24.04 \
+            --allow-missing --update-index --force fenix-buildcache
