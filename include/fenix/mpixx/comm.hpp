@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <utility>
 
+#include "fenix/mpixx/group.hpp"
 #include "fenix/mpixx/util.hpp"
 
 namespace fenix::mpixx {
@@ -44,11 +45,15 @@ class Comm {
   int revoke();
   virtual void free(); // safe even if comm_ is MPI_COMM_NULL
 
+  // Get group associated with this communicator
+  Group group() const;
+
   // Static versions taking raw MPI_Comm
   static int size(MPI_Comm comm);
   static int rank(MPI_Comm comm);
   static bool is_revoked(MPI_Comm comm);
   static int revoke(MPI_Comm comm);
+  static Group group(MPI_Comm comm);
 
   // MPI_Comm creation overloads
   Comm dup() const;

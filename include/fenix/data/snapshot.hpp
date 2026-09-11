@@ -7,6 +7,7 @@
 #include "fenix/data/util/data_ref.hpp"
 #include "fenix/data/util/serializer.hpp"
 #include "fenix/data/subset.hpp"
+#include "fenix/mpixx/group.hpp"
 
 namespace fenix::data {
 
@@ -21,7 +22,7 @@ class DataSnapshot {
   int elm_size_;         ///< Size of each element in bytes
   int elm_max_count_;    ///< Maximum number of elements
 
-  MPI_Group cohort_ = MPI_GROUP_NULL;
+  mpixx::Group cohort_;
 
  public:
   int cohort_rank = -1; ///< This rank's index within the cohort

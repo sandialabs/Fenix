@@ -124,7 +124,7 @@ struct IMRGroup : public DataGroup {
   static int get_mode(int* policy_vals);
   static int get_rank_sep(int* policy_vals, MPI_Comm comm);
 
-  MPI_Group create_cohort() override;
+  mpixx::Group create_cohort() override;
   void init() override;
 
   int mode;

@@ -14,6 +14,9 @@ target_link_libraries(test_mpixx_comm PRIVATE fenix MPI::MPI_CXX)
 add_executable(test_mpixx_datatype test_datatype.cpp)
 target_link_libraries(test_mpixx_datatype PRIVATE fenix MPI::MPI_CXX)
 
+add_executable(test_mpixx_group test_group.cpp)
+target_link_libraries(test_mpixx_group PRIVATE fenix MPI::MPI_CXX)
+
 if (BUILD_TESTING)
     add_test(NAME test_mpixx_comm COMMAND ${MPIEXEC} ${MPIEXEC_PREFLAGS}
              ${MPIEXEC_NUMPROC_FLAG} 4 ${MPIEXEC_POSTFLAGS} $<TARGET_FILE:test_mpixx_comm>)
@@ -22,4 +25,8 @@ if (BUILD_TESTING)
     add_test(NAME test_mpixx_datatype COMMAND ${MPIEXEC} ${MPIEXEC_PREFLAGS}
              ${MPIEXEC_NUMPROC_FLAG} 4 ${MPIEXEC_POSTFLAGS} $<TARGET_FILE:test_mpixx_datatype>)
     set_tests_properties(test_mpixx_datatype PROPERTIES TIMEOUT 20)
+
+    add_test(NAME test_mpixx_group COMMAND ${MPIEXEC} ${MPIEXEC_PREFLAGS}
+             ${MPIEXEC_NUMPROC_FLAG} 6 ${MPIEXEC_POSTFLAGS} $<TARGET_FILE:test_mpixx_group>)
+    set_tests_properties(test_mpixx_group PROPERTIES TIMEOUT 20)
 endif()
