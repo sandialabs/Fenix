@@ -61,26 +61,6 @@
 #include "fenix.hpp"
 #include "fenix_opt.hpp"
 
-extern char* logname;
-
-void __fenix_ranks_agree(int*, int*, int*, MPI_Datatype*);
-
-int __fenix_binary_search(int*, int, int);
-
-int __fenix_comparator(const void*, const void*);
-
-int __fenix_get_size(MPI_Datatype);
-
-int __fenix_get_current_rank(MPI_Comm);
-
-int __fenix_get_world_size(MPI_Comm);
-
-void* s_calloc(int count, size_t size);
-
-void* s_malloc(size_t size);
-
-void* s_realloc(void* mem, size_t size);
-
 namespace fenix::util {
 
 int resume_application(bool new_exception = false);
