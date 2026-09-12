@@ -116,15 +116,14 @@ struct fenix_t {
   Group procs;
   // Categorized procs - non-intersecting and union to universe_procs
   Group user_procs, spare_procs, dead_procs;
-  // Conversions from a given pid (rank in universe_procs) to a given rank
-  //   assignment (rank the proc is representing in the originally constructed
-  //   active_procs) and back.
-  // pid_to_rank maintains mappings from a dead pid to whatever rank it was
-  //   assigned to when it died, so ranks may be represented multiple times
-  // rank_to_pid maintains its original size when user_world shrinks, so some
-  //   ranks will be MPI_UNDEFINED to indicate that they are no longer available
-  std::vector<int> pid_to_rank;
-  std::vector<int> rank_to_pid;
+  // Conversions between pid (rank in procs group) and slot (logical position
+  //   in the resilient communicator that a process represents).
+  // pid_to_slot maintains mappings from a dead pid to whatever slot it was
+  //   assigned when it died, so slots may be represented multiple times
+  // slot_to_pid maintains its original size when user_world shrinks, so some
+  //   slots will be MPI_UNDEFINED to indicate that they are no longer filled
+  std::vector<int> pid_to_slot;
+  std::vector<int> slot_to_pid;
 
   // Categorize procs based on most recent recovery operation
   Group fail_procs, recovered_procs, survivor_procs;
