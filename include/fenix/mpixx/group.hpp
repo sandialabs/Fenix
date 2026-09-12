@@ -109,6 +109,8 @@ class Group {
 
   // ========== Group Construction Factory Methods ==========
 
+  Group dup() const;
+
   // Create group containing specified ranks from this group
   Group incl(const std::vector<int>& ranks) const;
 
@@ -123,6 +125,9 @@ class Group {
   Group range_excl(const std::vector<std::array<int, 3>>& ranges) const;
 
   // Static versions operating on arbitrary source group
+
+  // Create group containing specified ranks from source group
+  static Group dup(MPI_Group source);
 
   // Create group containing specified ranks from source group
   static Group incl(MPI_Group source, const std::vector<int>& ranks);

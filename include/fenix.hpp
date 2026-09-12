@@ -74,6 +74,7 @@ constexpr Role INITIAL_RANK   = FENIX_ROLE_INITIAL_RANK;
 constexpr Role RECOVERED_RANK = FENIX_ROLE_RECOVERED_RANK;
 constexpr Role SURVIVOR_RANK  = FENIX_ROLE_SURVIVOR_RANK;
 constexpr Role SPARE_RANK     = FENIX_ROLE_SPARE_RANK;
+constexpr Role MISSING_RANK   = FENIX_ROLE_MISSING_RANK;
 
 using SettingName                             = Fenix_Setting_name;
 constexpr SettingName RECOVERY_MODE           = FENIX_RECOVERY_MODE;
