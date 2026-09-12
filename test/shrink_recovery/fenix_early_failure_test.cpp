@@ -215,6 +215,28 @@ int main(int argc, char** argv) {
     expected_spares, n_ranks
   );
 
+  // Verify Fenix_get_rank_role for all ranks in new_comm
+  for (int i = 0; i < new_world_size; i++) {
+    int queried_role;
+    Fenix_get_rank_role(new_comm, i, &queried_role);
+
+    // After early failure, all ranks should still be INITIAL
+    fenix_require(
+      queried_role == FENIX_ROLE_INITIAL_RANK,
+      "Early failure: Rank %d in new_comm should be INITIAL, got %d",
+      i, queried_role
+    );
+  }
+
+  // Verify our own role matches what get_rank_role returns
+  int our_queried_role;
+  Fenix_get_rank_role(new_comm, new_rank, &our_queried_role);
+  fenix_require(
+    our_queried_role == fenix_status,
+    "Early failure: Rank %d: get_rank_role returned %d, but our role is %d",
+    new_rank, our_queried_role, fenix_status
+  );
+
   printf(
     "Rank %d (was %d): early failure test PASSED - "
     "initial_active=%d, early_failures=%d, spares=%d, final=%d, missing=%d\n",
