@@ -538,6 +538,66 @@ int Fenix_get_number_of_ranks_with_role(int role, int* number_of_ranks);
 int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role);
 
 /**
+ * @brief Converts a rank to its slot (logical position in resilient communicator)
+ *
+ * Returns the slot that a given rank is filling. The slot represents the
+ * logical position in the resilient communicator model, which persists even
+ * when the actual communicator shrinks due to failures.
+ *
+ * @param comm The communicator containing the rank
+ * @param rank The rank in the communicator to query
+ * @param slot Output parameter set to the slot (logical position)
+ * @returnstatus
+ *
+ * @note After shrinking, communicator ranks are renumbered but slots remain stable.
+ * @note Example: After failures, rank 2 might fill slot 5 (slots 3-4 are missing).
+ */
+int Fenix_rank_to_slot(MPI_Comm comm, int rank, int* slot);
+
+/**
+ * @brief Converts a slot to its corresponding rank in the communicator
+ *
+ * Returns the current rank in the communicator that is filling the given slot.
+ * Returns MPI_UNDEFINED if the slot is not filled (missing due to shrinking).
+ *
+ * @param comm The communicator to query
+ * @param slot The slot (logical position) to query
+ * @param rank Output parameter set to the rank, or MPI_UNDEFINED if slot is empty
+ * @returnstatus
+ *
+ * @note Slots may be empty (MPI_UNDEFINED) after shrinking recovery.
+ * @note The slot must be in the range [0, original_user_size).
+ */
+int Fenix_slot_to_rank(MPI_Comm comm, int slot, int* rank);
+
+/**
+ * @brief Repairs a group to reflect the current recovery state
+ *
+ * Takes a group from before recovery and creates a new group that reflects
+ * the current state after recovery. Each rank in the old group is mapped
+ * through slot space to find its current process, with recovered ranks replaced
+ * by their spares and missing ranks (due to shrinking) excluded.
+ *
+ * @param old_group The group to repair (typically from before recovery)
+ * @param new_group Output parameter set to the repaired group
+ * @returnstatus
+ *
+ * @note The caller is responsible for freeing new_group with MPI_Group_free.
+ * @note If all ranks in old_group are missing, returns MPI_GROUP_EMPTY.
+ * @note This is useful for maintaining collective operation groups across recoveries.
+ *
+ * @par Example:
+ * @code
+ * MPI_Group compute_group;  // Created before failure
+ * // ... failure and recovery ...
+ * MPI_Group updated_group;
+ * Fenix_repair_group(compute_group, &updated_group);
+ * // updated_group now contains current processes, excluding any missing ranks
+ * @endcode
+ */
+int Fenix_repair_group(MPI_Group old_group, MPI_Group* new_group);
+
+/**
  * @brief Returns this rank's #Fenix_Rank_role
  *
  * This function may be called after Fenix_Finalize, which may be useful if
@@ -550,6 +610,20 @@ int Fenix_get_error();
 
 //!@brief Returns the number of spare ranks currently available to Fenix
 int Fenix_get_nspare();
+
+/**
+ * @brief Returns this rank's slot (logical position in resilient communicator)
+ *
+ * Returns the slot that the current process is filling. This is the logical
+ * position in the resilient communicator model that persists across failures.
+ *
+ * @return The slot (logical position) of the calling process
+ *
+ * @note Before any failures, a process's slot equals its rank.
+ * @note After shrinking, a process's rank may differ from its slot.
+ * @note Spare ranks return their position in the original spare allocation.
+ */
+int Fenix_get_slot();
 
 /**
  * @brief Get the list of ranks that failed in the most recent failure.
