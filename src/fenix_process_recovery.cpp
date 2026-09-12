@@ -144,6 +144,12 @@ static int preinit(
     rebuild_proc_groups();
   } while (FENIX_SUCCESS != try_build_active_worlds());
 
+  // Check if shrinking occurred during initialization due to early failures
+  if (fenix_rt.user_procs.size() < n_active) {
+    fenix_rt.repair_result = FENIX_WARNING_SPARE_RANKS_DEPLETED;
+    *fenix_rt.ret_error = FENIX_WARNING_SPARE_RANKS_DEPLETED;
+  }
+
   if (!spare()) {
     fenix_rt.num_initial_ranks = fenix_rt.new_world.size();
     if (fenix_rt.options.verbose == 0) {
