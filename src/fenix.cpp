@@ -170,6 +170,14 @@ int Fenix_get_nspare() {
   return nspare();
 }
 
+int Fenix_get_number_of_ranks_with_role(int role, int* number_of_ranks) {
+  FENIX_C_API_BEGIN
+  assert(initialized());
+  *number_of_ranks = n_ranks_with_role((Fenix_Rank_role)role);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
 namespace fenix {
 
 template <typename T>
@@ -243,6 +251,34 @@ int error() {
 int nspare() {
   assert(initialized());
   return fenix_rt.spare_procs.size();
+}
+
+int n_ranks_with_role(Role role) {
+  assert(initialized());
+
+  switch (role) {
+    case FENIX_ROLE_INITIAL_RANK:
+      // INITIAL only applies if caller is still in initial state
+      return fenix_rt.role == FENIX_ROLE_INITIAL_RANK
+        ? fenix_rt.user_procs.size() : 0;
+
+    case FENIX_ROLE_SURVIVOR_RANK:
+      // survivor_procs is only populated during recovery, not during init
+      return fenix_rt.survivor_procs ? fenix_rt.survivor_procs.size() : 0;
+
+    case FENIX_ROLE_RECOVERED_RANK:
+      // recovered_procs is only populated during recovery, not during init
+      return fenix_rt.recovered_procs ? fenix_rt.recovered_procs.size() : 0;
+
+    case FENIX_ROLE_SPARE_RANK:
+      return fenix_rt.spare_procs.size();
+
+    case FENIX_ROLE_MISSING_RANK:
+      return fenix_rt.rank_to_pid.size() - fenix_rt.user_procs.size();
+
+    default:
+      FENIX_THROW(FENIX_ERROR_INVALID_ROLE);
+  }
 }
 
 std::vector<int> fail_list() {
