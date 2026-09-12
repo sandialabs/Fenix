@@ -170,6 +170,20 @@ int Fenix_get_nspare() {
   return nspare();
 }
 
+int Fenix_get_n_ranks_with_role(int role, int* n_ranks) {
+  FENIX_C_API_BEGIN
+  *n_ranks = n_ranks_with_role((Fenix_Rank_role)role);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role) {
+  FENIX_C_API_BEGIN
+  *role = fenix::role(comm, rank);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
 namespace fenix {
 
 template <typename T>
@@ -230,9 +244,46 @@ void throw_exception() {
   );
 }
 
-Fenix_Rank_role role() {
+Role role() {
   assert(initialized() || fenix_rt.finalized);
-  return (Fenix_Rank_role)fenix_rt.role;
+  return (Role)fenix_rt.role;
+}
+
+Role role(MPI_Comm comm, int r) {
+  assert(initialized());
+
+  mpixx::Group g(comm);
+  fenix_assert(MPI_UNDEFINED != g.translate_rank(r, fenix_rt.procs));
+
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.dead_procs))
+    return FENIX_ROLE_MISSING_RANK;
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.spare_procs))
+    return FENIX_ROLE_SPARE_RANK;
+  if (FENIX_ROLE_INITIAL_RANK == fenix_rt.role) return FENIX_ROLE_INITIAL_RANK;
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.recovered_procs))
+    return FENIX_ROLE_RECOVERED_RANK;
+
+  fenix_assert(MPI_UNDEFINED != g.translate_rank(r, fenix_rt.survivor_procs));
+  return FENIX_ROLE_SURVIVOR_RANK;
+}
+
+int n_ranks_with_role(Role role) {
+  assert(initialized());
+  switch (role) {
+  case FENIX_ROLE_INITIAL_RANK:
+    return fenix_rt.role == FENIX_ROLE_INITIAL_RANK ? fenix_rt.user_procs.size()
+                                                    : 0;
+  case FENIX_ROLE_SURVIVOR_RANK:
+    return fenix_rt.survivor_procs ? fenix_rt.survivor_procs.size() : 0;
+  case FENIX_ROLE_RECOVERED_RANK:
+    return fenix_rt.recovered_procs ? fenix_rt.recovered_procs.size() : 0;
+  case FENIX_ROLE_SPARE_RANK:
+    return fenix_rt.spare_procs.size();
+  case FENIX_ROLE_MISSING_RANK:
+    return fenix_rt.rank_to_pid.size() - fenix_rt.user_procs.size();
+  default:
+    FENIX_THROW(FENIX_ERROR_INVALID_ROLE);
+  }
 }
 
 int error() {
