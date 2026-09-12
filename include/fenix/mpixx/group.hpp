@@ -109,6 +109,21 @@ class Group {
 
   // ========== Group Construction Factory Methods ==========
 
+  // Create group containing specified ranks from this group
+  Group incl(const std::vector<int>& ranks) const;
+
+  // Create group excluding specified ranks from this group
+  Group excl(const std::vector<int>& ranks) const;
+
+  // Create group containing ranks in given range from this group
+  // Each range is {first, last, stride}
+  Group range_incl(const std::vector<std::array<int, 3>>& ranges) const;
+
+  // Create group excluding ranks in given range from this group
+  Group range_excl(const std::vector<std::array<int, 3>>& ranges) const;
+
+  // Static versions operating on arbitrary source group
+
   // Create group containing specified ranks from source group
   static Group incl(MPI_Group source, const std::vector<int>& ranks);
 
