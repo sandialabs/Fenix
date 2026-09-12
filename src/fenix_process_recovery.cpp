@@ -94,6 +94,12 @@ static int preinit(
   // Initialize universe from input communicator before shrinking
   fenix_rt.procs = mpixx::Comm::group(args.in_comm);
 
+  if (args.spares >= fenix_rt.procs.size()) {
+    fatal_print(
+      "Fenix: <%d> spare ranks requested are unavailable\n", args.spares
+    );
+  }
+
   int n_active         = fenix_rt.procs.size() - args.spares;
   fenix_rt.user_procs  = fenix_rt.procs.range_incl({{0, n_active - 1, 1}});
   fenix_rt.spare_procs = fenix_rt.procs - fenix_rt.user_procs;
@@ -107,7 +113,6 @@ static int preinit(
   MPI_Comm_create_errhandler(__fenix_test_MPI, &fenix_rt.mpi_errhandler);
 
   fenix_rt.user_world_ptr      = args.out_comm;
-  fenix_rt.spare_ranks         = args.spares;
   fenix_rt.recover_environment = jump_env;
 
   fenix_rt.ret_role  = args.role ? args.role : &fenix_rt.role;
@@ -125,15 +130,6 @@ static int preinit(
     "Must use Fenix_Init to use FENIX_RESUME_JUMP"
   );
 
-  MPI_Op_create((MPI_User_function*)__fenix_ranks_agree, 1, &fenix_rt.agree_op);
-
-  if (fenix_rt.spare_ranks >= fenix_rt.procs.size()) {
-    debug_print(
-      "Fenix: <%d> spare ranks requested are unavailable\n",
-      fenix_rt.spare_ranks
-    );
-  }
-
   fenix_rt.data_recovery = new data::DataComponent();
 
   // Now loop on creating communicators until success.
@@ -148,26 +144,6 @@ static int preinit(
   if (fenix_rt.user_procs.size() < n_active) {
     fenix_rt.repair_result = FENIX_WARNING_SPARE_RANKS_DEPLETED;
     *fenix_rt.ret_error = FENIX_WARNING_SPARE_RANKS_DEPLETED;
-  }
-
-  if (!spare()) {
-    fenix_rt.num_initial_ranks = fenix_rt.new_world.size();
-    if (fenix_rt.options.verbose == 0) {
-      verbose_print(
-        "rank: %d, role: %d, number_initial_ranks: %d\n", fenix_rt.world.rank(),
-        fenix_rt.role, fenix_rt.num_initial_ranks
-      );
-    }
-
-  } else {
-    fenix_rt.num_initial_ranks = fenix_rt.spare_ranks;
-
-    if (fenix_rt.options.verbose == 0) {
-      verbose_print(
-        "rank: %d, role: %d, number_initial_ranks: %d\n", fenix_rt.world.rank(),
-        fenix_rt.role, fenix_rt.num_initial_ranks
-      );
-    }
   }
 
   fenix_rt.fenix_init_flag = true;
@@ -233,7 +209,6 @@ void rebuild_proc_groups() {
 
   user = procs.incl(user_pids);
   spare -= user;
-  fenix_rt.spare_ranks = spare.size();
 }
 
 int try_build_active_worlds() {
@@ -361,14 +336,8 @@ int __fenix_repair_ranks() {
   fenix_rt.fail_procs = old_user_procs - fenix_rt.user_procs;
   fenix_rt.fail_ranks = fenix_rt.fail_procs.translate_ranks(old_user_procs);
 
-  fenix_rt.fail_world_size = fenix_rt.fail_ranks.size();
-  fenix_rt.fail_world      = fenix_rt.fail_ranks.data();
-
   fenix_rt.recovered_procs = fenix_rt.user_procs - old_user_procs;
   fenix_rt.survivor_procs  = fenix_rt.user_procs - fenix_rt.recovered_procs;
-
-  fenix_rt.num_recovered_ranks = fenix_rt.recovered_procs.size();
-  fenix_rt.num_survivor_ranks  = fenix_rt.survivor_procs.size();
 
   if (spare()) {
     fenix_rt.role = FENIX_ROLE_SPARE_RANK;
@@ -448,7 +417,6 @@ void __fenix_finalize_spare() {
   if (recv_req != MPI_REQUEST_NULL) MPI_Cancel(&recv_req);
 #endif
 
-  MPI_Op_free(&fenix_rt.agree_op);
   MPI_Comm_set_errhandler(fenix_rt.world, MPI_ERRORS_ARE_FATAL);
   fenix_rt.world.free();
 
@@ -640,7 +608,6 @@ int Fenix_Finalize() {
   int unused;
   MPIX_Comm_agree(fenix_rt.world, &unused);
 
-  MPI_Op_free(&fenix_rt.agree_op);
   MPI_Comm_set_errhandler(fenix_rt.world, MPI_ERRORS_ARE_FATAL);
   fenix_rt.world.free();
   fenix_rt.new_world.free();

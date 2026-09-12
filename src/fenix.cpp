@@ -130,8 +130,8 @@ int Fenix_Finalized(int* flag) {
 
 int Fenix_Process_fail_list(int** fail_list) {
   FENIX_C_API_BEGIN
-  *fail_list = fenix_rt.fail_world;
-  return fenix_rt.fail_world_size;
+  *fail_list = fenix_rt.fail_ranks.data();
+  return fenix_rt.fail_ranks.size();
   FENIX_C_API_END
 }
 
@@ -242,13 +242,12 @@ int error() {
 
 int nspare() {
   assert(initialized());
-  return fenix_rt.spare_ranks;
+  return fenix_rt.spare_procs.size();
 }
 
 std::vector<int> fail_list() {
   assert(initialized());
-  if (fenix_rt.fail_world_size == 0) return {};
-  return {fenix_rt.fail_world, fenix_rt.fail_world + fenix_rt.fail_world_size};
+  return fenix_rt.fail_ranks;
 }
 
 bool initialized() { return fenix_rt.fenix_init_flag; }

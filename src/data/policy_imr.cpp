@@ -423,7 +423,7 @@ int IMRGroup::get_mode(int* policy_vals) {
 }
 
 int IMRGroup::get_rank_sep(int* policy_vals, MPI_Comm comm) {
-  return policy_vals ? policy_vals[1] : __fenix_get_world_size(comm) / 2;
+  return policy_vals ? policy_vals[1] : mpixx::Comm::size(comm) / 2;
 }
 
 mpixx::Group IMRGroup::create_cohort() {
