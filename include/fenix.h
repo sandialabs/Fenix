@@ -116,6 +116,7 @@ typedef enum {
   FENIX_ERROR_INVALID_DEPTH,
   FENIX_ERROR_INVALID_ATTRIBUTE_NAME,
   FENIX_ERROR_INVALID_ATTRIBUTE_VALUE,
+  FENIX_ERROR_INVALID_ROLE,
   FENIX_ERROR_INVALID_POSITION,
   FENIX_ERROR_INVALID_SUBSET,
   FENIX_ERROR_DATA_WAIT,
@@ -510,8 +511,19 @@ int Fenix_Callback_invoke_all();
  */
 int Fenix_Process_detect_failures(int do_recovery);
 
-//!@unimplemented Returns the number of ranks with a given #Fenix_Rank_role
-int Fenix_get_number_of_ranks_with_role(int, int*);
+/**
+ * @brief Returns the number of ranks with a given #Fenix_Rank_role
+ *
+ * Counts how many processes currently have the specified role.
+ *
+ * FENIX_ROLE_MISSING_RANK is the number of ranks permanently lost due to
+ * shrinking recovery.
+ *
+ * @param role The role to query (one of #Fenix_Rank_role)
+ * @param number_of_ranks Output parameter set to the count
+ * @returnstatus
+ */
+int Fenix_get_number_of_ranks_with_role(int role, int* number_of_ranks);
 
 //!@unimplemented Returns the #Fenix_Rank_role for a given rank
 int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role);

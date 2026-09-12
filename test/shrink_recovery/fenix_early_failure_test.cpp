@@ -170,11 +170,56 @@ int main(int argc, char** argv) {
     num_fails
   );
 
+  // Verify Fenix_get_number_of_ranks_with_role for early failure scenario
+  int n_ranks;
+
+  // Test MISSING_RANK: should equal number of unrecovered failures (shrinkage)
+  Fenix_get_number_of_ranks_with_role(FENIX_ROLE_MISSING_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == unrecovered_failures,
+    "Early failure: MISSING_RANK count mismatch: expected %d, got %d",
+    unrecovered_failures, n_ranks
+  );
+
+  // Test INITIAL_RANK: all ranks should still be INITIAL after early failure
+  Fenix_get_number_of_ranks_with_role(FENIX_ROLE_INITIAL_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == new_world_size,
+    "Early failure: INITIAL_RANK count mismatch: expected %d, got %d",
+    new_world_size, n_ranks
+  );
+
+  // Test SURVIVOR_RANK: should be 0 (no recovery happened, just init)
+  Fenix_get_number_of_ranks_with_role(FENIX_ROLE_SURVIVOR_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == 0,
+    "Early failure: SURVIVOR_RANK should be 0, got %d",
+    n_ranks
+  );
+
+  // Test RECOVERED_RANK: should be 0 (no recovery happened, just init)
+  Fenix_get_number_of_ranks_with_role(FENIX_ROLE_RECOVERED_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == 0,
+    "Early failure: RECOVERED_RANK should be 0, got %d",
+    n_ranks
+  );
+
+  // Test SPARE_RANK: remaining spares after early failures
+  Fenix_get_number_of_ranks_with_role(FENIX_ROLE_SPARE_RANK, &n_ranks);
+  int expected_spares = (spare_ranks > num_failures) ?
+                        (spare_ranks - num_failures) : 0;
+  fenix_require(
+    n_ranks == expected_spares,
+    "Early failure: SPARE_RANK count mismatch: expected %d, got %d",
+    expected_spares, n_ranks
+  );
+
   printf(
     "Rank %d (was %d): early failure test PASSED - "
-    "initial_active=%d, early_failures=%d, spares=%d, final=%d\n",
+    "initial_active=%d, early_failures=%d, spares=%d, final=%d, missing=%d\n",
     new_rank, old_rank, initial_active_ranks,
-    num_failures, spare_ranks, new_world_size
+    num_failures, spare_ranks, new_world_size, unrecovered_failures
   );
 
   Fenix_Finalize();
