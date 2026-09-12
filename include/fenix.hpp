@@ -159,6 +159,9 @@ int nspare();
 //!@brief Overload of #Fenix_get_number_of_ranks_with_role
 int n_ranks_with_role(Role role);
 
+//!@brief Overload of #Fenix_get_rank_role
+Role rank_role(MPI_Comm comm, int rank);
+
 using FenixCallbackFunc = std::function<void(MPI_Comm, int)>;
 
 //!@brief Overload of #Fenix_Callback_register

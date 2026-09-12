@@ -525,7 +525,16 @@ int Fenix_Process_detect_failures(int do_recovery);
  */
 int Fenix_get_number_of_ranks_with_role(int role, int* number_of_ranks);
 
-//!@unimplemented Returns the #Fenix_Rank_role for a given rank
+/**
+ * @brief Returns the #Fenix_Rank_role for a given rank
+ *
+ * Determines the role of a specific rank in the provided communicator.
+ *
+ * @param comm The communicator containing the rank to query
+ * @param rank The rank in the communicator to query
+ * @param role Output parameter set to the role of the specified rank
+ * @returnstatus
+ */
 int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role);
 
 /**
