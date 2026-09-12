@@ -94,11 +94,6 @@ struct fenix_t {
   // Global Fenix settings
   Settings settings;
 
-  int num_initial_ranks;
-  int num_survivor_ranks  = 0; // As of last failure
-  int num_recovered_ranks = 0; // As of last failure
-  int spare_ranks;             // Spare ranks entered by user
-
   jmp_buf* recover_environment; // for FENIX_RESUME_JUMP
 
   int mpi_fail_code = MPI_SUCCESS;
@@ -135,8 +130,6 @@ struct fenix_t {
   Group fail_procs, recovered_procs, survivor_procs;
   // Rank of fail_procs in user_world from before most recent recovery
   std::vector<int> fail_ranks;
-  int fail_world_size = fail_ranks.size();
-  int* fail_world     = fail_ranks.data();
 
   Comm world;      // Duplicate of comm provided by user
   Comm user_world; // User-facing comm with repaired ranks and no spares
@@ -148,7 +141,6 @@ struct fenix_t {
   int dummy_recv_buffer;
   MPI_Request check_failures_req;
 
-  MPI_Op agree_op;               // Global agreement call for data recovery API
   MPI_Errhandler mpi_errhandler; // Our custom error handler
 
   fenix::data::DataComponent* data_recovery = nullptr;
