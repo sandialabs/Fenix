@@ -282,7 +282,7 @@ int n_ranks_with_role(Role role) {
       return fenix_rt.spare_procs.size();
 
     case FENIX_ROLE_MISSING_RANK:
-      return fenix_rt.rank_to_pid.size() - fenix_rt.user_procs.size();
+      return fenix_rt.slot_to_pid.size() - fenix_rt.user_procs.size();
 
     default:
       FENIX_THROW(FENIX_ERROR_INVALID_ROLE);

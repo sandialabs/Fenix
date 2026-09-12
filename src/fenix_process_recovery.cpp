@@ -76,7 +76,7 @@ static void spare_rank_loop();
 static void __fenix_finalize_spare();
 
 // Rebuilds fenix_rt Group members using latest fenix_rt world.
-// Updates pid_to_rank and rank_to_pid. Does not change any comms.
+// Updates pid_to_slot and slot_to_pid. Does not change any comms.
 static void rebuild_proc_groups();
 
 // Attempts to build new_world/user_world and returns FENIX_SUCCESS consistently
@@ -104,10 +104,10 @@ static int preinit(
   fenix_rt.user_procs  = fenix_rt.procs.range_incl({{0, n_active - 1, 1}});
   fenix_rt.spare_procs = fenix_rt.procs - fenix_rt.user_procs;
 
-  fenix_rt.pid_to_rank = std::vector<int>(fenix_rt.procs.size(), MPI_UNDEFINED);
-  fenix_rt.rank_to_pid = std::vector<int>(n_active, MPI_UNDEFINED);
+  fenix_rt.pid_to_slot = std::vector<int>(fenix_rt.procs.size(), MPI_UNDEFINED);
+  fenix_rt.slot_to_pid = std::vector<int>(n_active, MPI_UNDEFINED);
   for (int i = 0; i < n_active; i++) {
-    fenix_rt.pid_to_rank[i] = fenix_rt.rank_to_pid[i] = i;
+    fenix_rt.pid_to_slot[i] = fenix_rt.slot_to_pid[i] = i;
   }
 
   MPI_Comm_create_errhandler(__fenix_test_MPI, &fenix_rt.mpi_errhandler);
@@ -169,8 +169,8 @@ void rebuild_proc_groups() {
   auto& user        = fenix_rt.user_procs;
   auto& dead        = fenix_rt.dead_procs;
   auto& spare       = fenix_rt.spare_procs;
-  auto& pid_to_rank = fenix_rt.pid_to_rank;
-  auto& rank_to_pid = fenix_rt.rank_to_pid;
+  auto& pid_to_slot = fenix_rt.pid_to_slot;
+  auto& slot_to_pid = fenix_rt.slot_to_pid;
 
   dead = procs - fenix_rt.world;
   spare -= dead; // Remove any newly dead spares
@@ -186,25 +186,25 @@ void rebuild_proc_groups() {
   for (int i = 0; i < n_replace; i++) {
     int idx  = dead_user[i];
     int pid  = user_pids[idx];
-    int rank = pid_to_rank[pid];
-    fenix_assert(rank != MPI_UNDEFINED);
+    int slot = pid_to_slot[pid];
+    fenix_assert(slot != MPI_UNDEFINED);
 
     int spare_pid          = spare.translate_rank(i, procs);
     user_pids[idx]         = spare_pid;
-    rank_to_pid[rank]      = spare_pid;
-    pid_to_rank[spare_pid] = rank;
+    slot_to_pid[slot]      = spare_pid;
+    pid_to_slot[spare_pid] = slot;
   }
 
   // Then shrink the rest (backwards since we are erasing from user_pids)
   for (int i = dead_user.size() - 1; i >= n_replace; i--) {
     int idx  = dead_user[i];
     int pid  = user_pids[idx];
-    int rank = pid_to_rank[pid];
-    fenix_assert(rank != MPI_UNDEFINED);
+    int slot = pid_to_slot[pid];
+    fenix_assert(slot != MPI_UNDEFINED);
 
     user_pids.erase(user_pids.begin() + idx);
-    rank_to_pid[rank] = MPI_UNDEFINED;
-    // No new pid assigned to a rank, so no pid_to_rank change
+    slot_to_pid[slot] = MPI_UNDEFINED;
+    // No new pid assigned to a slot, so no pid_to_slot change
   }
 
   user = procs.incl(user_pids);
@@ -326,7 +326,7 @@ int __fenix_repair_ranks() {
     rebuild_proc_groups();
   } while (FENIX_SUCCESS != try_build_active_worlds());
 
-  bool shrank = fenix_rt.user_procs.size() < fenix_rt.rank_to_pid.size();
+  bool shrank = fenix_rt.user_procs.size() < fenix_rt.slot_to_pid.size();
   if (shrank && recovery == SPAWN && fenix_rt.world.rank() == 0) {
     debug_print("FENIX_RECOVERY_SPAWN is not currently supported. Shrinking.");
   }
