@@ -174,6 +174,8 @@ typedef enum {
   FENIX_ROLE_SURVIVOR_RANK  = 2,
   //!This rank was a spare when Fenix finalized
   FENIX_ROLE_SPARE_RANK     = 3,
+  //!This rank no longer exists (failed with no spare to replace it)
+  FENIX_ROLE_MISSING_RANK   = 4,
 } Fenix_Rank_role;
 
 /**
