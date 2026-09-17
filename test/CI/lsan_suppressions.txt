@@ -52,3 +52,4 @@ leak:era_update_return_value
 
 # Suppress indirect leaks from MPI
 leak:libmpi.so
+leak:libopen_mpi.so
