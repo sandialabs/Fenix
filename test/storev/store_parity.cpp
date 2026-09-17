@@ -21,6 +21,9 @@ int main(int argc, char** argv) {
   MPI_Comm res_comm;
   fenix::init({.out_comm = &res_comm, .spares = 1});
 
+  // Policy values to be used for group_create calls
+  int policy_vals[] = {5, 1, 3};
+
   int num_ranks, rank;
   MPI_Comm_size(res_comm, &num_ranks);
   MPI_Comm_rank(res_comm, &rank);
@@ -92,7 +95,7 @@ int main(int argc, char** argv) {
           //Repair the group from the spare
           Fenix_Data_group_create(
             my_group, res_comm, start_timestamp, group_depth,
-            FENIX_DATA_POLICY_IMR, (int[]){5, 1, 3}, &errflag
+            FENIX_DATA_POLICY_IMR, policy_vals, &errflag
           );
 
           //Restore data

@@ -5,6 +5,7 @@
 
 #include <utility>
 #include <vector>
+#include <array>
 
 #include "fenix/mpixx/util.hpp"
 
