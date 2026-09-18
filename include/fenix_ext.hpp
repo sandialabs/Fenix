@@ -68,6 +68,7 @@
 #include "fenix/data/component.hpp"
 #include "fenix/logging/comm_log.h"
 #include "fenix/mpixx/comm.hpp"
+#include "fenix/mpixx/group.hpp"
 
 namespace fenix {
 
@@ -87,13 +88,11 @@ struct Settings {
 inline Settings fenix_default_settings;
 
 struct fenix_t {
+  using Group = mpixx::Group;
+  using Comm = mpixx::Comm;
+
   // Global Fenix settings
   Settings settings;
-
-  int num_initial_ranks;
-  int num_survivor_ranks  = 0; // As of last failure
-  int num_recovered_ranks = 0; // As of last failure
-  int spare_ranks;             // Spare ranks entered by user
 
   jmp_buf* recover_environment; // for FENIX_RESUME_JUMP
 
@@ -104,9 +103,6 @@ struct fenix_t {
   int fenix_init_flag = false;
   int finalized       = false;
 
-  int fail_world_size = 0;
-  int* fail_world     = nullptr;
-
   //Save the pointer to role and error of Fenix_Init
   int* ret_role  = &role;
   int* ret_error = &repair_result;
@@ -115,16 +111,35 @@ struct fenix_t {
     callbacks;
   fenix_debug_opt_t options; // This is reserved to store the user options
 
-  mpixx::Comm world;      // Duplicate of comm provided by user
-  mpixx::Comm user_world; // User-facing comm with repaired ranks and no spares
+
+  // All processes managed by Fenix, including dead ones
+  Group procs;
+  // Categorized procs - non-intersecting and union to universe_procs
+  Group user_procs, spare_procs, dead_procs;
+  // Conversions between pid (rank in procs group) and slot (logical position
+  //   in the resilient communicator that a process represents).
+  // pid_to_slot maintains mappings from a dead pid to whatever slot it was
+  //   assigned when it died, so slots may be represented multiple times
+  // slot_to_pid maintains its original size when user_world shrinks, so some
+  //   slots will be MPI_UNDEFINED to indicate that they are no longer filled
+  std::vector<int> pid_to_slot;
+  std::vector<int> slot_to_pid;
+
+  // Categorize procs based on most recent recovery operation
+  Group fail_procs, recovered_procs, survivor_procs;
+  // Rank of fail_procs in user_world from before most recent recovery
+  std::vector<int> fail_ranks;
+
+  Comm world;      // Duplicate of comm provided by user
+  Comm user_world; // User-facing comm with repaired ranks and no spares
+  Comm new_world;  // Internal duplicate of user_world
+
   MPI_Comm* user_world_ptr = nullptr; // Pointer to application's MPI_Comm
-  mpixx::Comm new_world;              // Internal duplicate of user_world
 
   //Values used for Fenix_Process_detect_failures
   int dummy_recv_buffer;
   MPI_Request check_failures_req;
 
-  MPI_Op agree_op;               // Global agreement call for data recovery API
   MPI_Errhandler mpi_errhandler; // Our custom error handler
 
   fenix::data::DataComponent* data_recovery = nullptr;

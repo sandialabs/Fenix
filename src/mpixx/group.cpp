@@ -166,6 +166,36 @@ Group& Group::operator-=(const Group& other) {
 
 // ========== Factory methods ==========
 
+// Non-static member versions (operate on this group)
+
+Group Group::dup() const { return dup(get()); }
+
+Group Group::incl(const std::vector<int>& ranks) const {
+  return incl(get(), ranks);
+}
+
+Group Group::excl(const std::vector<int>& ranks) const {
+  return excl(get(), ranks);
+}
+
+Group Group::range_incl(const std::vector<std::array<int, 3>>& ranges) const {
+  return range_incl(get(), ranges);
+}
+
+Group Group::range_excl(const std::vector<std::array<int, 3>>& ranges) const {
+  return range_excl(get(), ranges);
+}
+
+// Static versions (operate on arbitrary source group)
+
+Group Group::dup(MPI_Group source) {
+  if (source == MPI_GROUP_NULL) return Group();
+  MPI_Group new_group;
+  int err = MPI_Group_difference(source, MPI_GROUP_EMPTY, &new_group);
+  if (err != MPI_SUCCESS) FENIX_THROW(FENIX_ERROR_INTERN);
+  return Group(new_group);
+}
+
 Group Group::incl(MPI_Group source, const std::vector<int>& ranks) {
   if (ranks.empty()) {
     return Group(MPI_GROUP_EMPTY);
