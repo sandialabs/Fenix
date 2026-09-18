@@ -10,32 +10,21 @@
 
 include(CheckSymbolExists)
 
-set(Fenix_SOURCES
-    fenix.cpp
-    fenix_opt.cpp
-    fenix_process_recovery.cpp
-    fenix_util.cpp
-    fenix_callbacks.cpp)
-add_library(fenix STATIC ${Fenix_SOURCES})
-
-add_library(mlog STATIC)
-add_library(Fenix::mlog ALIAS mlog)
-target_link_libraries(mlog INTERFACE fenix)
-
-add_subdirectory(data)
-add_subdirectory(logging)
-add_subdirectory(mpixx)
-
+# Headers
+###############
 set(Fenix_INCLUDE ${CMAKE_SOURCE_DIR}/include)
 FILE(GLOB_RECURSE Fenix_HEADERS ${Fenix_INCLUDE}/*.h ${Fenix_INCLUDE}/*.hpp)
-
 configure_file(${Fenix_INCLUDE}/fenix-config.h.in fenix-config.h @ONLY)
 
-# Set preprocessor definitions to use
+
+# Preprocessor definitions
+################################
 set(Fenix_DEFINE "")
+
 if (FENIX_C_CATCH_RUNTIME_EXCEPTIONS)
     set(Fenix_DEFINE "${Fenix_DEFINE} FENIX_C_CATCH_RUNTIME_EXCEPTIONS")
 endif()
+
 if (FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS)
     set(Fenix_DEFINE "${Fenix_DEFINE} FENIX_CPP_CATCH_RUNTIME_EXCEPTIONS")
 endif()
@@ -46,11 +35,42 @@ if (FENIX_HAVE_MREMAP)
     set(Fenix_DEFINE "${Fenix_DEFINE} FENIX_HAVE_MREMAP")
 endif()
 
-foreach(FENIX_LIB fenix mlog)
-    target_sources(${FENIX_LIB} PUBLIC FILE_SET HEADERS
-        BASE_DIRS ${Fenix_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR}
-        FILES ${Fenix_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h)
 
+# Core library
+####################
+add_library(fenix STATIC)
+target_sources(fenix PRIVATE
+    fenix.cpp
+    fenix_opt.cpp
+    fenix_process_recovery.cpp
+    fenix_util.cpp
+    fenix_callbacks.cpp)
+target_sources(fenix PUBLIC FILE_SET HEADERS
+    BASE_DIRS ${Fenix_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR}
+    FILES ${Fenix_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h)
+
+
+# Message logging library
+####################
+add_library(mlog STATIC)
+add_library(fenix::mlog ALIAS mlog)
+target_link_libraries(mlog INTERFACE fenix)
+# Private includes for mlog library, so we don't need to install headers twice
+target_sources(mlog PRIVATE FILE_SET HEADERS
+    BASE_DIRS ${Fenix_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR}
+    FILES ${Fenix_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/fenix-config.h)
+
+
+# Component directories
+#######################
+add_subdirectory(data)
+add_subdirectory(logging)
+add_subdirectory(mpixx)
+
+
+# Compile and link options
+##########################
+foreach(FENIX_LIB fenix mlog)
     target_compile_features(${FENIX_LIB} PUBLIC cxx_std_20)
     target_link_libraries(${FENIX_LIB} PUBLIC MPI::MPI_CXX)
     if (NOT "${Fenix_DEFINE}" STREQUAL "")
@@ -58,7 +78,10 @@ foreach(FENIX_LIB fenix mlog)
     endif()
 endforeach()
 
+
+# Install
+#########
 install(TARGETS fenix EXPORT fenix ARCHIVE LIBRARY FILE_SET HEADERS)
-install(TARGETS mlog EXPORT fenix_modules ARCHIVE LIBRARY FILE_SET HEADERS)
+install(TARGETS mlog EXPORT mlog ARCHIVE LIBRARY)
 install(EXPORT fenix FILE fenixTargets.cmake DESTINATION cmake)
-install(EXPORT fenix_modules FILE fenixModuleTargets.cmake NAMESPACE Fenix DESTINATION cmake)
+install(EXPORT mlog FILE fenix_mlogTargets.cmake NAMESPACE fenix:: DESTINATION cmake COMPONENT mlog)
