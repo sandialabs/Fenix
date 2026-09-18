@@ -515,10 +515,10 @@ int __fenix_preinit(
 }
 
 void __fenix_postinit() {
+  if (fenix_rt.finalized) return;
+
   *fenix_rt.ret_role  = fenix_rt.role;
   *fenix_rt.ret_error = fenix_rt.repair_result;
-
-  if (fenix_rt.finalized) return;
 
   util::ScopedActiveMlog active_mlog(FENIX_MLOG_NONE);
   if (fenix_rt.new_world) {
