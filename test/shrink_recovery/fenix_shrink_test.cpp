@@ -75,7 +75,7 @@
  */
 
 void* exitThread(void* should_exit) {
-  usleep(10000);
+  usleep(50000);
   if (((intptr_t)should_exit) == 1) {
     pid_t pid = getpid();
     kill(pid, SIGTERM);
@@ -116,6 +116,7 @@ int main(int argc, char** argv) {
     }
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
   pthread_t thread_id;
   pthread_create(&thread_id, NULL, exitThread, (void*)should_cancel);
 
@@ -139,7 +140,7 @@ int main(int argc, char** argv) {
 
   // Give time for exit thread to work
   if (fenix_status == FENIX_ROLE_INITIAL_RANK) {
-    usleep(100000);
+    usleep(300000);
   }
 
   MPI_Barrier(new_comm);

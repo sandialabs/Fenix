@@ -1,6 +1,9 @@
 #include <fenix.h>
 #include <fenix_opt.hpp>
 #include <mpi.h>
+#ifndef MPICH_VERSION
+#include <mpi-ext.h>
+#endif
 #include <stdio.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -54,6 +57,11 @@ int main(int argc, char** argv) {
       break;
     }
   }
+
+  // Reliable barrier - we're not trying to test the case that a process
+  // fails while another is still trying to MPI_Init
+  int unused = 1;
+  MPIX_Comm_agree(MPI_COMM_WORLD, &unused);
 
   // Kill this process immediately if it should fail early
   if (should_fail) {
