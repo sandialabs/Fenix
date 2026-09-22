@@ -85,6 +85,16 @@ DataGroup::DataGroup(
   policy_name  = m_policy;
 }
 
+void DataGroup::init() {
+  cohort      = create_cohort();
+  cohort_comm = mpixx::Comm::create(comm, cohort);
+  // Barrier on parent to make sure all ranks successfully created cohort_comm
+  MPI_Barrier(comm);
+  cohort_size = cohort_comm.size();
+  cohort_rank = cohort_comm.rank();
+  sync_timestamps();
+}
+
 DataMember* DataGroup::search_member(int id) {
   auto iter = members.find(id);
   if (iter == members.end()) return nullptr;

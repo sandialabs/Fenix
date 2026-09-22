@@ -80,10 +80,8 @@ int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  MPI_Comm world_comm;
-  MPI_Comm_dup(MPI_COMM_WORLD, &world_comm);
-  MPI_Comm_size(world_comm, &old_world_size);
-  MPI_Comm_rank(world_comm, &old_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &old_world_size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &old_rank);
 
   int fenix_status;
   int recovered = 0;
@@ -91,7 +89,9 @@ int main(int argc, char **argv) {
   int error;
   MPI_Request req = MPI_REQUEST_NULL;
   fprintf(stderr, "Before Fenix init\n");
-  Fenix_Init(&fenix_status, world_comm, &new_comm, &argc, &argv, spare_ranks, &error);
+  Fenix_Init(
+    &fenix_status, MPI_COMM_WORLD, &new_comm, &argc, &argv, spare_ranks, &error
+  );
   fprintf(stderr, "After Fenix init\n");
     
   MPI_Comm_size(new_comm, &new_world_size);
