@@ -88,13 +88,7 @@ struct DataGroup {
   virtual void sync_timestamps();
 
   // Initialize group after construction (creates cohort_comm, syncs state)
-  virtual void init() {
-    cohort      = create_cohort();
-    cohort_comm = mpixx::Comm::create_group(comm, cohort, 0);
-    cohort_size = cohort_comm.size();
-    cohort_rank = cohort_comm.rank();
-    sync_timestamps();
-  }
+  virtual void init();
 
   int groupid;
   mpixx::CommRef comm;
