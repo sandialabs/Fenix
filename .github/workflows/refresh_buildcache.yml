@@ -21,7 +21,9 @@ jobs:
       matrix:
         include:
           - mpi_version: "openmpi@git.main=main"
-            mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
+            mpi_options: "+internal-hwloc +internal-libevent +internal-pmix debug=false"
+          - mpi_version: "openmpi@git.main=main"
+            mpi_options: "+internal-hwloc +internal-libevent +internal-pmix debug=true"
           - mpi_version: "openmpi@git.v5.0.x=main"
             mpi_options: "+internal-hwloc +internal-libevent +internal-pmix"
           - mpi_version: "openmpi@git.v6.0.x=main"

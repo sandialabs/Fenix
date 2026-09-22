@@ -35,7 +35,7 @@ jobs:
 
       - name: Add Spack packages
         run: |
-          spack -e ./test/CI add openmpi@git.main=main +internal-hwloc +internal-libevent +internal-pmix
+          spack -e ./test/CI add openmpi@git.main=main +internal-hwloc +internal-libevent +internal-pmix debug=true
           spack -e ./test/CI add cmake
 
       - name: Concretize Spack packages
