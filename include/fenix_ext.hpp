@@ -89,7 +89,7 @@ inline Settings fenix_default_settings;
 
 struct fenix_t {
   using Group = mpixx::Group;
-  using Comm = mpixx::Comm;
+  using Comm  = mpixx::Comm;
 
   // Global Fenix settings
   Settings settings;
@@ -110,7 +110,6 @@ struct fenix_t {
   std::unordered_map<CallbackLocation, std::vector<FenixCallbackFunc>>
     callbacks;
   fenix_debug_opt_t options; // This is reserved to store the user options
-
 
   // All processes managed by Fenix, including dead ones
   Group procs;

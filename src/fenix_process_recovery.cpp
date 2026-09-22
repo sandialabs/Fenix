@@ -143,7 +143,7 @@ static int preinit(
   // Check if shrinking occurred during initialization due to early failures
   if (fenix_rt.user_procs.size() < n_active) {
     fenix_rt.repair_result = FENIX_WARNING_SPARE_RANKS_DEPLETED;
-    *fenix_rt.ret_error = FENIX_WARNING_SPARE_RANKS_DEPLETED;
+    *fenix_rt.ret_error    = FENIX_WARNING_SPARE_RANKS_DEPLETED;
   }
 
   fenix_rt.fenix_init_flag = true;

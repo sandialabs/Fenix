@@ -90,21 +90,21 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  int spare_ranks = atoi(argv[1]);
+  int spare_ranks  = atoi(argv[1]);
   int num_failures = argc - 2;
 
   MPI_Init(&argc, &argv);
 
   int old_world_size, new_world_size = -1;
-  int old_rank, new_rank = -1;
+  int old_rank, new_rank             = -1;
 
   MPI_Comm_size(MPI_COMM_WORLD, &old_world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &old_rank);
 
   // Expected final size: initial active ranks - unrecovered failures
   int initial_active_ranks = old_world_size - spare_ranks;
-  int unrecovered_failures = (num_failures > spare_ranks) ?
-                             (num_failures - spare_ranks) : 0;
+  int unrecovered_failures =
+    (num_failures > spare_ranks) ? (num_failures - spare_ranks) : 0;
   int expected_final_size = initial_active_ranks - unrecovered_failures;
 
   // Check if this rank should fail
@@ -147,8 +147,8 @@ int main(int argc, char** argv) {
   // Verify final communicator size
   fenix_require(
     new_world_size == expected_final_size,
-    "Communicator size mismatch: expected %d, got %d",
-    expected_final_size, new_world_size
+    "Communicator size mismatch: expected %d, got %d", expected_final_size,
+    new_world_size
   );
 
   // Verify that we actually shrank if we had more failures than spares
@@ -166,14 +166,13 @@ int main(int argc, char** argv) {
 
   fenix_require(
     num_fails == num_failures,
-    "Failed rank count mismatch: expected %d, got %d",
-    num_failures, num_fails
+    "Failed rank count mismatch: expected %d, got %d", num_failures, num_fails
   );
 
   // Verify each expected failure is in the list
   for (int i = 2; i < argc; i++) {
     int expected_fail = atoi(argv[i]);
-    int found = 0;
+    int found         = 0;
     for (int j = 0; j < num_fails; j++) {
       if (fails[j] == expected_fail) {
         found = 1;
@@ -181,17 +180,15 @@ int main(int argc, char** argv) {
       }
     }
     fenix_require(
-      found,
-      "Expected failed rank %d not found in fail list",
-      expected_fail
+      found, "Expected failed rank %d not found in fail list", expected_fail
     );
   }
 
   printf(
     "Rank %d (was %d): shrink test PASSED - "
     "initial_active=%d, failures=%d, spares=%d, final=%d\n",
-    new_rank, old_rank, initial_active_ranks,
-    num_failures, spare_ranks, new_world_size
+    new_rank, old_rank, initial_active_ranks, num_failures, spare_ranks,
+    new_world_size
   );
 
   Fenix_Finalize();

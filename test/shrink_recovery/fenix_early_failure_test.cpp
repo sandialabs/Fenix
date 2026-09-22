@@ -16,7 +16,8 @@
  *
  * The test verifies:
  * 1. Fenix detects and handles failures during initial shrink in preinit
- * 2. Group accounting is correct even when initial procs don't match shrunk world
+ * 2. Group accounting is correct even when initial procs don't match shrunk
+ *    world
  * 3. Spare replacement works correctly for early failures
  * 4. Final communicator size matches expected value
  */
@@ -28,21 +29,21 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  int spare_ranks = atoi(argv[1]);
+  int spare_ranks  = atoi(argv[1]);
   int num_failures = argc - 2;
 
   MPI_Init(&argc, &argv);
 
   int old_world_size, new_world_size = -1;
-  int old_rank, new_rank = -1;
+  int old_rank, new_rank             = -1;
 
   MPI_Comm_size(MPI_COMM_WORLD, &old_world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &old_rank);
 
   // Expected final size: initial active ranks - unrecovered failures
   int initial_active_ranks = old_world_size - spare_ranks;
-  int unrecovered_failures = (num_failures > spare_ranks) ?
-                             (num_failures - spare_ranks) : 0;
+  int unrecovered_failures =
+    (num_failures > spare_ranks) ? (num_failures - spare_ranks) : 0;
   int expected_final_size = initial_active_ranks - unrecovered_failures;
 
   // Check if this rank should fail BEFORE Fenix_Init
@@ -82,8 +83,7 @@ int main(int argc, char** argv) {
   // (they never recovered, they just survived the initial shrink)
   fenix_require(
     fenix_status == FENIX_ROLE_INITIAL_RANK,
-    "Early failure: Expected INITIAL_RANK role, got %d",
-    fenix_status
+    "Early failure: Expected INITIAL_RANK role, got %d", fenix_status
   );
 
   // Verify that SPARE_RANKS_DEPLETED warning is set when shrinking occurred
@@ -95,8 +95,8 @@ int main(int argc, char** argv) {
   } else {
     // If we had enough spares, no warning should be set
     fenix_require(
-      error == FENIX_SUCCESS,
-      "Early failure: Expected FENIX_SUCCESS, got %d", error
+      error == FENIX_SUCCESS, "Early failure: Expected FENIX_SUCCESS, got %d",
+      error
     );
   }
 
@@ -108,15 +108,16 @@ int main(int argc, char** argv) {
 
   fenix_require(
     num_fails == 0,
-    "Early failure: Expected empty fail list (early failures not tracked), got %d failures",
+    "Early failure: Expected empty fail list (early failures not tracked), got "
+    "%d failures",
     num_fails
   );
 
   printf(
     "Rank %d (was %d): early failure test PASSED - "
     "initial_active=%d, early_failures=%d, spares=%d, final=%d\n",
-    new_rank, old_rank, initial_active_ranks,
-    num_failures, spare_ranks, new_world_size
+    new_rank, old_rank, initial_active_ranks, num_failures, spare_ranks,
+    new_world_size
   );
 
   Fenix_Finalize();
