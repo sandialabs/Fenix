@@ -130,8 +130,8 @@ int Fenix_Finalized(int* flag) {
 
 int Fenix_Process_fail_list(int** fail_list) {
   FENIX_C_API_BEGIN
-  *fail_list = fenix_rt.fail_world;
-  return fenix_rt.fail_world_size;
+  *fail_list = fenix_rt.fail_ranks.data();
+  return fenix_rt.fail_ranks.size();
   FENIX_C_API_END
 }
 
@@ -168,6 +168,51 @@ int Fenix_get_error() {
 int Fenix_get_nspare() {
   assert(initialized());
   return nspare();
+}
+
+int Fenix_get_slot() {
+  assert(initialized());
+  return slot();
+}
+
+int Fenix_get_number_of_ranks_with_role(int role, int* number_of_ranks) {
+  FENIX_C_API_BEGIN
+  assert(initialized());
+  *number_of_ranks = n_ranks_with_role((Fenix_Rank_role)role);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role) {
+  FENIX_C_API_BEGIN
+  assert(initialized());
+  *role = rank_role(comm, rank);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_rank_to_slot(MPI_Comm comm, int rank, int* slot) {
+  FENIX_C_API_BEGIN
+  assert(initialized());
+  *slot = rank_to_slot(comm, rank);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_slot_to_rank(MPI_Comm comm, int slot, int* rank) {
+  FENIX_C_API_BEGIN
+  assert(initialized());
+  *rank = slot_to_rank(comm, slot);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_repair_group(MPI_Group old_group, MPI_Group* new_group) {
+  FENIX_C_API_BEGIN
+  assert(initialized());
+  *new_group = repair_group(old_group);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
 }
 
 namespace fenix {
@@ -242,13 +287,150 @@ int error() {
 
 int nspare() {
   assert(initialized());
-  return fenix_rt.spare_ranks;
+  return fenix_rt.spare_procs.size();
+}
+
+int slot() {
+  assert(initialized());
+
+  // Get this process's pid (position in procs group)
+  int pid = fenix_rt.procs.rank();
+
+  // Look up the slot this pid is assigned to
+  return fenix_rt.pid_to_slot[pid];
+}
+
+int n_ranks_with_role(Role role) {
+  assert(initialized());
+
+  switch (role) {
+    case FENIX_ROLE_INITIAL_RANK:
+      // INITIAL only applies if caller is still in initial state
+      return fenix_rt.role == FENIX_ROLE_INITIAL_RANK
+        ? fenix_rt.user_procs.size() : 0;
+
+    case FENIX_ROLE_SURVIVOR_RANK:
+      // survivor_procs is only populated during recovery, not during init
+      return fenix_rt.survivor_procs ? fenix_rt.survivor_procs.size() : 0;
+
+    case FENIX_ROLE_RECOVERED_RANK:
+      // recovered_procs is only populated during recovery, not during init
+      return fenix_rt.recovered_procs ? fenix_rt.recovered_procs.size() : 0;
+
+    case FENIX_ROLE_SPARE_RANK:
+      return fenix_rt.spare_procs.size();
+
+    case FENIX_ROLE_MISSING_RANK:
+      return fenix_rt.slot_to_pid.size() - fenix_rt.user_procs.size();
+
+    default:
+      FENIX_THROW(FENIX_ERROR_INVALID_ROLE);
+  }
+}
+
+Role rank_role(MPI_Comm comm, int r) {
+  assert(initialized());
+
+  mpixx::Group g(comm);
+  fenix_assert(MPI_UNDEFINED != g.translate_rank(r, fenix_rt.procs));
+
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.dead_procs))
+    return FENIX_ROLE_MISSING_RANK;
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.spare_procs))
+    return FENIX_ROLE_SPARE_RANK;
+  if (FENIX_ROLE_INITIAL_RANK == fenix_rt.role)
+    return FENIX_ROLE_INITIAL_RANK;
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.recovered_procs))
+    return FENIX_ROLE_RECOVERED_RANK;
+
+  fenix_assert(MPI_UNDEFINED != g.translate_rank(r, fenix_rt.survivor_procs));
+  return FENIX_ROLE_SURVIVOR_RANK;
+}
+
+int rank_to_slot(MPI_Comm comm, int rank) {
+  assert(initialized());
+
+  // Translate rank in comm → pid in procs
+  mpixx::Group comm_group(comm);
+  int pid = comm_group.translate_rank(rank, fenix_rt.procs);
+  if (pid == MPI_UNDEFINED) {
+    return MPI_UNDEFINED;
+  }
+
+  // Look up the slot this pid is assigned to
+  return fenix_rt.pid_to_slot[pid];
+}
+
+int slot_to_rank(MPI_Comm comm, int slot) {
+  assert(initialized());
+
+  // Check if slot is in valid range
+  if (slot < 0 || slot >= (int)fenix_rt.slot_to_pid.size()) {
+    return MPI_UNDEFINED;
+  }
+
+  // Get the pid filling this slot
+  int pid = fenix_rt.slot_to_pid[slot];
+  if (pid == MPI_UNDEFINED) {
+    // Slot is empty (missing due to shrinking)
+    return MPI_UNDEFINED;
+  }
+
+  // Translate pid in procs → rank in comm
+  mpixx::Group comm_group(comm);
+  int comm_rank = fenix_rt.procs.translate_rank(pid, comm_group);
+  return comm_rank;
+}
+
+MPI_Group repair_group(MPI_Group old_group) {
+  assert(initialized());
+
+  // Wrap old_group without taking ownership
+  mpixx::GroupRef old_grp(old_group);
+  int old_size = old_grp.size();
+
+  // Collect current pids for each member of old_group
+  std::vector<int> new_pids;
+  new_pids.reserve(old_size);
+
+  for (int i = 0; i < old_size; i++) {
+    // Translate rank in old_group → pid in procs
+    int old_pid = old_grp.translate_rank(i, fenix_rt.procs);
+    if (old_pid == MPI_UNDEFINED) {
+      // This rank didn't exist in procs (shouldn't happen)
+      continue;
+    }
+
+    // Look up the slot this pid was assigned to
+    int slot = fenix_rt.pid_to_slot[old_pid];
+    if (slot == MPI_UNDEFINED) {
+      // This pid was never assigned a slot (spare or dead before assignment)
+      continue;
+    }
+
+    // Look up the current pid filling this slot
+    int current_pid = fenix_rt.slot_to_pid[slot];
+    if (current_pid == MPI_UNDEFINED) {
+      // Slot is empty (missing due to shrinking) - skip
+      continue;
+    }
+
+    // Add the current pid
+    new_pids.push_back(current_pid);
+  }
+
+  // Create new group from procs using the collected pids
+  if (new_pids.empty()) {
+    return MPI_GROUP_EMPTY;
+  }
+
+  mpixx::Group new_grp = fenix_rt.procs.incl(new_pids);
+  return new_grp.release(); // Transfer ownership to caller
 }
 
 std::vector<int> fail_list() {
   assert(initialized());
-  if (fenix_rt.fail_world_size == 0) return {};
-  return {fenix_rt.fail_world, fenix_rt.fail_world + fenix_rt.fail_world_size};
+  return fenix_rt.fail_ranks;
 }
 
 bool initialized() { return fenix_rt.fenix_init_flag; }
