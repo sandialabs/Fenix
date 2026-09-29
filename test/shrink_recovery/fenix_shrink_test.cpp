@@ -55,6 +55,7 @@
 */
 
 #include <fenix.h>
+#include <fenix_opt.hpp>
 #include <mpi.h>
 #include <stdio.h>
 #include <signal.h>
@@ -62,9 +63,16 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
-#include <assert.h>
 
-const int kKillID = 1;
+/*
+ * Test shrinking recovery behavior when failures exceed available spares.
+ *
+ * This test verifies:
+ * 1. Communicator shrinks when there are more failures than spares
+ * 2. FENIX_WARNING_SPARE_RANKS_DEPLETED is returned on recovery
+ * 3. Failed rank list is correctly reported
+ * 4. Final communicator size matches expected (initial - failures + spares)
+ */
 
 void* exitThread(void* should_exit) {
   usleep(50000);
@@ -82,70 +90,107 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  int old_world_size, new_world_size = -1;
-  int old_rank = 1, new_rank = -1;
-  int spare_ranks = atoi(argv[1]);
+  int spare_ranks  = atoi(argv[1]);
+  int num_failures = argc - 2;
 
   MPI_Init(&argc, &argv);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  int old_world_size, new_world_size = -1;
+  int old_rank, new_rank             = -1;
+
   MPI_Comm_size(MPI_COMM_WORLD, &old_world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &old_rank);
 
+  // Expected final size: initial active ranks - unrecovered failures
+  int initial_active_ranks = old_world_size - spare_ranks;
+  int unrecovered_failures =
+    (num_failures > spare_ranks) ? (num_failures - spare_ranks) : 0;
+  int expected_final_size = initial_active_ranks - unrecovered_failures;
+
+  // Check if this rank should fail
   intptr_t should_cancel = 0;
   for (int i = 2; i < argc; i++) {
-    if (atoi(argv[i]) == old_rank) should_cancel = 1;
+    if (atoi(argv[i]) == old_rank) {
+      should_cancel = 1;
+      break;
+    }
   }
+
+  MPI_Barrier(MPI_COMM_WORLD);
   pthread_t thread_id;
   pthread_create(&thread_id, NULL, exitThread, (void*)should_cancel);
 
   int fenix_status;
-  int recovered = 0;
   MPI_Comm new_comm;
   int error;
   Fenix_Init(
     &fenix_status, MPI_COMM_WORLD, &new_comm, &argc, &argv, spare_ranks, &error
   );
 
-  if (fenix_status != FENIX_ROLE_INITIAL_RANK) {
-    MPI_Comm_size(new_comm, &new_world_size);
-    MPI_Comm_rank(new_comm, &new_rank);
-    recovered = 1;
+  // Verify that spares depleted warning is returned for recovered ranks
+  if (fenix_status == FENIX_ROLE_RECOVERED_RANK) {
+    fenix_require(
+      error == FENIX_WARNING_SPARE_RANKS_DEPLETED,
+      "Expected FENIX_WARNING_SPARE_RANKS_DEPLETED, got %d", error
+    );
   }
 
-  if (recovered == 0) {
-    //Give time for exit thread to work
-    usleep(100000);
+  MPI_Comm_size(new_comm, &new_world_size);
+  MPI_Comm_rank(new_comm, &new_rank);
+
+  // Give time for exit thread to work
+  if (fenix_status == FENIX_ROLE_INITIAL_RANK) {
+    usleep(300000);
   }
 
   MPI_Barrier(new_comm);
 
-  char processor_name[MPI_MAX_PROCESSOR_NAME];
-  int name_len;
-  MPI_Get_processor_name(processor_name, &name_len);
-
-  printf(
-    "hello world: %s, old rank (MPI_COMM_WORLD): %d, new rank: %d, "
-    "active ranks: %d, ranks before process failure: %d\n",
-    processor_name, old_rank, new_rank, new_world_size, old_world_size
+  // Verify final communicator size
+  fenix_require(
+    new_world_size == expected_final_size,
+    "Communicator size mismatch: expected %d, got %d", expected_final_size,
+    new_world_size
   );
 
+  // Verify that we actually shrank if we had more failures than spares
+  if (num_failures > spare_ranks) {
+    fenix_require(
+      new_world_size < initial_active_ranks,
+      "Communicator should have shrunk: initial=%d, final=%d",
+      initial_active_ranks, new_world_size
+    );
+  }
+
+  // Get and verify failed rank list
   int *fails, num_fails;
   num_fails = Fenix_Process_fail_list(&fails);
 
-  int max = 100, used;
-  char fails_str[max];
-  used = snprintf(fails_str, max, "Rank %d sees failed processes [", new_rank);
-  assert(used > 0 && used < max);
-  for (int i = 0; i < num_fails; i++) {
-    used = snprintf(
-      fails_str, max, "%s%s%d", fails_str, (i == 0 ? "" : ", "), fails[i]
+  fenix_require(
+    num_fails == num_failures,
+    "Failed rank count mismatch: expected %d, got %d", num_failures, num_fails
+  );
+
+  // Verify each expected failure is in the list
+  for (int i = 2; i < argc; i++) {
+    int expected_fail = atoi(argv[i]);
+    int found         = 0;
+    for (int j = 0; j < num_fails; j++) {
+      if (fails[j] == expected_fail) {
+        found = 1;
+        break;
+      }
+    }
+    fenix_require(
+      found, "Expected failed rank %d not found in fail list", expected_fail
     );
-    assert(used > 0 && used < max);
   }
-  used = snprintf(fails_str, max, "%s]", fails_str);
-  assert(used > 0 && used < max);
-  printf("%s\n", fails_str);
+
+  printf(
+    "Rank %d (was %d): shrink test PASSED - "
+    "initial_active=%d, failures=%d, spares=%d, final=%d\n",
+    new_rank, old_rank, initial_active_ranks, num_failures, spare_ranks,
+    new_world_size
+  );
 
   Fenix_Finalize();
   pthread_join(thread_id, NULL);
