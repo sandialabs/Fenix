@@ -67,7 +67,7 @@
 const int kKillID = 1;
 
 void* exitThread(void* should_exit) {
-  usleep(10000);
+  usleep(50000);
   if (((intptr_t)should_exit) == 1) {
     pid_t pid = getpid();
     kill(pid, SIGTERM);
