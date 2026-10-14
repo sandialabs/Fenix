@@ -3,25 +3,13 @@ error
 
 .. operation:: local
 
-Get the error code from the most recent failure.
+Get the error code from the most recent process recovery.
 
 .. c:function:: int Fenix_get_error()
 
-   :returns: The error code from the most recent failure
-
 .. cpp:function:: int fenix::error()
 
-   :returns: The error code from the most recent failure
+   :returns: The Fenix error code from the most recent recovery.
 
-.. code-block:: c
-
-   // C example
-   int error = Fenix_get_error();
-   if (error != FENIX_SUCCESS) {
-       // Handle error
-   }
-
-.. code-block:: cpp
-
-   // C++ example
-   int error = fenix::error();
+Utility function, returns the same code that would be set in the error parameter
+of :c:func:`Fenix_Init`.
