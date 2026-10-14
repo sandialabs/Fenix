@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
           }
 
           //Load the data
-          ret = member_lrestore(
+          ret = member_load(
             my_group, my_member, data.data(), kDataSize,
             FENIX_DATA_SNAPSHOT_LATEST, stored_subset
           );

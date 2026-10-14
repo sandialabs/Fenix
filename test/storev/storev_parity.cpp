@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
           // requesting more data than was stored, but that's expected - we
           // still get the subset that was stored
           try {
-            ret = member_lrestore(
+            ret = member_load(
               my_group, my_member, data.data(), data.size(),
               FENIX_DATA_SNAPSHOT_LATEST, stored_subset
             );
