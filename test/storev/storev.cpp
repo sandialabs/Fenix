@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
           for (int& i : data) i = -2;
 
           //Now do an lrestore to get the recovered data.
-          ret = member_lrestore(
+          ret = member_load(
             my_group, my_member, data.data(), data.size(),
             FENIX_DATA_SNAPSHOT_LATEST, stored_subset
           );
