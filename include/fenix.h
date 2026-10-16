@@ -484,6 +484,39 @@ int Fenix_Callback_pop();
 int Fenix_Callback_invoke_all();
 
 /**
+ * @brief Register an application communicator for automatic revocation during
+ *        recovery.
+ * @qualifier local
+ *
+ * Noop if comm is already registered at the time of the call.
+ *
+ * Registered communicators are revoked before pre-recovery callbacks.
+ *
+ * Registration does not transfer communicator ownership to Fenix.
+ *
+ * Freed communicators are automatically deregistered, there is no need to call
+ * Fenix_Comm_deregister on the communicator simply because it was freed.
+ *
+ * @param[in] comm The communicator to register.
+ * @returnstatus
+ */
+int Fenix_Comm_register(MPI_Comm comm);
+
+/**
+ * @brief Deregister a previously registered application communicator.
+ * @qualifier local
+ *
+ * This communicator will no longer be automatically revoked before pre-recovery
+ * callbacks.
+ *
+ * Noop if comm is not already registered.
+ *
+ * @param[in] comm The communicator to deregister.
+ * @returnstatus
+ */
+int Fenix_Comm_deregister(MPI_Comm comm);
+
+/**
  * @brief Check for any failed ranks
  * @qualifier local
  *

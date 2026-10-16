@@ -141,9 +141,6 @@ struct DataGroup {
   virtual int get_snapshot_at_position(int position);
   virtual std::vector<int> get_snapshots();
 
-  // Revoke cohort_comm (called before recovery to invalidate communicator)
-  virtual void revoke();
-
   const mpixx::Group& get_cohort() const { return cohort; }
 
   // String representation, for debugging

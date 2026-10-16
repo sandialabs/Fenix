@@ -56,6 +56,7 @@
 
 #include <assert.h>
 #include <sys/time.h>
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -85,6 +86,21 @@ static int try_build_active_worlds();
 
 // Returns true if this process is a spare
 static bool spare() { return fenix_rt.spare_procs.rank() != MPI_UNDEFINED; }
+
+static int registered_comm_delete_attr_fn(MPI_Comm comm, int, void*, void*) {
+  auto& comms = fenix_rt.registered_comms;
+  comms.erase(std::remove(comms.begin(), comms.end(), comm), comms.end());
+  return MPI_SUCCESS;
+}
+
+static void free_registered_comm_keyval() {
+  if (fenix_rt.registered_comm_keyval == MPI_KEYVAL_INVALID) return;
+  while (!fenix_rt.registered_comms.empty()) {
+    comm_deregister(fenix_rt.registered_comms[0]);
+  }
+  MPI_Comm_free_keyval(&fenix_rt.registered_comm_keyval);
+  fenix_rt.registered_comm_keyval = MPI_KEYVAL_INVALID;
+}
 
 static int preinit(
   const args::FenixInitArgs& args, jmp_buf* jump_env = nullptr
@@ -131,6 +147,11 @@ static int preinit(
   );
 
   fenix_rt.data_recovery = new data::DataComponent();
+
+  MPI_Comm_create_keyval(
+    MPI_COMM_NULL_COPY_FN, registered_comm_delete_attr_fn,
+    &fenix_rt.registered_comm_keyval, nullptr
+  );
 
   // Now loop on creating communicators until success.
   do {
@@ -420,6 +441,8 @@ void __fenix_finalize_spare() {
   MPI_Comm_set_errhandler(fenix_rt.world, MPI_ERRORS_ARE_FATAL);
   fenix_rt.world.free();
 
+  free_registered_comm_keyval();
+
   /* Free data recovery interface */
   delete fenix_rt.data_recovery;
 
@@ -461,8 +484,11 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
     MPIX_Comm_revoke(fenix_rt.new_world);
     if (fenix_rt.user_world) fenix_rt.user_world.revoke();
 
-    // Revoke all data recovery cohort communicators
-    if (fenix_rt.data_recovery) fenix_rt.data_recovery->revoke();
+    // Revoke all registered comms
+    while (!fenix_rt.registered_comms.empty()) {
+      MPIX_Comm_revoke(fenix_rt.registered_comms[0]);
+      comm_deregister(fenix_rt.registered_comms[0]);
+    }
 
     callback_invoke_all(fenix::PRE_RECOVERY);
     fenix_rt.repair_result = __fenix_repair_ranks();
@@ -491,6 +517,31 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
       break;
     }
   }
+}
+
+static bool comm_is_registered(MPI_Comm comm) {
+  if (comm == MPI_COMM_NULL) return false;
+  int flag;
+  void* attr;
+  MPI_Comm_get_attr(comm, fenix_rt.registered_comm_keyval, &attr, &flag);
+  return flag;
+}
+
+int comm_register(MPI_Comm comm) {
+  FENIX_CPP_API_BEGIN
+  if (comm == MPI_COMM_NULL || comm_is_registered(comm)) return FENIX_SUCCESS;
+  MPI_Comm_set_attr(comm, fenix_rt.registered_comm_keyval, nullptr);
+  fenix_rt.registered_comms.push_back(comm);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int comm_deregister(MPI_Comm comm) {
+  FENIX_CPP_API_BEGIN
+  if (comm_is_registered(comm))
+    MPI_Comm_delete_attr(comm, fenix_rt.registered_comm_keyval);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
 }
 
 int comm_revoke(MPI_Comm comm) { return MPIX_Comm_revoke(comm); }
@@ -611,6 +662,8 @@ int Fenix_Finalize() {
   MPI_Comm_set_errhandler(fenix_rt.world, MPI_ERRORS_ARE_FATAL);
   fenix_rt.world.free();
   fenix_rt.new_world.free();
+
+  free_registered_comm_keyval();
 
   /* Free data recovery interface */
   delete fenix_rt.data_recovery;

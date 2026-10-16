@@ -184,7 +184,14 @@ bool initialized();
 //!@brief Overload of #Fenix_Finalized that directly returns true if finalized
 bool finalized();
 
+//!@brief Overload of #Fenix_Comm_register
+int comm_register(MPI_Comm comm);
+
+//!@brief Overload of #Fenix_Comm_deregister
+int comm_deregister(MPI_Comm comm);
+
 //!@brief Overload of #MPI_Comm_revoke for apps to use until next MPI release
+[[deprecated("Use fenix::comm_register instead")]]
 int comm_revoke(MPI_Comm comm);
 
 } // namespace fenix
