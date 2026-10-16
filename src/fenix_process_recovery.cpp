@@ -486,8 +486,6 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
     MPIX_Comm_revoke(fenix_rt.new_world);
     if (fenix_rt.user_world) fenix_rt.user_world.revoke();
 
-    // Revoke all data recovery cohort communicators
-    if (fenix_rt.data_recovery) fenix_rt.data_recovery->revoke();
     // Revoke all registered comms
     while(!fenix_rt.registered_comms.empty()) {
       MPIX_Comm_revoke(fenix_rt.registered_comms[0]);
