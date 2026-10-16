@@ -1,7 +1,7 @@
 member_store
 ============
 
-.. operation:: collective
+.. operation:: "cohort collective"
 
 Reliably store data into the local and remote staging areas.
 

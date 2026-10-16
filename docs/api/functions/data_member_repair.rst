@@ -1,7 +1,7 @@
 member_repair
 =============
 
-.. operation:: collective
+.. operation:: "cohort collective"
 
 Repair the resilient storage of committed data for a member.
 
@@ -20,7 +20,7 @@ buffer (see :cpp:func:`member_define`).
 This function can be matched remotely by a call to :cpp:func:`member_restore` on
 the same member.
 
-This function does not load any data into the application's memory. See
+This function does not load any data into application-controlled memory. See
 :cpp:func:`member_load` or :cpp:func:`member_restore`.
 
 .. warning::

@@ -1,7 +1,7 @@
 checkpoint
 ==========
 
-.. operation:: collective
+.. operation:: "cohort collective"
 
 Convenience function to store all members and commit in one operation. Supports
 inline recovery with :c:enumerator:`FENIX_MLOG_RECOVERY_INLINE`.

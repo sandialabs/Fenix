@@ -1,7 +1,7 @@
 commit
 ======
 
-.. operation:: local "collective semantics"
+.. operation:: local "cohort semantics"
 
 Finalize a snapshot of all stored data of all members of a group.
 

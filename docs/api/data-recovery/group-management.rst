@@ -14,4 +14,5 @@ Group Management
    ../functions/data_group_delete
    ../functions/data_group_members
    ../functions/data_group_snapshots
+   ../functions/data_group_get_cohort
    ../functions/data_group_get_redundancy_policy
