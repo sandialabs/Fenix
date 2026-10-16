@@ -43,6 +43,11 @@ Enums
 
       This rank was a spare when Fenix finalized (value: 3)
 
+   .. c:enumerator:: FENIX_ROLE_MISSING_RANK
+   .. cpp:enumerator:: fenix::MISSING_RANK
+
+      This rank no longer exists because it failed without a spare replacement (value: 4)
+
 .. c:type:: Fenix_Setting_name
 
    Global Fenix settings.

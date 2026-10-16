@@ -24,10 +24,11 @@ They allow applications to perform custom recovery actions.
    Callbacks can capture context via lambda closures.
 
 .. important::
-   Callbacks will be invoked by all survivor ranks. Callbacks will also be
-   invoked by recovered ranks (former spares), but recovered ranks will have
-   no callbacks registered since they were not executing application code before
-   the failure.
+   Callbacks run on survivor ranks. Recovered ranks start without registered
+   callbacks, since they were not executing application code before the failure.
+
+.. note::
+   Any active message log is deactivated for the duration of callback execution.
 
 **Callback Locations:**
 

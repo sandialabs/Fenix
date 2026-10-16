@@ -38,10 +38,14 @@ The inplace variants of staging allow a user to pass off control of a
 pre-serialized buffer for Fenix to use as the staging data. Any prior staged
 but uncommitted data is lost.
 
-The buffer is interpreted to start at element 0. For non-contiguous subsets,
-the buffer is assumed to NOT be packed (i.e., the elements not included in the
-subset are still present in the buffer, with undefined states). Buffer must have
-been malloc'ed. Caller is not permitted to continue using the buffer space.
+The buffer is interpreted to start at element 0. Even if ``subset`` is not
+contiguous or begins after element 0, the buffer must still contain all
+elements from 0 through the maximum of the member count and the subset end.
+Elements outside the subset may be written by later staging calls.
+
+The caller transfers ownership of the buffer to Fenix. The pointer may be
+overwritten, reallocated, or freed at any time, including before this function
+returns.
 
 
 Manually Staging

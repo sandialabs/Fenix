@@ -24,8 +24,13 @@ passed, loads from the latest committed snapshot. If FENIX_DATA_SNAPSHOT_ALL is
 passed, loads each element from the most recent available snapshot it was staged
 to.
 
-For the C API, data_found must point to an uninitialized subset that the caller
-is then responsible for freeing (unless FENIX_DATA_SUBSET_IGNORE is passed).
+If a snapshot at the specified timestamp is not locally available, the function
+raises ``FENIX_ERROR_NODATA_FOUND``. If only some elements are available, the
+function returns ``FENIX_WARNING_PARTIAL_RESTORE``.
+
+For the C API, ``data_found`` must point to an uninitialized subset that the
+caller is then responsible for freeing, unless ``FENIX_DATA_SUBSET_IGNORE`` is
+passed.
 
 If the given snapshot is not found (or no snapshot is found), raises
 FENIX_ERROR_NODATA_FOUND.

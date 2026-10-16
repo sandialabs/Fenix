@@ -22,8 +22,9 @@ For local-only policies with no redundancy, the cohort contains only the
 calling rank.
 
 .. note::
-   The returned MPI group is a duplicate. The caller is responsible for freeing
-   it with ``MPI_Group_free`` when it is no longer needed.
+   The returned MPI group is a duplicate and is never ``MPI_GROUP_NULL``. The
+   caller is responsible for freeing it with ``MPI_Group_free`` when it is no
+   longer needed.
 
 .. seealso::
    :c:func:`Fenix_Data_group_create`, :c:func:`Fenix_Data_group_get_redundancy_policy`, :cpp:func:`fenix::data::group_create`

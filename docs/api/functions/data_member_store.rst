@@ -22,12 +22,11 @@ If the data subset is SUBSET_PRESTAGED, ranks instead communicate to reliably
 store all data currently in the staging area (i.e., from a prior
 :cpp:func:member_stage call).
 
-It is undefined behavior if the susbet of stored data varies between ranks
+It is undefined behavior if the subset of stored data varies between ranks
 (including if the subset of prestaged data varies, when SUBSET_PRESTAGED is
 passed).
 
-Note, the stored data is not available for recovering from until the group is
-committed.
+The stored data is not available for recovery until the group is committed.
 
 
 .. c:function:: int Fenix_Data_member_storev(int group_id, int member_id, const Fenix_Data_subset subset)

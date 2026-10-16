@@ -16,7 +16,7 @@ multiple pieces of application state.
    :param int group_id: User-defined unique identifier for this group (must be unique across the application)
    :param MPI_Comm comm: MPI communicator defining the scope of this data group (typically the Fenix resilient communicator)
    :param int start_time_stamp: Initial timestamp value for checkpoints in this group (typically 0)
-   :param int depth: Number of checkpoint versions to retain. Older checkpoints are automatically garbage collected. Must be >= 1.
+   :param int depth: Number of older checkpoint versions to retain in addition to the most recent one. ``depth = 0`` keeps only the most recent snapshot.
    :param int policy_name: Redundancy policy identifier. Currently only FENIX_DATA_POLICY_IN_MEMORY_RAID is supported.
    :param void* policy_value: Policy-specific configuration (interpretation depends on policy_name).
    :param int* flag: Status flag indicating success (FENIX_SUCCESS) or error condition
@@ -36,8 +36,8 @@ state.
 
 Currently, only :c:macro:`FENIX_DATA_POLICY_IN_MEMORY_RAID` is supported (see :doc:`/api/types` for details).
 
-For this policy, ``policy_value`` should be cast from an int[2] or int[3] specifying the
-mode (0 or 5), separation factor (number of ranks between redundant copies), and (for mode 5)
+For this policy, ``policy_value`` should be cast from an ``int[2]`` or ``int[3]`` specifying the
+mode (1 or 5), separation factor (number of ranks between redundant copies), and (for mode 5)
 the redundancy group size.
 
 **Usage Examples:**
