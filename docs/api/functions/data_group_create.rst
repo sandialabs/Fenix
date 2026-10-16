@@ -80,4 +80,4 @@ When a new checkpoint is committed that would exceed the depth, the oldest check
 is automatically deleted.
 
 .. seealso::
-   :c:func:`Fenix_Data_member_create`, :c:func:`Fenix_Data_group_delete`, :c:func:`Fenix_Data_group_created`, :c:func:`Fenix_Data_commit`, :doc:`/guides/data-recovery`, :doc:`/tutorials/02-data-recovery`
+   :c:func:`Fenix_Data_member_create`, :c:func:`Fenix_Data_group_delete`, :c:func:`Fenix_Data_group_created`, :c:func:`Fenix_Data_commit`, :doc:`/guides/data-recovery`

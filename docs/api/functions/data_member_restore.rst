@@ -23,4 +23,4 @@ This function behaves as if calling:
 #. :cpp:func:`member_load_to`
 
 .. seealso::
-   :c:func:`Fenix_Data_member_store`, :c:func:`Fenix_Data_commit`, :c:func:`Fenix_Data_member_load`, :c:func:`Fenix_Data_member_repair`, :doc:`/guides/data-recovery`, :doc:`/tutorials/02-data-recovery`
+   :c:func:`Fenix_Data_member_store`, :c:func:`Fenix_Data_commit`, :c:func:`Fenix_Data_member_load`, :c:func:`Fenix_Data_member_repair`, :doc:`/guides/data-recovery`

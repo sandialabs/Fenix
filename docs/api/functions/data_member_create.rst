@@ -53,11 +53,11 @@ For complex and/or non-contiguous data, use the serialization variants that acce
 Serializer Functions
 ^^^^^^^^^^^^^^^^^^^^
 
-.. c:function:: void Fenix_Serialize_file_fn(FILE* fp, int direction, void* buffer, int offset, int count, void* context)
+.. c:function:: void c_serializer(FILE* fp, int direction, void* buffer, int offset, int count, void* context)
 
-.. cpp:function:: void Fenix_Serialize_file_fn(FILE* fp, int direction, void* buffer, int offset, int count)
+.. cpp:function:: void file_serializer(FILE* fp, int direction, void* buffer, int offset, int count)
 
-.. cpp:function:: void Fenix_Serialize_file_fn(std::iostream& stream, int direction, void* buffer, int offset, int count)
+.. cpp:function:: void stream_serializer(std::iostream& stream, int direction, void* buffer, int offset, int count)
 
    :param FILE* fp: Memory-backed file pointer to (de)serialize with
    :param std::iostream& stream: Memory-backed std::iostream to (de)serialize with (C++-only)
@@ -78,24 +78,24 @@ The buffer parameter will be set to the data member's current buffer attribute.
 Deserialization is reading the file or stream into application data for loading.
 The function may read elements [offset, offset+count) from the file or stream.
 The buffer parameter will be set to the data member's current buffer attribute,
-or to the target buffer location if :cpp:func:member_load_to was called (a
-target buffer of FENIX_INPLACE will be translated to the member's buffer
-attribute by Fenix).
+or to the target buffer location if :cpp:func:`fenix::data::member_load` was
+called with an explicit target buffer.
 
 Note that a member's buffer attribute is never directly read from or written to
 by Fenix if that member has a serializer. In that case, the buffer attribute and
-target buffer are exlusively used by the application - so the application may
+target buffer are exclusively used by the application, so the application may
 choose for itself how to define and interpret them.
 
 When invoked, the file or stream will already be positioned appropriately for
 the given reads or writes. Applications may safely reposition the file or
 stream, but the following behavior is undefined:
- * Reading data during serialization or writing during deserialization. This may
-   or may not be detected and blocked at runtime.
- * Writing to any element not included in [offset, offset+count) during
-   serialization (excepting dynamically sized serialization, see below).
- * Reading from any element not staged as part of the snapshot being
-   deserialized.
+
+* Reading data during serialization or writing during deserialization. This may
+  or may not be detected and blocked at runtime.
+* Writing to any element not included in [offset, offset+count) during
+  serialization (excepting dynamically sized serialization, see below).
+* Reading from any element not staged as part of the snapshot being
+  deserialized.
 
 **Dynamically Sized Serialization:**
 For data members without a serializer, it is erroneous to stage SUBSET_FULL to

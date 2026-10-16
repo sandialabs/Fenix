@@ -14,7 +14,6 @@ fault tolerance by recording and replaying MPI messages.
    functions/mlog_activate
    functions/mlog_active
    functions/mlog_begin_region
-   functions/mlog_activate_region
    functions/mlog_sync
    functions/mlog_create_data_member
    functions/mlog_define_data_member

@@ -25,6 +25,7 @@ Functions for detecting and recovering from process failures.
    functions/get_nspare
    functions/fail_list
    functions/check_cancelled
+   functions/comm_revoke
    functions/throw_exception
 
 See :doc:`/guides/process-recovery` for conceptual overview.

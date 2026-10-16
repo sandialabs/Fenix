@@ -10,5 +10,4 @@ Data Subsets
    :maxdepth: 1
 
    ../functions/data_subset_create
-   ../functions/data_subset_createv
    ../functions/data_subset_delete

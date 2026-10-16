@@ -27,6 +27,7 @@ members with staged but unstored data.
 .. c:function:: int Fenix_Data_member_stage_inplace(int group_id, int member_id, void* buf, const Fenix_Data_subset subset)
 
 .. cpp:function:: int fenix::data::member_stage_inplace(int group_id, int member_id, void* buf, const DataSubset& subset)
+
    :param int group_id: Group of the member to stage to
    :param int member_id: Member to stage to
    :param void* buf: [in] Buffer that Fenix takes ownership of
