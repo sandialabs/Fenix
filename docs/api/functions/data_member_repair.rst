@@ -9,8 +9,8 @@ Repair the resilient storage of committed data for a member.
 
 .. cpp:function:: int fenix::data::member_repair(int group_id, int member_id)
 
-   :param int group_id: [in] The data group containing the member. All ranks in the group must provide the same value.
-   :param int member_id: [in] The member whose redundant storage to repair/reconstruct after failures. All ranks must provide the same value. Member does not need to exist locally (will be created with NULL buffer if missing).
+   :param int group_id: The data group containing the member. All ranks in the group must provide the same value.
+   :param int member_id: The member whose redundant storage to repair/reconstruct after failures. All ranks must provide the same value. Member does not need to exist locally (will be created with NULL buffer if missing).
    :returns: FENIX_SUCCESS if successful
 
 The member does not need to exist locally prior to this call. If the member is

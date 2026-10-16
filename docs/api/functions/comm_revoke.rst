@@ -18,7 +18,7 @@ communication with failed ranks. See Open MPI documentation for more detail.
 
 .. cpp:function:: int fenix::comm_revoke(MPI_Comm comm)
 
-   :param MPI_Comm comm: [in] The communicator to revoke
+   :param MPI_Comm comm: The communicator to revoke
    :returns: MPI return code (MPI_SUCCESS or error code)
 
 **When to Use:**

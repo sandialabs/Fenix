@@ -9,7 +9,7 @@ Delete a message log.
 
 .. cpp:function:: int fenix::mlog::mlog_delete(int mlog_id)
 
-   :param int mlog_id: [in] The log to delete.
+   :param int mlog_id: The log to delete.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 Deleting a log frees its stored message-log state.

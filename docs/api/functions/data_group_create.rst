@@ -13,19 +13,19 @@ multiple pieces of application state.
 
 .. cpp:function:: int fenix::data::group_create(int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy_name, void* policy_value, int* flag)
 
-   :param int group_id: [in] User-defined unique identifier for this group (must be unique across the application)
-   :param MPI_Comm comm: [in] MPI communicator defining the scope of this data group (typically the Fenix resilient communicator)
-   :param int start_time_stamp: [in] Initial timestamp value for checkpoints in this group (typically 0)
-   :param int depth: [in] Number of checkpoint versions to retain. Older checkpoints are automatically garbage collected. Must be >= 1.
-   :param int policy_name: [in] Redundancy policy identifier. Currently only FENIX_DATA_POLICY_IN_MEMORY_RAID is supported.
-   :param void* policy_value: [in] Policy-specific configuration (interpretation depends on policy_name).
-   :param int* flag: [out] Status flag indicating success (FENIX_SUCCESS) or error condition
+   :param int group_id: User-defined unique identifier for this group (must be unique across the application)
+   :param MPI_Comm comm: MPI communicator defining the scope of this data group (typically the Fenix resilient communicator)
+   :param int start_time_stamp: Initial timestamp value for checkpoints in this group (typically 0)
+   :param int depth: Number of checkpoint versions to retain. Older checkpoints are automatically garbage collected. Must be >= 1.
+   :param int policy_name: Redundancy policy identifier. Currently only FENIX_DATA_POLICY_IN_MEMORY_RAID is supported.
+   :param void* policy_value: Policy-specific configuration (interpretation depends on policy_name).
+   :param int* flag: Status flag indicating success (FENIX_SUCCESS) or error condition
    :returns: FENIX_SUCCESS if successful, error code otherwise
 
 .. cpp:function:: int fenix::data::group_create(int group_id, fenix::data::GroupCreateArgs args)
 
-   :param int group_id: [in] User-defined unique identifier for this group (must be unique across the application)
-   :param GroupCreateArgs args: [in] Struct containing the normal arguments of ``group_create`` with the same names and sane defaults.
+   :param int group_id: User-defined unique identifier for this group (must be unique across the application)
+   :param GroupCreateArgs args: Struct containing the normal arguments of ``group_create`` with the same names and sane defaults.
 
 It is permitted (and expected) for ranks to call this function multiple times
 for the same group. After a failure, recovered ranks must create the group and

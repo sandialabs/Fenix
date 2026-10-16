@@ -9,8 +9,8 @@ Query if a data member exists on this rank.
 
 .. cpp:function:: bool fenix::data::member_created(int group_id, int member_id)
 
-   :param int group_id: [in] The data group containing the member
-   :param int member_id: [in] The member identifier to check
+   :param int group_id: The data group containing the member
+   :param int member_id: The member identifier to check
    :returns: True if the member exists in the specified group on this rank, false otherwise
 
 .. seealso::

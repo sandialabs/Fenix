@@ -9,7 +9,7 @@ Call this function to free memory allocated by :c:func:`Fenix_Data_subset_create
 
 .. c:function:: int Fenix_Data_subset_delete(Fenix_Data_subset* subset_specifier)
 
-   :param Fenix_Data_subset* subset_specifier: [in] Pointer to the subset handle to delete. Frees all memory associated with the subset. The pointer itself is not modified.
+   :param Fenix_Data_subset* subset_specifier: Pointer to the subset handle to delete. Frees all memory associated with the subset. The pointer itself is not modified.
    :returns: FENIX_SUCCESS if successful
 
 .. note::

@@ -12,8 +12,8 @@ snapshot staging area. Future stores will not impact the snapshot's data.
 
 .. cpp:function:: int fenix::data::commit(int group_id, int* time_stamp)
 
-   :param int group_id: [in] The data group to commit
-   :param int* time_stamp: [out] The timestamp assigned to this checkpoint version. Use this timestamp for later restore operations.
+   :param int group_id: The data group to commit
+   :param int* time_stamp: The timestamp assigned to this checkpoint version. Use this timestamp for later restore operations.
    :returns: FENIX_SUCCESS if successful, error code otherwise
 
 **Usage Examples:**

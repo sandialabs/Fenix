@@ -12,15 +12,15 @@ C API
 
    Get the number of members in a data group.
 
-   :param int group_id: [in] The data group to query. Must be a valid existing group.
-   :param int* number_of_members: [out] Pointer to store the total count of data members in this group.
+   :param int group_id: The data group to query. Must be a valid existing group.
+   :param int* number_of_members: Pointer to store the total count of data members in this group.
    :returns: FENIX_SUCCESS if successful, error code if group invalid
 
 .. c:function:: int Fenix_Data_group_get_member_at_position(int group_id, int* member_id, int position)
 
-   :param int group_id: [in] The data group to query. Must be a valid existing group.
-   :param int* member_id: [out] Pointer to store the member ID at the specified position in the group. Members are ordered by creation time.
-   :param int position: [in] The 0-based index of the member to retrieve. Must be in range [0, number_of_members).
+   :param int group_id: The data group to query. Must be a valid existing group.
+   :param int* member_id: Pointer to store the member ID at the specified position in the group. Members are ordered by creation time.
+   :param int position: The 0-based index of the member to retrieve. Must be in range [0, number_of_members).
    :returns: FENIX_SUCCESS if successful
 
 C++ API
@@ -30,7 +30,7 @@ C++ API
 
    Get all member IDs in a data group.
 
-   :param int group_id: [in] The data group to query
+   :param int group_id: The data group to query
    :returns: std::optional containing vector of member IDs if group exists, std::nullopt otherwise
 
    Returns a vector of all member IDs in the group, ordered by creation time (first created member appears first). If the group does not exist, returns ``std::nullopt``.

@@ -10,11 +10,11 @@ Functions for creating **subsets**, which specify the element ranges of a data m
 
 .. c:function:: int Fenix_Data_subset_create(int num_blocks, int start_offset, int end_offset, int stride, Fenix_Data_subset* subset_specifier)
 
-   :param int num_blocks: [in] The number of contiguous data blocks in the subset. Must be >= 0.
-   :param int start_offset: [in] The index (0-based) of the first element in the first data block. Must be <= end_offset.
-   :param int end_offset: [in] The index (0-based) of the last element (inclusive) in the first data block. Must be >= start_offset.
-   :param int stride: [in] Regular offset between successive data blocks. Each subsequent block starts at start_offset + i*stride. May be 0 if num_blocks <= 1.
-   :param Fenix_Data_subset* subset_specifier: [out] Pointer to store the created subset handle to.
+   :param int num_blocks: The number of contiguous data blocks in the subset. Must be >= 0.
+   :param int start_offset: The index (0-based) of the first element in the first data block. Must be <= end_offset.
+   :param int end_offset: The index (0-based) of the last element (inclusive) in the first data block. Must be >= start_offset.
+   :param int stride: Regular offset between successive data blocks. Each subsequent block starts at start_offset + i*stride. May be 0 if num_blocks <= 1.
+   :param Fenix_Data_subset* subset_specifier: Pointer to store the created subset handle to.
    :returns: FENIX_SUCCESS if successful
 
 Creates ``num_blocks`` element ranges with regular spacing:
@@ -40,10 +40,10 @@ Creates ``num_blocks`` element ranges with regular spacing:
 
 .. c:function:: int Fenix_Data_subset_createv(int num_blocks, int* array_start_offsets, int* array_end_offsets, Fenix_Data_subset* subset_specifier)
 
-   :param int num_blocks: [in] The number of contiguous data blocks in the subset. Must be >= 0.
-   :param int* array_start_offsets: [in] Array of length num_blocks containing the starting index (0-based, inclusive) for each data block. Each value must be <= the corresponding end offset.
-   :param int* array_end_offsets: [in] Array of length num_blocks containing the ending index (0-based, inclusive) for each data block. Each value must be >= the corresponding start offset.
-   :param Fenix_Data_subset* subset_specifier: [out] Pointer to store the created subset handle to.
+   :param int num_blocks: The number of contiguous data blocks in the subset. Must be >= 0.
+   :param int* array_start_offsets: Array of length num_blocks containing the starting index (0-based, inclusive) for each data block. Each value must be <= the corresponding end offset.
+   :param int* array_end_offsets: Array of length num_blocks containing the ending index (0-based, inclusive) for each data block. Each value must be >= the corresponding start offset.
+   :param Fenix_Data_subset* subset_specifier: Pointer to store the created subset handle to.
    :returns: FENIX_SUCCESS if successful
 
 Creates ``num_blocks`` element ranges with arbitrary spacing. Each block can have a different size and location.

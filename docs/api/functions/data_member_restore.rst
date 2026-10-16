@@ -14,7 +14,7 @@ Helper function to repair and load a data member. This function can be matched r
    :param void* target_buf: Buffer to restore into. Default: FENIX_DATA_RESTORE_INPLACE
    :param int max_count: Maximum number of elements. Default: FENIX_DATA_RESTORE_FULL
    :param int time_stamp: Which checkpoint version to restore. Default: FENIX_DATA_SNAPSHOT_ALL
-   :param DataSubset& data_found: [out] The loaded subset of data. Default: SUBSET_IGNORE
+   :param DataSubset& data_found: The loaded subset of data. Default: SUBSET_IGNORE
    :returns: FENIX_SUCCESS if successful
 
 This function behaves as if calling:

@@ -10,14 +10,14 @@ They allow applications to perform custom recovery actions.
 
 .. c:function:: int Fenix_Callback_register(void (*callback)(MPI_Comm, int, void*), void* callback_data)
 
-   :param callback: [in] Function pointer to call during recovery. The function receives the repaired communicator, error code, and user data.
-   :param void* callback_data: [in] Optional user data pointer passed to callback function. May be NULL if no context needed.
+   :param callback: Function pointer to call during recovery. The function receives the repaired communicator, error code, and user data.
+   :param void* callback_data: Optional user data pointer passed to callback function. May be NULL if no context needed.
    :returns: FENIX_SUCCESS if successful
 
 .. cpp:function:: void fenix::callback_register(std::function<void(MPI_Comm, int)> callback, CallbackLocation location = POST_RECOVERY)
 
-   :param callback: [in] std::function or lambda to call during recovery. Receives the repaired communicator and error code.
-   :param CallbackLocation location: [in] When to invoke the callback. Either PRE_RECOVERY (before repair) or POST_RECOVERY (after repair). Default: POST_RECOVERY.
+   :param callback: std::function or lambda to call during recovery. Receives the repaired communicator and error code.
+   :param CallbackLocation location: When to invoke the callback. Either PRE_RECOVERY (before repair) or POST_RECOVERY (after repair). Default: POST_RECOVERY.
 
 .. note::
    The C++ overload uses std::function instead of function pointers, eliminating the need for a separate callback_data parameter.

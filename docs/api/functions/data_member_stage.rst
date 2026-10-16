@@ -30,7 +30,7 @@ members with staged but unstored data.
 
    :param int group_id: Group of the member to stage to
    :param int member_id: Member to stage to
-   :param void* buf: [in] Buffer that Fenix takes ownership of
+   :param void* buf: Buffer that Fenix takes ownership of
    :param DataSubset subset: Element ranges to stage. Default: SUBSET_FULL (all elements).
    :returns: FENIX_SUCCESS if successful, error code otherwise
 

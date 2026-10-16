@@ -13,7 +13,7 @@ Remove the most recently registered callback.
 
 .. cpp:function:: int fenix::callback_pop(CallbackLocation location = POST_RECOVERY)
 
-   :param CallbackLocation location: [in] Which callback stack to pop from. Either PRE_RECOVERY or POST_RECOVERY. Default: POST_RECOVERY.
+   :param CallbackLocation location: Which callback stack to pop from. Either PRE_RECOVERY or POST_RECOVERY. Default: POST_RECOVERY.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful, or an error code
 
 .. seealso::

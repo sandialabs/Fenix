@@ -13,7 +13,7 @@ as Fenix normally detects failures only when MPI operations fail.
 
 .. cpp:function:: int fenix::detect_failures(bool recover = true)
 
-   :param bool recover: [in] If true, perform recovery if failures are detected (default: true)
+   :param bool recover: If true, perform recovery if failures are detected (default: true)
    :returns: FENIX_SUCCESS if no failures detected, else FENIX_ERROR_PROCESS_FAILURE
 
 If recover is true, this is treated like a normal MPI function call that

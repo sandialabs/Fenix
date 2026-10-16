@@ -9,9 +9,9 @@ Define a data member that can be used to stage and restore a message log.
 
 .. cpp:function:: int fenix::mlog::define_data_member(int mlog_id, int group_id, int member_id)
 
-   :param int mlog_id: [in] The log to link to the data member.
-   :param int group_id: [in] The data group to define the member within.
-   :param int member_id: [in] Identifier for the member.
+   :param int mlog_id: The log to link to the data member.
+   :param int group_id: The data group to define the member within.
+   :param int member_id: Identifier for the member.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 This function follows :c:func:`Fenix_Data_member_define` semantics for the

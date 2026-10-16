@@ -9,8 +9,8 @@ Set the region of a message log.
 
 .. cpp:function:: int fenix::mlog::begin_region(int mlog_id, int region_id)
 
-   :param int mlog_id: [in] The log whose region will be updated.
-   :param int region_id: [in] Region ID to set. 
+   :param int mlog_id: The log whose region will be updated.
+   :param int region_id: Region ID to set. 
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 Regions let applications organize logged communication into phases such as

@@ -7,13 +7,13 @@ Build a resilient communicator and set the restart point.
 
 .. c:function:: void Fenix_Init(int* role, MPI_Comm comm, MPI_Comm* newcomm, int** argc, char*** argv, int spare_ranks, int* error)
 
-   :param int* role: [out] The current :c:type:`Fenix_Rank_role` of this rank.
-   :param MPI_Comm comm: [in] Communicator from which to construct the resilient communicator.
-   :param MPI_Comm* newcomm: [out] Resilient output communicator.
-   :param int** argc: [in/out] Pointer to ``main``\'s ``argc`` parameter.
-   :param char*** argv: [in/out] Pointer to ``main``\'s ``argv`` parameter.
-   :param int spare_ranks: [in] Number of ranks in ``comm`` to reserve from ``newcomm`` as spares.
-   :param int* error: [out] Status shared across all ranks released by :c:func:`Fenix_Init`. Reports :c:enumerator:`FENIX_SUCCESS` on normal execution, or :c:enumerator:`FENIX_WARNING_SPARE_RANKS_DEPLETED` if repair had to continue by shrinking because spare ranks were exhausted.
+   :param int* role: The current :c:type:`Fenix_Rank_role` of this rank.
+   :param MPI_Comm comm: Communicator from which to construct the resilient communicator.
+   :param MPI_Comm* newcomm: Resilient output communicator.
+   :param int** argc: Pointer to ``main``\'s ``argc`` parameter.
+   :param char*** argv: Pointer to ``main``\'s ``argv`` parameter.
+   :param int spare_ranks: Number of ranks in ``comm`` to reserve from ``newcomm`` as spares.
+   :param int* error: Status shared across all ranks released by :c:func:`Fenix_Init`. Reports :c:enumerator:`FENIX_SUCCESS` on normal execution, or :c:enumerator:`FENIX_WARNING_SPARE_RANKS_DEPLETED` if repair had to continue by shrinking because spare ranks were exhausted.
 
 .. cpp:function:: void fenix::init(const args::FenixInitArgs args)
 

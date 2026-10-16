@@ -7,14 +7,14 @@ Configure a global Fenix setting.
 
 .. c:function:: int Fenix_set_option(Fenix_Setting_name setting, unsigned option)
 
-   :param Fenix_Setting_name setting: [in] Setting to configure
-   :param unsigned option: [in] Value to assign to the setting
+   :param Fenix_Setting_name setting: Setting to configure
+   :param unsigned option: Value to assign to the setting
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 .. cpp:function:: void fenix::set_option(fenix::SettingName setting, unsigned option)
 
-   :param SettingName setting: [in] Setting to configure
-   :param unsigned option: [in] Value to assign to the setting
+   :param SettingName setting: Setting to configure
+   :param unsigned option: Value to assign to the setting
 
 If called prior to :c:func:`Fenix_Init`, the setting applies to future
 initializations. Settings configured during initialization override prior

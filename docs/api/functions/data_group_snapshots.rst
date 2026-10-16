@@ -10,15 +10,15 @@ C API
 
 .. c:function:: int Fenix_Data_group_get_number_of_snapshots(int group_id, int* number_of_snapshots)
 
-   :param int group_id: [in] The data group to query. Must be a valid existing group.
-   :param int* number_of_snapshots: [out] Pointer to store the count of locally-available snapshots for this group. May vary per rank if failures occurred during commit.
+   :param int group_id: The data group to query. Must be a valid existing group.
+   :param int* number_of_snapshots: Pointer to store the count of locally-available snapshots for this group. May vary per rank if failures occurred during commit.
    :returns: FENIX_SUCCESS if successful, error code if group invalid
 
 .. c:function:: int Fenix_Data_group_get_snapshot_at_position(int group_id, int position, int* time_stamp)
 
-   :param int group_id: [in] The data group to query. Must be a valid existing group.
-   :param int position: [in] The 0-based index of the snapshot to retrieve. Must be in range [0, number_of_snapshots). Position 0 is the most recent snapshot.
-   :param int* time_stamp: [out] Pointer to store the timestamp identifier for the snapshot at this position.
+   :param int group_id: The data group to query. Must be a valid existing group.
+   :param int position: The 0-based index of the snapshot to retrieve. Must be in range [0, number_of_snapshots). Position 0 is the most recent snapshot.
+   :param int* time_stamp: Pointer to store the timestamp identifier for the snapshot at this position.
    :returns: FENIX_SUCCESS if successful, error code if position out of range or group invalid
 
 C++ API
@@ -26,7 +26,7 @@ C++ API
 
 .. cpp:function:: std::optional<std::vector<int>> fenix::data::group_snapshots(int group_id)
 
-   :param int group_id: [in] The data group to query
+   :param int group_id: The data group to query
    :returns: std::optional containing vector of snapshot timestamps if group exists, std::nullopt otherwise. The vector's position 0 is the most recent snapshot.
 
 Usage

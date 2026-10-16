@@ -8,9 +8,9 @@ mlog_create_data_member
 
 .. cpp:function:: int fenix::mlog::create_data_member(int mlog_id, int group_id, int member_id)
 
-   :param int mlog_id: [in] The log to link to the data member.
-   :param int group_id: [in] The data group to create the member within.
-   :param int member_id: [in] Identifier to create the member as.
+   :param int mlog_id: The log to link to the data member.
+   :param int group_id: The data group to create the member within.
+   :param int member_id: Identifier to create the member as.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 Create a data member that can be used to stage and restore a message log.

@@ -5,7 +5,7 @@ mlog_active
 
 .. c:function:: int Fenix_Mlog_active(int* mlog_id)
 
-   :param int* mlog_id: [out] Pointer to the active log ID, or :c:macro:`FENIX_MLOG_NONE` if no log is active.
+   :param int* mlog_id: Pointer to the active log ID, or :c:macro:`FENIX_MLOG_NONE` if no log is active.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 .. cpp:function:: int fenix::mlog::active()

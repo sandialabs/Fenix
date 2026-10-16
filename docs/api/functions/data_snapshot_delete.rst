@@ -9,8 +9,8 @@ Delete a snapshot from a data group.
 
 .. cpp:function:: int fenix::data::snapshot_delete(int group_id, int timestamp)
 
-   :param int group_id: [in] The data group containing the snapshot. Must be a valid group ID.
-   :param int time_stamp: [in] The timestamp identifier of the snapshot to delete. Frees all checkpoint data for this snapshot across all members in the group.
+   :param int group_id: The data group containing the snapshot. Must be a valid group ID.
+   :param int time_stamp: The timestamp identifier of the snapshot to delete. Frees all checkpoint data for this snapshot across all members in the group.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 .. seealso::

@@ -13,7 +13,7 @@ Invoke all registered callbacks with information from the last recovered fault.
 
 .. cpp:function:: int fenix::callback_invoke_all(CallbackLocation loc = POST_RECOVERY)
 
-   :param CallbackLocation loc: [in] Which set of callbacks to invoke. Either PRE_RECOVERY or POST_RECOVERY. Default: POST_RECOVERY.
+   :param CallbackLocation loc: Which set of callbacks to invoke. Either PRE_RECOVERY or POST_RECOVERY. Default: POST_RECOVERY.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 .. seealso::

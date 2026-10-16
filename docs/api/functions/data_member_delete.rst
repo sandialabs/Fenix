@@ -10,8 +10,8 @@ checkpoint data.
 
 .. cpp:function:: int fenix::data::member_delete(int group_id, int member_id)
 
-   :param int group_id: [in] The group containing the member
-   :param int member_id: [in] The member to delete 
+   :param int group_id: The group containing the member
+   :param int member_id: The member to delete 
    :returns: FENIX_SUCCESS if successful, error code otherwise
 
 .. seealso::

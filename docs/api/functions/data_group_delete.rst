@@ -9,7 +9,7 @@ Delete a data group and all associated resources.
 
 .. cpp:function:: int fenix::data::group_delete(int group_id)
 
-   :param int group_id: [in] The data group to delete. Frees all associated resources including members, snapshots, and redundant storage.
+   :param int group_id: The data group to delete. Frees all associated resources including members, snapshots, and redundant storage.
    :returns: FENIX_SUCCESS if successful
 
 .. seealso::

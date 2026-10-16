@@ -7,8 +7,8 @@ Check a pre-recovery request without error.
 
 .. c:function:: int Fenix_check_cancelled(MPI_Request* request, MPI_Status* status)
 
-   :param MPI_Request* request: [in] Pointer to the MPI request handle from a non-blocking MPI operation (e.g., MPI_Isend, MPI_Irecv) that may have been interrupted by a failure.
-   :param MPI_Status* status: [out] Pointer to MPI_Status structure where request status information will be stored. May be MPI_STATUS_IGNORE if status not needed.
+   :param MPI_Request* request: Pointer to the MPI request handle from a non-blocking MPI operation (e.g., MPI_Isend, MPI_Irecv) that may have been interrupted by a failure.
+   :param MPI_Status* status: Pointer to MPI_Status structure where request status information will be stored. May be MPI_STATUS_IGNORE if status not needed.
    :returns: Non-zero (true) if the request was cancelled due to failure or has unknown completion status, 0 (false) if it completed successfully
 
 Return Codes

@@ -17,14 +17,14 @@ before proceeding.
 
 .. c:function:: int Fenix_Data_commit_barrier(int group_id, int* time_stamp)
 
-   :param int group_id: [in] The data group to commit.
-   :param int* time_stamp: [out] The timestamp assigned to this checkpoint version. Use for later restore operations. Pass FENIX_TIME_STAMP_IGNORE if not needed.
+   :param int group_id: The data group to commit.
+   :param int* time_stamp: The timestamp assigned to this checkpoint version. Use for later restore operations. Pass FENIX_TIME_STAMP_IGNORE if not needed.
    :returns: FENIX_SUCCESS if successful, error code otherwise
 
 .. cpp:function:: int fenix::data::commit_barrier(int group_id, int* time_stamp = nullptr)
 
-   :param int group_id: [in] The data group to commit.
-   :param int* time_stamp: [out] The timestamp assigned to this checkpoint. Default: FENIX_TIME_STAMP_IGNORE.
+   :param int group_id: The data group to commit.
+   :param int* time_stamp: The timestamp assigned to this checkpoint. Default: FENIX_TIME_STAMP_IGNORE.
    :returns: FENIX_SUCCESS if successful
 
 .. note::

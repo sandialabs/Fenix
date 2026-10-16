@@ -7,7 +7,7 @@ mlog_activate
 
 .. cpp:function:: int fenix::mlog::activate(int mlog_id)
 
-   :param int mlog_id: [in] The log to activate. May be :c:macro:`FENIX_MLOG_NONE`.
+   :param int mlog_id: The log to activate. May be :c:macro:`FENIX_MLOG_NONE`.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 Activate a given message log, deactivating any previously active log.
@@ -20,8 +20,8 @@ active log, no message log remains active.
 
 .. cpp:function:: int fenix::mlog::activate(int mlog_id, int region_id)
 
-   :param int mlog_id: [in] The log to activate.
-   :param int region_id: [in] Region ID with the same semantics as :c:func:`Fenix_Mlog_begin_region`.
+   :param int mlog_id: The log to activate.
+   :param int region_id: Region ID with the same semantics as :c:func:`Fenix_Mlog_begin_region`.
    :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
 Utility function - activate a message log and begin a region.

@@ -9,11 +9,11 @@ Set the value of a member's attribute.
 
 .. cpp:function:: int fenix::data::member_attr_set(int group_id, int member_id, int attr, void* value, int* flag)
 
-   :param int group_id: [in] The data group to update
-   :param int member_id: [in] The member to update
-   :param int attr: [in] The attribute to set. Valid: BUFFER, COUNT, or DATATYPE. COUNT and DATATYPE only settable before first store.
-   :param void* value: [in] Pointer to new attribute value
-   :param int* flag: [out] Set to 1 if successful, 0 otherwise
+   :param int group_id: The data group to update
+   :param int member_id: The member to update
+   :param int attr: The attribute to set. Valid: BUFFER, COUNT, or DATATYPE. COUNT and DATATYPE only settable before first store.
+   :param void* value: Pointer to new attribute value
+   :param int* flag: Set to 1 if successful, 0 otherwise
    :returns: FENIX_SUCCESS if successful
 
 .. note::
