@@ -156,6 +156,18 @@ int error();
 //!@brief Overload of #Fenix_get_nspare
 int nspare();
 
+//!@brief Overload of #Fenix_get_slot
+int slot();
+
+//!@brief Overload of #Fenix_rank_to_slot
+int rank_to_slot(MPI_Comm comm, int rank);
+
+//!@brief Overload of #Fenix_slot_to_rank
+int slot_to_rank(MPI_Comm comm, int slot);
+
+//!@brief Overload of #Fenix_repair_group
+MPI_Group repair_group(MPI_Group old_group);
+
 using FenixCallbackFunc = std::function<void(MPI_Comm, int)>;
 
 //!@brief Overload of #Fenix_Callback_register
