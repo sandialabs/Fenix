@@ -5,32 +5,23 @@ set_option
 
 Configure a global Fenix setting.
 
-Each :c:type:`Fenix_Setting_name` will describe its function and valid options.
-If called prior to Fenix_Init, the setting will apply to future Fenix_Inits.
-
 .. c:function:: int Fenix_set_option(Fenix_Setting_name setting, unsigned option)
 
-   :param Fenix_Setting_name setting: The setting to configure
-   :param unsigned option: The new value
-   :returns: FENIX_SUCCESS if successful
+   :param Fenix_Setting_name setting: [in] Setting to configure
+   :param unsigned option: [in] Value to assign to the setting
+   :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
-.. cpp:function:: void fenix::set_option(SettingName name, int value)
+.. cpp:function:: void fenix::set_option(fenix::SettingName setting, unsigned option)
 
-   :param SettingName name: The setting to configure
-   :param int value: The new value
+   :param SettingName setting: [in] Setting to configure
+   :param unsigned option: [in] Value to assign to the setting
 
-.. note::
-   The C++ overload accepts the value directly instead of through a pointer.
+If called prior to :c:func:`Fenix_Init`, the setting applies to future
+initializations. Settings configured during initialization override prior
+configurations. Unless otherwise noted, settings should be consistent across
+ranks.
 
-.. code-block:: c
-
-   // C example
-   Fenix_set_option(FENIX_RESUME_MODE, FENIX_RESUME_THROW);
-
-.. code-block:: cpp
-
-   // C++ example
-   fenix::set_option(fenix::RESUME_MODE, fenix::THROW);
+See :doc:`/api/options` for the available settings and their valid options.
 
 .. seealso::
-   :c:func:`Fenix_get_option`, :c:type:`Fenix_Setting_name`
+   :c:func:`Fenix_get_option`, :c:func:`Fenix_Init`, :c:type:`Fenix_Setting_name`, :doc:`/api/options`

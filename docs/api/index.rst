@@ -26,6 +26,7 @@ modern conveniences while maintaining compatibility with the C API.
    process-recovery
    data-recovery
    message-recovery
+   options
    types
    return-codes
    exceptions

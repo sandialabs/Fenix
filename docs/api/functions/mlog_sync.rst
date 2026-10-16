@@ -3,24 +3,18 @@ mlog_sync
 
 .. operation:: collective
 
-Synchronize messages across ranks starting at their given regions.
+Synchronize messages across ranks, each starting at its given region.
 
 .. c:function:: int Fenix_Mlog_sync(int mlog_id, int region_id)
 
-   :param int mlog_id: The logger to sync
-   :param int region_id: The region that this rank will begin at (may be FENIX_MLOG_CONTINUE)
-   :returns: FENIX_SUCCESS if successful
-
 .. cpp:function:: int fenix::mlog::sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE)
 
-   :param int mlog_id: The logger to sync
-   :param int region_id: The region to begin at
-   :returns: FENIX_SUCCESS if successful
+   :param int mlog_id: [in] The log to synchronize.
+   :param int region_id: [in] Region this rank will begin at. It may be :c:macro:`FENIX_MLOG_CONTINUE`, in which case the rank recovers to its latest region's latest message state instead of restarting that region.
+   :returns: :c:enumerator:`FENIX_SUCCESS` if successful
 
-.. note::
-   Ranks recovering to later states will replay messages to ranks recovering to earlier states.
-   If region_id is FENIX_MLOG_CONTINUE, this rank will recover to its latest region's latest
-   message state (instead of restarting the region).
+Ranks recovering to later states replay messages to ranks recovering to
+earlier states.
 
 .. seealso::
    :c:func:`Fenix_Mlog_begin_region`, :c:func:`Fenix_Mlog_activate`

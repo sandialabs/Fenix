@@ -287,11 +287,7 @@ int Fenix_Data_group_create(
   FENIX_C_API_END
 }
 
-int Fenix_Data_group_created(int group_id) {
-  FENIX_C_API_BEGIN
-  return group_created(group_id);
-  FENIX_C_API_END
-}
+int Fenix_Data_group_created(int group_id) { return group_created(group_id); }
 
 int Fenix_Data_member_create(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
@@ -349,9 +345,7 @@ int Fenix_Data_member_attr_set(
 }
 
 int Fenix_Data_member_created(int group_id, int member_id) {
-  FENIX_C_API_BEGIN
   return member_created(group_id, member_id);
-  FENIX_C_API_END
 }
 
 int Fenix_Data_member_store(
