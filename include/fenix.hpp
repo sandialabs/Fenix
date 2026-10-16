@@ -184,6 +184,12 @@ bool initialized();
 //!@brief Overload of #Fenix_Finalized that directly returns true if finalized
 bool finalized();
 
+//!@brief Register an application communicator for recovery-time revoke
+int comm_register(MPI_Comm comm);
+
+//!@brief Deregister an application communicator previously registered with Fenix
+int comm_deregister(MPI_Comm comm);
+
 //!@brief Overload of #MPI_Comm_revoke for apps to use until next MPI release
 int comm_revoke(MPI_Comm comm);
 

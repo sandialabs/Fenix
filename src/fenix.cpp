@@ -118,6 +118,18 @@ int Fenix_Callback_invoke_all() {
   FENIX_C_API_END
 }
 
+int Fenix_Comm_register(MPI_Comm comm) {
+  FENIX_C_API_BEGIN
+  return comm_register(comm);
+  FENIX_C_API_END
+}
+
+int Fenix_Comm_deregister(MPI_Comm comm) {
+  FENIX_C_API_BEGIN
+  return comm_deregister(comm);
+  FENIX_C_API_END
+}
+
 int Fenix_Initialized(int* flag) {
   *flag = (fenix_rt.fenix_init_flag) ? 1 : 0;
   return FENIX_SUCCESS;
