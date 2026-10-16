@@ -205,8 +205,8 @@ int main(int argc, char** argv) {
   MPI_Group_size(repaired_current, &repaired_current_size);
   fenix_require(
     current_size == repaired_current_size,
-    "Rank %d: Current group size %d != repaired size %d",
-    new_rank, current_size, repaired_current_size
+    "Rank %d: Current group size %d != repaired size %d", new_rank,
+    current_size, repaired_current_size
   );
 
   int compare_result;
@@ -217,15 +217,17 @@ int main(int argc, char** argv) {
     new_rank, compare_result
   );
 
-  // Test 2: Create a group representing the original active ranks from MPI_COMM_WORLD
-  // and repair it (should match current group)
+  // Test 2: Create a group representing the original active ranks from
+  // MPI_COMM_WORLD and repair it (should match current group)
   std::vector<int> original_ranks(initial_active_ranks);
   for (int i = 0; i < initial_active_ranks; i++) {
     original_ranks[i] = i;
   }
 
   MPI_Group original_group, repaired_original;
-  MPI_Group_incl(world_group, initial_active_ranks, original_ranks.data(), &original_group);
+  MPI_Group_incl(
+    world_group, initial_active_ranks, original_ranks.data(), &original_group
+  );
   Fenix_repair_group(original_group, &repaired_original);
 
   int repaired_original_size;
@@ -235,15 +237,18 @@ int main(int argc, char** argv) {
   int expected_size = initial_active_ranks - unrecovered_failures;
   fenix_require(
     repaired_original_size == expected_size,
-    "Rank %d: Repaired original group size %d, expected %d (initial %d - missing %d)",
-    new_rank, repaired_original_size, expected_size, initial_active_ranks, unrecovered_failures
+    "Rank %d: Repaired original group size %d, expected %d (initial %d - "
+    "missing %d)",
+    new_rank, repaired_original_size, expected_size, initial_active_ranks,
+    unrecovered_failures
   );
 
   // Should match current group
   MPI_Group_compare(repaired_original, current_group, &compare_result);
   fenix_require(
     compare_result == MPI_IDENT,
-    "Rank %d: Repaired original group should match current group, got compare=%d",
+    "Rank %d: Repaired original group should match current group, got "
+    "compare=%d",
     new_rank, compare_result
   );
 
@@ -266,19 +271,23 @@ int main(int argc, char** argv) {
   // Repaired size should be between 0 and n_even
   fenix_require(
     repaired_even_size >= 0 && repaired_even_size <= n_even,
-    "Rank %d: Repaired even group size %d out of range [0,%d]",
-    new_rank, repaired_even_size, n_even
+    "Rank %d: Repaired even group size %d out of range [0,%d]", new_rank,
+    repaired_even_size, n_even
   );
 
-  // Test 4: Verify each member of repaired even group has correct slot/rank mapping
+  // Test 4: Verify each member of repaired even group has correct slot/rank
+  // mapping
   for (int i = 0; i < repaired_even_size; i++) {
     int pid_in_world, rank_in_new_comm;
     MPI_Group_translate_ranks(repaired_even, 1, &i, world_group, &pid_in_world);
-    MPI_Group_translate_ranks(world_group, 1, &pid_in_world, current_group, &rank_in_new_comm);
+    MPI_Group_translate_ranks(
+      world_group, 1, &pid_in_world, current_group, &rank_in_new_comm
+    );
 
     fenix_require(
       rank_in_new_comm != MPI_UNDEFINED,
-      "Rank %d: Member %d of repaired even group (world pid %d) not in current comm",
+      "Rank %d: Member %d of repaired even group (world pid %d) not in current "
+      "comm",
       new_rank, i, pid_in_world
     );
 
@@ -288,8 +297,7 @@ int main(int argc, char** argv) {
 
     bool is_even_slot = (member_slot % 2 == 0);
     fenix_require(
-      is_even_slot,
-      "Rank %d: Repaired even group member has odd slot %d",
+      is_even_slot, "Rank %d: Repaired even group member has odd slot %d",
       new_rank, member_slot
     );
   }
@@ -302,14 +310,17 @@ int main(int argc, char** argv) {
   MPI_Group_size(repaired_empty, &repaired_empty_size);
   fenix_require(
     repaired_empty_size == 0,
-    "Rank %d: Repaired empty group should have size 0, got %d",
-    new_rank, repaired_empty_size
+    "Rank %d: Repaired empty group should have size 0, got %d", new_rank,
+    repaired_empty_size
   );
 
   // Test 6: Group containing only failed ranks
   if (!fail_list_vec.empty()) {
     MPI_Group failed_only_group, repaired_failed;
-    MPI_Group_incl(world_group, fail_list_vec.size(), fail_list_vec.data(), &failed_only_group);
+    MPI_Group_incl(
+      world_group, fail_list_vec.size(), fail_list_vec.data(),
+      &failed_only_group
+    );
     Fenix_repair_group(failed_only_group, &repaired_failed);
 
     int repaired_failed_size;
@@ -320,16 +331,18 @@ int main(int argc, char** argv) {
 
     fenix_require(
       repaired_failed_size == expected_recovered,
-      "Rank %d: Repaired failed-only group size %d, expected %d (recovered %d of %d failures)",
-      new_rank, repaired_failed_size, expected_recovered, expected_recovered, num_failures
+      "Rank %d: Repaired failed-only group size %d, expected %d (recovered %d "
+      "of %d failures)",
+      new_rank, repaired_failed_size, expected_recovered, expected_recovered,
+      num_failures
     );
 
     MPI_Group_free(&failed_only_group);
     MPI_Group_free(&repaired_failed);
   }
 
-  // Test 7: Mixed group (some survivors, some failed-but-recovered, some missing)
-  // Create a group with first 3 ranks (if they exist in original)
+  // Test 7: Mixed group (some survivors, some failed-but-recovered, some
+  // missing) Create a group with first 3 ranks (if they exist in original)
   if (initial_active_ranks >= 3) {
     std::vector<int> first_three = {0, 1, 2};
     MPI_Group first_three_group, repaired_first_three;
@@ -342,8 +355,8 @@ int main(int argc, char** argv) {
     // The repaired group should contain at least 1 and at most 3 members
     fenix_require(
       repaired_first_three_size >= 1 && repaired_first_three_size <= 3,
-      "Rank %d: Repaired first-3 group size %d out of range [1,3]",
-      new_rank, repaired_first_three_size
+      "Rank %d: Repaired first-3 group size %d out of range [1,3]", new_rank,
+      repaired_first_three_size
     );
 
     // Verify each member exists in current comm with correct role
@@ -351,7 +364,9 @@ int main(int argc, char** argv) {
     for (int i = 0; i < repaired_first_three_size; i++) {
       int pid, rank_in_current;
       MPI_Group_translate_ranks(repaired_first_three, 1, &i, world_group, &pid);
-      MPI_Group_translate_ranks(world_group, 1, &pid, current_group, &rank_in_current);
+      MPI_Group_translate_ranks(
+        world_group, 1, &pid, current_group, &rank_in_current
+      );
 
       fenix_require(
         rank_in_current != MPI_UNDEFINED,
@@ -364,7 +379,8 @@ int main(int argc, char** argv) {
       for (int orig_rank : first_three) {
         int orig_slot, curr_slot;
         // Get slot for this original rank
-        // Actually, simpler: check if this pid corresponds to one of slots 0, 1, or 2
+        // Actually, simpler: check if this pid corresponds to one of slots 0,
+        // 1, or 2
         int pid_slot;
         Fenix_rank_to_slot(new_comm, rank_in_current, &pid_slot);
         if (pid_slot >= 0 && pid_slot < 3) {
@@ -384,8 +400,7 @@ int main(int argc, char** argv) {
 
     fenix_require(
       survivors_or_recovered == repaired_first_three_size,
-      "Rank %d: Count mismatch in repaired first-3",
-      new_rank
+      "Rank %d: Count mismatch in repaired first-3", new_rank
     );
 
     MPI_Group_free(&first_three_group);
@@ -404,12 +419,19 @@ int main(int argc, char** argv) {
   if (new_rank == 0) {
     printf("✓ All Fenix_repair_group() tests passed in shrink scenario\n");
     printf("  - Current group repair is identity\n");
-    printf("  - Original %d ranks → %d survivors after repair\n",
-           initial_active_ranks, expected_size);
-    printf("  - Even-rank subgroup: %d ranks → %d after repair\n", n_even, repaired_even_size);
+    printf(
+      "  - Original %d ranks → %d survivors after repair\n",
+      initial_active_ranks, expected_size
+    );
+    printf(
+      "  - Even-rank subgroup: %d ranks → %d after repair\n", n_even,
+      repaired_even_size
+    );
     printf("  - Empty group remains empty\n");
-    printf("  - Failed-only group: %d failed → %d recovered\n",
-           (int)fail_list_vec.size(), num_failures - unrecovered_failures);
+    printf(
+      "  - Failed-only group: %d failed → %d recovered\n",
+      (int)fail_list_vec.size(), num_failures - unrecovered_failures
+    );
   }
 
   printf(
