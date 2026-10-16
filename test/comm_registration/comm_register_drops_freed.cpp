@@ -8,11 +8,11 @@ int main(int argc, char** argv) {
   init_registration_test();
 
   MPI_Comm_disconnect(&registered_comm);
-  
+
   safely_inject_failure();
 
   // Test passes if Fenix doesn't try to revoke the comm and break itself
-  
+
   finalize_registration_test();
   return 0;
 }

@@ -87,9 +87,7 @@ static int try_build_active_worlds();
 // Returns true if this process is a spare
 static bool spare() { return fenix_rt.spare_procs.rank() != MPI_UNDEFINED; }
 
-static int registered_comm_delete_attr_fn(
-  MPI_Comm comm, int, void*, void*
-) {
+static int registered_comm_delete_attr_fn(MPI_Comm comm, int, void*, void*) {
   auto& comms = fenix_rt.registered_comms;
   comms.erase(std::remove(comms.begin(), comms.end(), comm), comms.end());
   return MPI_SUCCESS;
@@ -97,7 +95,7 @@ static int registered_comm_delete_attr_fn(
 
 static void free_registered_comm_keyval() {
   if (fenix_rt.registered_comm_keyval == MPI_KEYVAL_INVALID) return;
-  while(!fenix_rt.registered_comms.empty()) {
+  while (!fenix_rt.registered_comms.empty()) {
     comm_deregister(fenix_rt.registered_comms[0]);
   }
   MPI_Comm_free_keyval(&fenix_rt.registered_comm_keyval);
@@ -487,7 +485,7 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
     if (fenix_rt.user_world) fenix_rt.user_world.revoke();
 
     // Revoke all registered comms
-    while(!fenix_rt.registered_comms.empty()) {
+    while (!fenix_rt.registered_comms.empty()) {
       MPIX_Comm_revoke(fenix_rt.registered_comms[0]);
       comm_deregister(fenix_rt.registered_comms[0]);
     }

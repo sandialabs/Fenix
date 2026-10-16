@@ -7,7 +7,7 @@
 
 namespace comm_registration_test {
 
-inline MPI_Comm fenix_comm = MPI_COMM_NULL;
+inline MPI_Comm fenix_comm      = MPI_COMM_NULL;
 inline MPI_Comm registered_comm = MPI_COMM_NULL;
 
 inline void ft_barrier(MPI_Comm comm) {
@@ -22,7 +22,7 @@ inline void safely_inject_failure() {
 }
 
 inline void init_registration_test() {
-  int argc = 0;
+  int argc    = 0;
   char** argv = nullptr;
   MPI_Init(&argc, &argv);
 
@@ -34,7 +34,7 @@ inline void init_registration_test() {
 }
 
 inline void finalize_registration_test() {
-  if(registered_comm != MPI_COMM_NULL) MPI_Comm_free(&registered_comm);
+  if (registered_comm != MPI_COMM_NULL) MPI_Comm_free(&registered_comm);
   Fenix_Finalize();
   MPI_Finalize();
 }
