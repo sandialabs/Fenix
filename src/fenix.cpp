@@ -211,6 +211,7 @@ void set_option(SettingName setting, unsigned option) {
     SET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
     SET_OPTION_CASE(SPARE_WAIT, spare_wait);
     SET_OPTION_CASE(SPARE_FINALIZE, spare_finalize);
+    SET_OPTION_CASE(COMM_REGISTER, comm_register);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
@@ -230,6 +231,7 @@ unsigned get_option(SettingName setting) {
     GET_OPTION_CASE(MLOG_RECOVERY, mlog_recovery);
     GET_OPTION_CASE(SPARE_WAIT, spare_wait);
     GET_OPTION_CASE(SPARE_FINALIZE, spare_finalize);
+    GET_OPTION_CASE(COMM_REGISTER, comm_register);
   default:
     FENIX_THROW(FENIX_ERROR_INTERN);
   }
