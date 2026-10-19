@@ -196,6 +196,8 @@ typedef enum {
   FENIX_SPARE_WAIT_MODE,
   //!See #Fenix_Spare_finalize_mode
   FENIX_SPARE_FINALIZE_MODE,
+  //!See #Fenix_Comm_register_mode
+  FENIX_COMM_REGISTER_MODE,
 
   //!Not a valid option.
   FENIX_SETTING_NAME_MAXCODE
@@ -327,6 +329,20 @@ typedef enum {
   //!Not a valid option
   FENIX_SPARE_FINALIZE_MODE_MAXCODE
 } Fenix_Spare_finalize_mode;
+
+/**
+ * @brief Options for how communicators are registered for recovery-time revoke.
+ *
+ * COMM_REGISTER_AUTO is currently only supported on Open MPI version 6+ and is
+ * otherwise treated as COMM_REGISTER_MANUAL.
+ */
+typedef enum {
+  FENIX_COMM_REGISTER_AUTO,
+  FENIX_COMM_REGISTER_MANUAL,
+
+  //!Not a valid option
+  FENIX_COMM_REGISTER_MODE_MAXCODE
+} Fenix_Comm_register_mode;
 
 /**
  * @fn void Fenix_Init(int* role, MPI_Comm comm, MPI_Comm* newcomm, int** argc, char*** argv, int spare_ranks, int* error)

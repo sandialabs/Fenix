@@ -68,7 +68,9 @@
 #include "fenix/data/component.hpp"
 #include "fenix/logging/comm_log.h"
 #include "fenix/mpixx/comm.hpp"
+#include "fenix/mpixx/event_callback.hpp"
 #include "fenix/mpixx/group.hpp"
+#include "fenix/mpixx/tools.hpp"
 
 namespace fenix {
 
@@ -82,6 +84,7 @@ struct Settings {
   MlogRecoveryMode mlog_recovery     = MANUAL;
   SpareWaitMode spare_wait           = YIELD;
   SpareFinalizeMode spare_finalize   = EXIT;
+  CommRegisterMode comm_register     = COMM_REGISTER_AUTO;
 };
 
 // Configurations before init change this
@@ -138,6 +141,9 @@ struct fenix_t {
 
   std::vector<MPI_Comm> registered_comms;
   int registered_comm_keyval = MPI_KEYVAL_INVALID;
+
+  std::shared_ptr<mpixx::Tools> mpi_t;
+  mpixx::EventCallback comm_create_event_callback;
 
   //Values used for Fenix_Process_detect_failures
   int dummy_recv_buffer;

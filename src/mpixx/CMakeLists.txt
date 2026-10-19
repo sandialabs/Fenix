@@ -8,4 +8,7 @@
 #  directory.
 #
 
-target_sources(fenix PRIVATE comm.cpp datatype.cpp group.cpp)
+target_sources(fenix PRIVATE
+    comm.cpp datatype.cpp event_callback.cpp event_handle.cpp group.cpp
+    tools.cpp
+)

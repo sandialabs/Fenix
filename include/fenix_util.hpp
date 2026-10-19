@@ -85,7 +85,8 @@ struct ScopedOption {
 
 // Default error handling for inside the Fenix runtime.
 struct ScopedDefaultRuntimeOptions {
-  ScopedOption resume{RESUME_MODE, THROW}, unhandled{UNHANDLED_MODE, ABORT};
+  ScopedOption resume{RESUME_MODE, THROW}, unhandled{UNHANDLED_MODE, ABORT},
+    comm_register{COMM_REGISTER_MODE, COMM_REGISTER_MANUAL};
 };
 
 // Helper for MPI_ERRORS_RETURN-like error handling

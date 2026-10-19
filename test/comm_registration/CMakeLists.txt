@@ -16,3 +16,5 @@ fenix_test(SRC comm_register_drops_freed.cpp RANKS 5
   TESTNAME comm_register_drops_freed)
 fenix_test(SRC comm_register_does_not_copy_to_dup.cpp RANKS 5
   TESTNAME comm_register_does_not_copy_to_dup)
+fenix_test(SRC comm_register_auto.cpp RANKS 5
+  TESTNAME comm_register_auto)
