@@ -74,7 +74,7 @@ constexpr Role INITIAL_RANK   = FENIX_ROLE_INITIAL_RANK;
 constexpr Role RECOVERED_RANK = FENIX_ROLE_RECOVERED_RANK;
 constexpr Role SURVIVOR_RANK  = FENIX_ROLE_SURVIVOR_RANK;
 constexpr Role SPARE_RANK     = FENIX_ROLE_SPARE_RANK;
-constexpr Role MISSING_RANK   = FENIX_ROLE_MISSING_RANK;
+constexpr Role FAILED_RANK    = FENIX_ROLE_FAILED_RANK;
 
 using SettingName                             = Fenix_Setting_name;
 constexpr SettingName RECOVERY_MODE           = FENIX_RECOVERY_MODE;
@@ -148,7 +148,13 @@ unsigned get_option(SettingName setting);
 void throw_exception();
 
 //!@brief Overload of #Fenix_get_role
-Fenix_Rank_role role();
+Role role();
+
+//!@brief Overload of #Fenix_get_rank_role
+Role role(MPI_Comm comm, int rank);
+
+//!@brief Overload of #Fenix_get_number_of_ranks_with_role
+int n_ranks_with_role(Role role);
 
 //!@brief Overload of #Fenix_get_error
 int error();

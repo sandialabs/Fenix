@@ -170,6 +170,20 @@ int Fenix_get_nspare() {
   return nspare();
 }
 
+int Fenix_get_n_ranks_with_role(int role, int* n_ranks) {
+  FENIX_C_API_BEGIN
+  *n_ranks = n_ranks_with_role((Fenix_Rank_role)role);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role) {
+  FENIX_C_API_BEGIN
+  *role = fenix::role(comm, rank);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
 namespace fenix {
 
 template <typename T>
@@ -230,9 +244,45 @@ void throw_exception() {
   );
 }
 
-Fenix_Rank_role role() {
+Role role() {
   assert(initialized() || fenix_rt.finalized);
-  return (Fenix_Rank_role)fenix_rt.role;
+  return (Role)fenix_rt.role;
+}
+
+Role role(MPI_Comm comm, int r) {
+  assert(initialized());
+
+  mpixx::Group g(comm);
+  fenix_assert(MPI_UNDEFINED != g.translate_rank(r, fenix_rt.procs));
+
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.dead_procs))
+    return FAILED_RANK;
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.spare_procs))
+    return SPARE_RANK;
+  if (INITIAL_RANK == fenix_rt.role) return INITIAL_RANK;
+  if (MPI_UNDEFINED != g.translate_rank(r, fenix_rt.recovered_procs))
+    return RECOVERED_RANK;
+
+  fenix_assert(MPI_UNDEFINED != g.translate_rank(r, fenix_rt.survivor_procs));
+  return SURVIVOR_RANK;
+}
+
+int n_ranks_with_role(Role role) {
+  assert(initialized());
+  switch (role) {
+  case INITIAL_RANK:
+    return fenix_rt.role == INITIAL_RANK ? fenix_rt.user_procs.size() : 0;
+  case SURVIVOR_RANK:
+    return fenix_rt.survivor_procs ? fenix_rt.survivor_procs.size() : 0;
+  case RECOVERED_RANK:
+    return fenix_rt.recovered_procs ? fenix_rt.recovered_procs.size() : 0;
+  case SPARE_RANK:
+    return fenix_rt.spare_procs ? fenix_rt.spare_procs.size() : 0;
+  case FAILED_RANK:
+    return fenix_rt.dead_procs ? fenix_rt.dead_procs.size() : 0;
+  default:
+    FENIX_THROW(FENIX_ERROR_INVALID_ROLE);
+  }
 }
 
 int error() {

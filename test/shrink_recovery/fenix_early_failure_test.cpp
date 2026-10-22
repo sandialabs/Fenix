@@ -45,9 +45,8 @@ int main(int argc, char** argv) {
 
   // Expected final size: initial active ranks - unrecovered failures
   int initial_active_ranks = old_world_size - spare_ranks;
-  int unrecovered_failures =
-    (num_failures > spare_ranks) ? (num_failures - spare_ranks) : 0;
-  int expected_final_size = initial_active_ranks - unrecovered_failures;
+  int unrecovered_failures = std::max(num_failures - spare_ranks, 0);
+  int expected_final_size  = initial_active_ranks - unrecovered_failures;
 
   // Check if this rank should fail BEFORE Fenix_Init
   bool should_fail = false;
@@ -121,11 +120,78 @@ int main(int argc, char** argv) {
     num_fails
   );
 
+  // Verify Fenix_get_n_ranks_with_role for early failure scenario
+  int n_ranks;
+
+  // Test FAILED_RANK: should equal number of failures
+  n_ranks = -1;
+  Fenix_get_n_ranks_with_role(FENIX_ROLE_FAILED_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == num_failures,
+    "Early failure: MISSING_RANK count mismatch: expected %d, got %d",
+    num_failures, n_ranks
+  );
+
+  // Test INITIAL_RANK: all ranks should still be INITIAL after early failure
+  n_ranks = -1;
+  Fenix_get_n_ranks_with_role(FENIX_ROLE_INITIAL_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == new_world_size,
+    "Early failure: INITIAL_RANK count mismatch: expected %d, got %d",
+    new_world_size, n_ranks
+  );
+
+  // Test SURVIVOR_RANK: should be 0 (no recovery happened, just init)
+  n_ranks = -1;
+  Fenix_get_n_ranks_with_role(FENIX_ROLE_SURVIVOR_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == 0, "Early failure: SURVIVOR_RANK should be 0, got %d", n_ranks
+  );
+
+  // Test RECOVERED_RANK: should be 0 (no recovery happened, just init)
+  n_ranks = -1;
+  Fenix_get_n_ranks_with_role(FENIX_ROLE_RECOVERED_RANK, &n_ranks);
+  fenix_require(
+    n_ranks == 0, "Early failure: RECOVERED_RANK should be 0, got %d", n_ranks
+  );
+
+  // Test SPARE_RANK: remaining spares after early failures
+  n_ranks = -1;
+  Fenix_get_n_ranks_with_role(FENIX_ROLE_SPARE_RANK, &n_ranks);
+  int expected_spares = std::max(spare_ranks - num_failures, 0);
+  fenix_require(
+    n_ranks == expected_spares,
+    "Early failure: SPARE_RANK count mismatch: expected %d, got %d",
+    expected_spares, n_ranks
+  );
+
+  // Verify Fenix_get_rank_role for all ranks in new_comm
+  for (int i = 0; i < new_world_size; i++) {
+    int queried_role;
+    Fenix_get_rank_role(new_comm, i, &queried_role);
+
+    // After early failure, all ranks should still be INITIAL
+    fenix_require(
+      queried_role == FENIX_ROLE_INITIAL_RANK,
+      "Early failure: Rank %d in new_comm should be INITIAL, got %d", i,
+      queried_role
+    );
+  }
+
+  // Verify our own role matches what get_rank_role returns
+  int our_queried_role;
+  Fenix_get_rank_role(new_comm, new_rank, &our_queried_role);
+  fenix_require(
+    our_queried_role == fenix_status,
+    "Early failure: Rank %d: get_rank_role returned %d, but our role is %d",
+    new_rank, our_queried_role, fenix_status
+  );
+
   printf(
     "Rank %d (was %d): early failure test PASSED - "
-    "initial_active=%d, early_failures=%d, spares=%d, final=%d\n",
+    "initial_active=%d, early_failures=%d, spares=%d, final=%d, missing=%d\n",
     new_rank, old_rank, initial_active_ranks, num_failures, spare_ranks,
-    new_world_size
+    new_world_size, unrecovered_failures
   );
 
   Fenix_Finalize();
