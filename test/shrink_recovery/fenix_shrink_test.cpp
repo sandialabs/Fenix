@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
 
   int spare_ranks  = atoi(argv[1]);
   int num_failures = argc - 2;
+  int n_ranks; // Used for verifying Fenix_get_n_ranks_with_role
 
   MPI_Init(&argc, &argv);
 
@@ -138,8 +139,17 @@ int main(int argc, char** argv) {
   MPI_Comm_size(new_comm, &new_world_size);
   MPI_Comm_rank(new_comm, &new_rank);
 
-  // Give time for exit thread to work
   if (fenix_status == FENIX_ROLE_INITIAL_RANK) {
+    // Test INITIAL_RANK: should be all ranks before recovery
+    n_ranks = -1;
+    Fenix_get_n_ranks_with_role(FENIX_ROLE_INITIAL_RANK, &n_ranks);
+    fenix_require(
+      n_ranks == new_world_size,
+      "INITIAL_RANK count should be %d before recovery, got %d", new_world_size,
+      n_ranks
+    );
+
+    // Give time for exit thread to work before continuing
     usleep(300000);
   }
 
@@ -186,9 +196,9 @@ int main(int argc, char** argv) {
   }
 
   // Verify Fenix_get_n_ranks_with_role
-  int n_ranks;
 
   // Test MISSING_RANK: should equal number of unrecovered failures (shrinkage)
+  n_ranks = -1;
   Fenix_get_n_ranks_with_role(FENIX_ROLE_MISSING_RANK, &n_ranks);
   fenix_require(
     n_ranks == unrecovered_failures,
@@ -197,6 +207,7 @@ int main(int argc, char** argv) {
   );
 
   // Test SURVIVOR_RANK: user ranks that survived (didn't fail)
+  n_ranks = -1;
   Fenix_get_n_ranks_with_role(FENIX_ROLE_SURVIVOR_RANK, &n_ranks);
   int expected_survivors = initial_active_ranks - num_failures;
   fenix_require(
@@ -206,9 +217,9 @@ int main(int argc, char** argv) {
   );
 
   // Test RECOVERED_RANK: should be min(spare_ranks, num_failures)
+  n_ranks = -1;
   Fenix_get_n_ranks_with_role(FENIX_ROLE_RECOVERED_RANK, &n_ranks);
-  int expected_recovered =
-    (num_failures < spare_ranks) ? num_failures : spare_ranks;
+  int expected_recovered = std::min(num_failures, spare_ranks);
   fenix_require(
     n_ranks == expected_recovered,
     "RECOVERED_RANK count mismatch: expected %d, got %d", expected_recovered,
@@ -216,15 +227,16 @@ int main(int argc, char** argv) {
   );
 
   // Test SPARE_RANK: remaining spares after recovery
+  n_ranks = -1;
   Fenix_get_n_ranks_with_role(FENIX_ROLE_SPARE_RANK, &n_ranks);
-  int expected_spares =
-    (spare_ranks > num_failures) ? (spare_ranks - num_failures) : 0;
+  int expected_spares = std::max(spare_ranks - num_failures, 0);
   fenix_require(
     n_ranks == expected_spares,
     "SPARE_RANK count mismatch: expected %d, got %d", expected_spares, n_ranks
   );
 
   // Test INITIAL_RANK: should be 0 after recovery
+  n_ranks = -1;
   Fenix_get_n_ranks_with_role(FENIX_ROLE_INITIAL_RANK, &n_ranks);
   fenix_require(
     n_ranks == 0, "INITIAL_RANK count should be 0 after recovery, got %d",
