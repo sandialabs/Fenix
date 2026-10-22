@@ -25,16 +25,6 @@ set(SPHINX_SOURCE_DIR ${CMAKE_SOURCE_DIR}/docs)
 set(SPHINX_BUILD_DIR ${FENIX_DOCS_OUTPUT}/sphinx)
 set(SPHINX_HTML_DIR ${SPHINX_BUILD_DIR}/html)
 
-# Copy docs directory to build directory if building out-of-tree
-if(NOT ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-    file(COPY ${SPHINX_SOURCE_DIR}
-         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-         PATTERN "_build" EXCLUDE
-         PATTERN "*.pyc" EXCLUDE
-         PATTERN "__pycache__" EXCLUDE)
-    set(SPHINX_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/docs)
-endif()
-
 add_custom_target(docs
     COMMAND ${SPHINX_BUILD}
         -b html
