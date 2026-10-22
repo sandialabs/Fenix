@@ -138,53 +138,30 @@ struct FenixInitArgs {
 
 void init(const args::FenixInitArgs args);
 
-//!@brief overload of #Fenix_set_option
-void set_option(SettingName setting, unsigned option);
+bool initialized();
+bool finalized();
 
-//!@brief overload of #Fenix_get_option returning the option directly
+void set_option(SettingName setting, unsigned option);
 unsigned get_option(SettingName setting);
 
-//!@brief Throw an exception for the most recent fault. Helpful for spares.
+// Throw an exception for the most recent fault. Helpful for spares.
 void throw_exception();
 
-//!@brief Overload of #Fenix_get_role
 Fenix_Rank_role role();
-
-//!@brief Overload of #Fenix_get_error
 int error();
-
-//!@brief Overload of #Fenix_get_nspare
 int nspare();
+std::vector<int> fail_list();
 
 using FenixCallbackFunc = std::function<void(MPI_Comm, int)>;
-
-//!@brief Overload of #Fenix_Callback_register
 int callback_register(
   FenixCallbackFunc callback, CallbackLocation loc = POST_RECOVERY
 );
-
-//@!brief Overload of #Fenix_Callback_pop
 int callback_pop(CallbackLocation loc = POST_RECOVERY);
-
-//@!brief Overload of #Fenix_Callback_invoke_all
 int callback_invoke_all(CallbackLocation loc = POST_RECOVERY);
 
-/**
- * @brief Get the failed ranks from the most recent recovery
- * @return vector of failed ranks
- */
-std::vector<int> fail_list();
-
-//!@brief Overload of #Fenix_Process_detect_failures
 int detect_failures(bool recover = true);
 
-//!@brief Overload of #Fenix_Initialized that directly returns true if initialized
-bool initialized();
-
-//!@brief Overload of #Fenix_Finalized that directly returns true if finalized
-bool finalized();
-
-//!@brief Overload of #MPI_Comm_revoke for apps to use until next MPI release
+// Overload of #MPI_Comm_revoke for apps to use until next MPI release
 int comm_revoke(MPI_Comm comm);
 
 } // namespace fenix
@@ -196,7 +173,6 @@ extern const DataSubset& SUBSET_EMPTY;
 extern const DataSubset& SUBSET_PRESTAGED;
 extern DataSubset SUBSET_IGNORE;
 
-//@!brief Overload of #Fenix_Data_group_create
 int group_create(
   int group_id, MPI_Comm comm, int start_time_stamp, int depth, int policy_name,
   void* policy_value, int* flag
@@ -213,145 +189,109 @@ struct GroupCreateArgs {
 };
 int group_create(int group_id, GroupCreateArgs args = {});
 
-//@!brief Overload of #Fenix_Data_group_created
 bool group_created(int group_id);
 
-//@!brief Overload of #Fenix_Data_member_create
-int member_create(
-  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
-);
 
-//!@brief As #Fenix_Serialize_file_fn without the void* context pointer.
+// file, direction (FENIX_(DE)SERIALIZE), buffer, offset, count 
 using SerializeFileFunc = std::function<void(FILE*, int, void*, int, int)>;
-//!@brief As #SerializeFileFunc using std::iostream instead of a file pointer
+// stream, direction (FENIX_(DE)SERIALIZE), buffer, offset, count 
 using SerializeStreamFunc =
   std::function<void(std::iostream&, int, void*, int, int)>;
 
 using SerializeFunc = std::variant<SerializeFileFunc, SerializeStreamFunc>;
 
-//!@brief Overload of #Fenix_Data_member_fcreate
+int member_create(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
+int member_define(
+  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
+);
+
 int member_create(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
   SerializeFunc serializer
 );
-
-//!@brief Overload of #Fenix_Data_member_define
-int member_define(
-  int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype
-);
-//!@brief Overload of #Fenix_Data_member_fdefine
 int member_define(
   int group_id, int member_id, void* buffer, int count, MPI_Datatype datatype,
   SerializeFunc serializer
 );
 
-//@!brief Overload of #Fenix_Data_member_created
 bool member_created(int group_id, int member_id);
 
 int member_attr_set(
   int group_id, int member_id, int attr, void* value, int* flag
 );
-
 int member_attr_get(
   int group_id, int member_id, int attr, void* value, int* flag
 );
 
-//!@brief Overload of #Fenix_Data_member_stage
 int member_stage(
   int group_id, int member_id, const DataSubset& subset = SUBSET_FULL
 );
-
-//!@brief Overload of #Fenix_Data_member_stage_inplace
 int member_stage_inplace(
   int group_id, int member_id, void* buf, const DataSubset& subset = SUBSET_FULL
 );
-
-//!@brief Overload of #Fenix_Data_member_stage_begin
 int member_stage_begin(int group_id, int member_id, FILE** fp);
-//!@brief Overload of #Fenix_Data_member_stage_begin
 int member_stage_begin(int group_id, int member_id, std::iostream** stream);
-
-//!@brief Overload of #Fenix_Data_member_stage_end
 int member_stage_end(int group_id, int member_id);
 
-//!@brief Overload of #Fenix_Data_member_store
 int member_store(
   int group_id, int member_id, const DataSubset& subset = SUBSET_FULL
 );
-//!@brief Overload of #Fenix_Data_member_store, stores all members
 inline int member_store(int group_id, const DataSubset& subset = SUBSET_FULL) {
   return member_store(group_id, FENIX_DATA_MEMBER_ALL, subset);
 }
-
-//!@brief Overload of #Fenix_Data_member_storev
 int member_storev(int group_id, int member_id, const DataSubset& subset);
-//!@brief Overload of #Fenix_Data_member_storev, stores all members
 inline int member_storev(int group_id, const DataSubset& subset) {
   return member_storev(group_id, FENIX_DATA_MEMBER_ALL, subset);
 }
 
-//!@brief Overload of #Fenix_Data_member_istore
+// member_istore variants are currently unimplemented.
 int member_istore(
   int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
-
 struct MemberIstoreArgs {
   int member_id            = FENIX_DATA_MEMBER_ALL;
   const DataSubset& subset = SUBSET_FULL;
 };
-//!@brief Overload of #Fenix_Data_member_istore
 inline int member_istore(
   int group_id, Fenix_Request* request, MemberIstoreArgs args = {}
 ) {
   return member_istore(group_id, args.member_id, args.subset, request);
 }
-
-//!@brief Overload of #Fenix_Data_member_istorev
 int member_istorev(
   int group_id, int member_id, const DataSubset& subset, Fenix_Request* request
 );
-//!@brief Overload of #Fenix_Data_member_istorev, stores all members
 inline int member_istorev(
   int group_id, const DataSubset& subset, Fenix_Request* request
 ) {
   return member_istorev(group_id, FENIX_DATA_MEMBER_ALL, subset, request);
 }
 
-//!@brief Overload of #Fenix_Data_member_repair
 int member_repair(int group_id, int member_id);
 
-//!@brief Overload of #Fenix_Data_member_load
 int member_load(
   int group_id, int member_id, int time_stamp = FENIX_DATA_SNAPSHOT_ALL,
   DataSubset& data_found = SUBSET_IGNORE
 );
-
-//!@brief Overload of #Fenix_Data_member_load_to
 int member_load(
   int group_id, int member_id, void* target,
   int target_count       = FENIX_DATA_RESTORE_FULL,
   int time_stamp         = FENIX_DATA_SNAPSHOT_ALL,
   DataSubset& data_found = SUBSET_IGNORE
 );
-
-//!@brief Overload of #Fenix_Data_member_load_begin
 int member_load_begin(
   int group_id, int member_id, FILE** fp,
   int time_stamp         = FENIX_DATA_SNAPSHOT_LATEST,
   DataSubset& data_found = SUBSET_IGNORE
 );
-
-//!@brief Overload of #Fenix_Data_member_load_begin
 int member_load_begin(
   int group_id, int member_id, std::iostream** strm,
   int time_stamp         = FENIX_DATA_SNAPSHOT_LATEST,
   DataSubset& data_found = SUBSET_IGNORE
 );
-
-//@!brief Overload of #Fenix_Data_member_load_end
 int member_load_end(int group_id, int member_id);
 
-//!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
   int group_id, int member_id, void* target_buffer = FENIX_DATA_RESTORE_INPLACE,
   int max_length         = FENIX_DATA_RESTORE_FULL,
@@ -359,7 +299,6 @@ int member_restore(
   DataSubset& data_found = SUBSET_IGNORE
 );
 
-//!@brief Overload of #Fenix_Data_member_lrestore
 [[deprecated("Use member_load functions instead")]]
 int member_lrestore(
   int group_id, int member_id, void* target_buffer = FENIX_DATA_RESTORE_INPLACE,
@@ -368,76 +307,43 @@ int member_lrestore(
   DataSubset& data_found = SUBSET_IGNORE
 );
 
-//!@brief overload of #Fenix_Data_commit
 int commit(int group_id, int* time_stamp = nullptr);
-
-//!@brief overload of #Fenix_Data_commit
 int commit_barrier(int group_id, int* time_stamp = nullptr);
 
-//!@brief Overload of #Fenix_Data_checkpoint
 int checkpoint(
   int group_id, const DataSubset& subset,
   const std::vector<int>& storev_ids = {}, int* time_stamp = nullptr
 );
-
-//!@brief Overload of #Fenix_Data_checkpoint for FENIX_STOREV_ALL
 int checkpointv(
   int group_id, const DataSubset& subset, int* time_stamp = nullptr
 );
 
-/**
- * @brief get the members of a group
- * @return vector of member IDs of each member in group_id if group exists
- */
 std::optional<std::vector<int>> group_members(int group_id);
-
-/**
- * @brief get the snapshots of a group
- * @return vector of timestamps of each snapshot in group_id if group exists
- */
 std::optional<std::vector<int>> group_snapshots(int group_id);
-
-//@!brief Overload of #Fenix_Data_group_get_cohort
 MPI_Group group_cohort(int group_id);
 
-//@!brief Overload of #Fenix_Data_snapshot_delete
 int snapshot_delete(int group_id, int timestamp);
-
-//@!brief Overload of #Fenix_Data_group_delete
 int group_delete(int group_id);
-
-//@!brief Overload of #Fenix_Data_member_delete
 int member_delete(int group_id, int member_id);
 
 } // namespace fenix::data
 
 namespace fenix::mlog {
 
-//@brief Overload of #Fenix_Mlog_create
 int create(int mlog_id, MPI_Comm& comm, int depth);
 
-//@brief Overload of #Fenix_Mlog_activate
 int activate(int mlog_id);
-
-//@brief Overload of Fenix_Mlog_active, returns active log
-int active();
-
-//@brief Overload of #Fenix_Mlog_begin_region
-int begin_region(int mlog_id, int region_id);
-
-//@brief Overload of #Fenix_Mlog_activate_region
 int activate(int mlog_id, int region_id);
 
-//@brief Overload of #Fenix_Mlog_sync
+int active();
+
+int begin_region(int mlog_id, int region_id);
+
 int sync(int mlog_id, int region_id = FENIX_MLOG_CONTINUE);
 
-//@brief Overload of #Fenix_Mlog_create_data_member
 int create_data_member(int mlog_id, int group_id, int member_id);
-
-//@brief Overload of #Fenix_Mlog_define_data_member
 int define_data_member(int mlog_id, int group_id, int member_id);
 
-//@brief Overload of #Fenix_Mlog_delete
 int mlog_delete(int mlog_id);
 
 } // namespace fenix::mlog

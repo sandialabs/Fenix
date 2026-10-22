@@ -12,7 +12,7 @@
  ************************************************************************
 ```
 
-![R&D 100 2026 Winner Logo](/doc/images/RD100_2026_Winner_Logo_100px.png)
+![R&D 100 2026 Winner Logo](/docs/_static/images/RD100_2026_Winner_Logo_100px.png)
 
 # About
 

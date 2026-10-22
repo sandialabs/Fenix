@@ -92,6 +92,7 @@ int group_create(
 }
 
 bool group_created(int groupid) {
+  if (!fenix::initialized()) return false;
   FENIX_CPP_API_BEGIN
   return fenix_rt.data_recovery->search_group(groupid) != nullptr;
   FENIX_CPP_API_END
