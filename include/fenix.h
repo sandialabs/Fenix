@@ -175,8 +175,8 @@ typedef enum {
   FENIX_ROLE_SURVIVOR_RANK  = 2,
   //!This rank was a spare when Fenix finalized
   FENIX_ROLE_SPARE_RANK     = 3,
-  //!This rank no longer exists (failed with no spare to replace it)
-  FENIX_ROLE_MISSING_RANK   = 4,
+  //!This rank no longer exists (process failed)
+  FENIX_ROLE_FAILED_RANK    = 4,
 } Fenix_Rank_role;
 
 /**
@@ -514,8 +514,10 @@ int Fenix_Process_detect_failures(int do_recovery);
 /**
  * @brief Returns the number of ranks with a given #Fenix_Rank_role
  *
- * FENIX_ROLE_MISSING_RANK is the number of ranks permanently lost due to
- * shrinking recovery.
+ * The number of ranks with role FENIX_ROLE_FAILED_RANK is the total number of
+ * failures across all recoveries. Roles update during recovery, so querying the
+ * number of ranks with role FENIX_ROLE_FAILED_RANK is never a check for newly
+ * discovered failures.
  *
  * @param role The role to query (one of #Fenix_Rank_role)
  * @param number_of_ranks Output parameter set to the count

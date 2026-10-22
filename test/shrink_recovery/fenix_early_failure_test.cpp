@@ -45,9 +45,8 @@ int main(int argc, char** argv) {
 
   // Expected final size: initial active ranks - unrecovered failures
   int initial_active_ranks = old_world_size - spare_ranks;
-  int unrecovered_failures =
-    (num_failures > spare_ranks) ? (num_failures - spare_ranks) : 0;
-  int expected_final_size = initial_active_ranks - unrecovered_failures;
+  int unrecovered_failures = std::max(num_failures - spare_ranks, 0);
+  int expected_final_size  = initial_active_ranks - unrecovered_failures;
 
   // Check if this rank should fail BEFORE Fenix_Init
   bool should_fail = false;
@@ -124,13 +123,13 @@ int main(int argc, char** argv) {
   // Verify Fenix_get_n_ranks_with_role for early failure scenario
   int n_ranks;
 
-  // Test MISSING_RANK: should equal number of unrecovered failures (shrinkage)
+  // Test FAILED_RANK: should equal number of failures
   n_ranks = -1;
-  Fenix_get_n_ranks_with_role(FENIX_ROLE_MISSING_RANK, &n_ranks);
+  Fenix_get_n_ranks_with_role(FENIX_ROLE_FAILED_RANK, &n_ranks);
   fenix_require(
-    n_ranks == unrecovered_failures,
+    n_ranks == num_failures,
     "Early failure: MISSING_RANK count mismatch: expected %d, got %d",
-    unrecovered_failures, n_ranks
+    num_failures, n_ranks
   );
 
   // Test INITIAL_RANK: all ranks should still be INITIAL after early failure
