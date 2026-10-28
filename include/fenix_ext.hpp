@@ -136,6 +136,9 @@ struct fenix_t {
 
   MPI_Comm* user_world_ptr = nullptr; // Pointer to application's MPI_Comm
 
+  std::vector<MPI_Comm> registered_comms;
+  int registered_comm_keyval = MPI_KEYVAL_INVALID;
+
   //Values used for Fenix_Process_detect_failures
   int dummy_recv_buffer;
   MPI_Request check_failures_req;

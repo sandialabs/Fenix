@@ -88,6 +88,7 @@ DataGroup::DataGroup(
 void DataGroup::init() {
   cohort      = create_cohort();
   cohort_comm = mpixx::Comm::create(comm, cohort);
+  if (cohort_comm) fenix::comm_register(cohort_comm);
   // Barrier on parent to make sure all ranks successfully created cohort_comm
   MPI_Barrier(comm);
   cohort_size = cohort_comm.size();
@@ -221,13 +222,6 @@ int DataGroup::get_snapshot_at_position(int position) {
 
 std::vector<int> DataGroup::get_snapshots() {
   return {timestamps.begin(), timestamps.end()};
-}
-
-void DataGroup::revoke() {
-  if (cohort_comm) {
-    cohort_comm.revoke();
-    cohort_comm.free();
-  }
 }
 
 std::string DataGroup::str() {
