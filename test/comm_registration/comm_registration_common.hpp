@@ -27,6 +27,7 @@ inline void init_registration_test() {
   MPI_Init(&argc, &argv);
 
   fenix::set_option(FENIX_RESUME_MODE, fenix::RETURN);
+  fenix::set_option(FENIX_COMM_REGISTER_MODE, fenix::COMM_REGISTER_MANUAL);
   fenix::init({.out_comm = &fenix_comm, .spares = 0});
 
   MPI_Comm_dup(fenix_comm, &registered_comm);

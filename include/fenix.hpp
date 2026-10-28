@@ -120,6 +120,11 @@ using SpareFinalizeMode             = Fenix_Spare_finalize_mode;
 constexpr SpareFinalizeMode RELEASE = FENIX_SPARE_FINALIZE_RELEASE;
 constexpr SpareFinalizeMode EXIT    = FENIX_SPARE_FINALIZE_EXIT;
 
+constexpr SettingName COMM_REGISTER_MODE        = FENIX_COMM_REGISTER_MODE;
+using CommRegisterMode                          = Fenix_Comm_register_mode;
+constexpr CommRegisterMode COMM_REGISTER_AUTO   = FENIX_COMM_REGISTER_AUTO;
+constexpr CommRegisterMode COMM_REGISTER_MANUAL = FENIX_COMM_REGISTER_MANUAL;
+
 constexpr int STOREV_ALL = FENIX_STOREV_ALL;
 
 enum CallbackLocation { PRE_RECOVERY, POST_RECOVERY };

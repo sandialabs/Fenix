@@ -58,6 +58,7 @@
 #include <sys/time.h>
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <thread>
 
 #include <mpi.h>
@@ -75,6 +76,8 @@ static int __fenix_repair_ranks();
 static void __fenix_test_MPI(MPI_Comm*, int*, ...);
 static void spare_rank_loop();
 static void __fenix_finalize_spare();
+static void comm_create_event_cb(MPI_T_event_instance, MPI_T_cb_safety);
+static bool comm_is_registered(MPI_Comm comm);
 
 // Rebuilds fenix_rt Group members using latest fenix_rt world.
 // Updates pid_to_rank and rank_to_pid. Does not change any comms.
@@ -89,7 +92,8 @@ static bool spare() { return fenix_rt.spare_procs.rank() != MPI_UNDEFINED; }
 
 static int registered_comm_delete_attr_fn(MPI_Comm comm, int, void*, void*) {
   auto& comms = fenix_rt.registered_comms;
-  comms.erase(std::remove(comms.begin(), comms.end(), comm), comms.end());
+  auto it     = std::find(comms.begin(), comms.end(), comm);
+  if (it != comms.end()) comms.erase(it);
   return MPI_SUCCESS;
 }
 
@@ -152,6 +156,25 @@ static int preinit(
     MPI_COMM_NULL_COPY_FN, registered_comm_delete_attr_fn,
     &fenix_rt.registered_comm_keyval, nullptr
   );
+
+  fenix_rt.mpi_t = std::make_shared<mpixx::Tools>(MPI_THREAD_SINGLE);
+
+  if (*fenix_rt.mpi_t) {
+    // Try to register the "communicator_created" event for ompi, to support
+    // automatic subcomm registration
+    fenix_rt.comm_create_event_callback.register_event(
+      fenix_rt.mpi_t, "ompi.mpi.communicator_created", comm_create_event_cb,
+      MPI_T_CB_REQUIRE_NONE
+    );
+    if (fenix_rt.comm_create_event_callback) {
+      auto datatypes = fenix_rt.comm_create_event_callback.handle().datatypes();
+      if (datatypes.size() < 2 || datatypes[0] != MPI_INT32_T ||
+          datatypes[1] != MPI_UINT64_T) {
+        // Unexpected event data, we can't handle it safely
+        fenix_rt.comm_create_event_callback.free();
+      }
+    }
+  }
 
   // Now loop on creating communicators until success.
   do {
@@ -251,9 +274,6 @@ void spare_rank_loop() {
   const bool yield_mode = get_option(SPARE_WAIT_MODE) == YIELD;
   const bool sleep_mode = get_option(SPARE_WAIT_MODE) == SLEEP;
 
-  int provided_thread_level;
-  MPI_T_init_thread(MPI_THREAD_SINGLE, &provided_thread_level);
-
   MPI_T_cvar_handle yield_cvar = MPI_T_CVAR_HANDLE_NULL;
   bool old_yield_setting       = false;
   if (yield_mode) {
@@ -315,7 +335,6 @@ void spare_rank_loop() {
     MPI_T_cvar_write(yield_cvar, &old_yield_setting);
     MPI_T_cvar_handle_free(&yield_cvar);
   }
-  MPI_T_finalize();
 }
 
 int __fenix_repair_ranks() {
@@ -545,6 +564,25 @@ int comm_deregister(MPI_Comm comm) {
 }
 
 int comm_revoke(MPI_Comm comm) { return MPIX_Comm_revoke(comm); }
+
+static void comm_create_event_cb(MPI_T_event_instance event, MPI_T_cb_safety) {
+  if (!fenix_rt.fenix_init_flag) return;
+  if (fenix_rt.settings.comm_register == COMM_REGISTER_MANUAL) return;
+
+  uint64_t comm_handle_bits = 0;
+  if (MPI_SUCCESS != MPI_T_event_read(event, 1, &comm_handle_bits)) return;
+  MPI_Comm comm = reinterpret_cast<MPI_Comm>(comm_handle_bits);
+
+  if (comm == MPI_COMM_NULL) return;
+
+  if (mpixx::Group(comm) - fenix_rt.procs) {
+    // This comm contains procs Fenix doesn't manage. Likely problematic if it
+    // also contains procs Fenix manages, but for now assume it doesn't.
+    return;
+  }
+
+  comm_register(comm);
+}
 
 } // namespace fenix
 
