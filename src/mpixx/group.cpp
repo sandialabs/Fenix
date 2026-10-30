@@ -131,6 +131,10 @@ bool Group::operator==(const Group& other) const {
   return compare(*this, other) == MPI_IDENT;
 }
 
+bool Group::operator==(const MPI_Group& other) const {
+  return GroupRef(other) == *this;
+}
+
 bool Group::similar(const Group& other) const {
   int result = compare(*this, other);
   return result == MPI_IDENT || result == MPI_SIMILAR;

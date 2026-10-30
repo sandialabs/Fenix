@@ -55,7 +55,9 @@
 */
 
 #include <fenix.h>
+#include <fenix.hpp>
 #include <fenix_opt.hpp>
+#include <fenix/mpixx/group.hpp>
 #include <mpi.h>
 #include <stdio.h>
 #include <signal.h>
@@ -63,6 +65,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <set>
+#include <vector>
 
 /*
  * Test shrinking recovery behavior when failures exceed available spares.
@@ -74,9 +78,9 @@
  * 4. Final communicator size matches expected (initial - failures + spares)
  */
 
-void* exitThread(void* should_exit) {
+void* exitThread(void* should_fail) {
   usleep(50000);
-  if (((intptr_t)should_exit) == 1) {
+  if ((intptr_t)should_fail) {
     pid_t pid = getpid();
     kill(pid, SIGTERM);
   }
@@ -84,14 +88,19 @@ void* exitThread(void* should_exit) {
 }
 
 int main(int argc, char** argv) {
+  using fenix::mpixx::Group;
 
   if (argc < 3) {
     printf("Usage: %s <# spares> <fail_rank 1> <fail_rank 2> ...\n", *argv);
     exit(0);
   }
 
-  int spare_ranks  = atoi(argv[1]);
-  int num_failures = argc - 2;
+  int spare_ranks = atoi(argv[1]);
+
+  std::set<int> failures;
+  for (int i = 2; i < argc; i++) failures.insert(atoi(argv[i]));
+  int num_failures = failures.size();
+
   int n_ranks; // Used for verifying Fenix_get_n_ranks_with_role
 
   MPI_Init(&argc, &argv);
@@ -107,18 +116,10 @@ int main(int argc, char** argv) {
   int unrecovered_failures = std::max(num_failures - spare_ranks, 0);
   int expected_final_size  = initial_active_ranks - unrecovered_failures;
 
-  // Check if this rank should fail
-  intptr_t should_cancel = 0;
-  for (int i = 2; i < argc; i++) {
-    if (atoi(argv[i]) == old_rank) {
-      should_cancel = 1;
-      break;
-    }
-  }
-
   MPI_Barrier(MPI_COMM_WORLD);
   pthread_t thread_id;
-  pthread_create(&thread_id, NULL, exitThread, (void*)should_cancel);
+  intptr_t should_fail = failures.contains(old_rank);
+  pthread_create(&thread_id, NULL, exitThread, (void*)should_fail);
 
   int fenix_status;
   MPI_Comm new_comm;
@@ -263,6 +264,105 @@ int main(int argc, char** argv) {
     "Rank %d: get_rank_role returned %d, but our role is %d", new_rank,
     our_queried_role, fenix_status
   );
+
+  // ========================================================================
+  // Test Fenix_repair_group functionality
+  // ========================================================================
+
+  Group g_new(new_comm);
+  Group g_world(MPI_COMM_WORLD);
+  Group g_orig        = g_world.range_incl({{0, initial_active_ranks - 1, 1}});
+  Group g_orig_spares = g_world - g_orig;
+  Group g_failures    = g_world.incl({failures.begin(), failures.end()});
+  Group g_orig_failures  = g_orig | g_failures;
+  Group g_spare_failures = g_orig_spares | g_failures;
+  Group g_survived       = g_new | g_orig;
+  Group g_recovered      = g_new | g_orig_spares;
+
+  // Test 1: Repairing the current comm's group should be a no-op
+  fenix_require(
+    g_new == fenix::repair_group(g_new),
+    "Rank %d: Repaired new group not equal to itself", new_rank
+  );
+
+  // Test 2: Create a group representing the original active ranks from
+  // MPI_COMM_WORLD and repair it (should match current group)
+  fenix_require(
+    g_new == fenix::repair_group(g_orig),
+    "Rank %d: Repaired original group not equal to new group", new_rank
+  );
+
+  // Test 3: Repair subgroup (even ranks from original)
+  Group g_even = g_orig.range_incl({{0, g_orig.size() - 1, 2}});
+  Group rg_even(fenix::repair_group(g_even));
+
+  Group g_even_failures = g_even | g_failures;
+  fenix_require(
+    rg_even.size() >= g_even.size() - g_even_failures.size(),
+    "Rank %d: Repaired even group size %d is smaller than minimum %d", new_rank,
+    rg_even.size(), g_even.size() - g_even_failures.size()
+  );
+  fenix_require(
+    rg_even.size() <= g_even.size(),
+    "Rank %d: Repaired even group size %d is larger than original %d", new_rank,
+    rg_even.size(), g_even.size()
+  );
+
+  // Test 4: Verify each member of repaired even group has correct slot/rank
+  // mapping
+  for (int i = 0; i < rg_even.size(); i++) {
+    int rank_in_new = rg_even.translate_rank(i, g_new);
+    fenix_require(
+      rank_in_new != MPI_UNDEFINED,
+      "Rank %d: rank %d of repaired even group (world rank %d) not in new comm",
+      new_rank, i, rg_even.translate_rank(i, g_world)
+    );
+
+    int slot = fenix::rank_to_slot(new_comm, rank_in_new);
+    fenix_require(
+      slot % 2 == 0, "Rank %d: Repaired even group member has odd slot %d",
+      new_rank, slot
+    );
+  }
+
+  // Test 5: Repair empty group
+  Group rg_empty(fenix::repair_group(MPI_GROUP_EMPTY));
+  fenix_require(
+    rg_empty.size() == 0,
+    "Rank %d: Repaired empty group should have size 0, got %d", new_rank,
+    rg_empty.size()
+  );
+
+  // Test 6: Group containing only failed ranks
+  Group rg_orig_failures(fenix::repair_group(g_orig_failures));
+  int n_recovered = g_orig_failures.size() - unrecovered_failures;
+  fenix_require(
+    rg_orig_failures.size() == n_recovered,
+    "Rank %d: Repaired failed-only group size %d, expected %d (recovered %d "
+    "of %d failures)",
+    new_rank, rg_orig_failures.size(), n_recovered, n_recovered, num_failures
+  );
+  fenix_require(
+    (rg_orig_failures | g_orig_failures).size() == 0,
+    "Rank %d: Repaired failed-only group intersects with original failures",
+    new_rank
+  );
+  fenix_require(
+    (rg_orig_failures | g_orig).size() == 0,
+    "Rank %d: Repaired failed-only group intersects with original group",
+    new_rank
+  );
+
+  if (new_rank == 0) {
+    printf("✓ All Fenix_repair_group() tests passed in shrink scenario\n");
+    printf("  - New group repair is identity\n");
+    printf("  - Original group repairs to new group\n");
+    printf("  - Even-rank subgroup repairs to valid size and slots\n");
+    printf("  - Empty group remains empty\n");
+    printf(
+      "  - Failed-only group repairs to correct size, no invalid replacements\n"
+    );
+  }
 
   printf(
     "Rank %d (was %d): shrink test PASSED - "
