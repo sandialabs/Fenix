@@ -175,39 +175,27 @@ void rebuild_proc_groups() {
   dead = procs - fenix_rt.world;
   spare -= dead; // Remove any newly dead spares
 
-  // Index (in user procs) of any dead user procs. Already sorted.
-  auto dead_user = (user | dead).translate_ranks(user);
+  // PIDs of any dead user procs. Already sorted.
+  auto dead_user_pids = (user | dead).translate_ranks(procs);
 
-  // The pids to build user_procs with. Start with current and update.
-  auto user_pids = user.translate_ranks(procs);
+  for (int i = 0; i < dead_user_pids.size(); i++) {
+    int dead_slot = pid_to_slot[dead_user_pids[i]];
+    fenix_assert(dead_slot != MPI_UNDEFINED);
+    fenix_assert(slot_to_pid[dead_slot] == dead_user_pids[i]);
 
-  // Start by replacing what we can
-  int n_replace = std::min((int)dead_user.size(), spare.size());
-  for (int i = 0; i < n_replace; i++) {
-    int idx  = dead_user[i];
-    int pid  = user_pids[idx];
-    int slot = pid_to_slot[pid];
-    fenix_assert(slot != MPI_UNDEFINED);
-
-    int spare_pid          = spare.translate_rank(i, procs);
-    user_pids[idx]         = spare_pid;
-    slot_to_pid[slot]      = spare_pid;
-    pid_to_slot[spare_pid] = slot;
+    if (i < spare.size()) {
+      // Use a spare to replace the dead proc
+      int spare_pid = spare.translate_rank(i, procs);
+      fenix_assert(spare_pid != MPI_UNDEFINED);
+      pid_to_slot[spare_pid] = dead_slot;
+      slot_to_pid[dead_slot] = spare_pid;
+    } else {
+      // No replacement, just mark the slot as gone
+      slot_to_pid[dead_slot] = MPI_UNDEFINED;
+    }
   }
 
-  // Then shrink the rest (backwards since we are erasing from user_pids)
-  for (int i = dead_user.size() - 1; i >= n_replace; i--) {
-    int idx  = dead_user[i];
-    int pid  = user_pids[idx];
-    int slot = pid_to_slot[pid];
-    fenix_assert(slot != MPI_UNDEFINED);
-
-    user_pids.erase(user_pids.begin() + idx);
-    slot_to_pid[slot] = MPI_UNDEFINED;
-    // No new pid assigned to a slot, so no pid_to_slot change
-  }
-
-  user = procs.incl(user_pids);
+  user = repair_group(user);
   spare -= user;
 }
 
@@ -494,6 +482,54 @@ void __fenix_test_MPI(MPI_Comm* pcomm, int* pret, ...) {
 }
 
 int comm_revoke(MPI_Comm comm) { return MPIX_Comm_revoke(comm); }
+
+int slot() {
+  if (!initialized()) return MPI_UNDEFINED;
+  if (fenix_rt.procs.rank() == MPI_UNDEFINED) return MPI_UNDEFINED;
+  return fenix_rt.pid_to_slot[fenix_rt.procs.rank()];
+}
+
+int rank_to_slot(MPI_Comm comm, int rank) {
+  if (!initialized()) return MPI_UNDEFINED;
+
+  int pid = mpixx::Group(comm).translate_rank(rank, fenix_rt.procs);
+  // Rank doesn't belong to Fenix's procs. Weird.
+  if (pid == MPI_UNDEFINED) return MPI_UNDEFINED;
+
+  return fenix_rt.pid_to_slot[pid];
+}
+
+int slot_to_rank(MPI_Comm comm, int slot) {
+  if (!initialized()) return MPI_UNDEFINED;
+  if (slot < 0 || slot >= fenix_rt.slot_to_pid.size()) return MPI_UNDEFINED;
+
+  int pid = fenix_rt.slot_to_pid[slot];
+  // PID is empty (failed w/o replacement)
+  if (pid == MPI_UNDEFINED) return MPI_UNDEFINED;
+
+  return fenix_rt.procs.translate_rank(pid, comm);
+}
+
+MPI_Group repair_group(MPI_Group old_group) {
+  if (!fenix_rt.procs) FENIX_THROW(FENIX_ERROR_UNINITIALIZED);
+
+  auto pids = mpixx::GroupRef(old_group).translate_ranks(fenix_rt.procs);
+  for (int& i : pids) {
+    // Input group shouldn't contain a process outside Fenix's purview
+    if (i == MPI_UNDEFINED) FENIX_THROW(FENIX_ERROR_INVALID_PROCESS);
+
+    // Input group shouldn't contain a process that was never assigned
+    int slot = fenix_rt.pid_to_slot[i];
+    if (slot == MPI_UNDEFINED) FENIX_THROW(FENIX_ERROR_INVALID_PROCESS);
+
+    // Update pid to new pid in same slot (possibly MPI_UNDEFINED)
+    i = fenix_rt.slot_to_pid[slot];
+  }
+
+  // Remove any ranks without a replacement.
+  std::erase(pids, MPI_UNDEFINED);
+  return pids.empty() ? MPI_GROUP_EMPTY : fenix_rt.procs.incl(pids).release();
+}
 
 } // namespace fenix
 
