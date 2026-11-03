@@ -622,6 +622,20 @@ DataSubset DataSubset::operator-(const DataSubset& other) const {
   return c;
 }
 
+DataSubset& DataSubset::operator-=(const DataSubset& other) {
+  return *this = (*this - other);
+}
+
+DataSubset DataSubset::operator&(const DataSubset& other) const {
+  return *this - (*this - other);
+}
+
+DataSubset& DataSubset::operator&=(const DataSubset& other) {
+  return *this = (*this & other);
+}
+
+DataSubset DataSubset::operator~() const { return data::SUBSET_FULL - *this; }
+
 bool DataSubset::operator==(const DataSubset& other) const {
   if (type != BasicSubset || other.type != BasicSubset)
     return type == other.type;

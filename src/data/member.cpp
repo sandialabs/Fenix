@@ -260,21 +260,15 @@ void DataMember::stage_end() {
   );
 }
 
-void DataMember::load_begin(FILE** fp, int timestamp, DataSubset& subset) {
-  DataSnapshot* snap = find_snapshot(timestamp);
-  subset             = snap->protected_subset();
-
+void DataMember::load_begin(FILE** fp, int timestamp) {
+  DataSnapshot* snap              = find_snapshot(timestamp);
   std::optional<SerializeFunc> sf = SerializeFileFunc{};
   open_serializer.emplace(snap->create_deserializer(nullptr, sf, SUBSET_FULL));
   *fp = open_serializer->get_file();
 }
 
-void DataMember::load_begin(
-  std::iostream** strm, int timestamp, DataSubset& subset
-) {
-  DataSnapshot* snap = find_snapshot(timestamp);
-  subset             = snap->protected_subset();
-
+void DataMember::load_begin(std::iostream** strm, int timestamp) {
+  DataSnapshot* snap              = find_snapshot(timestamp);
   std::optional<SerializeFunc> sf = SerializeStreamFunc{};
   open_serializer.emplace(snap->create_deserializer(nullptr, sf, SUBSET_FULL));
   *strm = open_serializer->get_stream();
@@ -287,7 +281,47 @@ void DataMember::load_end() {
   open_serializer.reset();
 }
 
-void DataMember::load(
+void DataMember::load(void* b, int timestamp, const DataSubset& target) {
+  DataRef dst = b == FENIX_DATA_RESTORE_INPLACE ? user_data : DataRef(b);
+
+  DataSubset remaining;
+  if (target == SUBSET_FULL && user_data.is_bounded()) {
+    remaining = target.bounded(elm_count() - 1);
+  } else {
+    remaining = target;
+  }
+
+  if (timestamp != FENIX_DATA_SNAPSHOT_ALL) {
+    auto& snap        = *find_snapshot(timestamp);
+    DataSubset loaded = remaining & snap.protected_subset();
+    loaded.copy_data(snap.create_deserializer(dst, ser_func, loaded));
+    remaining -= loaded;
+  } else {
+    auto& snaps = commit_snapshots_;
+    if (snaps.empty()) FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
+
+    for (auto it = snaps.rbegin(); it != snaps.rend(); ++it) {
+      DataSnapshot& snap = **it;
+      fenix_assert(snap.timestamp() >= 0);
+
+      DataSubset to_load = remaining & snap.protected_subset();
+      to_load.copy_data(snap.create_deserializer(dst, ser_func, to_load));
+      remaining -= to_load;
+
+      if (remaining.empty()) break;
+    }
+  }
+
+  if (!user_data.is_bounded() && target == SUBSET_FULL) {
+    // For a resizable member loading SUBSET_FULL, it's a partial restore
+    // only if we have gaps in loaded data
+    DataSubset found = ~remaining;
+    remaining.bound(found.end());
+  }
+  if (!remaining.empty()) FENIX_THROW(FENIX_ERROR_PARTIAL_RESTORE);
+}
+
+void DataMember::lrestore(
   void* target, int target_count, int timestamp, DataSubset& data_found
 ) {
   DataRef dst{
@@ -304,11 +338,11 @@ void DataMember::load(
       data_found.copy_data(snap.create_deserializer(dst, ser_func, data_found));
     }
   } else {
-    if (commit_snapshots_.empty()) FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
+    auto& snaps = commit_snapshots_;
+    if (snaps.empty()) FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
 
     data_found = {};
-    for (auto it = commit_snapshots_.rbegin(); it != commit_snapshots_.rend();
-         ++it) {
+    for (auto it = snaps.rbegin(); it != snaps.rend(); ++it) {
       DataSnapshot& snap = **it;
       fenix_assert(snap.timestamp() >= 0);
       if (target_count > 0) {
@@ -333,10 +367,11 @@ DataSubset DataMember::stored_subset(int timestamp) {
     return find_snapshot(timestamp)->protected_subset();
   }
 
-  if (commit_snapshots_.empty()) FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
+  auto& snaps = commit_snapshots_;
+  if (snaps.empty()) FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
 
   DataSubset subset = {};
-  for (auto it = commit_snapshots_.rbegin(); it != commit_snapshots_.rend(); ++it) {
+  for (auto it = snaps.rbegin(); it != snaps.rend(); ++it) {
     subset += (*it)->protected_subset();
   }
   return subset;

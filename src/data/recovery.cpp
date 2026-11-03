@@ -375,44 +375,40 @@ int member_repair(int groupid, int memberid) {
 }
 
 int member_load(
-  int groupid, int memberid, int timestamp, DataSubset& data_found
+  int groupid, int memberid, int timestamp, const DataSubset& subset
 ) {
   FENIX_CPP_API_BEGIN
   return member_load(
-    groupid, memberid, FENIX_DATA_RESTORE_INPLACE, FENIX_DATA_RESTORE_FULL,
-    timestamp, data_found
+    groupid, memberid, FENIX_DATA_RESTORE_INPLACE, timestamp, subset
   );
   FENIX_CPP_API_END
 }
 
 int member_load(
-  int groupid, int memberid, void* target, int target_count, int timestamp,
-  DataSubset& data_found
+  int groupid, int memberid, void* target, int timestamp,
+  const DataSubset& subset
 ) {
   FENIX_CPP_API_BEGIN
   fenix_rt.data_recovery->find_member(groupid, memberid)
-    ->load(target, target_count, timestamp, data_found);
+    ->load(target, timestamp, subset);
+  return FENIX_SUCCESS;
+  FENIX_CPP_API_END
+}
+
+int member_load_begin(int groupid, int memberid, FILE** fp, int timestamp) {
+  FENIX_CPP_API_BEGIN
+  fenix_rt.data_recovery->find_member(groupid, memberid)
+    ->load_begin(fp, timestamp);
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }
 
 int member_load_begin(
-  int groupid, int memberid, FILE** fp, int timestamp, DataSubset& data_found
+  int groupid, int memberid, std::iostream** strm, int timestamp
 ) {
   FENIX_CPP_API_BEGIN
   fenix_rt.data_recovery->find_member(groupid, memberid)
-    ->load_begin(fp, timestamp, data_found);
-  return FENIX_SUCCESS;
-  FENIX_CPP_API_END
-}
-
-int member_load_begin(
-  int groupid, int memberid, std::iostream** strm, int timestamp,
-  DataSubset& data_found
-) {
-  FENIX_CPP_API_BEGIN
-  fenix_rt.data_recovery->find_member(groupid, memberid)
-    ->load_begin(strm, timestamp, data_found);
+    ->load_begin(strm, timestamp);
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }
@@ -447,7 +443,7 @@ int member_restore(
     }
   }
 
-  m->load(data, maxcount, timestamp, data_found);
+  m->lrestore(data, maxcount, timestamp, data_found);
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }
@@ -458,7 +454,7 @@ int member_lrestore(
 ) {
   FENIX_CPP_API_BEGIN
   fenix_rt.data_recovery->find_member(groupid, memberid)
-    ->load(data, maxcount, timestamp, data_found);
+    ->lrestore(data, maxcount, timestamp, data_found);
   return FENIX_SUCCESS;
   FENIX_CPP_API_END
 }

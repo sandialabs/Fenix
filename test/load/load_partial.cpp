@@ -39,14 +39,14 @@ int main(int argc, char** argv) {
   member_create(my_group, my_member, data.data(), 100, MPI_INT);
   checkpoint(my_group, SUBSET_FULL);
 
-  // Test loading into a smaller buffer (only first 50 elements)
+  // Test loading a subset into a smaller buffer (only first 50 elements)
   if (rank == 0)
     fprintf(stderr, "  Loading first 50 elements into smaller buffer\n");
   std::vector<int> target_buffer(50, -999);
-  fenix::DataSubset found_subset;
 
-  int ret =
-    member_load(my_group, my_member, target_buffer.data(), 50, 0, found_subset);
+  int ret = member_load(
+    my_group, my_member, target_buffer.data(), 0, fenix::DataSubset({0, 49})
+  );
   if (ret != FENIX_SUCCESS) {
     fprintf(
       stderr, "Rank %d: ERROR loading into smaller buffer, ret=%d\n", rank, ret
@@ -67,8 +67,7 @@ int main(int argc, char** argv) {
 
   if (rank == 0) fprintf(stderr, "  ✓ First 50 elements loaded correctly\n");
 
-  // Test loading into a larger buffer (should succeed with partial restore
-  // warning)
+  // Test loading into a larger buffer and surfacing a partial restore error
   if (rank == 0)
     fprintf(
       stderr,
@@ -78,18 +77,18 @@ int main(int argc, char** argv) {
 
   try {
     ret = member_load(
-      my_group, my_member, large_buffer.data(), 150, 0, found_subset
+      my_group, my_member, large_buffer.data(), 0, fenix::DataSubset({0, 149})
     );
   } catch (const fenix::RuntimeException& e) {
     ret = e.error;
   }
 
-  // Should get FENIX_WARNING_PARTIAL_RESTORE (101) since checkpoint only has
-  // 100 elements
-  if (ret != FENIX_WARNING_PARTIAL_RESTORE) {
+  // Should get FENIX_ERROR_PARTIAL_RESTORE since checkpoint only has 100
+  // elements
+  if (ret != FENIX_ERROR_PARTIAL_RESTORE) {
     fprintf(
-      stderr, "Rank %d: ERROR expected partial restore warning (%d), got %d\n",
-      rank, FENIX_WARNING_PARTIAL_RESTORE, ret
+      stderr, "Rank %d: ERROR expected partial restore error (%d), got %d\n",
+      rank, FENIX_ERROR_PARTIAL_RESTORE, ret
     );
     MPI_Abort(res_comm, 1);
   }
@@ -117,7 +116,11 @@ int main(int argc, char** argv) {
   }
 
   if (rank == 0)
-    fprintf(stderr, "  ✓ Partial restore warning correctly returned\n");
+    fprintf(
+      stderr,
+      "  ✓ Partial restore error correctly returned after loading available "
+      "data\n"
+    );
 
   if (rank == 0) fprintf(stderr, "All member_load buffer size tests passed!\n");
 

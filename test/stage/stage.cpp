@@ -173,10 +173,10 @@ int main(int argc, char** argv) {
           //Set all data to a value that was never stored, just for testing
           for (int& i : data) i = -2;
 
-          //Now do an lrestore to get the recovered data.
+          //Now load the recovered subset.
           ret = member_load(
-            my_group, my_member, data.data(), data.size(),
-            FENIX_DATA_SNAPSHOT_LATEST, stored_subset
+            my_group, my_member, data.data(), FENIX_DATA_SNAPSHOT_LATEST,
+            stored_subset
           );
 
           break;

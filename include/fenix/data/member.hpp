@@ -111,12 +111,11 @@ class DataMember {
   virtual void stage_begin(FILE** fp);
   virtual void stage_begin(std::iostream** strm);
   virtual void stage_end();
-  virtual void load_begin(FILE** fp, int timestamp, DataSubset& subset);
-  virtual void load_begin(
-    std::iostream** strm, int timestamp, DataSubset& subset
-  );
+  virtual void load_begin(FILE** fp, int timestamp);
+  virtual void load_begin(std::iostream** strm, int timestamp);
   virtual void load_end();
-  virtual void load(
+  virtual void load(void* target, int timestamp, const DataSubset& subset);
+  virtual void lrestore(
     void* target, int target_count, int timestamp, DataSubset& data_found
   );
   virtual DataSubset stored_subset(int timestamp);

@@ -48,11 +48,7 @@ int main(int argc, char** argv) {
       stderr, "  Loading latest checkpoint (timestamp 1) into target buffer\n"
     );
   std::vector<int> target_buffer(100, -1);
-  fenix::DataSubset found_subset;
-
-  int ret = member_load(
-    my_group, my_member, target_buffer.data(), 100, 1, found_subset
-  );
+  int ret = member_load(my_group, my_member, target_buffer.data(), 1);
   if (ret != FENIX_SUCCESS) {
     fprintf(stderr, "Rank %d: ERROR in member_load, ret=%d\n", rank, ret);
     MPI_Abort(res_comm, 1);
@@ -78,9 +74,7 @@ int main(int argc, char** argv) {
     );
   std::fill(target_buffer.begin(), target_buffer.end(), -1);
 
-  ret = member_load(
-    my_group, my_member, target_buffer.data(), 100, 0, found_subset
-  );
+  ret = member_load(my_group, my_member, target_buffer.data(), 0);
   if (ret != FENIX_SUCCESS) {
     fprintf(stderr, "Rank %d: ERROR loading timestamp 0, ret=%d\n", rank, ret);
     MPI_Abort(res_comm, 1);
