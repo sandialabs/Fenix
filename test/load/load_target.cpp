@@ -19,13 +19,7 @@ int main(int argc, char** argv) {
   MPI_Comm_size(res_comm, &num_ranks);
   MPI_Comm_rank(res_comm, &rank);
 
-  if (num_ranks != 2) {
-    if (rank == 0)
-      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
-    Fenix_Finalize();
-    MPI_Finalize();
-    return 0;
-  }
+  fenix_require(num_ranks == 2);
 
   group_create(my_group, {.depth = 2});
 
@@ -48,11 +42,7 @@ int main(int argc, char** argv) {
       stderr, "  Loading latest checkpoint (timestamp 1) into target buffer\n"
     );
   std::vector<int> target_buffer(100, -1);
-  int ret = member_load(my_group, my_member, target_buffer.data(), 1);
-  if (ret != FENIX_SUCCESS) {
-    fprintf(stderr, "Rank %d: ERROR in member_load, ret=%d\n", rank, ret);
-    MPI_Abort(res_comm, 1);
-  }
+  member_load(my_group, my_member, target_buffer.data(), 1);
 
   // Verify target buffer has data from second checkpoint
   for (int i = 0; i < 100; i++) {
@@ -74,11 +64,7 @@ int main(int argc, char** argv) {
     );
   std::fill(target_buffer.begin(), target_buffer.end(), -1);
 
-  ret = member_load(my_group, my_member, target_buffer.data(), 0);
-  if (ret != FENIX_SUCCESS) {
-    fprintf(stderr, "Rank %d: ERROR loading timestamp 0, ret=%d\n", rank, ret);
-    MPI_Abort(res_comm, 1);
-  }
+  member_load(my_group, my_member, target_buffer.data(), 0);
 
   // Verify target buffer has data from first checkpoint
   for (int i = 0; i < 100; i++) {

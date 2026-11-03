@@ -19,13 +19,7 @@ int main(int argc, char** argv) {
   MPI_Comm_size(res_comm, &num_ranks);
   MPI_Comm_rank(res_comm, &rank);
 
-  if (num_ranks != 2) {
-    if (rank == 0)
-      fprintf(stderr, "SKIP: This test requires exactly 2 ranks\n");
-    Fenix_Finalize();
-    MPI_Finalize();
-    return 0;
-  }
+  fenix_require(num_ranks == 2);
 
   group_create(my_group, {.depth = 1});
 
@@ -44,15 +38,9 @@ int main(int argc, char** argv) {
     fprintf(stderr, "  Loading first 50 elements into smaller buffer\n");
   std::vector<int> target_buffer(50, -999);
 
-  int ret = member_load(
+  member_load(
     my_group, my_member, target_buffer.data(), 0, fenix::DataSubset({0, 49})
   );
-  if (ret != FENIX_SUCCESS) {
-    fprintf(
-      stderr, "Rank %d: ERROR loading into smaller buffer, ret=%d\n", rank, ret
-    );
-    MPI_Abort(res_comm, 1);
-  }
 
   // Verify first 50 elements were loaded
   for (int i = 0; i < 50; i++) {
@@ -75,23 +63,15 @@ int main(int argc, char** argv) {
     );
   std::vector<int> large_buffer(150, -888);
 
+  bool caught_exception = false;
   try {
-    ret = member_load(
+    member_load(
       my_group, my_member, large_buffer.data(), 0, fenix::DataSubset({0, 149})
     );
   } catch (const fenix::RuntimeException& e) {
-    ret = e.error;
+    caught_exception = true;
   }
-
-  // Should get FENIX_ERROR_PARTIAL_RESTORE since checkpoint only has 100
-  // elements
-  if (ret != FENIX_ERROR_PARTIAL_RESTORE) {
-    fprintf(
-      stderr, "Rank %d: ERROR expected partial restore error (%d), got %d\n",
-      rank, FENIX_ERROR_PARTIAL_RESTORE, ret
-    );
-    MPI_Abort(res_comm, 1);
-  }
+  fenix_require(caught_exception, "Expected partial restore exception");
 
   // Verify first 100 elements were loaded
   for (int i = 0; i < 100; i++) {

@@ -374,50 +374,39 @@ int member_repair(int groupid, int memberid) {
   FENIX_CPP_API_END
 }
 
-int member_load(
+void member_load(
   int groupid, int memberid, int timestamp, const DataSubset& subset
 ) {
-  FENIX_CPP_API_BEGIN
-  return member_load(
-    groupid, memberid, FENIX_DATA_RESTORE_INPLACE, timestamp, subset
-  );
-  FENIX_CPP_API_END
+  assert(initialized());
+  member_load(groupid, memberid, FENIX_DATA_RESTORE_INPLACE, timestamp, subset);
 }
 
-int member_load(
+void member_load(
   int groupid, int memberid, void* target, int timestamp,
   const DataSubset& subset
 ) {
-  FENIX_CPP_API_BEGIN
+  assert(initialized());
   fenix_rt.data_recovery->find_member(groupid, memberid)
     ->load(target, timestamp, subset);
-  return FENIX_SUCCESS;
-  FENIX_CPP_API_END
 }
 
-int member_load_begin(int groupid, int memberid, FILE** fp, int timestamp) {
-  FENIX_CPP_API_BEGIN
+void member_load_begin(int groupid, int memberid, FILE** fp, int timestamp) {
+  assert(initialized());
   fenix_rt.data_recovery->find_member(groupid, memberid)
     ->load_begin(fp, timestamp);
-  return FENIX_SUCCESS;
-  FENIX_CPP_API_END
 }
 
-int member_load_begin(
+void member_load_begin(
   int groupid, int memberid, std::iostream** strm, int timestamp
 ) {
-  FENIX_CPP_API_BEGIN
+  assert(initialized());
   fenix_rt.data_recovery->find_member(groupid, memberid)
     ->load_begin(strm, timestamp);
-  return FENIX_SUCCESS;
-  FENIX_CPP_API_END
 }
 
-int member_load_end(int groupid, int memberid) {
-  FENIX_CPP_API_BEGIN
+void member_load_end(int groupid, int memberid) {
+  assert(initialized());
   fenix_rt.data_recovery->find_member(groupid, memberid)->load_end();
-  return FENIX_SUCCESS;
-  FENIX_CPP_API_END
 }
 
 DataSubset member_stored_subset(int groupid, int memberid, int timestamp) {

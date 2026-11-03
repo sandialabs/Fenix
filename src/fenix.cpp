@@ -473,9 +473,8 @@ int Fenix_Data_member_load(
   int group_id, int member_id, int time_stamp, const Fenix_Data_subset subset
 ) {
   FENIX_C_API_BEGIN
-  return member_load(
-    group_id, member_id, time_stamp, *(const DataSubset*)subset.impl
-  );
+  member_load(group_id, member_id, time_stamp, *(const DataSubset*)subset.impl);
+  return FENIX_SUCCESS;
   FENIX_C_API_END
 }
 
@@ -484,9 +483,10 @@ int Fenix_Data_member_load_to(
   const Fenix_Data_subset subset
 ) {
   FENIX_C_API_BEGIN
-  return member_load(
+  member_load(
     group_id, member_id, target, time_stamp, *(const DataSubset*)subset.impl
   );
+  return FENIX_SUCCESS;
   FENIX_C_API_END
 }
 
@@ -494,7 +494,8 @@ int Fenix_Data_member_load_begin(
   int group_id, int member_id, FILE** fpp, int time_stamp
 ) {
   FENIX_C_API_BEGIN
-  return member_load_begin(group_id, member_id, fpp, time_stamp);
+  member_load_begin(group_id, member_id, fpp, time_stamp);
+  return FENIX_SUCCESS;
   FENIX_C_API_END
 }
 
