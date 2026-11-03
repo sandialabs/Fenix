@@ -119,6 +119,7 @@ class DataMember {
   virtual void load(
     void* target, int target_count, int timestamp, DataSubset& data_found
   );
+  virtual DataSubset stored_subset(int timestamp);
   virtual int store(const DataSubset& subset);
   virtual int storev(const DataSubset& subset);
   virtual tasks::Task<int> istore(const DataSubset& subset);

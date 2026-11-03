@@ -357,6 +357,11 @@ int member_load_begin(
 //@!brief Overload of #Fenix_Data_member_load_end
 int member_load_end(int group_id, int member_id);
 
+//!@brief Query the stored subset for a member at a timestamp
+DataSubset member_stored_subset(
+  int group_id, int member_id, int time_stamp = FENIX_DATA_SNAPSHOT_ALL
+);
+
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(
   int group_id, int member_id, void* target_buffer = FENIX_DATA_RESTORE_INPLACE,

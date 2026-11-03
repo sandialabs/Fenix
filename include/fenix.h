@@ -614,6 +614,7 @@ int Fenix_Finalize();
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE 14
 #define FENIX_DATA_SNAPSHOT_LATEST -1
 #define FENIX_DATA_SNAPSHOT_ALL -2
+#define FENIX_DATA_SNAPSHOT_NONE INT_MAX
 #define FENIX_DATA_RESTORE_INPLACE NULL
 #define FENIX_DATA_RESTORE_FULL INT_MAX
 #define FENIX_RESIZEABLE 0
@@ -1096,6 +1097,28 @@ int Fenix_Data_member_load(
 int Fenix_Data_member_load_to(
   int group_id, int member_id, void* target, int target_count, int time_stamp,
   Fenix_Data_subset* found_data
+);
+
+/**
+ * @brief Get the stored subset for a member at a time stamp.
+ * @qualifier local
+ *
+ * Returns the subset of elements protected for this member in the specified
+ * snapshot. If time_stamp is FENIX_DATA_SNAPSHOT_ALL, returns the union of the
+ * subsets protected across all locally available committed snapshots.
+ *
+ * The caller is responsible for freeing the returned subset with
+ * #Fenix_Data_subset_delete. If stored is NULL, the query is still performed
+ * and the temporary subset is discarded.
+ *
+ * @param[in] group_id The group of the member to query
+ * @param[in] member_id The member to query
+ * @param[in] time_stamp Time stamp of the snapshot to query
+ * @param[out] stored The subset of elements successfully stored
+ * @returnstatus
+ */
+int Fenix_Data_member_get_stored_subset(
+  int group_id, int member_id, int time_stamp, Fenix_Data_subset* stored
 );
 
 /**

@@ -328,6 +328,20 @@ void DataMember::load(
   }
 }
 
+DataSubset DataMember::stored_subset(int timestamp) {
+  if (timestamp != FENIX_DATA_SNAPSHOT_ALL) {
+    return find_snapshot(timestamp)->protected_subset();
+  }
+
+  if (commit_snapshots_.empty()) FENIX_THROW(FENIX_ERROR_NODATA_FOUND);
+
+  DataSubset subset = {};
+  for (auto it = commit_snapshots_.rbegin(); it != commit_snapshots_.rend(); ++it) {
+    subset += (*it)->protected_subset();
+  }
+  return subset;
+}
+
 int DataMember::store(const DataSubset& subset) {
   // Default: call async version and wait
   return istore(subset).result();

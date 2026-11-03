@@ -504,6 +504,16 @@ int Fenix_Data_member_lrestore(
   FENIX_C_API_END
 }
 
+int Fenix_Data_member_get_stored_subset(
+  int group_id, int member_id, int timestamp, Fenix_Data_subset* stored
+) {
+  FENIX_C_API_BEGIN
+  auto ss = member_stored_subset(group_id, member_id, timestamp);
+  stored->impl = new DataSubset(std::move(ss));
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
 int Fenix_Data_subset_create(
   int num_blocks, int start_offset, int end_offset, int stride,
   Fenix_Data_subset* subset

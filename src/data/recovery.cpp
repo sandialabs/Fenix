@@ -424,6 +424,12 @@ int member_load_end(int groupid, int memberid) {
   FENIX_CPP_API_END
 }
 
+DataSubset member_stored_subset(int groupid, int memberid, int timestamp) {
+  assert(initialized());
+  return fenix_rt.data_recovery->find_member(groupid, memberid)
+    ->stored_subset(timestamp);
+}
+
 int member_restore(
   int groupid, int memberid, void* data, int maxcount, int timestamp,
   DataSubset& data_found
