@@ -186,6 +186,13 @@ struct DataSubset {
   DataSubset& operator+=(const Fenix_Data_subset& other);
 
   DataSubset operator-(const DataSubset& other) const;
+  DataSubset& operator-=(const DataSubset& other);
+
+  DataSubset operator&(const DataSubset& other) const;
+  DataSubset& operator&=(const DataSubset& other);
+
+  DataSubset operator~() const;
+
   bool operator==(const DataSubset& other) const;
   bool operator!=(const DataSubset& other) const;
 

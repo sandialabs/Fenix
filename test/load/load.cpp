@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
   if (rank == 0) fprintf(stderr, "Test loading to another location\n");
   member_define(my_group, my_member, nullptr, FENIX_RESIZEABLE, MPI_INT);
   for (int& i : data) i = -1;
-  member_load(my_group, my_member, data.data(), 30);
+  member_load(my_group, my_member, data.data(), {{0, 29}});
   for (int i = 0; i < 40; i++) {
     if (i < 10) fenix_require(data[i] == 0x55555555);
     else if (i < 20) fenix_require(data[i] == 0);

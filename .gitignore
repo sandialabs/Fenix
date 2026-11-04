@@ -59,3 +59,10 @@ pre-commit-*.pyz
 
 # VSCode IDE files
 .vscode/
+
+# Agentic configs
+CLAUDE.md
+AGENTS.md
+.claude/
+.codex/
+.opencode-workspace/
