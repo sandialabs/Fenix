@@ -1,0 +1,3 @@
+include:
+  - project: 'ctrl/ctrl'
+    file: '.gitlab-ci.yml'
