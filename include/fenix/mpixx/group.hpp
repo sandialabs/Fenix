@@ -87,6 +87,8 @@ class Group {
   // Check if two groups are identical (MPI_IDENT)
   bool operator==(const Group& other) const;
   bool operator!=(const Group& other) const { return !(*this == other); }
+  bool operator==(const MPI_Group& other) const;
+  bool operator!=(const MPI_Group& other) const { return !(*this == other); }
 
   // Check if two groups are similar (MPI_SIMILAR - same members, may differ in
   // order)

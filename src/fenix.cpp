@@ -184,6 +184,32 @@ int Fenix_get_rank_role(MPI_Comm comm, int rank, int* role) {
   FENIX_C_API_END
 }
 
+int Fenix_get_slot() {
+  assert(initialized());
+  return slot();
+}
+
+int Fenix_rank_to_slot(MPI_Comm comm, int rank, int* slot) {
+  FENIX_C_API_BEGIN
+  *slot = rank_to_slot(comm, rank);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_slot_to_rank(MPI_Comm comm, int slot, int* rank) {
+  FENIX_C_API_BEGIN
+  *rank = slot_to_rank(comm, slot);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_repair_group(MPI_Group old_group, MPI_Group* new_group) {
+  FENIX_C_API_BEGIN
+  *new_group = repair_group(old_group);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
 namespace fenix {
 
 template <typename T>
