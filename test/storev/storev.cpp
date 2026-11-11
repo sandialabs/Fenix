@@ -154,28 +154,20 @@ int main(int argc, char** argv) {
             FENIX_DATA_POLICY_IMR, NULL, &errflag
           );
 
-          //Do a null restore to get information about the stored subset
-          DataSubset stored_subset;
-          int ret = member_restore(
-            my_group, my_member, nullptr, 0, FENIX_DATA_SNAPSHOT_LATEST,
-            stored_subset
-          );
-          if (ret != FENIX_SUCCESS) {
-            fprintf(stderr, "Rank %d restore failure w/ code %d\n", rank, ret);
-            MPI_Abort(MPI_COMM_WORLD, 1);
-          }
+          // Repair the member internally
+          member_repair(my_group, my_member);
 
           //Resize data to fit all stored data
+          DataSubset stored_subset = member_stored_subset(
+            my_group, my_member, FENIX_DATA_SNAPSHOT_LATEST
+          );
           data.resize(stored_subset.end() + 1);
 
           //Set all data to a value that was never stored, just for testing
           for (int& i : data) i = -2;
 
-          //Now do an lrestore to get the recovered data.
-          ret = member_load(
-            my_group, my_member, data.data(), data.size(),
-            FENIX_DATA_SNAPSHOT_LATEST, stored_subset
-          );
+          //Now load the recovered subset.
+          member_load(my_group, my_member, data.data(), stored_subset);
 
           break;
         } catch (const fenix::CommException& nested) {

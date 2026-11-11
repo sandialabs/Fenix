@@ -339,35 +339,43 @@ inline int member_istorev(
 int member_repair(int group_id, int member_id);
 
 //!@brief Overload of #Fenix_Data_member_load
-int member_load(
+void member_load(
   int group_id, int member_id, int time_stamp = FENIX_DATA_SNAPSHOT_ALL,
-  DataSubset& data_found = SUBSET_IGNORE
+  const DataSubset& subset = SUBSET_FULL
 );
+inline void member_load(int g, int m, const DataSubset& s) {
+  member_load(g, m, FENIX_DATA_SNAPSHOT_ALL, s);
+}
 
 //!@brief Overload of #Fenix_Data_member_load_to
-int member_load(
+void member_load(
   int group_id, int member_id, void* target,
-  int target_count       = FENIX_DATA_RESTORE_FULL,
-  int time_stamp         = FENIX_DATA_SNAPSHOT_ALL,
-  DataSubset& data_found = SUBSET_IGNORE
+  int time_stamp           = FENIX_DATA_SNAPSHOT_ALL,
+  const DataSubset& subset = SUBSET_FULL
 );
+inline void member_load(int g, int m, void* t, const DataSubset& s) {
+  member_load(g, m, t, FENIX_DATA_SNAPSHOT_ALL, s);
+}
 
 //!@brief Overload of #Fenix_Data_member_load_begin
-int member_load_begin(
+void member_load_begin(
   int group_id, int member_id, FILE** fp,
-  int time_stamp         = FENIX_DATA_SNAPSHOT_LATEST,
-  DataSubset& data_found = SUBSET_IGNORE
+  int time_stamp = FENIX_DATA_SNAPSHOT_LATEST
 );
 
 //!@brief Overload of #Fenix_Data_member_load_begin
-int member_load_begin(
+void member_load_begin(
   int group_id, int member_id, std::iostream** strm,
-  int time_stamp         = FENIX_DATA_SNAPSHOT_LATEST,
-  DataSubset& data_found = SUBSET_IGNORE
+  int time_stamp = FENIX_DATA_SNAPSHOT_LATEST
 );
 
 //@!brief Overload of #Fenix_Data_member_load_end
-int member_load_end(int group_id, int member_id);
+void member_load_end(int group_id, int member_id);
+
+//!@brief Query the stored subset for a member at a timestamp
+DataSubset member_stored_subset(
+  int group_id, int member_id, int time_stamp = FENIX_DATA_SNAPSHOT_ALL
+);
 
 //!@brief Overload of #Fenix_Data_member_restore
 int member_restore(

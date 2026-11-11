@@ -134,6 +134,7 @@ typedef enum {
   FENIX_ERROR_MLOG_EXISTS,
   FENIX_ERROR_MLOG_LIBRARY_UNAVAILABLE,
   FENIX_ERROR_PROCESS_FAILURE,
+  FENIX_ERROR_PARTIAL_RESTORE,
 
   //Warnings are positive
   FENIX_WARNING_SPARE_RANKS_DEPLETED = 100,
@@ -668,6 +669,7 @@ int Fenix_Finalize();
 #define FENIX_DATA_MEMBER_ATTRIBUTE_SIZE 14
 #define FENIX_DATA_SNAPSHOT_LATEST -1
 #define FENIX_DATA_SNAPSHOT_ALL -2
+#define FENIX_DATA_SNAPSHOT_NONE INT_MAX
 #define FENIX_DATA_RESTORE_INPLACE NULL
 #define FENIX_DATA_RESTORE_FULL INT_MAX
 #define FENIX_RESIZEABLE 0
@@ -1103,53 +1105,68 @@ int Fenix_Data_member_repair(int group_id, int member_id);
  * @brief Load this member's committed data into user's data.
  * @qualifier local
  *
- * Attempts to load up to ATTRIBUTE_COUNT elements into ATTRIBUTE_BUFFER.
+ * Attempts to load the requested subset into ATTRIBUTE_BUFFER.
  *
  * For members without a serializer, data is loaded by directly copying memory.
  * Otherwise, data is loaded by calls to this member's serializer.
  *
- * If time stamp is FENIX_DATA_SNAPSHOT_ALL, this function attempts to load
- * elements [0, MEMBER_ATTRIBUTE_COUNT-1] by loading each element from the most
- * recent available snapshot the individual element was committed in.
+ * If time stamp is FENIX_DATA_SNAPSHOT_ALL, this function attempts to load each
+ * requested element from the most recent available snapshot that committed it.
  *
  * If a snapshot at the specified time stamp is not locally available, raises
- * FENIX_ERROR_NODATA_FOUND. If any elements from [0, MEMBER_ATTRIBUTE_COUNT-1]
- * were not loaded from the snapshot(s), returns FENIX_WARNING_PARTIAL_RESTORE.
- *
- * User is responsible for freeing the subset returned in found_data, unless
- * found_data is FENIX_DATA_SUBSET_IGNORE (in which case no subset is returned).
+ * FENIX_ERROR_NODATA_FOUND. If only part of the requested subset is available,
+ * Fenix first loads the available elements and then raises
+ * FENIX_ERROR_PARTIAL_RESTORE.
  *
  * @param[in] group_id The group of the member to load
  * @param[in] member_id The member to load
  * @param[in] time_stamp Time stamp of the snapshot to load
- * @param[inout] found_data Subset of the elements successfully loaded
+ * @param[in] subset Subset of the elements to load
  * @returnstatus
  */
 int Fenix_Data_member_load(
-  int group_id, int member_id, int time_stamp, Fenix_Data_subset* found_data
+  int group_id, int member_id, int time_stamp, const Fenix_Data_subset subset
 );
 
 /**
  * @brief As #Fenix_Data_member_load, but with a custom load destination
  * @qualifier local
  *
- * Attempts to load up to target_count elements into target. Otherwise behaves
- * as #Fenix_Data_member_load.
- *
- * If target_count is FENIX_DATA_RESTORE_FULL, assumes buffer has space to load
- * all available elements.
+ * Loads the requested subset into target. Otherwise behaves as
+ * #Fenix_Data_member_load.
  *
  * @param[in] group_id The group of the member to load
  * @param[in] member_id The member to load
  * @param[inout] target The custom load destination
- * @param[in] target_count The number of elements to attempt to load
  * @param[in] time_stamp Time stamp of the snapshot to load
- * @param[inout] found_data Subset of the elements successfully loaded
+ * @param[in] subset Subset of the elements to load
  * @returnstatus
  */
 int Fenix_Data_member_load_to(
-  int group_id, int member_id, void* target, int target_count, int time_stamp,
-  Fenix_Data_subset* found_data
+  int group_id, int member_id, void* target, const Fenix_Data_subset subset,
+  int time_stamp
+);
+
+/**
+ * @brief Get the stored subset for a member at a time stamp.
+ * @qualifier local
+ *
+ * Returns the subset of elements protected for this member in the specified
+ * snapshot. If time_stamp is FENIX_DATA_SNAPSHOT_ALL, returns the union of the
+ * subsets protected across all locally available committed snapshots.
+ *
+ * The caller is responsible for freeing the returned subset with
+ * #Fenix_Data_subset_delete. If stored is NULL, the query is still performed
+ * and the temporary subset is discarded.
+ *
+ * @param[in] group_id The group of the member to query
+ * @param[in] member_id The member to query
+ * @param[in] time_stamp Time stamp of the snapshot to query
+ * @param[out] stored The subset of elements successfully stored
+ * @returnstatus
+ */
+int Fenix_Data_member_get_stored_subset(
+  int group_id, int member_id, int time_stamp, Fenix_Data_subset* stored
 );
 
 /**
@@ -1162,8 +1179,7 @@ int Fenix_Data_member_load_to(
  * It is an error to call any staging, storing, loading, or restoring function
  * involving this member before a corresponding call to
  * #Fenix_Data_member_load_end. Returned file is read-only and must not be
- * closed by the user. The value of any data outside the found_data subset is
- * undefined.
+ * closed by the user.
  *
  * Note that time_stamp must not be FENIX_DATA_SNAPSHOT_ALL.
  *
@@ -1171,12 +1187,10 @@ int Fenix_Data_member_load_to(
  * @param[in] member_id The member to load
  * @param[out] fpp Output location for the file pointer to be written to
  * @param[in] time_stamp Time stamp of the snapshot to load
- * @param[inout] found_data Subset of the elements successfully loaded
  * @returnstatus
  */
-int Fenix_data_member_load_begin(
-  int group_id, int member_id, FILE** fpp, int time_stamp,
-  Fenix_Data_subset* found_data
+int Fenix_Data_member_load_begin(
+  int group_id, int member_id, FILE** fpp, int time_stamp
 );
 
 /**

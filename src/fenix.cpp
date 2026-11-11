@@ -495,6 +495,36 @@ int Fenix_Data_checkpoint(
   FENIX_C_API_END
 }
 
+int Fenix_Data_member_load(
+  int group_id, int member_id, int time_stamp, const Fenix_Data_subset subset
+) {
+  FENIX_C_API_BEGIN
+  member_load(group_id, member_id, time_stamp, *(const DataSubset*)subset.impl);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_load_to(
+  int group_id, int member_id, void* target, int time_stamp,
+  const Fenix_Data_subset subset
+) {
+  FENIX_C_API_BEGIN
+  member_load(
+    group_id, member_id, target, time_stamp, *(const DataSubset*)subset.impl
+  );
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_load_begin(
+  int group_id, int member_id, FILE** fpp, int time_stamp
+) {
+  FENIX_C_API_BEGIN
+  member_load_begin(group_id, member_id, fpp, time_stamp);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
 int Fenix_Data_member_restore(
   int group_id, int member_id, void* target_buffer, int max_count,
   int time_stamp, Fenix_Data_subset* data_found
@@ -518,15 +548,21 @@ int Fenix_Data_member_lrestore(
   int time_stamp, Fenix_Data_subset* data_found
 ) {
   FENIX_C_API_BEGIN
-  DataSubset* s = new DataSubset();
-  int ret =
-    member_load(group_id, member_id, target_buffer, max_count, time_stamp, *s);
-  if (data_found == nullptr) {
-    delete s;
-  } else {
-    data_found->impl = s;
-  }
-  return ret;
+  if (data_found) data_found->impl = new DataSubset();
+  DataSubset& s = data_found ? *(DataSubset*)data_found->impl : SUBSET_IGNORE;
+  fenix_rt.data_recovery->find_member(group_id, member_id)
+    ->lrestore(target_buffer, max_count, time_stamp, s);
+  return FENIX_SUCCESS;
+  FENIX_C_API_END
+}
+
+int Fenix_Data_member_get_stored_subset(
+  int group_id, int member_id, int timestamp, Fenix_Data_subset* stored
+) {
+  FENIX_C_API_BEGIN
+  auto ss      = member_stored_subset(group_id, member_id, timestamp);
+  stored->impl = new DataSubset(std::move(ss));
+  return FENIX_SUCCESS;
   FENIX_C_API_END
 }
 

@@ -49,8 +49,8 @@ class DataRefHolder {
 
 class DataRef {
  public:
-  DataRef(char* b, size_t len) : ref(b, len) {}
-  DataRef(char* b) : ref(b, std::numeric_limits<size_t>::max()) {}
+  DataRef(void* b, size_t len) : ref((char*)b, len) {}
+  DataRef(void* b) : DataRef(b, std::numeric_limits<size_t>::max()) {}
   DataRef() : DataRef(nullptr) {}
 
   DataRef(DataBuffer& db) : ref(db) {}
