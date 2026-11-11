@@ -39,9 +39,6 @@ class DataComponent {
   // Remove a group by id
   void remove_group(int id);
 
-  // Revoke all group cohort communicators
-  void revoke();
-
   // Get number of groups
   size_t count() const { return groups.size(); }
 };

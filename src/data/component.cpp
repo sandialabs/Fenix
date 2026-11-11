@@ -101,10 +101,4 @@ DataMember* DataComponent::find_member(
   return this->find_group(groupid, loc)->find_member(memberid, loc);
 }
 
-void DataComponent::revoke() {
-  for (auto& group : groups) {
-    group->revoke();
-  }
-}
-
 } // namespace fenix::data
